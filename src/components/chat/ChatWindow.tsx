@@ -24,7 +24,7 @@ export function ChatWindow() {
     const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null)
     const [newMessage, setNewMessage] = useState('')
     const [loading, setLoading] = useState(false)
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
     const searchParams = useSearchParams()
     const activeChatId = searchParams.get('chatId')
     const scrollRef = useRef<HTMLDivElement>(null)

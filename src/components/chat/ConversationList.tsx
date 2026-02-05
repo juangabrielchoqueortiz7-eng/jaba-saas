@@ -19,7 +19,7 @@ interface Chat {
 export function ConversationList() {
     const [chats, setChats] = useState<Chat[]>([])
     const [loading, setLoading] = useState(true)
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
     const router = useRouter()
     const searchParams = useSearchParams()
     const activeChatId = searchParams.get('chatId')
