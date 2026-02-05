@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server'
+import supabase from '@/lib/supabase'
 
 // Token de verificación que configuraste en .env.local.
 // DEBE coincidir con el que pongas en el Dashboard de Meta.
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        console.log('Incoming Webhook:', JSON.stringify(body, null, 2))
+        // console.log('Incoming Webhook:', JSON.stringify(body, null, 2))
 
         // Validar si es un mensaje de WhatsApp Business API
         if (body.object) {
@@ -45,14 +46,58 @@ export async function POST(request: Request) {
                 body.entry[0].changes[0].value.messages[0]
             ) {
                 // Aquí extraemos la información del mensaje
-                const messageObject = body.entry[0].changes[0].value.messages[0]
+                const value = body.entry[0].changes[0].value
+                const messageObject = value.messages[0]
                 const phoneNumber = messageObject.from
                 const messageText = messageObject.text?.body || 'Mensaje sin texto'
-                const messageType = messageObject.type
+                // Intentar obtener el nombre del contacto
+                const contactName = value.contacts?.[0]?.profile?.name || phoneNumber
 
-                console.log(`Mensaje recibido de ${phoneNumber}: ${messageText}`)
+                console.log(`Mensaje recibido de ${contactName} (${phoneNumber}): ${messageText}`)
 
-                // TODO: Aquí procesaremos el mensaje con IA más adelante
+                // 1. Buscar o Crear CHAT
+                const { data: existingChat } = await supabase
+                    .from('chats')
+                    .select('id, unread_count')
+                    .eq('phone_number', phoneNumber)
+                    .single()
+
+                let chatId
+
+                if (existingChat) {
+                    chatId = existingChat.id
+                    await supabase.from('chats').update({
+                        last_message: messageText,
+                        last_message_time: new Date().toISOString(),
+                        unread_count: (existingChat.unread_count || 0) + 1
+                    }).eq('id', chatId)
+                } else {
+                    const { data: newChat, error } = await supabase.from('chats').insert({
+                        phone_number: phoneNumber,
+                        contact_name: contactName,
+                        last_message: messageText,
+                        last_message_time: new Date().toISOString(),
+                        unread_count: 1
+                    }).select().single()
+
+                    if (error) {
+                        console.error('Error creating chat:', error)
+                        // Si falla, no podemos guardar el mensaje
+                        return new NextResponse('Error creating chat', { status: 500 })
+                    }
+                    chatId = newChat.id
+                }
+
+                // 2. Guardar MENSAJE
+                const { error: msgError } = await supabase.from('messages').insert({
+                    chat_id: chatId,
+                    content: messageText,
+                    is_from_me: false,
+                    status: 'delivered'
+                })
+
+                if (msgError) console.error('Error saving message:', msgError)
+
             }
 
             // Retornar 200 OK inmediatamente para mantener a Meta feliz
