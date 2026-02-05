@@ -52,7 +52,7 @@ export default async function DashboardLayout({
                         Dashboard
                     </Link>
                     <Link
-                        href="#"
+                        href="/dashboard/chats"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors font-medium"
                     >
                         <MessageSquare size={20} />
