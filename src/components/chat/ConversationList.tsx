@@ -19,6 +19,7 @@ interface Chat {
 export function ConversationList() {
     const [chats, setChats] = useState<Chat[]>([])
     const [loading, setLoading] = useState(true)
+    const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [supabase] = useState(() => createClient())
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -31,6 +32,10 @@ export function ConversationList() {
                 .select('*')
                 .order('last_message_time', { ascending: false })
 
+            if (error) {
+                console.error('Error fetching chats:', error)
+                setErrorMsg(error.message + ' (Hint: Check Console)')
+            }
             if (data) setChats(data)
             setLoading(false)
         }
@@ -68,6 +73,11 @@ export function ConversationList() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
+                {errorMsg && (
+                    <div className="p-4 bg-red-900/50 text-red-200 text-xs m-2 rounded border border-red-800">
+                        Error: {errorMsg}
+                    </div>
+                )}
                 {loading && <p className="text-center text-slate-500 mt-4">Cargando...</p>}
 
                 {!loading && chats.length === 0 && (
