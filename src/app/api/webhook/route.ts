@@ -83,7 +83,7 @@ export async function POST(request: Request) {
                     if (error) {
                         console.error('Error creating chat:', error)
                         // Si falla, no podemos guardar el mensaje
-                        return new NextResponse('Error creating chat', { status: 500 })
+                        return new NextResponse(JSON.stringify({ error: 'Error creating chat', details: error }), { status: 500 })
                     }
                     chatId = newChat.id
                 }
