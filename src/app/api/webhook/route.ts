@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server'
-import supabase from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 // Token de verificación que configuraste en .env.local.
 // DEBE coincidir con el que pongas en el Dashboard de Meta.
