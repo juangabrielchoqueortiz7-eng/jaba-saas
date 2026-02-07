@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import TriggerBuilder from '../../TriggerBuilder'
+import TriggerBuilder from '../TriggerBuilder'
 
 export default function EditTriggerPage() {
     const params = useParams()
