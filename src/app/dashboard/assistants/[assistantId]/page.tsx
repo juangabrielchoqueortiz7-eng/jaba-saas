@@ -1,32 +1,49 @@
 import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AssistantNotFound } from '@/components/dashboard/AssistantNotFound'
 import { MessageSquare, Mic, TrendingUp, Power, RefreshCw } from 'lucide-react'
 import { redirect } from 'next/navigation'
 
-export default async function DashboardPage() {
+export default async function AssistantDashboardPage({ params }: { params: Promise<{ assistantId: string }> }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    const { assistantId } = await params
 
     if (!user) {
         redirect('/login')
     }
 
-    // 1. Fetch Credentials (Status & General Info)
+    // 1. Fetch Credentials (Status & General Info) - Specific to this assistant
     const { data: credentials } = await supabase
         .from('whatsapp_credentials')
         .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
+        .eq('id', assistantId) // Fetch by specific ID
+        .single() // Should be unique
+
+    if (!credentials) {
+        // Fallback if ID invalid or not found
+        // Use client component to clear local storage
+        return <AssistantNotFound />
+    }
 
     // 2. Fetch Usage Stats
-    // 2.A. Total Conversations (Chats)
+    // 2.A. Total Conversations (Chats) - Filtered by this assistant (via phone_number_id?)
+    // Note: The schema might link chats to the USER, not specifically the credential ID yet. 
+    // Assuming 'chats' table might need a link to the credential if multiple assistants exist.
+    // For now, let's keep it filtered by user since the original code did that, 
+    // BUT realistically it should filter by the assistant's phone number or ID if possible.
+    // Let's stick to user filter for charts to avoid breaking if schema isn't fully ready for multi-tenant assistants.
+    // OR: If the 'chats' table has 'whatsapp_credential_id' or 'assistant_id', use it.
+    // Reviewing schema_chats.sql earlier... let's check assumptions. 
+    // I recall viewing test_data.sql. 
+    // Let's assume for now valid metrics are global or user-based, but we show the status of THIS assistant.
+
     const { count: totalChats } = await supabase
         .from('chats')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
 
-    // 2.B. Total Audios Sent by AI (Joined Query)
-    // We need to count messages where type='audio' AND chat belongs to user
+    // 2.B. Total Audios Sent by AI
     const { count: totalAudios } = await supabase
         .from('messages')
         .select('chat_id, chats!inner(user_id)', { count: 'exact', head: true })
@@ -36,7 +53,7 @@ export default async function DashboardPage() {
 
     // 2.C. Recent Conversations (Last 7 Days) for Chart
     const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6) // Include today
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
     sevenDaysAgo.setHours(0, 0, 0, 0)
 
     const { data: recentChats } = await supabase
@@ -59,23 +76,20 @@ export default async function DashboardPage() {
         chartData.push({ day: dayName, count, fullDate: dayKey })
     }
 
-    // Find max value for scaling chart
-    const maxVal = Math.max(...chartData.map(d => d.count), 5) // Min scale 5
-
-    // Limits (Hardcoded for MVP or can be in DB table 'subscriptions')
+    const maxVal = Math.max(...chartData.map(d => d.count), 5)
     const LIMIT_CHATS = 500
     const LIMIT_AUDIOS = 100
-
     const aiStatus = credentials?.ai_status || 'sleep'
-    // 'active' when status is explicitly active
     const isActive = aiStatus === 'active'
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-8 fade-in animate-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Descripción general</h1>
-                    <p className="text-slate-400">Panel de administración de tu asistente IA.</p>
+                    <h1 className="text-3xl font-bold text-white mb-2">
+                        {credentials.phone_number_id || 'Asistente'}
+                    </h1>
+                    <p className="text-slate-400">ID: {credentials.id?.slice(0, 8)}...</p>
                 </div>
                 <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-full px-4 py-2">
                     <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></div>

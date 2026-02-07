@@ -9,6 +9,7 @@ import {
     Settings,
     LogOut
 } from 'lucide-react'
+import { SidebarNav } from '@/components/dashboard/SidebarNav'
 
 export default async function DashboardLayout({
     children,
@@ -43,36 +44,7 @@ export default async function DashboardLayout({
                     <span className="font-bold text-lg tracking-tight">JABA Saas</span>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2">
-                    <Link
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-500/10 text-indigo-400 font-medium"
-                    >
-                        <LayoutDashboard size={20} />
-                        Dashboard
-                    </Link>
-                    <Link
-                        href="/dashboard/chats"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors font-medium"
-                    >
-                        <MessageSquare size={20} />
-                        Chats
-                    </Link>
-                    <Link
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors font-medium"
-                    >
-                        <Users size={20} />
-                        Clientes
-                    </Link>
-                    <Link
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors font-medium"
-                    >
-                        <Settings size={20} />
-                        Configuración
-                    </Link>
-                </nav>
+                <SidebarNav />
 
                 <div className="p-4 border-t border-slate-800">
                     <div className="flex items-center gap-3 px-4 py-3 mb-2">

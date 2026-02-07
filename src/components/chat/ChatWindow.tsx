@@ -121,8 +121,23 @@ export function ChatWindow() {
 
     if (!activeChatId) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-slate-950 text-slate-500">
-                <p>Selecciona una conversación para empezar</p>
+            <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-slate-500 relative overflow-hidden">
+                {/* Background Pattern (Watermark) */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" className="w-[80%] h-[80%] text-white" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4ZM12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6ZM12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8Z" />
+                    </svg>
+                </div>
+
+                <div className="z-10 text-center">
+                    <div className="bg-slate-900 p-6 rounded-full inline-flex mb-6 text-slate-400">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-16 h-16">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+                        </svg>
+                    </div>
+                    <h3 className="text-xl font-medium text-slate-300">No se ha seleccionado ninguna conversación</h3>
+                    <p className="mt-2 text-slate-600 max-w-sm mx-auto">Selecciona un chat de la lista derecha para ver el historial y responder.</p>
+                </div>
             </div>
         )
     }
