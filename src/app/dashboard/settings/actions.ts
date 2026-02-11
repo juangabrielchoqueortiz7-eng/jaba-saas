@@ -34,3 +34,11 @@ export async function checkWhatsAppStatus(phoneNumberId: string, accessToken: st
         return { success: false, error: 'Error de conexión con Meta' }
     }
 }
+
+export async function getSystemConfig() {
+    return {
+        webhookVerifyToken: process.env.WEBHOOK_VERIFY_TOKEN || 'No configurado en .env',
+        hasGoogleApiKey: !!process.env.GOOGLE_API_KEY,
+        webhookUrl: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook` : 'https://[TU-DOMINIO]/api/webhook'
+    }
+}

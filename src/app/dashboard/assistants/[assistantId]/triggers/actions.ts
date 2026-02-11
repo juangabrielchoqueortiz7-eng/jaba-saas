@@ -107,7 +107,8 @@ export async function saveTrigger(
         name: string,
         type: 'logic' | 'flow' | 'time' | 'manual',
         description: string,
-        actions: { type: string, payload: any }[]
+        actions: { type: string, payload: any }[],
+        conditions?: { type: string, operator: string, value: string }[]
     }
 ) {
     const supabase = await createClient()
@@ -168,6 +169,27 @@ export async function saveTrigger(
             .insert(actionsToInsert)
 
         if (actionsError) throw actionsError
+        if (actionsError) throw actionsError
+    }
+
+    // 3. Manage Conditions
+    if (triggerData.id) {
+        await supabase.from('trigger_conditions').delete().eq('trigger_id', triggerId)
+    }
+
+    if (triggerData.conditions && triggerData.conditions.length > 0) {
+        const conditionsToInsert = triggerData.conditions.map((cond, index) => ({
+            trigger_id: triggerId,
+            type: cond.type,
+            operator: cond.operator,
+            value: cond.value
+        }))
+
+        const { error: condError } = await supabase
+            .from('trigger_conditions')
+            .insert(conditionsToInsert)
+
+        if (condError) throw condError
     }
 
     revalidatePath(`/dashboard/assistants/${assistantId}/triggers`)

@@ -146,14 +146,12 @@ export default function TriggersPage() {
                                         <td className="p-4">{new Date(trigger.created_at).toLocaleDateString()}</td>
                                         <td className="p-4 text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Link href={`/dashboard/assistants/${assistantId}/triggers/${trigger.id}`}>
-                                                <Button size="icon" variant="ghost" className="text-slate-400 hover:text-white">
+                                                <Button className="h-9 w-9 p-0 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white">
                                                     <Edit size={16} />
                                                 </Button>
                                             </Link>
                                             <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                                className="h-9 w-9 p-0 bg-transparent text-red-400 hover:text-red-300 hover:bg-red-900/20"
                                                 onClick={() => handleDelete(trigger.id)}
                                             >
                                                 <Trash2 size={16} />

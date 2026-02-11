@@ -240,7 +240,6 @@ export default function RechargesPage() {
                             </div>
 
                             <Button
-                                size="lg"
                                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 rounded-xl shadow-lg shadow-indigo-600/20"
                                 onClick={handlePayment}
                                 disabled={isProcessing || !selectedPackage}

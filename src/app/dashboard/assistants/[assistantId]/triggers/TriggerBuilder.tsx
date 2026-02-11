@@ -127,7 +127,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
             {/* Top Bar */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <Button className="h-9 w-9 p-0 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white" onClick={() => router.back()}>
                         <ArrowLeft />
                     </Button>
                     <div>
@@ -217,8 +217,8 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                         <button
                             onClick={() => setActiveTab('conditions')}
                             className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'conditions'
-                                    ? 'border-red-500 text-red-500'
-                                    : 'border-transparent text-slate-400 hover:text-white'
+                                ? 'border-red-500 text-red-500'
+                                : 'border-transparent text-slate-400 hover:text-white'
                                 }`}
                         >
                             Condiciones ({conditions.length})
@@ -226,8 +226,8 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                         <button
                             onClick={() => setActiveTab('actions')}
                             className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'actions'
-                                    ? 'border-green-500 text-green-500'
-                                    : 'border-transparent text-slate-400 hover:text-white'
+                                ? 'border-green-500 text-green-500'
+                                : 'border-transparent text-slate-400 hover:text-white'
                                 }`}
                         >
                             Acciones ({actions.length})
@@ -335,7 +335,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                 actions.map((action, index) => (
                                     <div key={index} className="bg-slate-900 border border-slate-800 rounded-lg p-4 relative">
                                         <div className="absolute top-2 right-2">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-500 hover:text-red-400" onClick={() => removeAction(index)}>
+                                            <Button className="h-6 w-6 p-0 bg-transparent hover:bg-slate-800 text-slate-500 hover:text-red-400" onClick={() => removeAction(index)}>
                                                 <Trash2 size={14} />
                                             </Button>
                                         </div>
@@ -417,17 +417,13 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                         {action.type === 'toggle_bot' && (
                                             <div className="flex items-center gap-2">
                                                 <Button
-                                                    size="sm"
-                                                    variant={action.payload.active ? 'default' : 'secondary'}
-                                                    className={action.payload.active ? 'bg-green-600' : 'bg-slate-700 text-slate-400'}
+                                                    className={`h-8 px-3 text-xs ${action.payload.active ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-400'}`}
                                                     onClick={() => updateActionPayload(index, 'active', true)}
                                                 >
                                                     ENCENDER
                                                 </Button>
                                                 <Button
-                                                    size="sm"
-                                                    variant={!action.payload.active ? 'destructive' : 'secondary'}
-                                                    className={!action.payload.active ? 'bg-red-600' : 'bg-slate-700 text-slate-400'}
+                                                    className={`h-8 px-3 text-xs ${!action.payload.active ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-400'}`}
                                                     onClick={() => updateActionPayload(index, 'active', false)}
                                                 >
                                                     APAGAR

@@ -11,7 +11,7 @@ import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
-import { checkWhatsAppStatus } from './actions'
+import { checkWhatsAppStatus, getSystemConfig } from './actions'
 
 export default function SettingsPage() {
 
@@ -45,7 +45,7 @@ export default function SettingsPage() {
                     <p className="font-semibold">Error de Conexión</p>
                     <p className="text-xs opacity-80">{error}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={checkStatus} className="ml-auto border-red-800 text-red-400 hover:bg-red-900/20">Reintentar</Button>
+                <Button onClick={checkStatus} className="ml-auto border border-red-800 text-red-400 hover:bg-red-900/20 h-8 px-3 text-sm bg-transparent">Reintentar</Button>
             </div>
         )
 
@@ -58,7 +58,7 @@ export default function SettingsPage() {
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                         Conexión Establecida
                     </h3>
-                    <Button variant="ghost" size="sm" onClick={checkStatus} className="text-slate-400 hover:text-white h-8">
+                    <Button onClick={checkStatus} className="h-8 px-3 text-sm bg-transparent text-slate-400 hover:text-white hover:bg-slate-800">
                         <Settings2 size={14} className="mr-2" /> Actualizar
                     </Button>
                 </div>
@@ -124,6 +124,19 @@ export default function SettingsPage() {
     const [wabaId, setWabaId] = useState('')
     const [appId, setAppId] = useState('')
     const [accessToken, setAccessToken] = useState('')
+
+    // System Config State
+    const [webhookToken, setWebhookToken] = useState('Cargando...')
+    const [webhookUrl, setWebhookUrl] = useState('Cargando...')
+    const [googleApiKeyConfigured, setGoogleApiKeyConfigured] = useState(false)
+
+    useEffect(() => {
+        getSystemConfig().then(config => {
+            setWebhookToken(config.webhookVerifyToken)
+            setWebhookUrl(config.webhookUrl)
+            setGoogleApiKeyConfigured(config.hasGoogleApiKey)
+        })
+    }, [])
 
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -204,7 +217,6 @@ export default function SettingsPage() {
             const payload = {
                 user_id: user.id,
                 phone_number_id: phoneNumberId,
-                phone_number_id: phoneNumberId,
                 waba_id: wabaId,
                 app_id: appId,
                 access_token: accessToken,
@@ -255,7 +267,7 @@ export default function SettingsPage() {
             setTimeout(() => setCopied(false), 2000)
         }
         return (
-            <Button variant="outline" size="icon" onClick={handleCopy} className="h-9 w-9 border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-400">
+            <Button onClick={handleCopy} className="h-9 w-9 border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-400 flex items-center justify-center p-0">
                 {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
         )
@@ -452,9 +464,9 @@ export default function SettingsPage() {
 
                                         <SettingRow label="Tiempo de respuesta" description="Establece el intervalo de tiempo (segundos) en el que el asistente debe esperar antes de 'escribir' y responder.">
                                             <div className="flex items-center gap-2">
-                                                <Button type="button" variant="outline" size="sm" onClick={() => setResponseDelay(d => Math.max(0, d - 1))} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white">-</Button>
+                                                <Button type="button" onClick={() => setResponseDelay(d => Math.max(0, d - 1))} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">-</Button>
                                                 <span className="w-8 text-center text-white font-mono">{responseDelay}s</span>
-                                                <Button type="button" variant="outline" size="sm" onClick={() => setResponseDelay(d => d + 1)} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white">+</Button>
+                                                <Button type="button" onClick={() => setResponseDelay(d => d + 1)} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">+</Button>
                                             </div>
                                         </SettingRow>
 
@@ -524,9 +536,9 @@ export default function SettingsPage() {
 
                                         <SettingRow label="Cantidad de audios" description="Límite máximo de audios consecutivos que el asistente puede enviar en una misma conversación.">
                                             <div className="flex items-center gap-2">
-                                                <Button type="button" variant="outline" size="sm" onClick={() => setMaxAudioCount(c => Math.max(0, c - 1))} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white">-</Button>
+                                                <Button type="button" onClick={() => setMaxAudioCount(c => Math.max(0, c - 1))} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">-</Button>
                                                 <span className="w-8 text-center text-white font-mono">{maxAudioCount}</span>
-                                                <Button type="button" variant="outline" size="sm" onClick={() => setMaxAudioCount(c => c + 1)} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white">+</Button>
+                                                <Button type="button" onClick={() => setMaxAudioCount(c => c + 1)} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">+</Button>
                                             </div>
                                         </SettingRow>
 
@@ -639,9 +651,15 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
-                                        jaba_verify_token
+                                        {webhookUrl}
                                     </div>
-                                    <CopyButton text="jaba_verify_token" />
+                                    <CopyButton text={webhookUrl} />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
+                                        {webhookToken}
+                                    </div>
+                                    <CopyButton text={webhookToken} />
                                 </div>
                             </div>
                             <p className="text-sm text-slate-400 leading-relaxed text-justify mt-2">
