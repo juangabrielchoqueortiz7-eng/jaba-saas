@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
@@ -320,9 +320,23 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
                     >
                         Anterior
                     </button>
-                    <span className="text-sm text-slate-900 font-medium">
-                        Página {currentPage} de {totalPages}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-900 font-medium hidden sm:inline">Página</span>
+                        <input
+                            type="number"
+                            min={1}
+                            max={totalPages}
+                            value={currentPage}
+                            onChange={(e) => {
+                                const page = parseInt(e.target.value);
+                                if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                                    setCurrentPage(page);
+                                }
+                            }}
+                            className="w-16 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center text-slate-900"
+                        />
+                        <span className="text-sm text-slate-900 font-medium">de {totalPages}</span>
+                    </div>
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}

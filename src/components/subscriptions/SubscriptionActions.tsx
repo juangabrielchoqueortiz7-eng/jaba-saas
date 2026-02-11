@@ -13,9 +13,13 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 dayjs.extend(customParseFormat);
 
+import SubscriptionSettingsModal from './SubscriptionSettingsModal';
+import { Settings } from 'lucide-react';
+
 export default function SubscriptionActions({ onRefresh }: { onRefresh: () => void }) {
     const supabase = createClient();
     const [isImporting, setIsImporting] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
 
     const handleAdd = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -199,9 +203,15 @@ export default function SubscriptionActions({ onRefresh }: { onRefresh: () => vo
 
             <div className="hidden sm:block h-6 w-px bg-slate-300 mx-1"></div>
 
+            <button onClick={() => setShowSettings(true)} className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
+                <Settings size={16} className="text-indigo-600" /> Configurar
+            </button>
+
             <button onClick={handleDeleteAll} className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Borrar Todo">
                 <Trash2 size={16} />
             </button>
+
+            <SubscriptionSettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
         </div>
     );
 }
