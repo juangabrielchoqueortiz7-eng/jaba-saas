@@ -29,7 +29,7 @@ export default function SubscriptionCard({
                 <div className="flex-1">
                     <label className="text-xs text-slate-400 font-semibold uppercase">WhatsApp</label>
                     <input
-                        className="block w-full font-mono text-slate-700 font-medium bg-transparent focus:bg-slate-50 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1"
+                        className="block w-full font-mono text-slate-900 font-medium bg-transparent focus:bg-slate-50 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1"
                         defaultValue={sub.numero}
                         onBlur={(e) => onUpdate(sub.id, 'numero', e.target.value)}
                     />
@@ -48,7 +48,7 @@ export default function SubscriptionCard({
                 <label className="text-xs text-slate-400 font-semibold uppercase">Correo</label>
                 <div className="flex items-center gap-2">
                     <input
-                        className="block w-full text-sm text-slate-700 bg-transparent focus:bg-slate-50 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1 truncate"
+                        className="block w-full text-sm text-slate-900 bg-transparent focus:bg-slate-50 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1 truncate"
                         defaultValue={sub.correo}
                         onBlur={(e) => onUpdate(sub.id, 'correo', e.target.value)}
                     />
@@ -71,7 +71,7 @@ export default function SubscriptionCard({
                 <div>
                     <label className="text-xs text-slate-400 font-semibold uppercase">Equipo</label>
                     <input
-                        className="block w-full text-sm text-slate-600 bg-transparent focus:bg-slate-50 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1"
+                        className="block w-full text-sm text-slate-900 bg-transparent focus:bg-slate-50 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1"
                         defaultValue={sub.equipo}
                         onBlur={(e) => onUpdate(sub.id, 'equipo', e.target.value)}
                     />

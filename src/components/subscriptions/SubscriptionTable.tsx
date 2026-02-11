@@ -109,7 +109,20 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
             return;
         }
 
-        const url = `https://api.whatsapp.com/send?phone=${fullPhone}`;
+        let message = '';
+        const dateInfo = getDateStatus(sub.vencimiento);
+
+        if (dateInfo.days < 0) {
+            message = `Hola, tu suscripción venció el ${sub.vencimiento}. Por favor realiza el pago para renovar el servicio.`;
+        } else if (dateInfo.days <= 3) {
+            message = `Hola, te recordamos que tu suscripción vence pronto, el ${sub.vencimiento}. Evita cortes en el servicio renovando a tiempo.`;
+        } else {
+            message = `Hola, tienes una suscripción activa hasta el ${sub.vencimiento}.`;
+        }
+
+        const encodedMessage = encodeURIComponent(message);
+        const url = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodedMessage}`;
+
         window.open(url, '_blank');
         handleUpdate(sub.id, 'notified', true);
     };
@@ -177,7 +190,7 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
                                         <input
                                             type="text"
                                             placeholder="Buscar..."
-                                            className="w-full text-xs border-slate-300 rounded px-2 py-1 font-normal"
+                                            className="w-full text-xs border-slate-300 rounded px-2 py-1 font-normal text-slate-900"
                                             value={filtersState.numero}
                                             onChange={(e) => { setFilters(prev => ({ ...prev, numero: e.target.value })); setCurrentPage(1); }}
                                         />
@@ -239,7 +252,7 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
                                         <tr key={sub.id} className="hover:bg-slate-50 group transition-colors">
                                             <td className="px-6 py-3">
                                                 <input
-                                                    className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-500 rounded px-1"
+                                                    className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-500 rounded px-1 text-slate-900"
                                                     defaultValue={sub.numero}
                                                     onBlur={(e) => handleUpdate(sub.id, 'numero', e.target.value)}
                                                 />
@@ -247,7 +260,7 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
                                             <td className="px-6 py-3">
                                                 <div className="flex items-center gap-2">
                                                     <input
-                                                        className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-500 rounded px-1 truncate"
+                                                        className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-500 rounded px-1 truncate text-slate-900"
                                                         defaultValue={sub.correo}
                                                         onBlur={(e) => handleUpdate(sub.id, 'correo', e.target.value)}
                                                     />
@@ -273,7 +286,7 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
                                             </td>
                                             <td className="px-6 py-3">
                                                 <input
-                                                    className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-500 rounded px-1 text-center"
+                                                    className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-500 rounded px-1 text-center text-slate-900"
                                                     defaultValue={sub.equipo}
                                                     onBlur={(e) => handleUpdate(sub.id, 'equipo', e.target.value)}
                                                 />
@@ -307,7 +320,7 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
                     >
                         Anterior
                     </button>
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-slate-900 font-medium">
                         Página {currentPage} de {totalPages}
                     </span>
                     <button
