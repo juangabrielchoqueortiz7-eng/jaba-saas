@@ -175,39 +175,39 @@ export default function SubscriptionActions({ onRefresh }: { onRefresh: () => vo
 
     return (
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
-            <button onClick={handleAdd} className="bg-slate-800 text-white px-4 py-2 rounded-lg shadow hover:bg-slate-900 transition-all text-sm font-semibold flex items-center gap-2">
+            <button onClick={handleAdd} className="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition-all text-sm font-semibold flex items-center gap-2">
                 <Plus size={16} /> Nuevo
             </button>
 
-            <div className="hidden sm:block h-6 w-px bg-slate-300 mx-1"></div>
+            <div className="hidden sm:block h-6 w-px bg-slate-700 mx-1"></div>
 
-            <label className="cursor-pointer bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
-                <Upload size={16} className="text-green-600" />
+            <label className="cursor-pointer bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
+                <Upload size={16} className="text-emerald-500" />
                 {isImporting ? 'Importando...' : 'Importar'}
                 <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} disabled={isImporting} />
             </label>
 
             <div className="relative group">
-                <button className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
-                    <Download size={16} className="text-sky-600" /> Exportar
+                <button className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
+                    <Download size={16} className="text-sky-500" /> Exportar
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 hidden group-hover:block z-50">
-                    <button onClick={handleExportExcel} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700 flex items-center gap-2">
-                        <FileSpreadsheet size={14} className="text-green-600" /> Excel
+                <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 hidden group-hover:block z-50">
+                    <button onClick={handleExportExcel} className="w-full text-left px-4 py-2 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2">
+                        <FileSpreadsheet size={14} className="text-emerald-500" /> Excel
                     </button>
-                    <button onClick={handleExportPDF} className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-slate-700 flex items-center gap-2">
-                        <FileText size={14} className="text-red-600" /> PDF
+                    <button onClick={handleExportPDF} className="w-full text-left px-4 py-2 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2">
+                        <FileText size={14} className="text-red-500" /> PDF
                     </button>
                 </div>
             </div>
 
-            <div className="hidden sm:block h-6 w-px bg-slate-300 mx-1"></div>
+            <div className="hidden sm:block h-6 w-px bg-slate-700 mx-1"></div>
 
-            <button onClick={() => setShowSettings(true)} className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
-                <Settings size={16} className="text-indigo-600" /> Configurar
+            <button onClick={() => setShowSettings(true)} className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
+                <Settings size={16} className="text-indigo-400" /> Configurar
             </button>
 
-            <button onClick={handleDeleteAll} className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Borrar Todo">
+            <button onClick={handleDeleteAll} className="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-900/20 transition-colors" title="Borrar Todo">
                 <Trash2 size={16} />
             </button>
 
