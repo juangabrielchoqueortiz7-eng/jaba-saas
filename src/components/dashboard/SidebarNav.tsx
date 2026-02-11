@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function SidebarNav() {
@@ -58,6 +58,19 @@ export function SidebarNav() {
             >
                 <Bot size={20} />
                 Asistentes
+            </Link>
+
+            <Link
+                href="/dashboard/subscriptions"
+                className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                    pathname === '/dashboard/subscriptions'
+                        ? "bg-indigo-500/10 text-indigo-400"
+                        : "text-slate-400 hover:text-white hover:bg-slate-800"
+                )}
+            >
+                <Users size={20} />
+                Suscripciones
             </Link>
 
             {/* Assistant Specific Tools (Conditional) */}
