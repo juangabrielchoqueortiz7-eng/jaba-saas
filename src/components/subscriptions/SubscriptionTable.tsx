@@ -18,6 +18,29 @@ interface SubscriptionTableProps {
 
 export default function SubscriptionTable({ subscriptions, isLoading }: SubscriptionTableProps) {
     const supabase = createClient();
+    const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data } = await supabase
+                .from('subscription_settings')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
+
+            if (data) {
+                setCustomMessages({
+                    reminder: data.reminder_msg,
+                    expired_grace: data.expired_grace_msg,
+                    expired_removed: data.expired_removed_msg
+                });
+            }
+        };
+        fetchSettings();
+    }, []);
     const [filtersState, setFilters] = useState({
         numero: '',
         correo: '',
@@ -112,12 +135,37 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
         let message = '';
         const dateInfo = getDateStatus(sub.vencimiento);
 
-        if (dateInfo.days < 0) {
-            message = `Hola, tu suscripción venció el ${sub.vencimiento}. Por favor realiza el pago para renovar el servicio.`;
+        // Default Messages
+        const defaults = {
+            reminder: `Hola! 👋 Te saludamos de Jaba SaaS. Queremos recordarte que tu suscripción vence el {vencimiento} ⏳. Nos encantaría que sigas con nosotros! 🚀`,
+            expired_grace: `Hola! ⚠️ Tu suscripción venció el {vencimiento}, pero aún tienes acceso temporal. ⏳ Por favor renueva lo antes posible para evitar cortes. ✅`,
+            expired_removed: `Hola 👋. Tu suscripción ha finalizado y el acceso se ha cerrado 🔒. Recuerda que tus diseños se guardan por un tiempo. Renueva ahora para recuperarlos! ✨`,
+            active: `Hola, tienes una suscripción activa hasta el {vencimiento}.`
+        };
+
+        const msgs = customMessages || { reminder: '', expired_grace: '', expired_removed: '' };
+
+        if ((sub.estado || '').toUpperCase() === 'INACTIVO') {
+            message = msgs.expired_removed || defaults.expired_removed;
+        } else if (dateInfo.days < 0) {
+            // Expired but Active (Grace Period)
+            message = msgs.expired_grace || defaults.expired_grace;
         } else if (dateInfo.days <= 3) {
-            message = `Hola, te recordamos que tu suscripción vence pronto, el ${sub.vencimiento}. Evita cortes en el servicio renovando a tiempo.`;
+            // Reminder
+            message = msgs.reminder || defaults.reminder;
         } else {
-            message = `Hola, tienes una suscripción activa hasta el ${sub.vencimiento}.`;
+            message = defaults.active;
+        }
+
+        // Replace variables
+        message = message
+            .replace(/{correo}/g, sub.correo)
+            .replace(/{vencimiento}/g, sub.vencimiento)
+            .replace(/{equipo}/g, sub.equipo);
+
+        // Append Team Reference if available
+        if (sub.equipo) {
+            message += `\n\nRef: ${sub.equipo}`;
         }
 
         const encodedMessage = encodeURIComponent(message);
