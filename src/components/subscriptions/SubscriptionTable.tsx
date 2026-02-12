@@ -280,31 +280,39 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     };
 
     const handleNextExpiration = () => {
-        // Find the first subscription that is "Por Vencer" and not notified today (or ever) if we tracked "notified_at"
-        // Since we only track boolean "notified", we'll just find the first "Por Vencer" one in the list.
-        // Better: Find the first one in the *current filtered list* that matches the "Por Vencer" criteria.
-
-        let target = null;
-
-        // If we are already filtering by "Por Vencer", just pick the first one.
-        // If not, we scan all subscriptions.
+        // Find the first subscription that is "Por Vencer" and not notified today
+        // Also skip users without a valid WhatsApp number
 
         const candidates = subscriptions.filter(sub => {
+            // 1. Must be Active
             if (sub.estado !== 'ACTIVO') return false;
+
+            // 2. Must have a expiration date
             if (!sub.vencimiento) return false;
+
+            // 3. Must be expiring soon (<= 7 days) or already expired but active
             const diff = dayjs(sub.vencimiento).diff(dayjs().startOf('day'), 'day');
-            return diff <= 7;
+            if (diff > 7) return false;
+
+            // 4. Must NOT have been notified yet
+            if (sub.notified) return false;
+
+            // 5. Must have a valid phone number (at least 8 digits)
+            const phone = (sub.numero || '').replace(/\D/g, '');
+            if (phone.length < 8) return false;
+
+            return true;
         }).sort((a, b) => {
             // Sort by closest expiration date first
             return dayjs(a.vencimiento).diff(dayjs(b.vencimiento));
         });
 
         if (candidates.length > 0) {
-            target = candidates[0];
+            const target = candidates[0];
             openWhatsApp(target);
-            toast.success(`Abriendo chat de ${target.numero}`);
+            toast.success(`Contactando a ${target.numero} (Vence: ${target.vencimiento})`);
         } else {
-            toast.info('No hay suscripciones por vencer pendientes.');
+            toast.success('¡Todo al día! No hay más pendientes por vencer para hoy.');
         }
     };
 
