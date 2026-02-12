@@ -83,11 +83,11 @@ export default function SubscriptionsPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50/50 p-6 space-y-6">
+        <div className="flex flex-col h-full bg-slate-950 p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestor de Suscripciones</h1>
-                    <p className="text-slate-500 text-sm">Administra tus clientes y renovaciones</p>
+                    <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Gestor de Suscripciones</h1>
+                    <p className="text-slate-400 text-sm">Administra tus clientes y renovaciones</p>
                 </div>
                 <SubscriptionActions onRefresh={() => fetchSubscriptions(true)} onLocalAdd={handleLocalAdd} />
             </div>
