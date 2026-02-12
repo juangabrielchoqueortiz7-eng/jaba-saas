@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
 
@@ -279,6 +279,35 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
         }
     };
 
+    const handleNextExpiration = () => {
+        // Find the first subscription that is "Por Vencer" and not notified today (or ever) if we tracked "notified_at"
+        // Since we only track boolean "notified", we'll just find the first "Por Vencer" one in the list.
+        // Better: Find the first one in the *current filtered list* that matches the "Por Vencer" criteria.
+
+        let target = null;
+
+        // If we are already filtering by "Por Vencer", just pick the first one.
+        // If not, we scan all subscriptions.
+
+        const candidates = subscriptions.filter(sub => {
+            if (sub.estado !== 'ACTIVO') return false;
+            if (!sub.vencimiento) return false;
+            const diff = dayjs(sub.vencimiento).diff(dayjs().startOf('day'), 'day');
+            return diff <= 7;
+        }).sort((a, b) => {
+            // Sort by closest expiration date first
+            return dayjs(a.vencimiento).diff(dayjs(b.vencimiento));
+        });
+
+        if (candidates.length > 0) {
+            target = candidates[0];
+            openWhatsApp(target);
+            toast.success(`Abriendo chat de ${target.numero}`);
+        } else {
+            toast.info('No hay suscripciones por vencer pendientes.');
+        }
+    };
+
     return (
         <div className="space-y-4">
             {/* Tabs & Search */}
@@ -301,6 +330,13 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                         className={`px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${filtersState.status === 'POR_VENCER' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                         <AlertTriangle size={16} /> Por Vencer
+                    </button>
+                    <button
+                        onClick={handleNextExpiration}
+                        className="px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm border border-indigo-500 ml-2"
+                        title="Ir al siguiente vencimiento"
+                    >
+                        <ArrowRightCircle size={16} /> Siguiente
                     </button>
                 </div>
             </div>
