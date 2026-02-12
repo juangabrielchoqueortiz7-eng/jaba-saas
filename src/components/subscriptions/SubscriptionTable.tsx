@@ -529,21 +529,36 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                         {renewMenuOpen === sub.id && (
                                                             <div className="absolute right-0 top-full mt-2 w-32 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-[100] flex flex-col p-1">
                                                                 <div className="text-xs font-semibold text-slate-400 px-2 py-1 uppercase tracking-wider">Renovar</div>
-                                                                {[
-                                                                    { label: '+1 Mes', months: 1 },
-                                                                    { label: '+3 Meses', months: 3 },
-                                                                    { label: '+6 Meses', months: 6 },
-                                                                    { label: '+9 Meses', months: 9 },
-                                                                    { label: '+1 Año', months: 12 },
-                                                                ].map(opt => (
-                                                                    <button
-                                                                        key={opt.label}
-                                                                        onClick={() => handleRenew(sub.id, opt.months)}
-                                                                        className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
-                                                                    >
-                                                                        {opt.label}
-                                                                    </button>
-                                                                ))}
+                                                                <button
+                                                                    onClick={() => handleRenew(sub.id, 1)}
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                >
+                                                                    +1 Mes
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRenew(sub.id, 3)}
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                >
+                                                                    +3 Meses
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRenew(sub.id, 6)}
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                >
+                                                                    +6 Meses
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRenew(sub.id, 9)}
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                >
+                                                                    +9 Meses
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRenew(sub.id, 12)}
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                >
+                                                                    +1 Año
+                                                                </button>
                                                             </div>
                                                         )}
                                                     </div>
