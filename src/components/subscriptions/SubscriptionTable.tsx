@@ -15,9 +15,10 @@ interface SubscriptionTableProps {
     subscriptions: Subscription[];
     isLoading: boolean;
     onRefresh: () => void;
+    onLocalDelete?: (id: string) => void;
 }
 
-export default function SubscriptionTable({ subscriptions, isLoading, onRefresh }: SubscriptionTableProps) {
+export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete }: SubscriptionTableProps) {
     const supabase = createClient();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
 
@@ -184,7 +185,11 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh 
         if (error) toast.error('Error al eliminar');
         else {
             toast.success('Eliminado');
-            onRefresh();
+            if (onLocalDelete) {
+                onLocalDelete(id);
+            } else {
+                onRefresh();
+            }
         }
     };
 

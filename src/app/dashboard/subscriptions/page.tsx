@@ -12,8 +12,8 @@ export default function SubscriptionsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const supabase = createClient();
 
-    const fetchSubscriptions = async () => {
-        setIsLoading(true);
+    const fetchSubscriptions = async (showLoading = true) => {
+        if (showLoading) setIsLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
@@ -49,8 +49,8 @@ export default function SubscriptionsPage() {
                     table: 'subscriptions'
                 },
                 (payload) => {
-                    // Simple refresh strategy for now, or could handle optimistic updates
-                    fetchSubscriptions();
+                    // Refresh silently (no loading spinner) when realtime events occur
+                    fetchSubscriptions(false);
                 }
             )
             .subscribe();
@@ -64,6 +64,10 @@ export default function SubscriptionsPage() {
         setSubscriptions(prev => [newSub, ...prev]);
     };
 
+    const handleLocalDelete = (id: string) => {
+        setSubscriptions(prev => prev.filter(sub => sub.id !== id));
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-50/50 p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -71,10 +75,15 @@ export default function SubscriptionsPage() {
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Gestor de Suscripciones</h1>
                     <p className="text-slate-500 text-sm">Administra tus clientes y renovaciones</p>
                 </div>
-                <SubscriptionActions onRefresh={fetchSubscriptions} onLocalAdd={handleLocalAdd} />
+                <SubscriptionActions onRefresh={() => fetchSubscriptions(true)} onLocalAdd={handleLocalAdd} />
             </div>
 
-            <SubscriptionTable subscriptions={subscriptions} isLoading={isLoading} onRefresh={fetchSubscriptions} />
+            <SubscriptionTable
+                subscriptions={subscriptions}
+                isLoading={isLoading}
+                onRefresh={() => fetchSubscriptions(true)}
+                onLocalDelete={handleLocalDelete}
+            />
         </div>
     );
 }
