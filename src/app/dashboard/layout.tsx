@@ -37,9 +37,9 @@ export default async function DashboardLayout({
         <div className="flex h-screen bg-slate-950 text-white selection:bg-indigo-500 selection:text-white">
             {/* Sidebar */}
             <aside className="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col">
-                <div className="h-16 flex items-center px-6 border-b border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <img src="/logo.png" alt="JABA SaaS Logo" className="h-10 w-auto object-contain" />
+                <div className="h-24 flex items-center justify-center px-4 border-b border-slate-800">
+                    <div className="w-full flex justify-center">
+                        <img src="/logo.png" alt="JABA SaaS Logo" className="h-16 w-auto object-contain max-w-full" />
                     </div>
                 </div>
 
