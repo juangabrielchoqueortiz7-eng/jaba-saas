@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
 
@@ -86,6 +86,8 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     };
 
 
+    const [renewMenuOpen, setRenewMenuOpen] = useState<string | null>(null);
+
     const handleUpdate = async (id: string, field: keyof Subscription, value: any) => {
         // Optimistic update if handler provided
         if (onLocalUpdate) {
@@ -105,6 +107,37 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             console.error('Error updating:', error);
             toast.error('Error al actualizar');
             onRefresh(); // Revert on error
+        }
+    };
+
+    const handleRenew = async (id: string, months: number) => {
+        const newDate = dayjs().add(months, 'month').format('YYYY-MM-DD'); // Always from today
+
+        // Optimistic Update
+        if (onLocalUpdate) {
+            onLocalUpdate(id, 'vencimiento', newDate);
+            onLocalUpdate(id, 'estado', 'ACTIVO');
+            onLocalUpdate(id, 'notified', false);
+        }
+
+        setRenewMenuOpen(null);
+
+        try {
+            const { error } = await supabase
+                .from('subscriptions')
+                .update({
+                    vencimiento: newDate,
+                    estado: 'ACTIVO',
+                    notified: false
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+            toast.success(`Renovado por ${months} mes(es)`);
+        } catch (error) {
+            console.error('Error renewing:', error);
+            toast.error('Error al renovar');
+            onRefresh();
         }
     };
 
@@ -404,55 +437,90 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                 />
                                             </td>
                                             <td className="px-6 py-3 text-center">
-                                                <div className="flex justify-center items-center gap-2">
-                                                    <button onClick={() => openWhatsApp(sub)} className="p-2 rounded-lg bg-emerald-900/20 text-emerald-500 hover:bg-emerald-900/40 border border-emerald-900/50 transition-colors" title="WhatsApp">
-                                                        <MessageCircle size={16} />
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={() => setRenewMenuOpen(renewMenuOpen === sub.id ? null : sub.id)}
+                                                        className="p-2 rounded-lg bg-indigo-900/20 text-indigo-500 hover:bg-indigo-900/40 border border-indigo-900/50 transition-colors"
+                                                        title="Renovación Rápida"
+                                                    >
+                                                        <RefreshCw size={16} />
                                                     </button>
-                                                    <button onClick={() => handleDelete(sub.id)} className="p-2 rounded-lg hover:bg-red-900/20 text-slate-500 hover:text-red-400 transition-colors" title="Eliminar">
-                                                        <Trash2 size={16} />
-                                                    </button>
+
+                                                    {renewMenuOpen === sub.id && (
+                                                        <div className="absolute right-0 top-full mt-2 w-32 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 flex flex-col p-1">
+                                                            <div className="text-xs font-semibold text-slate-400 px-2 py-1 uppercase tracking-wider">Renovar</div>
+                                                            {[
+                                                                { label: '+1 Mes', months: 1 },
+                                                                { label: '+3 Meses', months: 3 },
+                                                                { label: '+6 Meses', months: 6 },
+                                                                { label: '+9 Meses', months: 9 },
+                                                                { label: '+1 Año', months: 12 },
+                                                            ].map(opt => (
+                                                                <button
+                                                                    key={opt.label}
+                                                                    onClick={() => handleRenew(sub.id, opt.months)}
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                >
+                                                                    {opt.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </td>
+                                                <button onClick={() => openWhatsApp(sub)} className="p-2 rounded-lg bg-emerald-900/20 text-emerald-500 hover:bg-emerald-900/40 border border-emerald-900/50 transition-colors" title="WhatsApp">
+                                                    <MessageCircle size={16} />
+                                                </button>
+                                                <button onClick={() => handleDelete(sub.id)} className="p-2 rounded-lg hover:bg-red-900/20 text-slate-500 hover:text-red-400 transition-colors" title="Eliminar">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
                                         </tr>
-                                    );
+                        );
                                 })
                             )}
-                        </tbody>
-                    </table>
-                </div>
+                    </tbody>
+                </table>
+                {/* Dismiss menu on outside click overlay could be added here, but simple toggle works for now */}
+                {renewMenuOpen && (
+                    <div className="fixed inset-0 z-40" onClick={() => setRenewMenuOpen(null)}></div>
+                )}
             </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-sm">
-                    <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
-                    >
-                        Anterior
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-400 font-medium hidden sm:inline">Página</span>
-                        <input
-                            type="text"
-                            value={inputPage}
-                            onChange={handlePageInput}
-                            onBlur={handlePageCommit}
-                            onKeyDown={handleKeyDown}
-                            className="w-16 px-2 py-1 text-sm border border-slate-700 bg-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center text-slate-200"
-                        />
-                        <span className="text-sm text-slate-400 font-medium">de {totalPages}</span>
-                    </div>
-                    <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
-                    >
-                        Siguiente
-                    </button>
-                </div>
-            )}
         </div>
+
+            {/* Pagination Controls */ }
+    {
+        totalPages > 1 && (
+            <div className="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-sm">
+                <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
+                >
+                    Anterior
+                </button>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-400 font-medium hidden sm:inline">Página</span>
+                    <input
+                        type="text"
+                        value={inputPage}
+                        onChange={handlePageInput}
+                        onBlur={handlePageCommit}
+                        onKeyDown={handleKeyDown}
+                        className="w-16 px-2 py-1 text-sm border border-slate-700 bg-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center text-slate-200"
+                    />
+                    <span className="text-sm text-slate-400 font-medium">de {totalPages}</span>
+                </div>
+                <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
+                >
+                    Siguiente
+                </button>
+            </div>
+        )
+    }
+        </div >
     );
 }
