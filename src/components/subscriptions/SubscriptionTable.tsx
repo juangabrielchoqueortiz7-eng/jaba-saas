@@ -16,9 +16,10 @@ interface SubscriptionTableProps {
     isLoading: boolean;
     onRefresh: () => void;
     onLocalDelete?: (id: string) => void;
+    onLocalUpdate?: (id: string, field: keyof Subscription, value: any) => void;
 }
 
-export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete }: SubscriptionTableProps) {
+export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete, onLocalUpdate }: SubscriptionTableProps) {
     const supabase = createClient();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
 
@@ -59,6 +60,11 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     const filters = useMemo(() => filtersState, [filtersState]); // Fix potential infinite loop if passed directly
 
     const handleUpdate = async (id: string, field: keyof Subscription, value: any) => {
+        // Optimistic update if handler provided
+        if (onLocalUpdate) {
+            onLocalUpdate(id, field, value);
+        }
+
         try {
             const { error } = await supabase
                 .from('subscriptions')
@@ -67,9 +73,11 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
             if (error) throw error;
             toast.success('Actualizado correctamente');
+            if (!onLocalUpdate) onRefresh(); // Fallback if no local update
         } catch (error) {
             console.error('Error updating:', error);
             toast.error('Error al actualizar');
+            onRefresh(); // Revert on error
         }
     };
 
@@ -94,9 +102,19 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
             return true;
         }).sort((a, b) => {
-            // Basic sort: active first, then by date (simplified)
+            // 1. Sort by Status (Active First)
             if (a.estado === 'ACTIVO' && b.estado !== 'ACTIVO') return -1;
             if (a.estado !== 'ACTIVO' && b.estado === 'ACTIVO') return 1;
+
+            // 2. Sort by Date Descending (Newer dates first)
+            if (a.vencimiento && b.vencimiento) {
+                const dateA = dayjs(a.vencimiento, 'DD/MM/YYYY');
+                const dateB = dayjs(b.vencimiento, 'DD/MM/YYYY');
+                if (dateA.isValid() && dateB.isValid()) {
+                    return dateB.diff(dateA); // Descending: B - A
+                }
+            }
+            // Fallback to Created At if available or keep order
             return 0;
         });
     }, [subscriptions, filtersState]);

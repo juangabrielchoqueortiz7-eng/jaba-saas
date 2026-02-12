@@ -68,6 +68,12 @@ export default function SubscriptionsPage() {
         setSubscriptions(prev => prev.filter(sub => sub.id !== id));
     };
 
+    const handleLocalUpdate = (id: string, field: keyof Subscription, value: any) => {
+        setSubscriptions(prev => prev.map(sub =>
+            sub.id === id ? { ...sub, [field]: value } : sub
+        ));
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-50/50 p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -83,6 +89,7 @@ export default function SubscriptionsPage() {
                 isLoading={isLoading}
                 onRefresh={() => fetchSubscriptions(true)}
                 onLocalDelete={handleLocalDelete}
+                onLocalUpdate={handleLocalUpdate}
             />
         </div>
     );
