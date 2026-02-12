@@ -39,8 +39,7 @@ export default async function DashboardLayout({
             <aside className="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col">
                 <div className="h-16 flex items-center px-6 border-b border-slate-800">
                     <div className="flex items-center gap-3">
-                        <img src="/logo.png" alt="JABA SaaS Logo" className="w-8 h-8 object-contain" />
-                        <span className="font-bold text-lg tracking-tight">JABA Saas</span>
+                        <img src="/logo.png" alt="JABA SaaS Logo" className="h-10 w-auto object-contain" />
                     </div>
                 </div>
 
