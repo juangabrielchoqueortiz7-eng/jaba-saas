@@ -158,9 +158,9 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                     </div>
 
                     <div className="pt-4 flex justify-end gap-3">
-                        <Button type="button" variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-800">
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
                             Cancelar
-                        </Button>
+                        </button>
                         <Button type="submit" disabled={isLoading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                             {isLoading ? 'Guardando...' : 'Guardar Suscripción'}
                         </Button>
