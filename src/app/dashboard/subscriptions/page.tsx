@@ -24,7 +24,8 @@ export default function SubscriptionsPage() {
         const { data, error } = await supabase
             .from('subscriptions')
             .select('*')
-            .eq('user_id', user.id);
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
 
         if (error) {
             console.error('Error fetching subscriptions:', error);
