@@ -149,8 +149,21 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                     className="p-6 space-y-4"
                     onPaste={handlePaste}
                 >
-                    {/* Paste Area */}
-                    <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors hover:border-indigo-500/50 hover:bg-slate-800/50 group">
+                    {/* Paste / Drop / Click Area */}
+                    <div
+                        className="border-2 border-dashed border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors hover:border-indigo-500/50 hover:bg-slate-800/50 group cursor-pointer"
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onClick={() => document.getElementById('imageUploadInput')?.click()}
+                    >
+                        <input
+                            type="file"
+                            id="imageUploadInput"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                        />
+
                         {isProcessingImage ? (
                             <div className="flex flex-col items-center gap-2 text-indigo-400">
                                 <Loader2 className="animate-spin w-8 h-8" />
@@ -162,7 +175,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                                     <Sparkles className="w-6 h-6" />
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-sm font-medium">Pegar captura aquí (Ctrl + V)</p>
+                                    <p className="text-sm font-medium">Pegar (Ctrl+V), Arrastrar o <span className="underline">Clic para subir</span></p>
                                     <p className="text-xs text-slate-600">Autocompletar con IA</p>
                                 </div>
                             </div>
