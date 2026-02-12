@@ -14,8 +14,8 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 
 import SubscriptionSettingsModal from './SubscriptionSettingsModal';
+import SubscriptionFormModal from './SubscriptionFormModal';
 import { Settings } from 'lucide-react';
-
 import { Subscription } from '@/types/subscription';
 
 export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefresh: () => void, onLocalAdd?: (sub: Subscription) => void }) {
@@ -23,35 +23,16 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefre
     const [isImporting, setIsImporting] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isFormOpen, setIsFormOpen] = useState(false);
 
-    const handleAdd = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            console.error('User not authenticated for adding subscription.');
-            return;
-        }
-
-        const { data, error } = await supabase.from('subscriptions').insert({
-            numero: '',
-            correo: 'nuevo@cliente.com',
-            vencimiento: dayjs().format('DD/MM/YYYY'),
-            estado: 'ACTIVO',
-            equipo: '',
-            user_id: user.id
-        }).select().single();
-
-        if (error) {
-            toast.error('Error al crear: ' + (error.message || 'Desconocido'));
-            console.error('Error creating subscription:', error);
+    const handleFormSuccess = (newSub: Subscription) => {
+        if (onLocalAdd) {
+            onLocalAdd(newSub);
         } else {
-            toast.success('Nueva fila creada');
-            if (onLocalAdd && data) {
-                onLocalAdd(data as Subscription);
-            } else {
-                onRefresh();
-            }
+            onRefresh();
         }
     };
+
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -185,7 +166,7 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefre
 
     return (
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
-            <button onClick={handleAdd} className="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition-all text-sm font-semibold flex items-center gap-2">
+            <button onClick={() => setIsFormOpen(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition-all text-sm font-semibold flex items-center gap-2">
                 <Plus size={16} /> Nuevo
             </button>
 
@@ -240,6 +221,7 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefre
             </button>
 
             <SubscriptionSettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+            <SubscriptionFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSuccess={handleFormSuccess} />
         </div>
     );
 }
