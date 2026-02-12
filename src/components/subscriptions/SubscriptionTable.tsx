@@ -16,7 +16,6 @@ interface SubscriptionTableProps {
     isLoading: boolean;
     onRefresh: () => void;
     onLocalDelete?: (id: string) => void;
-    onLocalDelete?: (id: string) => void;
     onLocalUpdate?: (id: string, field: keyof Subscription, value: any) => void;
     newlyAddedIds?: string[];
 }
