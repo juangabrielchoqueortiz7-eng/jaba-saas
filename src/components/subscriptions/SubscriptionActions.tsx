@@ -16,7 +16,9 @@ dayjs.extend(customParseFormat);
 import SubscriptionSettingsModal from './SubscriptionSettingsModal';
 import { Settings } from 'lucide-react';
 
-export default function SubscriptionActions({ onRefresh }: { onRefresh: () => void }) {
+import { Subscription } from '@/types/subscription';
+
+export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefresh: () => void, onLocalAdd?: (sub: Subscription) => void }) {
     const supabase = createClient();
     const [isImporting, setIsImporting] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -29,21 +31,25 @@ export default function SubscriptionActions({ onRefresh }: { onRefresh: () => vo
             return;
         }
 
-        const { error } = await supabase.from('subscriptions').insert({
+        const { data, error } = await supabase.from('subscriptions').insert({
             numero: '',
             correo: 'nuevo@cliente.com',
             vencimiento: dayjs().format('DD/MM/YYYY'),
             estado: 'ACTIVO',
             equipo: '',
             user_id: user.id
-        });
+        }).select().single();
 
         if (error) {
             toast.error('Error al crear: ' + (error.message || 'Desconocido'));
             console.error('Error creating subscription:', error);
         } else {
             toast.success('Nueva fila creada');
-            onRefresh();
+            if (onLocalAdd && data) {
+                onLocalAdd(data as Subscription);
+            } else {
+                onRefresh();
+            }
         }
     };
 
