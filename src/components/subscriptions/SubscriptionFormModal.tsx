@@ -22,6 +22,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
     const [isProcessingImage, setIsProcessingImage] = useState(false);
+    const [fileInputKey, setFileInputKey] = useState(0);
     const [formData, setFormData] = useState({
         numero: '',
         correo: '',
@@ -30,25 +31,12 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
         equipo: ''
     });
 
-    const handlePaste = async (e: React.ClipboardEvent) => {
-        const items = e.clipboardData?.items;
-        if (!items) return;
-
-        let imageFile = null;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                imageFile = items[i].getAsFile();
-                break;
-            }
-        }
-
-        if (!imageFile) return;
-
+    const processImage = async (file: File) => {
         setIsProcessingImage(true);
         toast.info('Analizando imagen con IA... 🤖');
 
         const apiFormData = new FormData();
-        apiFormData.append('image', imageFile);
+        apiFormData.append('image', file);
 
         try {
             const res = await fetch('/api/extract-subscription', {
@@ -63,7 +51,6 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
             if (data.correo) handleChange('correo', data.correo);
             if (data.numero) handleChange('numero', data.numero);
             if (data.vencimiento) {
-                // Convert DD/MM/YYYY (from API) to YYYY-MM-DD (for input)
                 const parsed = dayjs(data.vencimiento, 'DD/MM/YYYY');
                 if (parsed.isValid()) {
                     handleChange('vencimiento', parsed.format('YYYY-MM-DD'));
@@ -76,6 +63,45 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
             toast.error('No se pudo leer la imagen');
         } finally {
             setIsProcessingImage(false);
+            setFileInputKey(prev => prev + 1);
+        }
+    };
+
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) processImage(file);
+                break;
+            }
+        }
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                processImage(file);
+            } else {
+                toast.error('Por favor suelta una imagen válida');
+            }
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            processImage(e.target.files[0]);
         }
     };
 
@@ -157,6 +183,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                         onClick={() => document.getElementById('imageUploadInput')?.click()}
                     >
                         <input
+                            key={fileInputKey}
                             type="file"
                             id="imageUploadInput"
                             className="hidden"
