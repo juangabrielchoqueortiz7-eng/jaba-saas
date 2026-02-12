@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
 
@@ -152,7 +152,15 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     const filteredData = useMemo(() => {
         return subscriptions.filter(sub => {
             // Status Filter
-            if (filtersState.status && (sub.estado || '').toUpperCase() !== filtersState.status) return false;
+            if (filtersState.status === 'POR_VENCER') {
+                if (sub.estado !== 'ACTIVO') return false;
+                if (!sub.vencimiento) return false;
+                const diff = dayjs(sub.vencimiento).diff(dayjs().startOf('day'), 'day');
+                // Show if expired (diff < 0) or expiring soon (diff <= 7)
+                if (diff > 7) return false;
+            } else if (filtersState.status && (sub.estado || '').toUpperCase() !== filtersState.status) {
+                return false;
+            }
 
             // Column Filters
             if (filtersState.numero && !sub.numero?.toLowerCase().includes(filtersState.numero.toLowerCase())) return false;
@@ -287,6 +295,12 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                         className={`px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${filtersState.status === 'INACTIVO' ? 'bg-slate-700 text-amber-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                         <XCircle size={16} /> Inactivos
+                    </button>
+                    <button
+                        onClick={() => { setFilters(prev => ({ ...prev, status: 'POR_VENCER' })); setCurrentPage(1); }}
+                        className={`px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${filtersState.status === 'POR_VENCER' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                        <AlertTriangle size={16} /> Por Vencer
                     </button>
                 </div>
             </div>
