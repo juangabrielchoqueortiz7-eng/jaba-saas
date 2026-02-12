@@ -118,6 +118,24 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
 
                     <div className="space-y-2">
                         <Label htmlFor="vencimiento" className="text-slate-300">Fecha de Vencimiento</Label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {[
+                                { label: '+1 Mes', months: 1 },
+                                { label: '+3 Meses', months: 3 },
+                                { label: '+6 Meses', months: 6 },
+                                { label: '+9 Meses', months: 9 },
+                                { label: '+1 Año', months: 12 },
+                            ].map((plan) => (
+                                <button
+                                    key={plan.label}
+                                    type="button"
+                                    onClick={() => handleChange('vencimiento', dayjs().add(plan.months, 'month').format('YYYY-MM-DD'))}
+                                    className="px-2 py-1 text-xs font-medium rounded bg-indigo-900/40 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-900/60 hover:border-indigo-500/50 transition-colors"
+                                >
+                                    {plan.label}
+                                </button>
+                            ))}
+                        </div>
                         <Input
                             id="vencimiento"
                             type="date"
