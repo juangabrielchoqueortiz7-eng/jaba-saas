@@ -111,7 +111,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     };
 
     const handleRenew = async (id: string, months: number) => {
-        const newDate = dayjs().add(months, 'month').format('YYYY-MM-DD'); // Always from today
+        const newDate = dayjs().add(months, 'month').format('DD/MM/YYYY'); // Fixed format to DD/MM/YYYY
 
         // Optimistic Update
         if (onLocalUpdate) {
@@ -155,7 +155,8 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             if (filtersState.status === 'POR_VENCER') {
                 if (sub.estado !== 'ACTIVO') return false;
                 if (!sub.vencimiento) return false;
-                const diff = dayjs(sub.vencimiento).diff(dayjs().startOf('day'), 'day');
+                // Parse DD/MM/YYYY correctly for comparison
+                const diff = dayjs(sub.vencimiento, 'DD/MM/YYYY').diff(dayjs().startOf('day'), 'day');
                 // Show if expired (diff < 0) or expiring soon (diff <= 7)
                 if (diff > 7) return false;
             } else if (filtersState.status && (sub.estado || '').toUpperCase() !== filtersState.status) {
@@ -230,7 +231,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             reminder: `Hola! 👋 Te saludamos de Jaba SaaS. Queremos recordarte que tu suscripción vence el {vencimiento} ⏳. Nos encantaría que sigas con nosotros! 🚀`,
             expired_grace: `Hola! ⚠️ Tu suscripción venció el {vencimiento}, pero aún tienes acceso temporal. ⏳ Por favor renueva lo antes posible para evitar cortes. ✅`,
             expired_removed: `Hola 👋. Tu suscripción ha finalizado y el acceso se ha cerrado 🔒. Recuerda que tus diseños se guardan por un tiempo. Renueva ahora para recuperarlos! ✨`,
-            active: `Hola, tienes una suscripción activa hasta el {vencimiento}.`
+            active: `Hola! 👋 Tu suscripción está activa y vence el {vencimiento}. ¡Gracias por confiar en nosotros! 🚀`
         };
 
         const msgs = customMessages || { reminder: '', expired_grace: '', expired_removed: '' };
@@ -240,10 +241,12 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
         } else if (dateInfo.days < 0) {
             // Expired but Active (Grace Period)
             message = msgs.expired_grace || defaults.expired_grace;
-        } else if (dateInfo.days <= 3) {
-            // Reminder
+        } else if (dateInfo.days <= 3 && dateInfo.days >= 0) {
+            // Reminder (Only if expiring soon, not if renewed far in future)
             message = msgs.reminder || defaults.reminder;
         } else {
+            // Active and safe date (Renewed)
+            // Use defaults.active if no specific custom message for active exists yet
             message = defaults.active;
         }
 
