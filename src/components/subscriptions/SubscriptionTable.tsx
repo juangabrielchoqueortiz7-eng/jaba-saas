@@ -526,8 +526,17 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <button onClick={() => openWhatsApp(sub)} className="p-2 rounded-lg bg-emerald-900/20 text-emerald-500 hover:bg-emerald-900/40 border border-emerald-900/50 transition-colors" title="WhatsApp">
+                                                    <button
+                                                        onClick={() => openWhatsApp(sub)}
+                                                        className={`p-2 rounded-lg border transition-colors relative ${sub.notified ? 'bg-slate-800 text-slate-500 border-slate-700 hover:text-emerald-500' : 'bg-emerald-900/20 text-emerald-500 hover:bg-emerald-900/40 border-emerald-900/50'}`}
+                                                        title={sub.notified ? "Ya notificado hoy (Clic para reenviar)" : "Enviar recordatorio por WhatsApp"}
+                                                    >
                                                         <MessageCircle size={16} />
+                                                        {sub.notified && (
+                                                            <div className="absolute -top-1 -right-1 bg-emerald-500 rounded-full p-[1px] border border-slate-900">
+                                                                <CheckCircle size={8} className="text-white" strokeWidth={4} />
+                                                            </div>
+                                                        )}
                                                     </button>
                                                     <button onClick={() => handleDelete(sub.id)} className="p-2 rounded-lg hover:bg-red-900/20 text-slate-500 hover:text-red-400 transition-colors" title="Eliminar">
                                                         <Trash2 size={16} />
