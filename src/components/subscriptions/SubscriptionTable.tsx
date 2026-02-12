@@ -106,12 +106,12 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             if (a.estado === 'ACTIVO' && b.estado !== 'ACTIVO') return -1;
             if (a.estado !== 'ACTIVO' && b.estado === 'ACTIVO') return 1;
 
-            // 2. Sort by Date Descending (Newer dates first)
+            // 2. Sort by Date Ascending (Closest dates first)
             if (a.vencimiento && b.vencimiento) {
                 const dateA = dayjs(a.vencimiento, 'DD/MM/YYYY');
                 const dateB = dayjs(b.vencimiento, 'DD/MM/YYYY');
                 if (dateA.isValid() && dateB.isValid()) {
-                    return dateB.diff(dateA); // Descending: B - A
+                    return dateA.diff(dateB); // Ascending: A - B
                 }
             }
             // Fallback to Created At if available or keep order
