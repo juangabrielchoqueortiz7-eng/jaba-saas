@@ -24,7 +24,10 @@ export default function SubscriptionActions({ onRefresh }: { onRefresh: () => vo
 
     const handleAdd = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+            console.error('User not authenticated for adding subscription.');
+            return;
+        }
 
         const { error } = await supabase.from('subscriptions').insert({
             numero: '',
@@ -36,11 +39,11 @@ export default function SubscriptionActions({ onRefresh }: { onRefresh: () => vo
         });
 
         if (error) {
-            toast.error('Error al crear');
-            console.error(error);
+            toast.error('Error al crear: ' + (error.message || 'Desconocido'));
+            console.error('Error creating subscription:', error);
         } else {
             toast.success('Nueva fila creada');
-            onRefresh(); // Trigger refresh if needed, though realtime should handle it
+            onRefresh();
         }
     };
 
