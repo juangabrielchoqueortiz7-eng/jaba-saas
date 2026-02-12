@@ -38,26 +38,37 @@ export default function SubscriptionsPage() {
     };
 
     useEffect(() => {
-        fetchSubscriptions();
+        let channel: any;
 
-        const channel = supabase
-            .channel('subscriptions_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'subscriptions'
-                },
-                (payload) => {
-                    // Refresh silently (no loading spinner) when realtime events occur
-                    fetchSubscriptions(false);
-                }
-            )
-            .subscribe();
+        const setupRealtime = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Initial fetch
+            fetchSubscriptions();
+
+            channel = supabase
+                .channel('subscriptions_changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'subscriptions',
+                        filter: `user_id=eq.${user.id}`
+                    },
+                    (payload) => {
+                        // Refresh silently when realtime events occur
+                        fetchSubscriptions(false);
+                    }
+                )
+                .subscribe();
+        };
+
+        setupRealtime();
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) supabase.removeChannel(channel);
         };
     }, []);
 
