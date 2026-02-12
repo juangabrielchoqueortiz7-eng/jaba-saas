@@ -177,8 +177,13 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
             // 2. Sort by Date Ascending (Closest dates first)
             if (a.vencimiento && b.vencimiento) {
-                const dateA = dayjs(a.vencimiento, 'DD/MM/YYYY');
-                const dateB = dayjs(b.vencimiento, 'DD/MM/YYYY');
+                // Parse both with robust fallback
+                let dateA = dayjs(a.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+                if (!dateA.isValid()) dateA = dayjs(a.vencimiento);
+
+                let dateB = dayjs(b.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+                if (!dateB.isValid()) dateB = dayjs(b.vencimiento);
+
                 if (dateA.isValid() && dateB.isValid()) {
                     return dateA.diff(dateB); // Ascending: A - B
                 }
@@ -293,9 +298,16 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             // 2. Must have a expiration date
             if (!sub.vencimiento) return false;
 
+            // Parse correctly to avoid issues with format
+            let date = dayjs(sub.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+            if (!date.isValid()) date = dayjs(sub.vencimiento);
+
+            if (!date.isValid()) return false;
+
             // 3. Must be expiring soon (<= 7 days) or already expired but active
-            const diff = dayjs(sub.vencimiento).diff(dayjs().startOf('day'), 'day');
-            if (diff > 7) return false;
+            const diff = date.diff(dayjs().startOf('day'), 'day');
+
+            if (diff > 7) return false; // Now this safely filters out future dates 
 
             // 4. Must NOT have been notified yet
             if (sub.notified) return false;
@@ -307,7 +319,13 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             return true;
         }).sort((a, b) => {
             // Sort by closest expiration date first
-            return dayjs(a.vencimiento).diff(dayjs(b.vencimiento));
+            let dateA = dayjs(a.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+            if (!dateA.isValid()) dateA = dayjs(a.vencimiento);
+
+            let dateB = dayjs(b.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+            if (!dateB.isValid()) dateB = dayjs(b.vencimiento);
+
+            return dateA.diff(dateB);
         });
 
         if (candidates.length > 0) {
