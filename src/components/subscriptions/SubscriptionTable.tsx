@@ -480,32 +480,48 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                     );
                                 })
                             )}
-                            className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
-                >
-                            Anterior
-                        </button>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-slate-400 font-medium hidden sm:inline">Página</span>
-                            <input
-                                type="text"
-                                value={inputPage}
-                                onChange={handlePageInput}
-                                onBlur={handlePageCommit}
-                                onKeyDown={handleKeyDown}
-                                className="w-16 px-2 py-1 text-sm border border-slate-700 bg-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center text-slate-200"
-                            />
-                            <span className="text-sm text-slate-400 font-medium">de {totalPages}</span>
-                        </div>
-                        <button
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            disabled={currentPage === totalPages}
-                            className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
-                        >
-                            Siguiente
-                        </button>
+                        </tbody>
+                    </table>
+
+                    {/* Dismiss menu on outside click overlay */}
+                    {renewMenuOpen && (
+                        <div className="fixed inset-0 z-40" onClick={() => setRenewMenuOpen(null)}></div>
+                    )}
                 </div>
-                )
-    }
-            </div >
-            );
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-sm">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
+                    >
+                        Anterior
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-400 font-medium hidden sm:inline">Página</span>
+                        <input
+                            type="text"
+                            value={inputPage}
+                            onChange={handlePageInput}
+                            onBlur={handlePageCommit}
+                            onKeyDown={handleKeyDown}
+                            className="w-16 px-2 py-1 text-sm border border-slate-700 bg-slate-800 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center text-slate-200"
+                        />
+                        <span className="text-sm text-slate-400 font-medium">de {totalPages}</span>
+                    </div>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            )
+            }
+        </div >
+    );
 }
