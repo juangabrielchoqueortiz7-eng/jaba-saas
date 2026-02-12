@@ -61,7 +61,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
         const { error } = await supabase.from('subscription_settings').upsert({
             user_id: user.id,
             ...messages
-        });
+        }, { onConflict: 'user_id' });
 
         if (error) {
             toast.error('Error al guardar configuración');

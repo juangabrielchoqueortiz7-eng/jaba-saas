@@ -189,7 +189,10 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             if (!isValidA && !isValidB) return 0; // Both invalid/missing
 
             if (isValidA && isValidB) {
-                return dateA.diff(dateB); // Ascending: Earlier dates (expired/soon) < Later dates (future)
+                const diff = dateA.diff(dateB);
+                if (diff !== 0) return diff;
+                // Tie-breaker: Sort by Name/Number to keep list stable
+                return (a.numero || '').localeCompare(b.numero || '');
             }
 
             return 0;
