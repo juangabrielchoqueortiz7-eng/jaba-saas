@@ -17,10 +17,9 @@ interface SubscriptionTableProps {
     onRefresh: () => void;
     onLocalDelete?: (id: string) => void;
     onLocalUpdate?: (id: string, field: keyof Subscription, value: any) => void;
-    newlyAddedIds?: string[];
 }
 
-export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete, onLocalUpdate, newlyAddedIds = [] }: SubscriptionTableProps) {
+export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete, onLocalUpdate }: SubscriptionTableProps) {
     const supabase = createClient();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
 
@@ -103,12 +102,6 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
             return true;
         }).sort((a, b) => {
-            // 0. Priority: Newly added items always on top
-            const isNewA = newlyAddedIds.includes(a.id);
-            const isNewB = newlyAddedIds.includes(b.id);
-            if (isNewA && !isNewB) return -1;
-            if (!isNewA && isNewB) return 1;
-
             // 1. Sort by Status (Active First)
             if (a.estado === 'ACTIVO' && b.estado !== 'ACTIVO') return -1;
             if (a.estado !== 'ACTIVO' && b.estado === 'ACTIVO') return 1;
@@ -124,7 +117,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             // Fallback to Created At if available or keep order
             return 0;
         });
-    }, [subscriptions, filtersState, newlyAddedIds]);
+    }, [subscriptions, filtersState]);
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);

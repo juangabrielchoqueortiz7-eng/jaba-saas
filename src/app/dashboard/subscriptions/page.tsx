@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 export default function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [newlyAddedIds, setNewlyAddedIds] = useState<string[]>([]);
     const supabase = createClient();
 
     const fetchSubscriptions = async (showLoading = true) => {
@@ -74,23 +73,16 @@ export default function SubscriptionsPage() {
 
     const handleLocalAdd = (newSub: Subscription) => {
         setSubscriptions(prev => [newSub, ...prev]);
-        setNewlyAddedIds(prev => [...prev, newSub.id]);
     };
 
     const handleLocalDelete = (id: string) => {
         setSubscriptions(prev => prev.filter(sub => sub.id !== id));
-        setNewlyAddedIds(prev => prev.filter(newId => newId !== id));
     };
 
     const handleLocalUpdate = (id: string, field: keyof Subscription, value: any) => {
         setSubscriptions(prev => prev.map(sub =>
             sub.id === id ? { ...sub, [field]: value } : sub
         ));
-
-        // Remove from "new" list if expiry date is modified, so it sorts normally
-        if (field === 'vencimiento') {
-            setNewlyAddedIds(prev => prev.filter(newId => newId !== id));
-        }
     };
 
     return (
@@ -109,7 +101,6 @@ export default function SubscriptionsPage() {
                 onRefresh={() => fetchSubscriptions(true)}
                 onLocalDelete={handleLocalDelete}
                 onLocalUpdate={handleLocalUpdate}
-                newlyAddedIds={newlyAddedIds}
             />
         </div>
     );
