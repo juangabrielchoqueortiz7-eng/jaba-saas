@@ -6,7 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { Subscription } from '@/types/subscription';
+import { ImagePlus, Loader2, Sparkles } from 'lucide-react';
+
+dayjs.extend(customParseFormat);
 
 interface SubscriptionFormModalProps {
     isOpen: boolean;
@@ -17,6 +21,7 @@ interface SubscriptionFormModalProps {
 export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: SubscriptionFormModalProps) {
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
+    const [isProcessingImage, setIsProcessingImage] = useState(false);
     const [formData, setFormData] = useState({
         numero: '',
         correo: '',
@@ -24,6 +29,55 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
         estado: 'ACTIVO',
         equipo: ''
     });
+
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        let imageFile = null;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                imageFile = items[i].getAsFile();
+                break;
+            }
+        }
+
+        if (!imageFile) return;
+
+        setIsProcessingImage(true);
+        toast.info('Analizando imagen con IA... 🤖');
+
+        const apiFormData = new FormData();
+        apiFormData.append('image', imageFile);
+
+        try {
+            const res = await fetch('/api/extract-subscription', {
+                method: 'POST',
+                body: apiFormData
+            });
+
+            if (!res.ok) throw new Error('Error processing image');
+
+            const data = await res.json();
+
+            if (data.correo) handleChange('correo', data.correo);
+            if (data.numero) handleChange('numero', data.numero);
+            if (data.vencimiento) {
+                // Convert DD/MM/YYYY (from API) to YYYY-MM-DD (for input)
+                const parsed = dayjs(data.vencimiento, 'DD/MM/YYYY');
+                if (parsed.isValid()) {
+                    handleChange('vencimiento', parsed.format('YYYY-MM-DD'));
+                }
+            }
+
+            toast.success('¡Datos extraídos! ✨ Verifica por favor.');
+        } catch (error) {
+            console.error(error);
+            toast.error('No se pudo leer la imagen');
+        } finally {
+            setIsProcessingImage(false);
+        }
+    };
 
     const handleChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -91,99 +145,124 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="numero" className="text-slate-300">WhatsApp (Número)</Label>
-                        <Input
-                            id="numero"
-                            value={formData.numero}
-                            onChange={(e) => handleChange('numero', e.target.value)}
-                            placeholder="Ej: 59170000000"
-                            className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500"
-                        />
+                <div
+                    className="p-6 space-y-4"
+                    onPaste={handlePaste}
+                >
+                    {/* Paste Area */}
+                    <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors hover:border-indigo-500/50 hover:bg-slate-800/50 group">
+                        {isProcessingImage ? (
+                            <div className="flex flex-col items-center gap-2 text-indigo-400">
+                                <Loader2 className="animate-spin w-8 h-8" />
+                                <span className="text-sm font-medium">Leyendo comprobante...</span>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-indigo-400">
+                                <div className="p-3 rounded-full bg-slate-800 group-hover:bg-indigo-900/20 transition-colors">
+                                    <Sparkles className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium">Pegar captura aquí (Ctrl + V)</p>
+                                    <p className="text-xs text-slate-600">Autocompletar con IA</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="correo" className="text-slate-300">Correo Electrónico <span className="text-red-400">*</span></Label>
-                        <Input
-                            id="correo"
-                            type="email"
-                            required
-                            value={formData.correo}
-                            onChange={(e) => handleChange('correo', e.target.value)}
-                            placeholder="cliente@ejemplo.com"
-                            className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="vencimiento" className="text-slate-300">Fecha de Vencimiento</Label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            {[
-                                { label: '+1 Mes', months: 1 },
-                                { label: '+3 Meses', months: 3 },
-                                { label: '+6 Meses', months: 6 },
-                                { label: '+9 Meses', months: 9 },
-                                { label: '+1 Año', months: 12 },
-                            ].map((plan) => (
-                                <button
-                                    key={plan.label}
-                                    type="button"
-                                    onClick={() => handleChange('vencimiento', dayjs().add(plan.months, 'month').format('YYYY-MM-DD'))}
-                                    className="px-2 py-1 text-xs font-medium rounded bg-indigo-900/40 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-900/60 hover:border-indigo-500/50 transition-colors"
-                                >
-                                    {plan.label}
-                                </button>
-                            ))}
-                        </div>
-                        <Input
-                            id="vencimiento"
-                            type="date"
-                            required
-                            value={formData.vencimiento}
-                            onChange={(e) => handleChange('vencimiento', e.target.value)}
-                            className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500 block w-full"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="estado" className="text-slate-300">Estado</Label>
-                            <Select
-                                value={formData.estado}
-                                onValueChange={(val) => handleChange('estado', val)}
-                            >
-                                <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
-                                    <SelectValue placeholder="Estado" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
-                                    <SelectItem value="ACTIVO">ACTIVO</SelectItem>
-                                    <SelectItem value="INACTIVO">INACTIVO</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="equipo" className="text-slate-300">Equipo</Label>
+                            <Label htmlFor="numero" className="text-slate-300">WhatsApp (Número)</Label>
                             <Input
-                                id="equipo"
-                                value={formData.equipo}
-                                onChange={(e) => handleChange('equipo', e.target.value)}
-                                placeholder="Opcional"
+                                id="numero"
+                                value={formData.numero}
+                                onChange={(e) => handleChange('numero', e.target.value)}
+                                placeholder="Ej: 59170000000"
                                 className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500"
                             />
                         </div>
-                    </div>
 
-                    <div className="pt-4 flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
-                            Cancelar
-                        </button>
-                        <Button type="submit" disabled={isLoading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                            {isLoading ? 'Guardando...' : 'Guardar Suscripción'}
-                        </Button>
-                    </div>
-                </form>
+                        <div className="space-y-2">
+                            <Label htmlFor="correo" className="text-slate-300">Correo Electrónico <span className="text-red-400">*</span></Label>
+                            <Input
+                                id="correo"
+                                type="email"
+                                required
+                                value={formData.correo}
+                                onChange={(e) => handleChange('correo', e.target.value)}
+                                placeholder="cliente@ejemplo.com"
+                                className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="vencimiento" className="text-slate-300">Fecha de Vencimiento</Label>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                {[
+                                    { label: '+1 Mes', months: 1 },
+                                    { label: '+3 Meses', months: 3 },
+                                    { label: '+6 Meses', months: 6 },
+                                    { label: '+9 Meses', months: 9 },
+                                    { label: '+1 Año', months: 12 },
+                                ].map((plan) => (
+                                    <button
+                                        key={plan.label}
+                                        type="button"
+                                        onClick={() => handleChange('vencimiento', dayjs().add(plan.months, 'month').format('YYYY-MM-DD'))}
+                                        className="px-2 py-1 text-xs font-medium rounded bg-indigo-900/40 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-900/60 hover:border-indigo-500/50 transition-colors"
+                                    >
+                                        {plan.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <Input
+                                id="vencimiento"
+                                type="date"
+                                required
+                                value={formData.vencimiento}
+                                onChange={(e) => handleChange('vencimiento', e.target.value)}
+                                className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500 block w-full"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="estado" className="text-slate-300">Estado</Label>
+                                <Select
+                                    value={formData.estado}
+                                    onValueChange={(val) => handleChange('estado', val)}
+                                >
+                                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                                        <SelectValue placeholder="Estado" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                        <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                                        <SelectItem value="INACTIVO">INACTIVO</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="equipo" className="text-slate-300">Equipo</Label>
+                                <Input
+                                    id="equipo"
+                                    value={formData.equipo}
+                                    onChange={(e) => handleChange('equipo', e.target.value)}
+                                    placeholder="Opcional"
+                                    className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex justify-end gap-3">
+                            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
+                                Cancelar
+                            </button>
+                            <Button type="submit" disabled={isLoading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                                {isLoading ? 'Guardando...' : 'Guardar Suscripción'}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );
