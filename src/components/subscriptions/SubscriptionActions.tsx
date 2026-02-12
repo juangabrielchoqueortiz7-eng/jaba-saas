@@ -20,6 +20,7 @@ export default function SubscriptionActions({ onRefresh }: { onRefresh: () => vo
     const supabase = createClient();
     const [isImporting, setIsImporting] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [isExportOpen, setIsExportOpen] = useState(false);
 
     const handleAdd = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -187,18 +188,36 @@ export default function SubscriptionActions({ onRefresh }: { onRefresh: () => vo
                 <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} disabled={isImporting} />
             </label>
 
-            <div className="relative group">
-                <button className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
+            <div className="relative">
+                <button
+                    onClick={() => setIsExportOpen(!isExportOpen)}
+                    className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium flex items-center gap-2 shadow-sm"
+                >
                     <Download size={16} className="text-sky-500" /> Exportar
                 </button>
-                <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 hidden group-hover:block z-50">
-                    <button onClick={handleExportExcel} className="w-full text-left px-4 py-2 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2">
-                        <FileSpreadsheet size={14} className="text-emerald-500" /> Excel
-                    </button>
-                    <button onClick={handleExportPDF} className="w-full text-left px-4 py-2 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2">
-                        <FileText size={14} className="text-red-500" /> PDF
-                    </button>
-                </div>
+
+                {isExportOpen && (
+                    <>
+                        <div
+                            className="fixed inset-0 z-40 bg-transparent"
+                            onClick={() => setIsExportOpen(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 z-50 animate-in fade-in zoom-in-95 duration-200">
+                            <button
+                                onClick={() => { handleExportExcel(); setIsExportOpen(false); }}
+                                className="w-full text-left px-4 py-3 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2 first:rounded-t-xl"
+                            >
+                                <FileSpreadsheet size={16} className="text-emerald-500" /> Excel
+                            </button>
+                            <button
+                                onClick={() => { handleExportPDF(); setIsExportOpen(false); }}
+                                className="w-full text-left px-4 py-3 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2 last:rounded-b-xl border-t border-slate-700/50"
+                            >
+                                <FileText size={16} className="text-red-500" /> PDF
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
 
             <div className="hidden sm:block h-6 w-px bg-slate-700 mx-1"></div>
