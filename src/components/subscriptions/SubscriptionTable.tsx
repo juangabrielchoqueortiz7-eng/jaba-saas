@@ -5,9 +5,10 @@ import { createClient } from '@/utils/supabase/client';
 import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle } from 'lucide-react';
+import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 dayjs.extend(customParseFormat);
 
@@ -195,6 +196,12 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
         });
     }, [subscriptions, filtersState]);
 
+    // Extract Unique Teams
+    const teams = useMemo(() => {
+        const uniqueTeams = new Set(subscriptions.map(sub => sub.equipo).filter(Boolean));
+        return Array.from(uniqueTeams).sort();
+    }, [subscriptions]);
+
     // Pagination Logic
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -369,6 +376,34 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                     >
                         <ArrowRightCircle size={16} /> Siguiente
                     </button>
+
+                    {/* Team Filter Dropdown */}
+                    <div className="ml-2 w-[180px]">
+                        <Select
+                            value={filtersState.equipo}
+                            onValueChange={(val) => {
+                                setFilters(prev => ({ ...prev, equipo: val === 'ALL' ? '' : val }));
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200 h-[38px]">
+                                <div className="flex items-center gap-2">
+                                    <Users size={16} className="text-slate-400" />
+                                    <span>{filtersState.equipo ? `Equipo: ${filtersState.equipo}` : 'Todos los Equipos'}</span>
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-700">
+                                <SelectItem value="ALL" className="text-slate-300 focus:bg-slate-700 focus:text-white">
+                                    Todos los Equipos
+                                </SelectItem>
+                                {teams.map(team => (
+                                    <SelectItem key={team} value={team} className="text-slate-300 focus:bg-slate-700 focus:text-white">
+                                        Equipo {team}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
