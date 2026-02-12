@@ -171,24 +171,26 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
             return true;
         }).sort((a, b) => {
-            // 1. Sort by Status (Active First)
+            // 1. Sort by Status (Active First, then Inactive)
             if (a.estado === 'ACTIVO' && b.estado !== 'ACTIVO') return -1;
             if (a.estado !== 'ACTIVO' && b.estado === 'ACTIVO') return 1;
 
-            // 2. Sort by Date Ascending (Closest dates first)
-            if (a.vencimiento && b.vencimiento) {
-                // Parse both with robust fallback
-                let dateA = dayjs(a.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
-                if (!dateA.isValid()) dateA = dayjs(a.vencimiento);
+            // 2. Sort by Date Ascending (Closest/Expired dates first)
+            // Parse dates with lenient mode
+            const dateA = a.vencimiento ? dayjs(a.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD']) : null;
+            const dateB = b.vencimiento ? dayjs(b.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD']) : null;
 
-                let dateB = dayjs(b.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
-                if (!dateB.isValid()) dateB = dayjs(b.vencimiento);
+            const isValidA = dateA && dateA.isValid();
+            const isValidB = dateB && dateB.isValid();
 
-                if (dateA.isValid() && dateB.isValid()) {
-                    return dateA.diff(dateB); // Ascending: A - B
-                }
+            if (isValidA && !isValidB) return -1; // Valid dates first
+            if (!isValidA && isValidB) return 1;
+            if (!isValidA && !isValidB) return 0; // Both invalid/missing
+
+            if (isValidA && isValidB) {
+                return dateA.diff(dateB); // Ascending: Earlier dates (expired/soon) < Later dates (future)
             }
-            // Fallback to Created At if available or keep order
+
             return 0;
         });
     }, [subscriptions, filtersState]);
