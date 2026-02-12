@@ -14,9 +14,10 @@ dayjs.extend(customParseFormat);
 interface SubscriptionTableProps {
     subscriptions: Subscription[];
     isLoading: boolean;
+    onRefresh: () => void;
 }
 
-export default function SubscriptionTable({ subscriptions, isLoading }: SubscriptionTableProps) {
+export default function SubscriptionTable({ subscriptions, isLoading, onRefresh }: SubscriptionTableProps) {
     const supabase = createClient();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
 
@@ -181,7 +182,10 @@ export default function SubscriptionTable({ subscriptions, isLoading }: Subscrip
         if (!confirm('¿Estás seguro de eliminar esta suscripción?')) return;
         const { error } = await supabase.from('subscriptions').delete().eq('id', id);
         if (error) toast.error('Error al eliminar');
-        else toast.success('Eliminado');
+        else {
+            toast.success('Eliminado');
+            onRefresh();
+        }
     };
 
     return (

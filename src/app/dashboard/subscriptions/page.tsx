@@ -70,7 +70,7 @@ export default function SubscriptionsPage() {
                 <SubscriptionActions onRefresh={fetchSubscriptions} />
             </div>
 
-            <SubscriptionTable subscriptions={subscriptions} isLoading={isLoading} />
+            <SubscriptionTable subscriptions={subscriptions} isLoading={isLoading} onRefresh={fetchSubscriptions} />
         </div>
     );
 }
