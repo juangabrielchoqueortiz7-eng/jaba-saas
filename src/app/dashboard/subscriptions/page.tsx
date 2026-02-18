@@ -23,19 +23,45 @@ export default function SubscriptionsPage() {
             return;
         }
 
-        const { data, error } = await supabase
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+        let allSubscriptions: Subscription[] = [];
+        let from = 0;
+        const step = 1000;
+        let hasMore = true;
 
-        if (error) {
-            console.error('Error fetching subscriptions:', error);
-            toast.error('Error al cargar suscripciones');
-        } else {
-            setSubscriptions(data || []);
+        try {
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from('subscriptions')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .range(from, from + step - 1)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching subscriptions:', error);
+                    toast.error('Error al cargar suscripciones');
+                    hasMore = false;
+                    break;
+                }
+
+                if (data) {
+                    allSubscriptions = [...allSubscriptions, ...data];
+                    if (data.length < step) {
+                        hasMore = false;
+                    } else {
+                        from += step;
+                    }
+                } else {
+                    hasMore = false;
+                }
+            }
+            setSubscriptions(allSubscriptions);
+        } catch (err) {
+            console.error('Unexpected error:', err);
+            toast.error('Error inesperado al cargar suscripciones');
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     useEffect(() => {
