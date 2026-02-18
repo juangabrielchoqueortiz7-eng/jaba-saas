@@ -52,8 +52,12 @@ export default function SubscriptionCard({
                         defaultValue={sub.correo}
                         onBlur={(e) => onUpdate(sub.id, 'correo', e.target.value)}
                     />
-                    <button onClick={() => onCopy(sub.correo)} className="text-slate-500 hover:text-indigo-400">
-                        <Copy size={16} />
+                    <button
+                        onClick={() => onCopy(sub.correo)}
+                        className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition-colors"
+                        title="Copiar correo"
+                    >
+                        <Copy size={20} />
                     </button>
                 </div>
             </div>

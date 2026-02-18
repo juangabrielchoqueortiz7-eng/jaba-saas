@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import { createPortal } from 'react-dom';
 import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
@@ -87,7 +88,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     };
 
 
-    const [renewMenuOpen, setRenewMenuOpen] = useState<string | null>(null);
+    const [renewMenuOpen, setRenewMenuOpen] = useState<{ id: string, top: number, left: number } | null>(null);
 
     const handleUpdate = async (id: string, field: keyof Subscription, value: any) => {
         // Optimistic update if handler provided
@@ -527,7 +528,11 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                         defaultValue={sub.correo}
                                                         onBlur={(e) => handleUpdate(sub.id, 'correo', e.target.value)}
                                                     />
-                                                    <button onClick={() => copyToClipboard(sub.correo)} className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-indigo-400 transition-opacity">
+                                                    <button
+                                                        onClick={() => copyToClipboard(sub.correo)}
+                                                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-700/50 rounded-md text-slate-500 hover:text-indigo-400 transition-all"
+                                                        title="Copiar correo"
+                                                    >
                                                         <Copy size={14} />
                                                     </button>
                                                 </div>
@@ -559,47 +564,65 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                 <div className="flex justify-center items-center gap-2">
                                                     <div className="relative">
                                                         <button
-                                                            onClick={() => setRenewMenuOpen(renewMenuOpen === sub.id ? null : sub.id)}
-                                                            className="p-2 rounded-lg bg-indigo-900/20 text-indigo-500 hover:bg-indigo-900/40 border border-indigo-900/50 transition-colors"
+                                                            onClick={(e) => {
+                                                                if (renewMenuOpen?.id === sub.id) {
+                                                                    setRenewMenuOpen(null);
+                                                                } else {
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    setRenewMenuOpen({
+                                                                        id: sub.id,
+                                                                        top: rect.bottom + window.scrollY,
+                                                                        left: rect.left + window.scrollX - 100 // Adjust to align better
+                                                                    });
+                                                                }
+                                                            }}
+                                                            className={`p-2 rounded-lg transition-colors ${renewMenuOpen?.id === sub.id ? 'bg-indigo-900/40 text-indigo-400' : 'bg-indigo-900/20 text-indigo-500 hover:bg-indigo-900/40 border border-indigo-900/50'}`}
                                                             title="Renovación Rápida"
                                                         >
                                                             <RefreshCw size={16} />
                                                         </button>
 
-                                                        {renewMenuOpen === sub.id && (
-                                                            <div className="absolute right-0 top-full mt-2 w-32 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-[100] flex flex-col p-1">
-                                                                <div className="text-xs font-semibold text-slate-400 px-2 py-1 uppercase tracking-wider">Renovar</div>
+                                                        {renewMenuOpen?.id === sub.id && createPortal(
+                                                            <div
+                                                                className="fixed z-[9999] bg-slate-800 border border-slate-700 rounded-lg shadow-xl flex flex-col p-1 w-32 animate-in fade-in zoom-in-95 duration-100"
+                                                                style={{
+                                                                    top: `${renewMenuOpen.top}px`,
+                                                                    left: `${renewMenuOpen.left}px`
+                                                                }}
+                                                            >
+                                                                <div className="text-xs font-semibold text-slate-400 px-2 py-1 uppercase tracking-wider border-b border-slate-700/50 mb-1">Renovar</div>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 1)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white rounded transition-colors flex justify-between items-center"
                                                                 >
                                                                     +1 Mes
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 3)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white rounded transition-colors"
                                                                 >
                                                                     +3 Meses
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 6)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white rounded transition-colors"
                                                                 >
                                                                     +6 Meses
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 9)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white rounded transition-colors"
                                                                 >
                                                                     +9 Meses
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 12)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-300 rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white rounded transition-colors"
                                                                 >
                                                                     +1 Año
                                                                 </button>
-                                                            </div>
+                                                            </div>,
+                                                            document.body
                                                         )}
                                                     </div>
                                                     <button
