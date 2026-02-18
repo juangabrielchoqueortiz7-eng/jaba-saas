@@ -530,7 +530,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                     />
                                                     <button
                                                         onClick={() => copyToClipboard(sub.correo)}
-                                                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-700/50 rounded-md text-slate-500 hover:text-indigo-400 transition-all"
+                                                        className="p-1.5 hover:bg-slate-700/50 rounded-md text-slate-400 hover:text-indigo-400 transition-all"
                                                         title="Copiar correo"
                                                     >
                                                         <Copy size={14} />
