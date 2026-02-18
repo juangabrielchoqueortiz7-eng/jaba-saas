@@ -6,6 +6,8 @@ import SubscriptionTable from '@/components/subscriptions/SubscriptionTable';
 import SubscriptionActions from '@/components/subscriptions/SubscriptionActions';
 import { Subscription } from '@/types/subscription';
 import { toast } from 'sonner';
+import { Users, CheckCircle2, XCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -85,6 +87,9 @@ export default function SubscriptionsPage() {
         ));
     };
 
+    const activeCount = subscriptions.filter(sub => sub.estado === 'ACTIVO').length;
+    const inactiveCount = subscriptions.filter(sub => sub.estado !== 'ACTIVO').length;
+
     return (
         <div className="flex flex-col h-full bg-slate-950 p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -93,6 +98,51 @@ export default function SubscriptionsPage() {
                     <p className="text-slate-400 text-sm">Administra tus clientes y renovaciones</p>
                 </div>
                 <SubscriptionActions onRefresh={() => fetchSubscriptions(true)} onLocalAdd={handleLocalAdd} />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="bg-slate-900 border-slate-800">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-slate-200">
+                            Total Suscripciones
+                        </CardTitle>
+                        <Users className="h-4 w-4 text-slate-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-slate-100">{subscriptions.length}</div>
+                        <p className="text-xs text-slate-400">
+                            Total de registros
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-slate-900 border-slate-800">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-emerald-400">
+                            Activos
+                        </CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-emerald-400">{activeCount}</div>
+                        <p className="text-xs text-slate-400">
+                            Suscripciones vigentes
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-slate-900 border-slate-800">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-red-400">
+                            Inactivos
+                        </CardTitle>
+                        <XCircle className="h-4 w-4 text-red-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-400">{inactiveCount}</div>
+                        <p className="text-xs text-slate-400">
+                            Suscripciones finalizadas
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
 
             <SubscriptionTable
@@ -105,3 +155,4 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
