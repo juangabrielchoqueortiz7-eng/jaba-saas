@@ -122,10 +122,10 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Registration Action if not connected */}
-                {status.status !== 'VERIFIED' && (
+                {(status.status !== 'VERIFIED' || status.requires_registration) && (
                     <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
                         <div className="text-sm text-slate-400">
-                            ¿Tu número está "Pendiente"? Necesitas completar el registro.
+                            ¿Tu número está "Pendiente" o bloqueado? Necesitas completar el registro.
                         </div>
                         <RegistrationModal phoneNumberId={phoneNumberId} accessToken={accessToken} onSuccess={checkStatus} />
                     </div>

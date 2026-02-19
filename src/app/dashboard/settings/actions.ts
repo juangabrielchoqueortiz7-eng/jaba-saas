@@ -24,11 +24,31 @@ export async function checkWhatsAppStatus(phoneNumberId: string, accessToken: st
             success: true,
             data: {
                 display_phone_number: data.display_phone_number,
-                quality_rating: data.quality_rating, // 'GREEN', 'YELLOW', 'RED', 'UNKNOWN'
+                quality_rating: data.quality_rating,
                 verified_name: data.verified_name,
-                status: data.code_verification_status, // 'NOT_VERIFIED', 'VERIFIED'
-                health_status: typeof data.health_status === 'object' ? (data.health_status?.entity || JSON.stringify(data.health_status)) : data.health_status,
-                name_status: data.name_status
+                status: data.code_verification_status,
+                health_status: (() => {
+                    const health = data.health_status;
+                    if (typeof health === 'object') {
+                        if (health.CAN_SEND_MESSAGE === 'BLOCKED') return 'Bloqueado por Meta';
+                        if (health.entities && health.entities.length > 0) {
+                            return health.entities[0].description || 'Problema de Cuenta';
+                        }
+                        return 'Estado Desconocido';
+                    }
+                    return health;
+                })(),
+                name_status: data.name_status,
+                requires_registration: (() => {
+                    const health = data.health_status;
+                    if (typeof health === 'object') {
+                        // Check for specific error 131030 or blocked status
+                        const isBlocked = health.CAN_SEND_MESSAGE === 'BLOCKED';
+                        const hasRegistrationError = health.entities?.some((e: any) => e.error_code === 131030);
+                        return isBlocked || hasRegistrationError;
+                    }
+                    return false;
+                })()
             }
         }
     } catch (error) {
