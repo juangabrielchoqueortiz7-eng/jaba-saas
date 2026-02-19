@@ -121,7 +121,11 @@ export async function registerWhatsAppNumber(phoneNumberId: string, accessToken:
         })
 
         const data = await response.json()
-        if (data.error) throw new Error(data.error.message)
+        if (data.error) {
+            console.error('Register WhatsApp Error:', JSON.stringify(data.error))
+            const errorMsg = data.error.error_user_msg || data.error.message || JSON.stringify(data.error)
+            throw new Error(errorMsg)
+        }
         return { success: true }
     } catch (error: any) {
         return { success: false, error: error.message }
