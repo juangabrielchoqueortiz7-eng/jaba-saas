@@ -37,6 +37,49 @@ export async function checkWhatsAppStatus(phoneNumberId: string, accessToken: st
     }
 }
 
+export async function requestWhatsAppCode(phoneNumberId: string, accessToken: string) {
+    try {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/request_code`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                code_method: 'SMS',
+                language: 'es_LA'
+            })
+        })
+
+        const data = await response.json()
+        if (data.error) throw new Error(data.error.message)
+        return { success: true }
+    } catch (error: any) {
+        return { success: false, error: error.message }
+    }
+}
+
+export async function verifyWhatsAppCode(phoneNumberId: string, accessToken: string, code: string) {
+    try {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/verify_code`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                code: code
+            })
+        })
+
+        const data = await response.json()
+        if (data.error) throw new Error(data.error.message)
+        return { success: true }
+    } catch (error: any) {
+        return { success: false, error: error.message }
+    }
+}
+
 export async function getSystemConfig() {
     return {
         webhookVerifyToken: process.env.WEBHOOK_VERIFY_TOKEN || 'No configurado en .env',

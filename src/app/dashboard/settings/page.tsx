@@ -11,7 +11,8 @@ import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
-import { checkWhatsAppStatus, getSystemConfig } from './actions'
+import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode } from './actions'
+import { Smartphone, RefreshCw, X } from "lucide-react"
 
 export default function SettingsPage() {
 
@@ -118,6 +119,119 @@ export default function SettingsPage() {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                {/* Registration Action if not connected */}
+                {status.status !== 'VERIFIED' && (
+                    <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
+                        <div className="text-sm text-slate-400">
+                            ¿Tu número está "Pendiente"? Necesitas completar el registro.
+                        </div>
+                        <RegistrationModal phoneNumberId={phoneNumberId} accessToken={accessToken} onSuccess={checkStatus} />
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    const RegistrationModal = ({ phoneNumberId, accessToken, onSuccess }: { phoneNumberId: string, accessToken: string, onSuccess: () => void }) => {
+        const [open, setOpen] = useState(false)
+        const [step, setStep] = useState<'request' | 'verify'>('request')
+        const [loading, setLoading] = useState(false)
+        const [code, setCode] = useState('')
+        const [error, setError] = useState('')
+
+        const handleRequestCode = async () => {
+            setLoading(true)
+            setError('')
+            const res = await requestWhatsAppCode(phoneNumberId, accessToken)
+            setLoading(false)
+            if (res.success) {
+                setStep('verify')
+            } else {
+                setError(res.error || 'Error solicitando código')
+            }
+        }
+
+        const handleVerifyCode = async () => {
+            setLoading(true)
+            setError('')
+            const res = await verifyWhatsAppCode(phoneNumberId, accessToken, code)
+            setLoading(false)
+            if (res.success) {
+                setOpen(false)
+                onSuccess()
+                setStep('request')
+                setCode('')
+            } else {
+                setError(res.error || 'Error verificando código')
+            }
+        }
+
+        if (!open) return (
+            <Button onClick={() => setOpen(true)} variant="secondary" className="gap-2 bg-slate-800 hover:bg-slate-700 text-white">
+                <Smartphone size={16} />
+                Completar Registro
+            </Button>
+        )
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                <div className="bg-slate-900 border border-slate-800 rounded-lg shadow-lg w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+                    <button
+                        onClick={() => setOpen(false)}
+                        className="absolute right-4 top-4 text-slate-400 hover:text-white"
+                    >
+                        <X size={20} />
+                    </button>
+
+                    <div className="p-6 border-b border-slate-800">
+                        <h2 className="text-lg font-semibold text-white">Registro de WhatsApp API</h2>
+                        <p className="text-sm text-slate-400 mt-1">
+                            Para activar tu número, Meta requiere verificarlo mediante un código SMS.
+                        </p>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                        {error && (
+                            <div className="p-3 bg-red-900/20 border border-red-800/50 rounded-md text-red-400 text-sm flex items-center gap-2">
+                                <AlertCircle size={16} />
+                                {error}
+                            </div>
+                        )}
+
+                        {step === 'request' ? (
+                            <div className="space-y-4">
+                                <p className="text-sm text-slate-300">
+                                    Al continuar, Meta enviará un SMS con un código de 6 dígitos a tu número. Asegúrate de tener señal.
+                                </p>
+                                <Button onClick={handleRequestCode} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                                    {loading ? <RefreshCw className="animate-spin mr-2 h-4 w-4" /> : null}
+                                    Enviar SMS de Verificación
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-white">Código de Verificación</Label>
+                                    <Input
+                                        value={code}
+                                        onChange={e => setCode(e.target.value)}
+                                        placeholder="123456"
+                                        className="bg-slate-950 border-slate-800 text-center text-lg tracking-widest text-white"
+                                        maxLength={6}
+                                    />
+                                </div>
+                                <Button onClick={handleVerifyCode} disabled={loading || code.length < 6} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                                    {loading ? <RefreshCw className="animate-spin mr-2 h-4 w-4" /> : null}
+                                    Verificar Código
+                                </Button>
+                                <Button variant="ghost" onClick={() => setStep('request')} className="w-full text-slate-400 hover:text-white hover:bg-slate-800">
+                                    Volver / Reenviar SMS
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         )
