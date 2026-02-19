@@ -87,11 +87,23 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-4 font-medium text-slate-300">{status.verified_name || 'No verificado'}</td>
+                                <td className="p-4 p-4 font-medium text-slate-300">
+                                    <div className="flex flex-col">
+                                        <span>{status.verified_name || 'No verificado'}</span>
+                                        {status.name_status && (
+                                            <span className="text-[10px] uppercase text-slate-500">{status.name_status}</span>
+                                        )}
+                                    </div>
+                                </td>
                                 <td className="p-4">
-                                    <span className="bg-slate-800 px-3 py-1 rounded-full text-xs font-medium text-slate-300 border border-slate-700">
-                                        {status.status === 'VERIFIED' ? 'Conectado' : 'Pendiente'}
-                                    </span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="bg-slate-800 px-3 py-1 rounded-full text-xs font-medium text-slate-300 border border-slate-700 w-fit">
+                                            {status.status === 'VERIFIED' ? 'Conectado' : 'Pendiente'}
+                                        </span>
+                                        {status.health_status && (
+                                            <span className="text-[10px] text-slate-500 uppercase">{status.health_status}</span>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="p-4">
                                     <span className={cn(
