@@ -136,9 +136,10 @@ export default function SettingsPage() {
 
     const RegistrationModal = ({ phoneNumberId, accessToken, onSuccess }: { phoneNumberId: string, accessToken: string, onSuccess: () => void }) => {
         const [open, setOpen] = useState(false)
-        const [step, setStep] = useState<'request' | 'verify'>('request')
+        const [step, setStep] = useState<'request' | 'verify' | 'register'>('request')
         const [loading, setLoading] = useState(false)
         const [code, setCode] = useState('')
+        const [pin, setPin] = useState('')
         const [error, setError] = useState('')
 
         const handleRequestCode = async () => {
@@ -159,12 +160,28 @@ export default function SettingsPage() {
             const res = await verifyWhatsAppCode(phoneNumberId, accessToken, code)
             setLoading(false)
             if (res.success) {
+                // Verification successful, move to register step with PIN
+                setStep('register')
+                // Pre-fill PIN with the verification code as fallback/convenience
+                setPin(code)
+            } else {
+                setError(res.error || 'Error verificando código')
+            }
+        }
+
+        const handleRegister = async () => {
+            setLoading(true)
+            setError('')
+            const res = await registerWhatsAppNumber(phoneNumberId, accessToken, pin)
+            setLoading(false)
+            if (res.success) {
                 setOpen(false)
                 onSuccess()
                 setStep('request')
                 setCode('')
+                setPin('')
             } else {
-                setError(res.error || 'Error verificando código')
+                setError(res.error || 'Error en el registro final')
             }
         }
 
@@ -188,7 +205,7 @@ export default function SettingsPage() {
                     <div className="p-6 border-b border-slate-800">
                         <h2 className="text-lg font-semibold text-white">Registro de WhatsApp API</h2>
                         <p className="text-sm text-slate-400 mt-1">
-                            Para activar tu número, Meta requiere verificarlo mediante un código SMS.
+                            {step === 'register' ? 'Paso Final: Activar Número' : 'Para activar tu número, Meta requiere verificarlo mediante un código SMS.'}
                         </p>
                     </div>
 
@@ -200,7 +217,7 @@ export default function SettingsPage() {
                             </div>
                         )}
 
-                        {step === 'request' ? (
+                        {step === 'request' && (
                             <div className="space-y-4">
                                 <p className="text-sm text-slate-300">
                                     Al continuar, Meta enviará un SMS con un código de 6 dígitos a tu número. Asegúrate de tener señal.
@@ -210,10 +227,12 @@ export default function SettingsPage() {
                                     Enviar SMS de Verificación
                                 </Button>
                             </div>
-                        ) : (
+                        )}
+
+                        {step === 'verify' && (
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="text-white">Código de Verificación</Label>
+                                    <Label className="text-white">Código de Verificación (SMS)</Label>
                                     <Input
                                         value={code}
                                         onChange={e => setCode(e.target.value)}
@@ -228,6 +247,28 @@ export default function SettingsPage() {
                                 </Button>
                                 <Button onClick={() => setStep('request')} className="w-full text-slate-400 hover:text-white bg-transparent hover:bg-slate-800">
                                     Volver / Reenviar SMS
+                                </Button>
+                            </div>
+                        )}
+
+                        {step === 'register' && (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-white">PIN de Registro (2FA)</Label>
+                                    <p className="text-xs text-slate-400 mb-2">
+                                        Ingresa un PIN de 6 dígitos para proteger tu línea. Hemos prellenado el código SMS por defecto.
+                                    </p>
+                                    <Input
+                                        value={pin}
+                                        onChange={e => setPin(e.target.value)}
+                                        placeholder="123456"
+                                        className="bg-slate-950 border-slate-800 text-center text-lg tracking-widest text-white"
+                                        maxLength={6}
+                                    />
+                                </div>
+                                <Button onClick={handleRegister} disabled={loading || pin.length < 6} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                                    {loading ? <RefreshCw className="animate-spin mr-2 h-4 w-4" /> : null}
+                                    Completar Registro Final
                                 </Button>
                             </div>
                         )}
