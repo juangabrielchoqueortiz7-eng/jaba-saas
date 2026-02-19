@@ -66,13 +66,19 @@ export async function requestWhatsAppCode(phoneNumberId: string, accessToken: st
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
+                messaging_product: 'whatsapp',
                 code_method: 'SMS',
                 language: 'es_LA'
             })
         })
 
         const data = await response.json()
-        if (data.error) throw new Error(data.error.message)
+        if (data.error) {
+            console.error('Request Code Error:', JSON.stringify(data.error))
+            // Return full error details to UI
+            const errorMsg = data.error.error_user_msg || data.error.message || JSON.stringify(data.error)
+            throw new Error(errorMsg)
+        }
         return { success: true }
     } catch (error: any) {
         return { success: false, error: error.message }
