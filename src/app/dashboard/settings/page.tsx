@@ -11,7 +11,7 @@ import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
-import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode } from './actions'
+import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode, registerWhatsAppNumber } from './actions'
 import { Smartphone, RefreshCw, X } from "lucide-react"
 
 export default function SettingsPage() {
