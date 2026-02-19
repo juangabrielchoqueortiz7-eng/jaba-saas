@@ -27,7 +27,7 @@ export async function checkWhatsAppStatus(phoneNumberId: string, accessToken: st
                 quality_rating: data.quality_rating, // 'GREEN', 'YELLOW', 'RED', 'UNKNOWN'
                 verified_name: data.verified_name,
                 status: data.code_verification_status, // 'NOT_VERIFIED', 'VERIFIED'
-                health_status: data.health_status,
+                health_status: typeof data.health_status === 'object' ? (data.health_status?.entity || JSON.stringify(data.health_status)) : data.health_status,
                 name_status: data.name_status
             }
         }
