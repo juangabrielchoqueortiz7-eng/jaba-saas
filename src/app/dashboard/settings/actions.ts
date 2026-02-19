@@ -44,8 +44,8 @@ export async function checkWhatsAppStatus(phoneNumberId: string, accessToken: st
                     if (typeof health === 'object') {
                         // Check for specific error 131030 or blocked status
                         const isBlocked = health.CAN_SEND_MESSAGE === 'BLOCKED';
-                        const hasRegistrationError = health.entities?.some((e: any) => e.error_code === 131030);
-                        return isBlocked || hasRegistrationError;
+                        const hasIssues = health.entities && health.entities.length > 0;
+                        return isBlocked || hasIssues;
                     }
                     return false;
                 })()
