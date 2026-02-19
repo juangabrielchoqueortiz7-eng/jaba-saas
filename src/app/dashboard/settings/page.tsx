@@ -169,7 +169,7 @@ export default function SettingsPage() {
         }
 
         if (!open) return (
-            <Button onClick={() => setOpen(true)} variant="secondary" className="gap-2 bg-slate-800 hover:bg-slate-700 text-white">
+            <Button onClick={() => setOpen(true)} className="gap-2 bg-slate-800 hover:bg-slate-700 text-white">
                 <Smartphone size={16} />
                 Completar Registro
             </Button>
@@ -226,7 +226,7 @@ export default function SettingsPage() {
                                     {loading ? <RefreshCw className="animate-spin mr-2 h-4 w-4" /> : null}
                                     Verificar Código
                                 </Button>
-                                <Button variant="ghost" onClick={() => setStep('request')} className="w-full text-slate-400 hover:text-white hover:bg-slate-800">
+                                <Button onClick={() => setStep('request')} className="w-full text-slate-400 hover:text-white bg-transparent hover:bg-slate-800">
                                     Volver / Reenviar SMS
                                 </Button>
                             </div>
