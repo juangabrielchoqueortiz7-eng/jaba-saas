@@ -341,6 +341,12 @@ export async function POST(request: Request) {
                             status: 'delivered'
                         })
                         if (aiMsgError) console.error("Error saving AI audio message:", aiMsgError);
+
+                        // Update chat last_message with AI response
+                        await supabaseAdmin.from('chats').update({
+                            last_message: aiResponseText.substring(0, 100),
+                            last_message_time: new Date().toISOString()
+                        }).eq('id', chatId)
                     }
 
                 } else {
@@ -355,6 +361,12 @@ export async function POST(request: Request) {
                             status: 'delivered'
                         })
                         if (aiMsgError) console.error("Error saving AI text message:", aiMsgError);
+
+                        // Update chat last_message with AI response
+                        await supabaseAdmin.from('chats').update({
+                            last_message: aiResponseText.substring(0, 100),
+                            last_message_time: new Date().toISOString()
+                        }).eq('id', chatId)
                     }
                 }
 
