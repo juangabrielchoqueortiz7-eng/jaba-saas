@@ -495,73 +495,58 @@ export async function POST(request: Request) {
                     }
                 }
 
-                // Construir catálogo dinámico
-                let catalogText = ''
-                let catalogMapping = ''
-                if (tenantProducts && tenantProducts.length > 0) {
-                    catalogText = '\nPLANES CANVA PRO:\n' + tenantProducts.map((p, i) =>
-                        `${i + 1}. ${p.name} — Bs ${p.price}${p.description ? ' (' + p.description + ')' : ''}`
-                    ).join('\n')
-                    catalogMapping = '\n\n[INTERNO - NO MOSTRAR AL CLIENTE]:\n' + tenantProducts.map(p =>
-                        `"${p.name}" → ID: "${p.id}"`
-                    ).join('\n')
-                }
+                // Construir system prompt de SUPER VENTAS
+                const planList = (tenantProducts || []).map((p, i) =>
+                    `${i + 1}. *${p.name}* — *Bs ${p.price}*${p.description ? ' (' + p.description + ')' : ''}`
+                ).join('\n')
+                const idMapping = (tenantProducts || []).map(p =>
+                    `"${p.name}" = "${p.id}"`
+                ).join('\n')
 
-                // Construir system prompt dinámico
-                const userTrainingPrompt = aiConfig.training_prompt || `Eres ${aiConfig.bot_name}, asistente de ventas por WhatsApp.`
+                const salesSystemPrompt = `Eres el Asistente de Ventas Senior de JABA Marketing Digital por WhatsApp.
+Tu único objetivo es cerrar ventas de suscripciones Canva Pro y ofrecer servicios de diseño.
+No eres solo un informante; eres un vendedor que usa escasez, urgencia y reciprocidad.
 
-                const salesSystemPrompt = `${userTrainingPrompt}
-${catalogText}
-${catalogMapping}
+PLANES CANVA PRO:
+${planList}
 
-=== CÓMO RESPONDER ===
+Beneficios Clave: Estudio Mágico (IA), Kit de Marca, Quitar fondos, Programación de contenido, 100M+ fotos/videos premium.
+Garantía: Soporte 24/7 y seguridad total.
 
-MENSAJE DEL CLIENTE → TU RESPUESTA:
+FLUJO DE VENTA:
+1. BIENVENIDA: "¡Hola! Bienvenido a JABA Marketing Digital. 👋 ¿Estás listo para llevar tus diseños al nivel profesional con Canva Pro?"
+2. PRESENTAR PLANES: Cuando pregunte, presenta los planes. Después: "¿Cuál se adapta mejor a tus proyectos hoy?" + "Aprovecha, solo nos quedan pocos cupos con este precio promocional 🇧🇴"
+3. CONFIRMAR: Cuando elija un plan, usa la herramienta confirm_plan. Después pide el correo electrónico.
+4. EMAIL: Cuando dé su email, usa la herramienta process_email. El sistema envía el QR automáticamente.
+5. PAGO: "Una vez realizado el pago, envíame la foto del comprobante."
 
-"Hola" / "Buenos días" / Saludo → Saluda cordialmente y pregunta: "¿En qué puedo ayudarte?" (NO menciones productos aún)
+SERVICIOS ADICIONALES: Diseño de Posts para redes, Invitaciones Digitales profesionales.
 
-"Quiero Canva Pro" / "Planes" / "Precios" → Presenta los planes en lista numerada. Pregunta cuál le interesa.
+IDs INTERNOS (NUNCA mostrar):
+${idMapping}
 
-"Quiero el de 3 meses" / "El Bronce" / Elige un plan → LLAMA a confirm_plan con el ID interno del plan elegido. NO respondas texto, solo llama la función.
-
-"Quiero otra cuenta" / "Otro plan" / Compra adicional → Pregunta qué plan quiere. Trátalo como una NUEVA venta independiente (ignora pedidos anteriores).
-
-"mi@email.com" / Un correo electrónico → LLAMA a process_email con ese email. NO respondas texto, solo llama la función.
-
-"El mismo" / "Sí" (cuando le preguntaste qué plan) → LLAMA a confirm_plan con el plan que se estaba discutiendo en el historial.
-
-Cualquier otro mensaje → Responde amablemente y guía la conversación.
-
-=== REGLAS ABSOLUTAS ===
-1. MÁXIMO 2-3 líneas por respuesta. Sé breve.
-2. NUNCA muestres IDs/UUIDs al cliente.
-3. NUNCA repitas un mensaje que ya dijiste (lee el historial).
-4. Cuando el cliente elige un plan, LLAMA a confirm_plan INMEDIATAMENTE, no escribas texto.
-5. Cuando el cliente da un email, LLAMA a process_email INMEDIATAMENTE.
-6. Si hay un [PEDIDO ACTIVO], sigue las instrucciones del pedido.
-7. Si NO hay pedido activo, trata cada mensaje como conversación normal.
+REGLAS:
+- Máximo 3-4 líneas por respuesta.
+- Usa *negritas* para precios y beneficios. Máximo 2 emojis por mensaje.
+- NUNCA muestres IDs ni generes código.
+- Si dice un número (1-5), identifica el plan correspondiente y confírmalo.
+- "Quiero otra cuenta" = nueva venta independiente.
 ${orderContext}
 
-HISTORIAL DE ESTA CONVERSACIÓN:
-${chatHistory}
-
-MENSAJE NUEVO DEL CLIENTE: "${messageText}"
-Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el historial.`
+CONVERSACIÓN:
+${chatHistory}`
 
                 // Function declarations para Gemini
-                // IDs de productos dinámicos para function calling
-                const productIds = (tenantProducts || []).map(p => p.id)
-
                 const salesFunctions: any = [
                     {
                         name: 'confirm_plan',
-                        description: 'Se llama cuando el cliente confirma que quiere comprar un producto o servicio específico. Solo llamar cuando el cliente ha expresado claramente qué desea.',
+                        description: 'Confirmar la compra de un plan. Usar cuando el cliente elige un plan por nombre o número.',
                         parameters: {
                             type: SchemaType.OBJECT,
                             properties: {
                                 plan_id: {
                                     type: SchemaType.STRING,
-                                    description: 'ID del producto/servicio elegido (UUID del catálogo)'
+                                    description: 'UUID del producto elegido'
                                 }
                             },
                             required: ['plan_id']
@@ -569,13 +554,13 @@ Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el histor
                     },
                     {
                         name: 'process_email',
-                        description: 'Se llama cuando el cliente proporciona su correo electrónico para completar su pedido.',
+                        description: 'Registrar email del cliente y enviar QR de pago. Usar cuando el cliente da un correo electrónico.',
                         parameters: {
                             type: SchemaType.OBJECT,
                             properties: {
                                 email: {
                                     type: SchemaType.STRING,
-                                    description: 'El correo electrónico del cliente'
+                                    description: 'Email del cliente'
                                 }
                             },
                             required: ['email']
@@ -584,15 +569,16 @@ Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el histor
                 ]
 
                 const model = genAI.getGenerativeModel({
-                    model: 'gemini-2.0-flash-001',
-                    tools: [{ functionDeclarations: salesFunctions }]
+                    model: 'gemini-2.0-flash',
+                    tools: [{ functionDeclarations: salesFunctions }],
+                    toolConfig: { functionCallingConfig: { mode: 'AUTO' as any } },
+                    systemInstruction: salesSystemPrompt
                 })
 
                 // D. Preparar mensaje para Gemini (transcribir audio si es necesario)
                 let aiInputText = messageText
 
                 if (messageType === 'audio' && messageObject.audio?.id) {
-                    // Transcribir audio con Gemini multimodal
                     try {
                         const { getWhatsAppMediaUrl } = await import('@/lib/whatsapp')
                         const mediaUrl = await getWhatsAppMediaUrl(messageObject.audio.id, tenantToken)
@@ -606,10 +592,7 @@ Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el histor
                             const audioBase64 = Buffer.from(audioBuffer).toString('base64')
                             const mimeType = messageObject.audio.mime_type || 'audio/ogg'
 
-                            // Usar Gemini para transcribir
-                            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!)
-                            const audioModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' }) // Use a model capable of multimodal input
-
+                            const audioModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
                             const transcriptionResult = await audioModel.generateContent([
                                 {
                                     inlineData: {
@@ -631,7 +614,7 @@ Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el histor
 
                 const geminiResult = await model.generateContent({
                     contents: [
-                        { role: 'user', parts: [{ text: salesSystemPrompt + '\n\nMensaje actual del cliente: ' + aiInputText }] }
+                        { role: 'user', parts: [{ text: aiInputText }] }
                     ]
                 })
 
@@ -645,18 +628,31 @@ Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el histor
                 // Procesar partes de la respuesta (texto + function calls)
                 for (const part of parts) {
                     if (part.text) {
-                        aiResponseText += part.text
+                        // FILTRAR: Nunca enviar código al cliente
+                        let cleanText = part.text
+                        cleanText = cleanText.replace(/```[\s\S]*?```/g, '')
+                        cleanText = cleanText.replace(/`[^`]+`/g, '')
+                        cleanText = cleanText.replace(/^.*(?:def |import |print\(|if .*==|return\b|\.insert|\.update|\.select|tool_code|confirm_plan|process_email|function|=>).*$/gm, '')
+                        cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim()
+                        if (cleanText) aiResponseText += cleanText
                     }
 
                     if (part.functionCall) {
                         const { name, args } = part.functionCall
-                        const callArgs = args as any // Avoid TS errors on dynamic properties
-                        console.log(`[SALES] Function call: ${name}`, JSON.stringify(callArgs))
+                        const callArgs = args as any
+                        console.log(`[SALES] Function call REAL: ${name}`, JSON.stringify(callArgs))
 
                         if (name === 'confirm_plan' && callArgs?.plan_id) {
                             const productId = callArgs.plan_id as string
                             const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
-                            if (result.success) {
+                            if (result.success && result.product) {
+                                actionExecuted = true;
+                                if (!aiResponseText.trim()) {
+                                    aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.
+
+Para activar tu cuenta, necesito tu *correo electrónico*. El acceso se envía directamente a tu email. 📧`
+                                }
+                            } else if (result.success) {
                                 actionExecuted = true;
                             }
                         }
@@ -729,35 +725,23 @@ Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el histor
                                     }
 
                                     actionExecuted = true
+                                    if (!aiResponseText.trim()) {
+                                        aiResponseText = `✅ ¡Perfecto! He enviado el *QR de pago* para tu *${orderProduct?.name || pendingOrder.plan_name}*.\n\nUna vez realices el pago, envíame la foto del comprobante. Tu acceso se activará en *${email}*. 📧`
+                                    }
                                 } else {
                                     console.log('[SALES] Email recibido pero no hay pedido activo')
-                                    // DEBUG: Marcar fallo en chat
-                                    await supabaseAdmin.from('chats').update({
-                                        last_message: `⚠️ Email recibido pero SIN PEDIDO ACTIVO`
-                                    }).eq('id', chatId)
                                 }
                             }
                         }
                     }
                 }
 
-                // Si no hubo texto en la respuesta de Gemini, generar uno por defecto
+                // Fallback si no hay respuesta
                 if (!aiResponseText.trim()) {
                     if (actionExecuted) {
-                        // Regenerar una respuesta contextual con IA (sin function calling)
-                        try {
-                            const { generateAIResponse } = await import('@/lib/ai')
-                            aiResponseText = await generateAIResponse(
-                                'Genera una respuesta breve y amable para el cliente después de procesar su solicitud. Si se confirmó un pedido, pídele su correo electrónico. Si se registró su email, dile que le enviarás el QR de pago.',
-                                salesSystemPrompt
-                            )
-                        } catch {
-                            aiResponseText = '¡Perfecto! He registrado tu solicitud. ¿Me podrías proporcionar tu correo electrónico para continuar? 📧'
-                        }
+                        aiResponseText = '¡Listo! Tu solicitud ha sido procesada. ¿Necesitas algo más? 😊'
                     } else {
-                        // Fallback: generar respuesta simple sin function calling
-                        const { generateAIResponse } = await import('@/lib/ai')
-                        aiResponseText = await generateAIResponse(aiInputText, salesSystemPrompt)
+                        aiResponseText = '¡Hola! 👋 Bienvenido a JABA Marketing Digital. ¿En qué puedo ayudarte hoy?'
                     }
                 }
 
