@@ -14,19 +14,15 @@ async function sendTestMessage() {
                         phone_number_id: "1017996884730043" // ID REAL DE TU BASE DE DATOS
                     },
                     contacts: [{
-                        profile: {
-                            name: "Test User"
-                        },
-                        wa_id: "59167193341" // User's personal number (simulated sender)
+                        profile: { name: 'Real User Debug' },
+                        wa_id: '59169344192' // Real User Number
                     }],
                     messages: [{
-                        from: "59167193341",
-                        id: "wamid.TEST_MESSAGE_ID_" + Date.now(),
+                        from: '59169344192', // Real User Number
+                        id: 'wamid.TEST_REAL_' + Date.now(),
                         timestamp: Math.floor(Date.now() / 1000).toString(),
-                        text: {
-                            body: "Hola, prueba de webhook local para nuevo asistente."
-                        },
-                        type: "text"
+                        text: { body: 'Test Debug Dashboard - Verify Visibility' },
+                        type: 'text'
                     }]
                 },
                 field: 'messages'

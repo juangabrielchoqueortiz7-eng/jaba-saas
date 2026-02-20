@@ -32,12 +32,15 @@ async function checkMessages() {
         .limit(5);
 
     if (error) {
-        console.error("Error:", error);
+        console.error("Error fetching messages:", error);
     } else {
-        if (messages.length === 0) console.log("No messages found.");
-        messages.forEach(m => {
-            console.log(`[${m.created_at}] ${m.sender}: ${m.content} (ChatID: ${m.chat_id})`);
-        });
+        if (messages.length === 0) {
+            console.log("No recent messages found.");
+        } else {
+            messages.forEach(m => {
+                console.log(`[${m.created_at}] [ChatID: ${m.chat_id}] ${m.sender || (m.is_from_me ? 'me' : 'user')}: ${m.content}`);
+            });
+        }
     }
 }
 
