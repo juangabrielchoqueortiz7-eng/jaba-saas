@@ -48,11 +48,11 @@ export async function GET() {
                 count: count,
                 error: error ? error.message : null
             });
-        } catch (e) {
+        } catch (e: any) {
             report.connection_tests.push({
                 key_name: name,
                 success: false,
-                error: e.message
+                error: e.message || String(e)
             });
         }
     }
