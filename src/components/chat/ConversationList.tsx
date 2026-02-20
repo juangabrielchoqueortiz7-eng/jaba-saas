@@ -6,6 +6,7 @@ import { Search } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { formatChatListTime } from '@/lib/formatTime'
 
 interface Chat {
     id: string
@@ -129,8 +130,8 @@ export function ConversationList() {
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start mb-1">
                                     <h3 className="font-semibold text-slate-200 truncate">{chat.contact_name || chat.phone_number}</h3>
-                                    <span className="text-xs text-slate-500">
-                                        {new Date(chat.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    <span className="text-xs text-slate-500 whitespace-nowrap">
+                                        {formatChatListTime(chat.last_message_time)}
                                     </span>
                                 </div>
                                 <p className="text-sm text-slate-400 truncate">{chat.last_message}</p>

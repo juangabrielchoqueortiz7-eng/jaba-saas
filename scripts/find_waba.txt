@@ -1,0 +1,34 @@
+=== FINDING WABA ID ===
+Phone data: {
+  "id": "1017996884730043",
+  "display_phone_number": "+591 69344192",
+  "verified_name": "jabachat",
+  "account_mode": "LIVE"
+}
+
+App info: {
+  "id": "4250242451896538",
+  "name": "JABA SaaS"
+}
+
+Business assets: {
+  "data": []
+}
+
+Me: {
+  "id": "122106932103247412",
+  "name": "Jabachat"
+}
+
+Assigned pages: {
+  "data": []
+}
+
+Phone owner: {
+  "error": {
+    "message": "Unknown path components: /owner",
+    "type": "OAuthException",
+    "code": 2500,
+    "fbtrace_id": "AnErOA9aUnSRAhL8O-oMUZV"
+  }
+}

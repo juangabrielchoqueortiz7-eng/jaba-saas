@@ -1,0 +1,22 @@
+=== CREDENTIALS ===
+uid=a36b9a2d-e388-4d4f-afa3-cc7df7afd81c | pid=1017996884730043 | display=+591 69344192 | ai=active
+
+=== RECENT CHATS ===
+Test Debug | phone=59100000000 | uid=a36b9a2d-e388-4d4f-afa3-cc7df7afd81c | time=2026-02-20T12:41:59.687235+00:00 | msg=TEST DEBUG MESSAGE 2026-02-20T12:42:02.077Z
+Real User Debug Local | phone=59167193341 | uid=a36b9a2d-e388-4d4f-afa3-cc7df7afd81c | time=2026-02-20T12:37:22.288+00:00 | msg=hola
+Cliente Nuevo Test | phone=59199998888 | uid=a36b9a2d-e388-4d4f-afa3-cc7df7afd81c | time=2026-02-20T06:33:34.338955+00:00 | msg=Hola, soy un cliente nuevo
+jg | phone=59169344192 | uid=a36b9a2d-e388-4d4f-afa3-cc7df7afd81c | time=2026-02-20T05:51:54.14+00:00 | msg=Test Debug Dashboard - Verify Visibility
+WhatsApp Business | phone=16465894168 | uid=null | time=2026-02-05T16:50:08.279+00:00 | msg=🤖: Lo siento, no puedo procesar tu mensaje en este momento.
+
+=== RECENT MESSAGES ===
+2026-02-20T12:42:06.919373+00:00 | mine=true | ¡Hola! 👋 ¿En qué puedo ayudarte hoy? 😊
+
+2026-02-20T12:41:59.874302+00:00 | mine=false | TEST DEBUG MESSAGE 2026-02-20T12:42:02.077Z
+2026-02-20T12:37:22.186677+00:00 | mine=true | hola
+2026-02-20T06:36:42.564645+00:00 | mine=true | ia
+2026-02-20T06:33:34.616161+00:00 | mine=false | Hola, soy un cliente nuevo
+2026-02-20T06:30:50.53212+00:00 | mine=true | hola
+2026-02-20T06:20:53.572433+00:00 | mine=true | hola
+2026-02-20T06:16:18.433609+00:00 | mine=false | Test INCOMING from Script (is_from_me: false)
+2026-02-20T06:13:13.854835+00:00 | mine=true | hola
+2026-02-19T03:26:08.802987+00:00 | mine=true | hola

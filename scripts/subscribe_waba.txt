@@ -1,0 +1,5 @@
+122106932103247412/businesses: {"error":{"message":"(#100) Missing Permission","type":"OAuthException","code":100,"fbtrace_id":"A10-EE0yRu6js-inBEH2wOb"}}
+me/businesses: {"error":{"message":"(#100) Missing Permission","type":"OAuthException","code":100,"fbtrace_id":"A1toBrwQcnje8GmG0Dt5F-Q"}}
+me/whatsapp_business_accounts: {"error":{"message":"(#100) Tried accessing nonexisting field (whatsapp_business_accounts) on node type (User)","type":"OAuthException","code":100,"fbtrace_id":"AvrMWrwNpmvq7viV_Smarh3"}}
+
+App business: {"error":{"message":"(#100) Tried accessing nonexisting field (business) on node type (Application)","type":"OAuthException","code":100,"fbtrace_id":"ATIBAQXESAxDB1LFF8qJXeM"}}

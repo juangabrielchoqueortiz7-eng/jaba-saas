@@ -1,0 +1,25 @@
+=== CURRENT SUBSCRIPTIONS ===
+{
+  "data": []
+}
+
+=== SUBSCRIBING WABA TO APP ===
+{
+  "success": true
+}
+
+=== VERIFY SUBSCRIPTION ===
+{
+  "data": [
+    {
+      "whatsapp_business_api_data": {
+        "link": "https://www.facebook.com/games/?app_id=4250242451896538",
+        "name": "JABA SaaS",
+        "id": "4250242451896538"
+      }
+    }
+  ]
+}
+
+=== SAVING WABA ID TO DATABASE ===
+WABA ID saved successfully!

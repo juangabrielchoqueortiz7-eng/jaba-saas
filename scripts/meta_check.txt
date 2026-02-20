@@ -1,0 +1,38 @@
+Phone Number ID: 1017996884730043
+WABA ID: NOT SET
+Token length: 206
+Token first 20: EAA8ZAkqZBNZBNoBQ4bB
+
+PHONE STATUS: {
+  "verified_name": "jabachat",
+  "quality_rating": "GREEN",
+  "display_phone_number": "+591 69344192",
+  "status": "CONNECTED",
+  "id": "1017996884730043"
+}
+
+TOKEN DEBUG: {
+  "data": {
+    "app_id": "4250242451896538",
+    "type": "SYSTEM_USER",
+    "application": "JABA SaaS",
+    "data_access_expires_at": 0,
+    "expires_at": 0,
+    "is_valid": true,
+    "issued_at": 1771560293,
+    "scopes": [
+      "whatsapp_business_management",
+      "whatsapp_business_messaging",
+      "public_profile"
+    ],
+    "granular_scopes": [
+      {
+        "scope": "whatsapp_business_management"
+      },
+      {
+        "scope": "whatsapp_business_messaging"
+      }
+    ],
+    "user_id": "122106932103247412"
+  }
+}

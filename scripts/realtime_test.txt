@@ -1,0 +1,12 @@
+=== CHECKING PUBLICATION VIA REST ===
+RPC result: {"code":"PGRST202","details":"Searched for the function public.get_realtime_tables without parameters or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.","hint":null,"message":"Could not find the function public.get_realtime_tables without parameters in the schema cache"}
+
+SQL: SELECT schemaname, tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime'
+Result: {"code":"PGRST202","details":"Searched for the function public.raw_sql with parameter query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.","hint":null,"message":"Could not find the function public.raw_sql(query) in the schema cache"}
+
+=== TESTING REALTIME CONNECTION ===
+Subscription status: SUBSCRIBED
+Channel state: joined
+Test insert: OK id=a9a3197e-bbb0-40bf-9f1a-708532a80b93
+Test message cleaned up
+Subscription status: CLOSED

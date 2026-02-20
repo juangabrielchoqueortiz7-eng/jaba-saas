@@ -5,6 +5,7 @@ import { Send, Paperclip, Smile, MoreVertical, Phone, Video } from 'lucide-react
 import { MessageBubble } from './MessageBubble'
 import { createClient } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/navigation'
+import { formatMessageTime, formatDateSeparator, isDifferentDay } from '@/lib/formatTime'
 
 interface Message {
     id: string
@@ -187,15 +188,26 @@ export function ChatWindow() {
             >
                 {loading && <p className="text-center text-xs text-slate-500">Cargando mensajes...</p>}
 
-                {messages.map((msg) => (
-                    <MessageBubble
-                        key={msg.id}
-                        content={msg.content}
-                        isMine={msg.is_from_me}
-                        timestamp={new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        status={msg.status}
-                    />
-                ))}
+                {messages.map((msg, index) => {
+                    const showDateSeparator = index === 0 || isDifferentDay(messages[index - 1].created_at, msg.created_at)
+                    return (
+                        <div key={msg.id}>
+                            {showDateSeparator && (
+                                <div className="flex items-center justify-center my-4">
+                                    <div className="bg-slate-800/80 text-slate-300 text-xs px-4 py-1.5 rounded-lg shadow-sm border border-slate-700/50">
+                                        {formatDateSeparator(msg.created_at)}
+                                    </div>
+                                </div>
+                            )}
+                            <MessageBubble
+                                content={msg.content}
+                                isMine={msg.is_from_me}
+                                timestamp={formatMessageTime(msg.created_at)}
+                                status={msg.is_from_me ? (msg.status || 'sent') : undefined}
+                            />
+                        </div>
+                    )
+                })}
             </div>
 
             {/* Input Area */}

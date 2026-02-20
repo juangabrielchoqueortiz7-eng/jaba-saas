@@ -1,0 +1,124 @@
+{
+  "credentials": [
+    {
+      "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+      "phone_number_id": "1017996884730043",
+      "phone_number_display": "+591 69344192",
+      "ai_status": "active"
+    }
+  ],
+  "chats": [
+    {
+      "id": "9f65d769-4a8e-4974-9d3b-53cea7f4bf73",
+      "phone_number": "59100000000",
+      "contact_name": "Test Debug",
+      "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+      "last_message": "TEST DEBUG MESSAGE 2026-02-20T12:42:02.077Z",
+      "last_message_time": "2026-02-20T12:41:59.687235+00:00"
+    },
+    {
+      "id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+      "phone_number": "59167193341",
+      "contact_name": "Real User Debug Local",
+      "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+      "last_message": "hola",
+      "last_message_time": "2026-02-20T12:37:22.288+00:00"
+    },
+    {
+      "id": "ce60dba6-3a0f-4fb3-a9bc-c5f780f0e169",
+      "phone_number": "59199998888",
+      "contact_name": "Cliente Nuevo Test",
+      "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+      "last_message": "Hola, soy un cliente nuevo",
+      "last_message_time": "2026-02-20T06:33:34.338955+00:00"
+    },
+    {
+      "id": "9deb5b10-5cfc-44f8-9e8b-016b383bb725",
+      "phone_number": "59169344192",
+      "contact_name": "jg",
+      "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+      "last_message": "Test Debug Dashboard - Verify Visibility",
+      "last_message_time": "2026-02-20T05:51:54.14+00:00"
+    },
+    {
+      "id": "a331e0c4-c73a-4ee6-9a00-b3ec906cd7ed",
+      "phone_number": "16465894168",
+      "contact_name": "WhatsApp Business",
+      "user_id": null,
+      "last_message": "🤖: Lo siento, no puedo procesar tu mensaje en este momento.",
+      "last_message_time": "2026-02-05T16:50:08.279+00:00"
+    }
+  ],
+  "messages": [
+    {
+      "id": "ef7bc719-6fda-440d-a55b-7b2631c50029",
+      "chat_id": "9f65d769-4a8e-4974-9d3b-53cea7f4bf73",
+      "content": "¡Hola! 👋 ¿En qué puedo ayudarte hoy? 😊\n",
+      "is_from_me": true,
+      "created_at": "2026-02-20T12:42:06.919373+00:00"
+    },
+    {
+      "id": "b0f97331-b461-4474-a02c-1c0a73d2ceb6",
+      "chat_id": "9f65d769-4a8e-4974-9d3b-53cea7f4bf73",
+      "content": "TEST DEBUG MESSAGE 2026-02-20T12:42:02.077Z",
+      "is_from_me": false,
+      "created_at": "2026-02-20T12:41:59.874302+00:00"
+    },
+    {
+      "id": "a128e941-620d-4a75-928d-cac61420a6e8",
+      "chat_id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+      "content": "hola",
+      "is_from_me": true,
+      "created_at": "2026-02-20T12:37:22.186677+00:00"
+    },
+    {
+      "id": "b46e790b-1afa-49ae-8d85-2464ecd0c836",
+      "chat_id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+      "content": "ia",
+      "is_from_me": true,
+      "created_at": "2026-02-20T06:36:42.564645+00:00"
+    },
+    {
+      "id": "8f0e1f21-1f29-4c38-985d-bc68a6a75d1d",
+      "chat_id": "ce60dba6-3a0f-4fb3-a9bc-c5f780f0e169",
+      "content": "Hola, soy un cliente nuevo",
+      "is_from_me": false,
+      "created_at": "2026-02-20T06:33:34.616161+00:00"
+    },
+    {
+      "id": "be69344f-f8a2-4df7-92a6-344d0db8018d",
+      "chat_id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+      "content": "hola",
+      "is_from_me": true,
+      "created_at": "2026-02-20T06:30:50.53212+00:00"
+    },
+    {
+      "id": "ee7aa259-1dbb-4b84-b1e8-fa7618ad02b1",
+      "chat_id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+      "content": "hola",
+      "is_from_me": true,
+      "created_at": "2026-02-20T06:20:53.572433+00:00"
+    },
+    {
+      "id": "fbc67cf9-191f-45d0-aeb0-96778ee3f302",
+      "chat_id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+      "content": "Test INCOMING from Script (is_from_me: false)",
+      "is_from_me": false,
+      "created_at": "2026-02-20T06:16:18.433609+00:00"
+    },
+    {
+      "id": "782da146-7773-4992-8214-3865ac227bcc",
+      "chat_id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+      "content": "hola",
+      "is_from_me": true,
+      "created_at": "2026-02-20T06:13:13.854835+00:00"
+    },
+    {
+      "id": "8d386b11-f71a-4e45-9ca5-b6509682451d",
+      "chat_id": "9deb5b10-5cfc-44f8-9e8b-016b383bb725",
+      "content": "hola",
+      "is_from_me": true,
+      "created_at": "2026-02-19T03:26:08.802987+00:00"
+    }
+  ]
+}
