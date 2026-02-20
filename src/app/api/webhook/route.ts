@@ -451,15 +451,23 @@ export async function POST(request: Request) {
                     .select('content, is_from_me, created_at')
                     .eq('chat_id', chatId)
                     .order('created_at', { ascending: false })
-                    .limit(15)
+                    .limit(10)
 
                 const chatHistory = (recentMessages || [])
                     .reverse()
-                    .map(m => `${m.is_from_me ? 'Asistente' : 'Cliente'}: ${m.content}`)
+                    .map(m => `${m.is_from_me ? 'Tú' : 'Cliente'}: ${m.content}`)
                     .join('\n')
 
-                // Buscar pedido ACTIVO de este chat (solo pending_email y pending_payment)
-                // pedidos en pending_delivery ya fueron pagados, NO bloquean nuevas ventas
+                // AUTO-CANCELAR pedidos viejos (más de 1 hora sin completar)
+                const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+                await supabaseAdmin
+                    .from('orders')
+                    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+                    .eq('chat_id', chatId)
+                    .in('status', ['pending_email', 'pending_payment'])
+                    .lt('created_at', oneHourAgo)
+
+                // Buscar pedido ACTIVO reciente (solo los de la última hora)
                 const { data: activeOrder } = await supabaseAdmin
                     .from('orders')
                     .select('*')
@@ -477,67 +485,68 @@ export async function POST(request: Request) {
                     .eq('is_active', true)
                     .order('sort_order', { ascending: true })
 
+                // Contexto del pedido activo (solo si existe)
                 let orderContext = ''
                 if (activeOrder) {
-                    const statusLabel: Record<string, string> = {
-                        'pending_email': 'Esperando que el cliente proporcione su email',
-                        'pending_payment': 'QR enviado, esperando foto del comprobante de pago'
+                    if (activeOrder.status === 'pending_email') {
+                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}) pero AÚN NO dio su email. Tu tarea: PEDIR su correo electrónico.`
+                    } else if (activeOrder.status === 'pending_payment') {
+                        orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y se le envió el QR de pago para "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago.`
                     }
-                    orderContext = `\nPEDIDO EN PROCESO: ${activeOrder.plan_name || activeOrder.product} a Bs ${activeOrder.amount}. Estado: ${statusLabel[activeOrder.status] || activeOrder.status}. Email: ${activeOrder.customer_email || 'Aún no proporcionado'}.\nSi el estado es 'Esperando que el cliente proporcione su email', PIDE el email.\nSi el estado es 'QR enviado, esperando foto del comprobante', recuérdale que envíe la foto del comprobante.`
                 }
 
-                // Construir catálogo dinámico para el prompt (IDs solo internos para la función)
+                // Construir catálogo dinámico
                 let catalogText = ''
                 let catalogMapping = ''
                 if (tenantProducts && tenantProducts.length > 0) {
-                    catalogText = '\nPRODUCTOS/SERVICIOS DISPONIBLES (para presentar al cliente):\n' + tenantProducts.map((p, i) =>
-                        `${i + 1}. ${p.name} → Bs ${p.price}${p.description ? ' — ' + p.description : ''}`
+                    catalogText = '\nPLANES CANVA PRO:\n' + tenantProducts.map((p, i) =>
+                        `${i + 1}. ${p.name} — Bs ${p.price}${p.description ? ' (' + p.description + ')' : ''}`
                     ).join('\n')
-                    catalogMapping = '\n\nMAPEO INTERNO (NUNCA mostrar al cliente, solo para la función confirm_plan):\n' + tenantProducts.map((p, i) =>
-                        `"${p.name}" = ID: "${p.id}"`
+                    catalogMapping = '\n\n[INTERNO - NO MOSTRAR AL CLIENTE]:\n' + tenantProducts.map(p =>
+                        `"${p.name}" → ID: "${p.id}"`
                     ).join('\n')
                 }
 
                 // Construir system prompt dinámico
-                const userTrainingPrompt = aiConfig.training_prompt || `Eres ${aiConfig.bot_name}, un asistente virtual profesional por WhatsApp. Responde de manera amable y profesional a los clientes.`
+                const userTrainingPrompt = aiConfig.training_prompt || `Eres ${aiConfig.bot_name}, asistente de ventas por WhatsApp.`
 
-                const salesSystemPrompt = `
-${userTrainingPrompt}
+                const salesSystemPrompt = `${userTrainingPrompt}
 ${catalogText}
 ${catalogMapping}
 
-COMPORTAMIENTO:
-- Saluda amablemente y pregunta en qué puedes ayudar.
-- NO vendas directamente, espera a que el cliente pregunte.
-- Cuando presentes productos, hazlo de forma limpia (lista numerada), SIN mostrar IDs.
-- Responde de forma natural y breve. NO repitas información.
-- Usa emojis con moderación.
+=== CÓMO RESPONDER ===
 
-FLUJO DE VENTAS:
-1. El cliente se interesa en un producto → LLAMA a "confirm_plan" con el ID interno.
-2. Después de confirmar, PIDE OBLIGATORIAMENTE el correo electrónico.
-3. Cuando dé su correo → LLAMA a "process_email" con el email.
-4. Después del QR, espera la foto del comprobante.
+MENSAJE DEL CLIENTE → TU RESPUESTA:
 
-ESCENARIOS FRECUENTES:
-- Si el cliente quiere otra cuenta / otro plan: Iníciale una nueva venta normal. Cada compra es independiente.
-- Si pregunta por precios: Presenta los planes.
-- Si dice "hola" o saluda: Solo saluda y pregunta en qué ayudar.
-- Si manda un mensaje que no tiene que ver con ventas: Responde amablemente.
-- Si pregunta por estado de pedido: Consulta el contexto del pedido activo.
+"Hola" / "Buenos días" / Saludo → Saluda cordialmente y pregunta: "¿En qué puedo ayudarte?" (NO menciones productos aún)
 
-REGLAS:
-- NUNCA muestres UUIDs ni códigos internos al cliente.
-- NUNCA digas que enviaste el QR sin llamar a "process_email".
-- NUNCA repitas el mismo mensaje que ya enviaste en el historial.
-- Si ya confirmaste un pedido, NO lo confirmes de nuevo.
-- Mantén las respuestas cortas (máx 3 líneas cuando sea posible).
+"Quiero Canva Pro" / "Planes" / "Precios" → Presenta los planes en lista numerada. Pregunta cuál le interesa.
 
+"Quiero el de 3 meses" / "El Bronce" / Elige un plan → LLAMA a confirm_plan con el ID interno del plan elegido. NO respondas texto, solo llama la función.
+
+"Quiero otra cuenta" / "Otro plan" / Compra adicional → Pregunta qué plan quiere. Trátalo como una NUEVA venta independiente (ignora pedidos anteriores).
+
+"mi@email.com" / Un correo electrónico → LLAMA a process_email con ese email. NO respondas texto, solo llama la función.
+
+"El mismo" / "Sí" (cuando le preguntaste qué plan) → LLAMA a confirm_plan con el plan que se estaba discutiendo en el historial.
+
+Cualquier otro mensaje → Responde amablemente y guía la conversación.
+
+=== REGLAS ABSOLUTAS ===
+1. MÁXIMO 2-3 líneas por respuesta. Sé breve.
+2. NUNCA muestres IDs/UUIDs al cliente.
+3. NUNCA repitas un mensaje que ya dijiste (lee el historial).
+4. Cuando el cliente elige un plan, LLAMA a confirm_plan INMEDIATAMENTE, no escribas texto.
+5. Cuando el cliente da un email, LLAMA a process_email INMEDIATAMENTE.
+6. Si hay un [PEDIDO ACTIVO], sigue las instrucciones del pedido.
+7. Si NO hay pedido activo, trata cada mensaje como conversación normal.
 ${orderContext}
 
-HISTORIAL RECIENTE:
+HISTORIAL DE ESTA CONVERSACIÓN:
 ${chatHistory}
-`
+
+MENSAJE NUEVO DEL CLIENTE: "${messageText}"
+Responde SOLO al mensaje nuevo. No saludes de nuevo si ya saludaste en el historial.`
 
                 // Function declarations para Gemini
                 // IDs de productos dinámicos para function calling
