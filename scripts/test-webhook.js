@@ -10,8 +10,8 @@ async function sendTestMessage() {
                 value: {
                     messaging_product: 'whatsapp',
                     metadata: {
-                        display_phone_number: '59169344192',
-                        phone_number_id: '1017996884730043' // NEW Phone Number ID
+                        display_phone_number: "1234567890",
+                        phone_number_id: "1017996884730043" // ID REAL DE TU BASE DE DATOS
                     },
                     contacts: [{
                         profile: {
