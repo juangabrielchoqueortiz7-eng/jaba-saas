@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/utils/supabase/client'
 
 export function SidebarNav() {
     const pathname = usePathname()
@@ -13,6 +14,7 @@ export function SidebarNav() {
     const paramId = params?.assistantId as string | undefined
 
     const [activeId, setActiveId] = useState<string | undefined>(paramId)
+    const [isAdmin, setIsAdmin] = useState(false)
 
     useEffect(() => {
         // If we have an ID in params, update state and save to local storage
@@ -27,6 +29,22 @@ export function SidebarNav() {
             }
         }
     }, [paramId])
+
+    // Cargar flag is_platform_admin
+    useEffect(() => {
+        async function checkAdmin() {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            const { data } = await supabase
+                .from('whatsapp_credentials')
+                .select('is_platform_admin')
+                .eq('user_id', user.id)
+                .single()
+            setIsAdmin(data?.is_platform_admin === true)
+        }
+        checkAdmin()
+    }, [])
 
     // Logic: If we are not in 'home' or 'assistants' root, we assume an assistant is active.
     // Enhanced logic: If we have an assistantId param OR a saved activeId, we are in assistant context.
@@ -60,18 +78,21 @@ export function SidebarNav() {
                 Asistentes
             </Link>
 
-            <Link
-                href="/dashboard/subscriptions"
-                className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                    pathname === '/dashboard/subscriptions'
-                        ? "bg-indigo-500/10 text-indigo-400"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800"
-                )}
-            >
-                <Users size={20} />
-                Suscripciones
-            </Link>
+            {/* Suscripciones: Solo visible para el Admin/Dueño */}
+            {isAdmin && (
+                <Link
+                    href="/dashboard/subscriptions"
+                    className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                        pathname === '/dashboard/subscriptions'
+                            ? "bg-indigo-500/10 text-indigo-400"
+                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    )}
+                >
+                    <Users size={20} />
+                    Suscripciones
+                </Link>
+            )}
 
             {/* Assistant Specific Tools (Conditional) */}
             {isAssistantActive && (
@@ -177,33 +198,36 @@ export function SidebarNav() {
                             Disparadores
                         </Link>
 
-                        {/* Recharges Link */}
-                        <Link
-                            href="/dashboard/recharges"
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.includes('/recharges')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <span className="text-lg">💳</span>
-                            Recargas
-                        </Link>
+                        {/* Recargas y Logros: Solo para clientes (NO admin) */}
+                        {!isAdmin && (
+                            <>
+                                <Link
+                                    href="/dashboard/recharges"
+                                    className={cn(
+                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                                        pathname.includes('/recharges')
+                                            ? "text-white bg-slate-800/50"
+                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                    )}
+                                >
+                                    <span className="text-lg">💳</span>
+                                    Recargas
+                                </Link>
 
-                        {/* Achievements Link */}
-                        <Link
-                            href="/dashboard/achievements"
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.includes('/achievements')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <span className="text-lg">🏆</span>
-                            Logros
-                        </Link>
+                                <Link
+                                    href="/dashboard/achievements"
+                                    className={cn(
+                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                                        pathname.includes('/achievements')
+                                            ? "text-white bg-slate-800/50"
+                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                    )}
+                                >
+                                    <span className="text-lg">🏆</span>
+                                    Logros
+                                </Link>
+                            </>
+                        )}
 
                         {/* Settings Link */}
                         <Link
