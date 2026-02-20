@@ -1,6 +1,6 @@
 async function sendTestMessage() {
-    // URL LOCAL (Para probar los cambios recientes en route.ts)
-    const url = 'http://localhost:3000/api/webhook';
+    // URL DE PRODUCCIÓN (Para verificar el deploy)
+    const url = 'https://jaba-saas.vercel.app/api/webhook';
 
     const payload = {
         object: 'whatsapp_business_account',

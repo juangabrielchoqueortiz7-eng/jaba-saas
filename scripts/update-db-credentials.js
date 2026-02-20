@@ -38,7 +38,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseKey);
 
 const newPhoneNumberId = "1017996884730043";
 const newWabaId = "1439379724456162";
-const newAccessToken = process.env.WHATSAPP_API_TOKEN;
+const newAccessToken = "EAA8ZAkqZBNZBNoBQ4bBocW2T8VXCLawHJlRhNZChYeKyyYn5MxRdJg5EtUcsZCFvO3dpmCps0T6X4c1qY098DH5vDUDZCKXJMSZAZAyFZCSCyvK5UORVoH10wD28rhRDQL7ZBrwobDtr1X5ONvZBu9wFtUue12zDki2S3LAJNLklIpOBO15IbPrYF92znpNUCLF5xneGgZDZD";
 
 async function updateCredentials() {
     console.log("Updating credentials...");

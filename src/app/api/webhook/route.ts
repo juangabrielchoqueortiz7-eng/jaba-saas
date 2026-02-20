@@ -1,10 +1,15 @@
 
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 
 // Token de verificación que configuraste en .env.local.
-// DEBE coincidir con el que pongas en el Dashboard de Meta.
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN
+
+// Configurar Cliente Supabase Admin para bypass RLS
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // Fallback if service key missing (but ideally service key)
+)
 
 // GET: Para la verificación inicial de Meta (Webhook Challenge)
 export async function GET(request: Request) {
@@ -58,7 +63,7 @@ export async function POST(request: Request) {
 
                 // --- MULTI-TENANT LOOKUP ---
                 // Buscamos de quién es este número de teléfono
-                const { data: credentials, error: credError } = await supabase
+                const { data: credentials, error: credError } = await supabaseAdmin
                     .from('whatsapp_credentials')
                     .select('user_id, access_token')
                     .or(`phone_number_id.eq.${phoneId},phone_number_id.eq.${Number(phoneId)}`)
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
                 console.log(`[Tenant: ${tenantUserId}] Mensaje de ${contactName}: ${messageText}`)
 
                 // 1. Buscar o Crear CHAT (Vinculado al Tenant)
-                const { data: existingChat } = await supabase
+                const { data: existingChat } = await supabaseAdmin
                     .from('chats')
                     .select('id, unread_count')
                     .eq('phone_number', phoneNumber)
@@ -99,13 +104,13 @@ export async function POST(request: Request) {
                 if (existingChat) {
                     chatId = existingChat.id
                     // Actualizamos chat
-                    await supabase.from('chats').update({
+                    await supabaseAdmin.from('chats').update({
                         last_message: messageText,
                         last_message_time: new Date().toISOString(),
                         unread_count: (existingChat.unread_count || 0) + 1
                     }).eq('id', chatId)
                 } else {
-                    const { data: newChat } = await supabase.from('chats').insert({
+                    const { data: newChat } = await supabaseAdmin.from('chats').insert({
                         phone_number: phoneNumber,
                         user_id: tenantUserId,
                         name: contactName,
@@ -119,7 +124,7 @@ export async function POST(request: Request) {
 
                 // 2. Guardar el MENSAJE (Del Usuario)
                 if (chatId) {
-                    await supabase.from('messages').insert({
+                    await supabaseAdmin.from('messages').insert({
                         chat_id: chatId,
                         sender: 'user',
                         content: messageText,
@@ -133,7 +138,7 @@ export async function POST(request: Request) {
                 // =================================================================================
 
                 // A. Buscar configuración del Asistente del Tenant
-                const { data: aiConfig } = await supabase
+                const { data: aiConfig } = await supabaseAdmin
                     .from('whatsapp_credentials')
                     .select('ai_status, bot_name, welcome_message, response_delay_seconds, audio_probability, message_delivery_mode, use_emojis, audio_voice_id, reply_audio_with_audio')
                     .eq('user_id', tenantUserId)
@@ -187,7 +192,7 @@ export async function POST(request: Request) {
                             // Si no existe, el primer upload fallará si no tenemos lógica de creación.
                             // Pro-tip: Intentamos crear el bucket si falla (o asumimos que existe).
 
-                            let { error: uploadError } = await supabase.storage
+                            let { error: uploadError } = await supabaseAdmin.storage
                                 .from(bucketName)
                                 .upload(fileName, audioBuffer, {
                                     contentType: 'audio/mpeg',
@@ -197,9 +202,9 @@ export async function POST(request: Request) {
                             if (uploadError && uploadError.message.includes('bucket not found')) {
                                 // Intentamos crear el bucket (Solo funcionará con Service Role Key)
                                 console.log("Bucket no encontrado, intentando crear...");
-                                await supabase.storage.createBucket(bucketName, { public: true });
+                                await supabaseAdmin.storage.createBucket(bucketName, { public: true });
                                 // Reintentar subida
-                                const retry = await supabase.storage.from(bucketName).upload(fileName, audioBuffer, { contentType: 'audio/mpeg' });
+                                const retry = await supabaseAdmin.storage.from(bucketName).upload(fileName, audioBuffer, { contentType: 'audio/mpeg' });
                                 uploadError = retry.error;
                             }
 
@@ -208,7 +213,7 @@ export async function POST(request: Request) {
                             }
 
                             // Obtener URL Pública
-                            const { data: { publicUrl } } = supabase.storage
+                            const { data: { publicUrl } } = supabaseAdmin.storage
                                 .from(bucketName)
                                 .getPublicUrl(fileName);
 
@@ -227,7 +232,7 @@ export async function POST(request: Request) {
                     }
 
                     if (chatId) {
-                        await supabase.from('messages').insert({
+                        await supabaseAdmin.from('messages').insert({
                             chat_id: chatId,
                             sender: 'ai',
                             content: aiResponseText,
@@ -241,7 +246,7 @@ export async function POST(request: Request) {
                     await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
 
                     if (chatId) {
-                        await supabase.from('messages').insert({
+                        await supabaseAdmin.from('messages').insert({
                             chat_id: chatId,
                             sender: 'ai',
                             content: aiResponseText,
