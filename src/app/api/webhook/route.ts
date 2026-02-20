@@ -82,7 +82,7 @@ export async function POST(request: Request) {
                 if (!credentials) {
                     // Deep Debug
                     const keyLen = SERVICE_ROLE_KEY ? SERVICE_ROLE_KEY.length : 0;
-                    const { count } = await supabaseAdmin.from('whatsapp_credentials').select('*', { count: 'exact', head: true });
+                    const { count, error: countError } = await supabaseAdmin.from('whatsapp_credentials').select('*', { count: 'exact', head: true });
 
                     console.error(`Credenciales no encontradas para Phone ID: ${phoneId}`)
                     // Si no reconocemos el número, ignoramos (retornamos 200 para que Meta no reintente)
@@ -91,7 +91,11 @@ export async function POST(request: Request) {
                         debug_phone_id: phoneId,
                         debug_key_present: !!SERVICE_ROLE_KEY,
                         debug_key_len: keyLen,
+                        debug_key_start: SERVICE_ROLE_KEY ? SERVICE_ROLE_KEY.substring(0, 5) : 'N/A',
+                        debug_key_end: SERVICE_ROLE_KEY ? SERVICE_ROLE_KEY.substring(SERVICE_ROLE_KEY.length - 5) : 'N/A',
+                        debug_url_present: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
                         debug_db_count: count,
+                        debug_db_error: countError,
                         debug_env: process.env.NODE_ENV
                     }, { status: 200 })
                 } else {

@@ -50,10 +50,13 @@ async function sendTestMessage() {
         try {
             const json = JSON.parse(text);
             if (json.error) {
-                console.log('RESULT: FAILURE');
-                console.log('ERROR CODE:', json.error);
-                console.log('DEBUG KEY:', json.debug_key_present);
-                console.log('DEBUG PHONE:', json.debug_phone_id);
+                console.log('--- FAILURE ---');
+                console.log('ErrorCode: ' + json.error);
+                console.log('KeyPresent: ' + json.debug_key_present);
+                console.log('KeyLen: ' + json.debug_key_len);
+                console.log('DBCount: ' + json.debug_db_count);
+                console.log('PhoneID: ' + json.debug_phone_id);
+                console.log('--- END FAILURE ---');
             } else {
                 console.log('RESULT: SUCCESS');
             }
