@@ -58,6 +58,12 @@ export function ChatWindow() {
 
         fetchMessages()
 
+        // Reset unread count when opening chat
+        const resetUnread = async () => {
+            await supabase.from('chats').update({ unread_count: 0 }).eq('id', activeChatId)
+        }
+        resetUnread()
+
         // Realtime
         const channel = supabase
             .channel(`chat:${activeChatId}`)

@@ -190,10 +190,10 @@ export async function POST(request: Request) {
                 // 3. CEREBRO IA (GEMINI) - AQUÍ OCURRE LA MAGIA 🧠✨
                 // =================================================================================
 
-                // Solo respondemos con IA a mensajes de TEXTO
-                // Imágenes, audios, stickers, etc. se guardan pero no generan respuesta IA
-                if (messageType !== 'text') {
-                    console.log(`[AI] Skipping AI response for non-text message type: ${messageType}`)
+                // Solo respondemos con IA a mensajes de TEXTO y AUDIO
+                // Imágenes, stickers, etc. se guardan pero no generan respuesta IA
+                if (messageType !== 'text' && messageType !== 'audio') {
+                    console.log(`[AI] Skipping AI response for message type: ${messageType}`)
                     return new NextResponse('EVENT_RECEIVED', { status: 200 })
                 }
 
@@ -226,7 +226,49 @@ export async function POST(request: Request) {
                     - Contexto del negocio: ${aiConfig.welcome_message || 'Atención al cliente general.'}
                 `
 
-                const aiResponseText = await generateAIResponse(messageText, systemPrompt)
+                // D. Preparar mensaje para Gemini (transcribir audio si es necesario)
+                let aiInputText = messageText
+
+                if (messageType === 'audio' && messageObject.audio?.id) {
+                    // Transcribir audio con Gemini multimodal
+                    try {
+                        const { getWhatsAppMediaUrl } = await import('@/lib/whatsapp')
+                        const mediaUrl = await getWhatsAppMediaUrl(messageObject.audio.id, tenantToken)
+
+                        if (mediaUrl) {
+                            // Descargar el audio
+                            const audioResp = await fetch(mediaUrl, {
+                                headers: { Authorization: `Bearer ${tenantToken}` }
+                            })
+                            const audioBuffer = await audioResp.arrayBuffer()
+                            const audioBase64 = Buffer.from(audioBuffer).toString('base64')
+                            const mimeType = messageObject.audio.mime_type || 'audio/ogg'
+
+                            // Usar Gemini para transcribir
+                            const { GoogleGenerativeAI } = await import('@google/generative-ai')
+                            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!)
+                            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' })
+
+                            const transcriptionResult = await model.generateContent([
+                                {
+                                    inlineData: {
+                                        mimeType: mimeType,
+                                        data: audioBase64
+                                    }
+                                },
+                                { text: 'Transcribe este audio al español. Solo devuelve la transcripción, sin explicaciones adicionales.' }
+                            ])
+
+                            aiInputText = transcriptionResult.response.text() || messageText
+                            console.log(`[AI] Audio transcrito: "${aiInputText.substring(0, 80)}..."`)
+                        }
+                    } catch (audioErr) {
+                        console.error('[AI] Error transcribiendo audio:', audioErr)
+                        aiInputText = '(El usuario envió un mensaje de voz pero no pude transcribirlo)'
+                    }
+                }
+
+                const aiResponseText = await generateAIResponse(aiInputText, systemPrompt)
 
                 // E. Decidir si respondemos con AUDIO o TEXTO
                 const randomChance = Math.random() * 100
@@ -296,7 +338,7 @@ export async function POST(request: Request) {
                             chat_id: chatId,
                             is_from_me: true, // AI sent this
                             content: aiResponseText, // Fallback content for audio
-                            status: 'sent'
+                            status: 'delivered'
                         })
                         if (aiMsgError) console.error("Error saving AI audio message:", aiMsgError);
                     }
@@ -310,7 +352,7 @@ export async function POST(request: Request) {
                             chat_id: chatId,
                             is_from_me: true, // AI sent this
                             content: aiResponseText,
-                            status: 'sent'
+                            status: 'delivered'
                         })
                         if (aiMsgError) console.error("Error saving AI text message:", aiMsgError);
                     }

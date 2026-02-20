@@ -61,7 +61,7 @@ export async function POST(request: Request) {
                 chat_id: chatId,
                 content: content,
                 is_from_me: true,
-                status: 'sent'
+                status: 'delivered'
             })
 
         if (insertError) {
