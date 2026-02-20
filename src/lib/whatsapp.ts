@@ -18,7 +18,7 @@ export async function sendWhatsAppMessage(to: string, body: string, token?: stri
 
     try {
         const response = await fetch(
-            `https://graph.facebook.com/v17.0/${phoneId}/messages`,
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
             {
                 method: "POST",
                 headers: {
@@ -55,7 +55,7 @@ export async function sendWhatsAppAudio(to: string, audioUrl: string, token?: st
 
     try {
         const response = await fetch(
-            `https://graph.facebook.com/v17.0/${phoneId}/messages`,
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
             {
                 method: "POST",
                 headers: {
@@ -80,7 +80,7 @@ export async function sendWhatsAppAudio(to: string, audioUrl: string, token?: st
 export async function getWhatsAppMediaUrl(mediaId: string, token: string): Promise<string | null> {
     try {
         // 1. Obtener URL de descarga
-        const response = await fetch(`https://graph.facebook.com/v17.0/${mediaId}`, {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();

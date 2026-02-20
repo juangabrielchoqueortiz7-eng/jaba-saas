@@ -66,7 +66,20 @@ export function ChatWindow() {
                 table: 'messages',
                 filter: `chat_id=eq.${activeChatId}`
             }, (payload) => {
-                setMessages((prev) => [...prev, payload.new as Message])
+                const newMsg = payload.new as Message
+                setMessages((prev) => {
+                    // Deduplicate: skip if message ID already exists (from optimistic update)
+                    if (prev.some(m => m.id === newMsg.id)) return prev
+                    // Also replace any optimistic message (temp ID) that matches content + is_from_me
+                    const filtered = prev.filter(m => {
+                        // If it's an optimistic temp message (numeric ID) with same content, replace it
+                        if (/^\d+$/.test(m.id) && m.is_from_me && newMsg.is_from_me && m.content === newMsg.content) {
+                            return false
+                        }
+                        return true
+                    })
+                    return [...filtered, newMsg]
+                })
                 scrollToBottom()
             })
             .subscribe()

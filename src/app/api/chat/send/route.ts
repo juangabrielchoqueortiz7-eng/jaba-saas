@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         }
 
         // 3. Send to WhatsApp Graph API
+        console.log(`[Send] Sending to ${chat.phone_number} via PhoneID ${creds.phone_number_id}`)
         const whatsappResponse = await sendWhatsAppMessage(
             chat.phone_number,
             content,
@@ -47,8 +48,11 @@ export async function POST(request: Request) {
         )
 
         if (!whatsappResponse) {
+            console.error(`[Send] WhatsApp API returned null for chat ${chatId}`)
             return NextResponse.json({ error: 'Failed to send message to WhatsApp API' }, { status: 500 })
         }
+
+        console.log(`[Send] WhatsApp API Response:`, JSON.stringify(whatsappResponse).substring(0, 200))
 
         // 4. Insert into Database
         const { error: insertError } = await supabase

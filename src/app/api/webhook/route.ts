@@ -92,8 +92,48 @@ export async function POST(request: Request) {
 
                 const messageObject = value.messages[0]
                 const phoneNumber = messageObject.from
-                const messageText = messageObject.text?.body || 'Mensaje sin texto'
+                const messageType = messageObject.type || 'unknown'
                 const contactName = value.contacts?.[0]?.profile?.name || phoneNumber
+
+                // Extract content based on message type
+                let messageText: string
+                switch (messageType) {
+                    case 'text':
+                        messageText = messageObject.text?.body || 'Mensaje sin texto'
+                        break
+                    case 'image':
+                        messageText = `📷 Imagen${messageObject.image?.caption ? ': ' + messageObject.image.caption : ''}`
+                        break
+                    case 'audio':
+                        messageText = '🎵 Mensaje de voz'
+                        break
+                    case 'video':
+                        messageText = `🎬 Video${messageObject.video?.caption ? ': ' + messageObject.video.caption : ''}`
+                        break
+                    case 'document':
+                        messageText = `📎 Documento: ${messageObject.document?.filename || 'archivo'}`
+                        break
+                    case 'sticker':
+                        messageText = '🏷️ Sticker'
+                        break
+                    case 'location':
+                        messageText = `📍 Ubicación: ${messageObject.location?.latitude}, ${messageObject.location?.longitude}`
+                        break
+                    case 'contacts':
+                        messageText = `👤 Contacto compartido`
+                        break
+                    case 'reaction':
+                        messageText = `${messageObject.reaction?.emoji || '👍'} Reacción`
+                        break
+                    case 'button':
+                        messageText = messageObject.button?.text || 'Botón presionado'
+                        break
+                    case 'interactive':
+                        messageText = messageObject.interactive?.button_reply?.title || messageObject.interactive?.list_reply?.title || 'Respuesta interactiva'
+                        break
+                    default:
+                        messageText = `[${messageType}] Mensaje no soportado`
+                }
 
                 console.log(`[Tenant: ${tenantUserId}] Mensaje de ${contactName}: ${messageText}`)
 
@@ -149,6 +189,13 @@ export async function POST(request: Request) {
                 // =================================================================================
                 // 3. CEREBRO IA (GEMINI) - AQUÍ OCURRE LA MAGIA 🧠✨
                 // =================================================================================
+
+                // Solo respondemos con IA a mensajes de TEXTO
+                // Imágenes, audios, stickers, etc. se guardan pero no generan respuesta IA
+                if (messageType !== 'text') {
+                    console.log(`[AI] Skipping AI response for non-text message type: ${messageType}`)
+                    return new NextResponse('EVENT_RECEIVED', { status: 200 })
+                }
 
                 // A. Buscar configuración del Asistente del Tenant
                 const { data: aiConfig } = await supabaseAdmin
