@@ -21,12 +21,11 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkColumns() {
-    console.log("Checking Messages Table Columns...");
+    console.log("Checking CHATS Table Columns...");
 
-    // Hack to check columns by selecting an empty row and looking at keys
-    // or by checking the error message when selecting a non-existent column
+    // Select one row to see keys
     const { data, error } = await supabase
-        .from('messages')
+        .from('chats')
         .select('*')
         .limit(1);
 
@@ -35,14 +34,14 @@ async function checkColumns() {
     } else if (data && data.length > 0) {
         console.log("Columns found:", Object.keys(data[0]));
     } else {
-        console.log("Table empty, can't infer columns easily from data.");
-        // Try inserting a dummy row with 'sender' to see error
+        console.log("Table empty, checking error on invalid insert...");
+        // Try inserting 'name' which likely doesn't exist
         const { error: insertError } = await supabase
-            .from('messages')
-            .insert({ chat_id: '00000000-0000-0000-0000-000000000000', sender: 'test' }); // Invalid UUID to ensure failure but trigger column check
+            .from('chats')
+            .insert({ phone_number: '000000', name: 'test' });
 
         if (insertError) {
-            console.log("Insert Error (Expect 'Column does not exist'):", insertError.message);
+            console.log("Insert Error:", insertError.message);
         }
     }
 }

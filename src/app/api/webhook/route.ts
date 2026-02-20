@@ -116,15 +116,16 @@ export async function POST(request: Request) {
                         unread_count: (existingChat.unread_count || 0) + 1
                     }).eq('id', chatId)
                 } else {
-                    const { data: newChat } = await supabaseAdmin.from('chats').insert({
+                    const { data: newChat, error: chatError } = await supabaseAdmin.from('chats').insert({
                         phone_number: phoneNumber,
                         user_id: tenantUserId,
-                        name: contactName,
+                        contact_name: contactName, // Correct column name
                         last_message: messageText,
-                        unread_count: 1,
-                        status: 'active'
+                        unread_count: 1
+                        // status: 'active' // Removed: Column does not exist
                     }).select().single()
 
+                    if (chatError) console.error("Error creating chat:", chatError);
                     if (newChat) chatId = newChat.id
                 }
 
