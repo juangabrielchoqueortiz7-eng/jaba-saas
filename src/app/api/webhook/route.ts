@@ -521,36 +521,50 @@ export async function POST(request: Request) {
                 ).join('\n')
 
                 const salesSystemPrompt = `Eres el Asistente de Ventas Senior de JABA Marketing Digital por WhatsApp.
-Tu único objetivo es cerrar ventas de suscripciones Canva Pro y ofrecer servicios de diseño.
-No eres solo un informante; eres un vendedor que usa escasez, urgencia y reciprocidad.
+Tu objetivo es CERRAR VENTAS de suscripciones Canva Pro.
+Eres un vendedor profesional que usa escasez, urgencia y reciprocidad.
 
-PLANES CANVA PRO:
+PLANES CANVA PRO DISPONIBLES:
 ${planList}
 
-Beneficios Clave: Estudio Mágico (IA), Kit de Marca, Quitar fondos, Programación de contenido, 100M+ fotos/videos premium.
-Garantía: Soporte 24/7 y seguridad total.
+BENEFICIOS INCLUIDOS EN TODOS LOS PLANES:
+✅ *Miles de Plantillas Pro* exclusivas
+✅ *Estudio Mágico* (IA para crear diseños)
+✅ *Kit de Marca* personalizado
+✅ *Quitar fondos* automáticamente
+✅ *Páginas Web* profesionales
+✅ *100M+* fotos, videos e ilustraciones premium
+✅ *Soporte 24/7* y seguridad total
 
-FLUJO DE VENTA:
-1. BIENVENIDA: "¡Hola! Bienvenido a JABA Marketing Digital. 👋 ¿Estás listo para llevar tus diseños al nivel profesional con Canva Pro?"
-2. PRESENTAR PLANES: Cuando pregunte, presenta los planes. Después: "¿Cuál se adapta mejor a tus proyectos hoy?" + "Aprovecha, solo nos quedan pocos cupos con este precio promocional 🇧🇴"
-3. CONFIRMAR: Cuando elija un plan, usa la herramienta confirm_plan. Después pide el correo electrónico.
-4. EMAIL: Cuando dé su email, usa la herramienta process_email. El sistema envía el QR automáticamente.
-5. PAGO: "Una vez realizado el pago, envíame la foto del comprobante."
+MÉTODOS DE PAGO: QR bancario (BancoSol, Banco Unión, BNB, Tigo Money)
+
+FLUJO DE VENTA OBLIGATORIO:
+1. PRIMER MENSAJE (Hola/cualquier saludo): Presenta INMEDIATAMENTE todos los beneficios y planes. Termina con: "¿Cuál plan te gustaría adquirir?" + "¡Aprovecha! Solo nos quedan pocos cupos con precio promocional 🇧🇴"
+2. CUANDO ELIJA UN PLAN: Usa la herramienta confirm_plan con el ID correspondiente.
+3. PEDIR EMAIL: Después de confirmar, pide su correo electrónico. Explica: "Necesito tu *correo electrónico* porque la invitación a *Canva Pro* se envía directamente a tu email para activar tu cuenta."
+4. CUANDO DÉ SU EMAIL: Usa la herramienta process_email. El QR de pago se envía automáticamente al chat.
+5. DESPUÉS DEL QR: "Una vez realizado el pago, envíame la foto del comprobante aquí por este chat."
+
+IMPORTANTE SOBRE EL CORREO:
+- El email es NECESARIO porque la suscripción de Canva Pro se activa mediante una invitación que llega al correo del cliente.
+- El QR de pago se envía AQUÍ al chat de WhatsApp, NO al correo.
+- NUNCA digas que el QR se envía al correo. El QR va al chat.
 
 SERVICIOS ADICIONALES: Diseño de Posts para redes, Invitaciones Digitales profesionales.
 
-IDs INTERNOS (NUNCA mostrar):
+IDs INTERNOS (NUNCA mostrar al cliente):
 ${idMapping}
 
-REGLAS:
-- Máximo 3-4 líneas por respuesta.
-- Usa *negritas* para precios y beneficios. Máximo 2 emojis por mensaje.
-- NUNCA muestres IDs ni generes código.
-- Si dice un número (1-5), identifica el plan correspondiente y confírmalo.
+REGLAS ESTRICTAS:
+- En el PRIMER mensaje siempre presenta beneficios + planes + pregunta cuál quiere.
+- Máximo 2 emojis por mensaje.
+- Usa *negritas* para precios y beneficios clave.
+- NUNCA muestres IDs, UUIDs ni generes código.
+- Si dice un número (1-5), identifica el plan correspondiente y usa confirm_plan.
 - "Quiero otra cuenta" = nueva venta independiente.
 ${orderContext}
 
-CONVERSACIÓN:
+HISTORIAL:
 ${chatHistory}`
 
                 // Function declarations para Gemini
@@ -667,7 +681,7 @@ ${chatHistory}`
                                 if (!aiResponseText.trim()) {
                                     aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.
 
-Para activar tu cuenta, necesito tu *correo electrónico*. El acceso se envía directamente a tu email. 📧`
+Para continuar, necesito tu *correo electrónico*. La invitación a *Canva Pro* se envía directamente a tu email para activar tu cuenta. 📧`
                                 }
                             } else if (result.success) {
                                 actionExecuted = true;
@@ -709,18 +723,29 @@ Para activar tu cuenta, necesito tu *correo electrónico*. El acceso se envía d
                                         .eq('id', pendingOrder.plan)
                                         .maybeSingle()
 
+                                    console.log(`[SALES] Producto para QR:`, JSON.stringify(orderProduct))
+                                    console.log(`[SALES] QR URL:`, orderProduct?.qr_image_url || 'NO HAY QR CONFIGURADO')
+
+                                    let qrSent = false
                                     if (orderProduct?.qr_image_url) {
                                         try {
                                             const { sendWhatsAppImage } = await import('@/lib/whatsapp')
 
-                                            await sendWhatsAppImage(
+                                            const qrResult = await sendWhatsAppImage(
                                                 phoneNumber,
                                                 orderProduct.qr_image_url,
-                                                `💳 QR de pago - ${orderProduct.name}\nMonto: Bs ${orderProduct.price}\n\nRealiza tu pago y envíame la foto del comprobante 📸`,
+                                                `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *Bs ${orderProduct.price}*\n\nRealiza tu pago y envíame la foto del comprobante aquí 📸`,
                                                 tenantToken,
                                                 phoneId
                                             )
-                                            console.log(`[SALES] QR enviado para producto: ${orderProduct.name}`)
+                                            console.log(`[SALES] QR send result:`, JSON.stringify(qrResult))
+
+                                            if (qrResult) {
+                                                qrSent = true
+                                                console.log(`[SALES] ✅ QR enviado exitosamente para: ${orderProduct.name}`)
+                                            } else {
+                                                console.error(`[SALES] ❌ sendWhatsAppImage retornó null`)
+                                            }
 
                                             // Guardar mensaje de imagen QR en DB
                                             const qrMsgPayload: any = {
@@ -737,13 +762,25 @@ Para activar tu cuenta, necesito tu *correo electrónico*. El acceso se envía d
                                                 await supabaseAdmin.from('messages').insert(qrMsgPayload)
                                             }
                                         } catch (qrError) {
-                                            console.error('[SALES] Error enviando QR:', qrError)
+                                            console.error('[SALES] ❌ Error enviando QR:', qrError)
                                         }
+                                    } else {
+                                        console.error(`[SALES] ⚠️ Producto sin qr_image_url: ${pendingOrder.plan}`)
                                     }
 
                                     actionExecuted = true
                                     if (!aiResponseText.trim()) {
-                                        aiResponseText = `✅ ¡Perfecto! He enviado el *QR de pago* para tu *${orderProduct?.name || pendingOrder.plan_name}*.\n\nUna vez realices el pago, envíame la foto del comprobante. Tu acceso se activará en *${email}*. 📧`
+                                        if (qrSent) {
+                                            aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
+
+Te he enviado el *QR de pago* aquí arriba ☝️ para tu *${orderProduct?.name || pendingOrder.plan_name}* (*Bs ${orderProduct?.price || pendingOrder.amount}*).
+
+Una vez realices el pago, envíame la foto del comprobante por este chat. 📸`
+                                        } else {
+                                            aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
+
+En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pendingOrder.plan_name}*. 💳`
+                                        }
                                     }
                                 } else {
                                     console.log('[SALES] Email recibido pero no hay pedido activo')
