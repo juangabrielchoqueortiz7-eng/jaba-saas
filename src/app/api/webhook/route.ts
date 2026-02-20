@@ -6,7 +6,8 @@ import { NextResponse } from 'next/server'
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN
 
 // Configurar Cliente Supabase Admin para bypass RLS
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
+// INTENTO DE BYPASS: Usamos una variable nueva para asegurar que no hay cache
+const SERVICE_ROLE_KEY = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
 console.log(`[Webhook] Init Admin Client. Service Role Key present? ${!!SERVICE_ROLE_KEY}`)
 
 const supabaseAdmin = createClient(

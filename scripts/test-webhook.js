@@ -54,9 +54,13 @@ async function sendTestMessage() {
                 console.log('ErrorCode: ' + json.error);
                 console.log('KeyPresent: ' + json.debug_key_present);
                 console.log('KeyLen: ' + json.debug_key_len);
+                console.log('KeyStart: ' + json.debug_key_start);
+                console.log('KeyEnd: ' + json.debug_key_end);
                 console.log('DBCount: ' + json.debug_db_count);
+                console.log('DBError: ' + JSON.stringify(json.debug_db_error));
                 console.log('PhoneID: ' + json.debug_phone_id);
                 console.log('--- END FAILURE ---');
+                require('fs').writeFileSync('debug_direct.json', JSON.stringify(json, null, 2));
             } else {
                 console.log('RESULT: SUCCESS');
             }
