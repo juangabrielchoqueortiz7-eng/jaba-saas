@@ -130,13 +130,13 @@ export async function POST(request: Request) {
 
                 // 2. Guardar el MENSAJE (Del Usuario)
                 if (chatId) {
-                    await supabaseAdmin.from('messages').insert({
+                    const { error: msgError } = await supabaseAdmin.from('messages').insert({
                         chat_id: chatId,
-                        sender: 'user',
+                        is_from_me: false, // User sent this
                         content: messageText,
-                        type: 'text',
                         status: 'delivered'
                     })
+                    if (msgError) console.error("Error saving user message:", msgError);
                 }
 
                 // =================================================================================
@@ -238,13 +238,13 @@ export async function POST(request: Request) {
                     }
 
                     if (chatId) {
-                        await supabaseAdmin.from('messages').insert({
+                        const { error: aiMsgError } = await supabaseAdmin.from('messages').insert({
                             chat_id: chatId,
-                            sender: 'ai',
-                            content: aiResponseText,
-                            type: 'audio',
+                            is_from_me: true, // AI sent this
+                            content: aiResponseText, // Fallback content for audio
                             status: 'sent'
                         })
+                        if (aiMsgError) console.error("Error saving AI audio message:", aiMsgError);
                     }
 
                 } else {
@@ -252,13 +252,13 @@ export async function POST(request: Request) {
                     await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
 
                     if (chatId) {
-                        await supabaseAdmin.from('messages').insert({
+                        const { error: aiMsgError } = await supabaseAdmin.from('messages').insert({
                             chat_id: chatId,
-                            sender: 'ai',
+                            is_from_me: true, // AI sent this
                             content: aiResponseText,
-                            type: 'text',
                             status: 'sent'
                         })
+                        if (aiMsgError) console.error("Error saving AI text message:", aiMsgError);
                     }
                 }
 
