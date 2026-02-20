@@ -427,11 +427,15 @@ export async function POST(request: Request) {
                     orderContext = `\nPEDIDO ACTIVO: ${activeOrder.plan_name || activeOrder.product} a Bs ${activeOrder.amount}. Estado: ${statusLabel[activeOrder.status] || activeOrder.status}. Email: ${activeOrder.customer_email || 'NO proporcionado aún'}.`
                 }
 
-                // Construir catálogo dinámico para el prompt
+                // Construir catálogo dinámico para el prompt (IDs solo internos para la función)
                 let catalogText = ''
+                let catalogMapping = ''
                 if (tenantProducts && tenantProducts.length > 0) {
-                    catalogText = '\nCATÁLOGO DE PRODUCTOS/SERVICIOS:\n' + tenantProducts.map(p =>
-                        `- ${p.name}: Bs ${p.price}${p.description ? ' — ' + p.description : ''} (ID: "${p.id}")`
+                    catalogText = '\nPRODUCTOS/SERVICIOS DISPONIBLES (para presentar al cliente):\n' + tenantProducts.map((p, i) =>
+                        `${i + 1}. ${p.name} → Bs ${p.price}${p.description ? ' — ' + p.description : ''}`
+                    ).join('\n')
+                    catalogMapping = '\n\nMAPEO INTERNO (NUNCA mostrar al cliente, solo para la función confirm_plan):\n' + tenantProducts.map((p, i) =>
+                        `"${p.name}" = ID: "${p.id}"`
                     ).join('\n')
                 }
 
@@ -441,17 +445,30 @@ export async function POST(request: Request) {
                 const salesSystemPrompt = `
 ${userTrainingPrompt}
 ${catalogText}
+${catalogMapping}
 
-FLUJO DE VENTAS (si el negocio vende productos/servicios):
-1. Si el cliente elige o menciona un producto/servicio → CONFIRMA y LLAMA a la función "confirm_plan" con el ID del producto.
-2. Una vez confirmado, PIDE el correo electrónico del cliente.
-3. Cuando el cliente dé su correo → LLAMA a la función "process_email" con el email.
-4. Después del QR, el cliente debe enviar foto del comprobante de pago.
+INSTRUCCIONES DE COMPORTAMIENTO:
+- Siempre saluda amablemente primero. NO vendas de inmediato.
+- Espera a que el cliente pregunte o muestre interés antes de presentar productos.
+- Cuando presentes productos, hazlo de forma limpia y ordenada, SIN MOSTRAR IDs ni códigos internos.
+- Responde de forma natural como un vendedor amable, NO como un robot.
+- Usa emojis con moderación para ser cercano.
+- Mantén los mensajes cortos y claros.
 
-REGLAS:
+FLUJO DE VENTAS:
+1. Saluda cálidamente y pregunta en qué puedes ayudar.
+2. Si el cliente muestra interés, presenta los productos de forma ordenada.
+3. Cuando el cliente elija un producto → LLAMA a "confirm_plan" con el ID interno correspondiente.
+4. Después de confirmar, PIDE OBLIGATORIAMENTE el correo electrónico del cliente.
+5. Cuando el cliente dé su correo → LLAMA a "process_email" con el email.
+6. Después del QR de pago, espera la foto del comprobante.
+
+REGLAS CRÍTICAS:
+- NUNCA muestres los IDs (UUIDs) al cliente. Solo úsalos internamente al llamar funciones.
 - NUNCA digas que has enviado el QR sin llamar a "process_email".
-- Si hay un PEDIDO ACTIVO pendiente de pago, recuérdale amablemente al cliente.
-- Siempre usa un tono amable y profesional.
+- Después de confirmar un pedido, SIEMPRE pide el email antes de continuar.
+- Si hay un PEDIDO ACTIVO pendiente de pago, recuérdale amablemente al cliente que envíe su comprobante.
+- No satures al cliente con mucha información de golpe.
 
 ${orderContext}
 
@@ -648,7 +665,16 @@ ${chatHistory}
                 // Si no hubo texto en la respuesta de Gemini, generar uno por defecto
                 if (!aiResponseText.trim()) {
                     if (actionExecuted) {
-                        aiResponseText = 'Procesando tu solicitud...'
+                        // Regenerar una respuesta contextual con IA (sin function calling)
+                        try {
+                            const { generateAIResponse } = await import('@/lib/ai')
+                            aiResponseText = await generateAIResponse(
+                                'Genera una respuesta breve y amable para el cliente después de procesar su solicitud. Si se confirmó un pedido, pídele su correo electrónico. Si se registró su email, dile que le enviarás el QR de pago.',
+                                salesSystemPrompt
+                            )
+                        } catch {
+                            aiResponseText = '¡Perfecto! He registrado tu solicitud. ¿Me podrías proporcionar tu correo electrónico para continuar? 📧'
+                        }
                     } else {
                         // Fallback: generar respuesta simple sin function calling
                         const { generateAIResponse } = await import('@/lib/ai')
