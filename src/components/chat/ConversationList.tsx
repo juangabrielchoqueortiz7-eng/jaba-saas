@@ -43,15 +43,19 @@ export function ConversationList() {
 
         fetchChats()
 
-        // Realtime subscription
+        // Polling: refresh chats every 3 seconds for reliable updates
+        const pollInterval = setInterval(fetchChats, 3000)
+
+        // Realtime subscription (instant updates when available)
         const channel = supabase
             .channel('chats_realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, (payload) => {
-                fetchChats() // Refresh on change (simple approach)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => {
+                fetchChats()
             })
             .subscribe()
 
         return () => {
+            clearInterval(pollInterval)
             supabase.removeChannel(channel)
         }
     }, [supabase])

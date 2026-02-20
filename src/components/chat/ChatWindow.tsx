@@ -64,7 +64,28 @@ export function ChatWindow() {
         }
         resetUnread()
 
-        // Realtime
+        // Polling: refresh messages every 3 seconds for reliable updates
+        const pollInterval = setInterval(async () => {
+            const { data: msgs } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('chat_id', activeChatId)
+                .order('created_at', { ascending: true })
+
+            if (msgs) {
+                setMessages(prev => {
+                    // Only update if there are new messages (avoid unnecessary re-renders)
+                    if (msgs.length !== prev.length ||
+                        (msgs.length > 0 && prev.length > 0 && msgs[msgs.length - 1].id !== prev[prev.length - 1].id)) {
+                        scrollToBottom()
+                        return msgs
+                    }
+                    return prev
+                })
+            }
+        }, 3000)
+
+        // Realtime (instant updates when available)
         const channel = supabase
             .channel(`chat:${activeChatId}`)
             .on('postgres_changes', {
@@ -75,11 +96,8 @@ export function ChatWindow() {
             }, (payload) => {
                 const newMsg = payload.new as Message
                 setMessages((prev) => {
-                    // Deduplicate: skip if message ID already exists (from optimistic update)
                     if (prev.some(m => m.id === newMsg.id)) return prev
-                    // Also replace any optimistic message (temp ID) that matches content + is_from_me
                     const filtered = prev.filter(m => {
-                        // If it's an optimistic temp message (numeric ID) with same content, replace it
                         if (/^\d+$/.test(m.id) && m.is_from_me && newMsg.is_from_me && m.content === newMsg.content) {
                             return false
                         }
@@ -92,6 +110,7 @@ export function ChatWindow() {
             .subscribe()
 
         return () => {
+            clearInterval(pollInterval)
             supabase.removeChannel(channel)
         }
     }, [activeChatId, supabase])
