@@ -410,8 +410,16 @@ ${chatHistory}
                                 })
                                 if (orderError) {
                                     console.error('[SALES] Error creando pedido:', orderError)
+                                    // DEBUG: Guardar error en chat para visibilidad
+                                    await supabaseAdmin.from('chats').update({
+                                        last_message: `❌ Error Pedido: ${orderError.message}`
+                                    }).eq('id', chatId)
                                 } else {
                                     console.log(`[SALES] Pedido creado: Plan ${plan.name} para ${contactName}`)
+                                    // DEBUG: Marcar éxito en chat
+                                    await supabaseAdmin.from('chats').update({
+                                        last_message: `✅ Pedido Creado: ${plan.name}`
+                                    }).eq('id', chatId)
                                     actionExecuted = true
                                 }
                             }
@@ -440,6 +448,10 @@ ${chatHistory}
                                     }).eq('id', pendingOrder.id)
 
                                     console.log(`[SALES] Email registrado: ${email} para pedido ${pendingOrder.id}`)
+                                    // DEBUG: Marcar éxito en chat
+                                    await supabaseAdmin.from('chats').update({
+                                        last_message: `✅ Email vinculado: ${email}`
+                                    }).eq('id', chatId)
 
                                     // Enviar QR de pago
                                     const plan = PLANS[pendingOrder.plan]
@@ -473,6 +485,10 @@ ${chatHistory}
                                     actionExecuted = true
                                 } else {
                                     console.log('[SALES] Email recibido pero no hay pedido activo')
+                                    // DEBUG: Marcar fallo en chat
+                                    await supabaseAdmin.from('chats').update({
+                                        last_message: `⚠️ Email recibido pero SIN PEDIDO ACTIVO`
+                                    }).eq('id', chatId)
                                 }
                             }
                         }
