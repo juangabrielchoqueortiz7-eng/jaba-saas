@@ -13,6 +13,7 @@ interface Message {
     is_from_me: boolean
     created_at: string
     status: 'sent' | 'delivered' | 'read'
+    media_url?: string | null
 }
 
 interface ChatDetails {
@@ -229,6 +230,7 @@ export function ChatWindow() {
                                 isMine={msg.is_from_me}
                                 timestamp={formatMessageTime(msg.created_at)}
                                 status={msg.is_from_me ? (msg.status || 'sent') : undefined}
+                                mediaUrl={msg.media_url}
                             />
                         </div>
                     )

@@ -142,12 +142,8 @@ export async function POST(request: Request) {
                         messageText = messageObject.text?.body || 'Mensaje sin texto'
                         break
                     case 'image':
-                        messageText = `📷 Imagen${messageObject.image?.caption ? ': ' + messageObject.image.caption : ''}`
-                        // Heurística básica de "comprobante"
-                        const caption = messageObject.image?.caption?.toLowerCase() || ''
-                        if (caption.includes('pago') || caption.includes('comprobante') || caption.includes('transferencia')) {
-                            isReceipt = true
-                        }
+                        messageText = messageObject.image?.caption || '📷 Imagen'
+                        isReceipt = true // Cualquier imagen se evalúa como posible comprobante
                         break
                     case 'audio':
                         messageText = '🎵 Mensaje de voz'
@@ -226,16 +222,54 @@ export async function POST(request: Request) {
                 }
 
                 // 2. Guardar el MENSAJE (Del Usuario)
+                // Descargar imagen de WhatsApp si es tipo imagen
+                let savedMediaUrl: string | null = null
+                if (messageType === 'image' && messageObject.image?.id) {
+                    try {
+                        // Obtener URL temporal de la imagen de WhatsApp
+                        const mediaResp = await fetch(
+                            `https://graph.facebook.com/v21.0/${messageObject.image.id}`,
+                            { headers: { Authorization: `Bearer ${tenantToken}` } }
+                        )
+                        const mediaData = await mediaResp.json()
+                        if (mediaData.url) {
+                            // Descargar la imagen
+                            const imgResp = await fetch(mediaData.url, {
+                                headers: { Authorization: `Bearer ${tenantToken}` }
+                            })
+                            const imgBuffer = Buffer.from(await imgResp.arrayBuffer())
+                            const fileName = `receipts/${chatId}/${Date.now()}.jpg`
+
+                            // Subir a Supabase Storage
+                            const { data: uploadData } = await supabaseAdmin.storage
+                                .from('sales-assets')
+                                .upload(fileName, imgBuffer, {
+                                    contentType: 'image/jpeg',
+                                    upsert: true
+                                })
+
+                            if (uploadData) {
+                                const { data: publicUrl } = supabaseAdmin.storage
+                                    .from('sales-assets')
+                                    .getPublicUrl(fileName)
+                                savedMediaUrl = publicUrl.publicUrl
+                            }
+                        }
+                    } catch (imgErr) {
+                        console.error('[Media] Error descargando imagen:', imgErr)
+                    }
+                }
+
                 if (chatId) {
                     const { error: msgError } = await supabaseAdmin.from('messages').insert({
                         chat_id: chatId,
-                        is_from_me: false, // User sent this
+                        is_from_me: false,
                         content: messageText,
-                        status: 'delivered'
+                        status: 'delivered',
+                        media_url: savedMediaUrl
                     })
                     if (msgError) {
                         console.error("Error saving user message:", msgError);
-                        // DEBUG HACK: Save error to chat so we can see it
                         await supabaseAdmin.from('chats').update({
                             last_message: `ERROR SAVING MSG: ${msgError.message}`
                         }).eq('id', chatId)
@@ -320,26 +354,40 @@ export async function POST(request: Request) {
 
                 // --- PROCESAR COMPROBANTE DE PAGO ---
                 if (isReceipt && chatId) {
-                    console.log(`[Sales] Comprobante detectado de ${phoneNumber}`);
+                    console.log(`[Sales] Posible comprobante detectado de ${phoneNumber}`);
 
-                    // Buscar pedido activo
+                    // Buscar pedido activo con status pending_payment
                     const { data: activeOrder } = await supabaseAdmin
                         .from('orders')
                         .select('*')
                         .eq('chat_id', chatId)
-                        .in('status', ['pending_payment', 'pending_email'])
+                        .eq('status', 'pending_payment')
                         .order('created_at', { ascending: false })
                         .limit(1)
                         .maybeSingle();
 
                     if (activeOrder) {
+                        // Verificar que la imagen sea reciente (de hoy)
+                        const now = new Date()
+                        const boliviaOffset = -4 * 60 // UTC-4
+                        const boliviaTime = new Date(now.getTime() + (now.getTimezoneOffset() + boliviaOffset) * 60000)
+                        const todayStr = boliviaTime.toISOString().split('T')[0]
+
+                        console.log(`[Sales] Comprobante recibido. Fecha actual (Bolivia): ${todayStr}`);
+
                         await supabaseAdmin.from('orders').update({
                             status: 'pending_delivery',
-                            updated_at: new Date().toISOString()
+                            updated_at: new Date().toISOString(),
+                            metadata: {
+                                ...(activeOrder.metadata || {}),
+                                receipt_image_url: savedMediaUrl,
+                                receipt_date: todayStr,
+                                receipt_time: boliviaTime.toTimeString().slice(0, 8)
+                            }
                         }).eq('id', activeOrder.id);
 
                         const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
-                        const confirmationMsg = `¡Muchas gracias! He recibido tu comprobante de pago. 📄✅\n\nEstaré validando la transacción y te contactaré pronto con los detalles de tu pedido (${activeOrder.plan_name || activeOrder.product}). ¡Gracias por tu preferencia!`;
+                        const confirmationMsg = `✅ *¡Comprobante recibido!*\n\nEstamos verificando tu pago para el *${activeOrder.plan_name || activeOrder.product}* (Bs ${activeOrder.amount}).\n\nEn breve recibirás el acceso en tu correo electrónico: *${activeOrder.customer_email || '(no registrado)'}*\n\n¡Gracias por tu preferencia! 🙌`;
 
                         await sendWhatsAppMessage(phoneNumber, confirmationMsg, tenantToken, phoneId);
 
@@ -352,6 +400,7 @@ export async function POST(request: Request) {
 
                         return new NextResponse('EVENT_RECEIVED', { status: 200 });
                     }
+                    // Si no hay pedido pending_payment, dejamos que la IA maneje (no es comprobante relevante)
                 }
 
                 // =================================================================================
@@ -604,10 +653,10 @@ ${chatHistory}
                                     .maybeSingle()
 
                                 if (pendingOrder) {
-                                    // Actualizar pedido con email y cambiar status
+                                    // Actualizar pedido con email y cambiar status a ESPERANDO PAGO
                                     await supabaseAdmin.from('orders').update({
                                         customer_email: email,
-                                        status: 'pending_delivery',
+                                        status: 'pending_payment',
                                         updated_at: new Date().toISOString()
                                     }).eq('id', pendingOrder.id)
 
@@ -631,18 +680,19 @@ ${chatHistory}
                                             await sendWhatsAppImage(
                                                 phoneNumber,
                                                 orderProduct.qr_image_url,
-                                                `💳 QR de pago - ${orderProduct.name}\nMonto: Bs ${orderProduct.price}`,
+                                                `💳 QR de pago - ${orderProduct.name}\nMonto: Bs ${orderProduct.price}\n\nRealiza tu pago y envíame la foto del comprobante 📸`,
                                                 tenantToken,
                                                 phoneId
                                             )
                                             console.log(`[SALES] QR enviado para producto: ${orderProduct.name}`)
 
-                                            // Guardar mensaje de imagen QR en DB
+                                            // Guardar mensaje de imagen QR en DB con media_url
                                             await supabaseAdmin.from('messages').insert({
                                                 chat_id: chatId,
                                                 is_from_me: true,
-                                                content: `📸 QR de pago enviado - ${orderProduct.name} (Bs ${orderProduct.price})`,
-                                                status: 'delivered'
+                                                content: `💳 QR de pago - ${orderProduct.name} (Bs ${orderProduct.price})`,
+                                                status: 'delivered',
+                                                media_url: orderProduct.qr_image_url
                                             })
                                         } catch (qrError) {
                                             console.error('[SALES] Error enviando QR:', qrError)
