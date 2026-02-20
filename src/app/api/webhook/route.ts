@@ -80,12 +80,18 @@ export async function POST(request: Request) {
                 }
 
                 if (!credentials) {
+                    // Deep Debug
+                    const keyLen = SERVICE_ROLE_KEY ? SERVICE_ROLE_KEY.length : 0;
+                    const { count } = await supabaseAdmin.from('whatsapp_credentials').select('*', { count: 'exact', head: true });
+
                     console.error(`Credenciales no encontradas para Phone ID: ${phoneId}`)
                     // Si no reconocemos el número, ignoramos (retornamos 200 para que Meta no reintente)
                     return NextResponse.json({
                         error: 'TENANT_NOT_FOUND',
                         debug_phone_id: phoneId,
                         debug_key_present: !!SERVICE_ROLE_KEY,
+                        debug_key_len: keyLen,
+                        debug_db_count: count,
                         debug_env: process.env.NODE_ENV
                     }, { status: 200 })
                 } else {

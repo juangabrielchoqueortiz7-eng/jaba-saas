@@ -49,11 +49,18 @@ async function sendTestMessage() {
         const text = await response.text();
         try {
             const json = JSON.parse(text);
-            console.log('KEY PRESENT?', json.debug_key_present);
-            console.log('PHONE ID:', json.debug_phone_id);
+            if (json.error) {
+                console.log('RESULT: FAILURE');
+                console.log('ERROR CODE:', json.error);
+                console.log('DEBUG KEY:', json.debug_key_present);
+                console.log('DEBUG PHONE:', json.debug_phone_id);
+            } else {
+                console.log('RESULT: SUCCESS');
+            }
         } catch (e) {
             console.log('Response Text:', text);
         }
+        console.log('Response Text:', text);
     } catch (error) {
         console.error('Error al enviar el mensaje:', error);
     }
