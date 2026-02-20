@@ -79,7 +79,12 @@ export async function POST(request: Request) {
                 if (!credentials) {
                     console.error(`Credenciales no encontradas para Phone ID: ${phoneId}`)
                     // Si no reconocemos el número, ignoramos (retornamos 200 para que Meta no reintente)
-                    return new NextResponse('TENANT_NOT_FOUND', { status: 200 })
+                    return NextResponse.json({
+                        error: 'TENANT_NOT_FOUND',
+                        debug_phone_id: phoneId,
+                        debug_key_present: !!SERVICE_ROLE_KEY,
+                        debug_env: process.env.NODE_ENV
+                    }, { status: 200 })
                 } else {
                     console.log(`[Webhook] Tenant Found: ${credentials.user_id}`);
                 }
