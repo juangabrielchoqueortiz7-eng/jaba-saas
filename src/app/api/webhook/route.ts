@@ -132,6 +132,21 @@ export async function POST(request: Request) {
                 const phoneNumber = messageObject.from
                 const messageType = messageObject.type || 'unknown'
                 const contactName = value.contacts?.[0]?.profile?.name || phoneNumber
+                const whatsappMessageId = messageObject.id // ID único del mensaje de WhatsApp
+
+                // DEDUPLICACIÓN: Verificar si ya procesamos este mensaje
+                if (whatsappMessageId) {
+                    const { data: existingMsg } = await supabaseAdmin
+                        .from('messages')
+                        .select('id')
+                        .eq('whatsapp_message_id', whatsappMessageId)
+                        .maybeSingle()
+
+                    if (existingMsg) {
+                        console.log(`[Dedup] Mensaje ya procesado: ${whatsappMessageId}`)
+                        return new NextResponse('ALREADY_PROCESSED', { status: 200 })
+                    }
+                }
 
                 // Extract content based on message type
                 let messageText: string
@@ -261,7 +276,7 @@ export async function POST(request: Request) {
                 }
 
                 if (chatId) {
-                    // Intentar guardar con media_url, si falla (columna no existe), guardar sin ella
+                    // Intentar guardar con media_url y whatsapp_message_id
                     const msgPayload: any = {
                         chat_id: chatId,
                         is_from_me: false,
@@ -269,20 +284,18 @@ export async function POST(request: Request) {
                         status: 'delivered'
                     }
                     if (savedMediaUrl) msgPayload.media_url = savedMediaUrl
+                    if (whatsappMessageId) msgPayload.whatsapp_message_id = whatsappMessageId
 
                     const { error: msgError } = await supabaseAdmin.from('messages').insert(msgPayload)
                     if (msgError) {
-                        // Si falla por media_url, intentar sin ella
-                        if (msgError.message?.includes('media_url')) {
-                            await supabaseAdmin.from('messages').insert({
-                                chat_id: chatId,
-                                is_from_me: false,
-                                content: messageText,
-                                status: 'delivered'
-                            })
-                        } else {
-                            console.error("Error saving user message:", msgError);
-                        }
+                        // Si falla por columna inexistente, intentar con campos mínimos
+                        console.warn("Error saving msg, retrying with basic fields:", msgError.message)
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId,
+                            is_from_me: false,
+                            content: messageText,
+                            status: 'delivered'
+                        })
                     }
                 }
 
@@ -290,12 +303,16 @@ export async function POST(request: Request) {
                 // 3. EVALUACIÓN DE DISPARADORES (TRIGGERS) 🚀
                 // =================================================================================
 
+                // IMPORTANTE: NO disparar triggers en respuestas interactivas (selección de lista/botón)
+                // Esto evita el loop infinito donde "Plan Plata" re-dispara el trigger de "plan"
+                const skipTriggers = messageType === 'interactive' || messageType === 'button'
+
                 // Buscar disparadores activos para este usuario
-                const { data: triggers } = await supabaseAdmin
+                const { data: triggers } = !skipTriggers ? await supabaseAdmin
                     .from('triggers')
                     .select('*, trigger_conditions(*), trigger_actions(*)')
                     .eq('user_id', tenantUserId)
-                    .eq('is_active', true);
+                    .eq('is_active', true) : { data: null }
 
                 if (triggers && triggers.length > 0) {
                     for (const trigger of triggers) {
