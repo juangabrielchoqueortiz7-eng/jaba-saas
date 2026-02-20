@@ -11,7 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing chatId or content' }, { status: 400 })
         }
 
-        const supabase = createClient()
+        const supabase = await createClient()
 
         // 1. Get Chat Details (Phone Number + Tenant User ID)
         const { data: chat, error: chatError } = await supabase
