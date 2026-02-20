@@ -100,20 +100,23 @@ export function ChatWindow() {
             setNewMessage('')
             scrollToBottom()
 
-            // Insert into DB
-            await supabase.from('messages').insert({
-                chat_id: activeChatId,
-                content: tempMsg.content,
-                is_from_me: true,
-                status: 'sent'
+            // Call API to Send & Save
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: activeChatId,
+                    content: tempMsg.content
+                })
             })
 
-            // Update chat last message
-            await supabase.from('chats').update({
-                last_message: tempMsg.content,
-                last_message_time: tempMsg.created_at
-            }).eq('id', activeChatId)
+            const result = await response.json()
 
+            if (!response.ok) {
+                console.error('Error sending message:', result.error)
+                // Optional: Show error toast or revert optimistic update
+                // setMessages(prev => prev.filter(m => m.id !== tempMsg.id)) 
+            }
         } catch (error) {
             console.error('Error sending message:', error)
         }

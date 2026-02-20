@@ -60,7 +60,7 @@ async function checkChats() {
                 console.log(`User ID: ${c.user_id}`);
                 console.log(`Match? ${creds && c.user_id === creds.user_id}`);
                 console.log(`Last Msg: ${c.last_message}`);
-                console.log(`Time: ${c.last_message_time}`);
+                console.log(`Time: ${c.last_message_time}`); // Log full time
             });
         }
     }
