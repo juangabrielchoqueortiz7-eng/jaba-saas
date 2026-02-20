@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function SidebarNav() {
@@ -106,6 +106,19 @@ export function SidebarNav() {
                         >
                             <MessageSquare size={20} />
                             Chat
+                        </Link>
+
+                        <Link
+                            href="/dashboard/orders"
+                            className={cn(
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                                pathname.startsWith('/dashboard/orders')
+                                    ? "text-white bg-slate-800/50"
+                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                            )}
+                        >
+                            <ShoppingCart size={20} />
+                            Pedidos
                         </Link>
 
                         {/* Training Link - Only shows if we have an ID or if we are in training page */}

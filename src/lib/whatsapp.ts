@@ -66,13 +66,63 @@ export async function sendWhatsAppAudio(to: string, audioUrl: string, token?: st
                     messaging_product: "whatsapp",
                     to: to,
                     type: "audio",
-                    audio: { link: audioUrl } // WhatsApp descarga el audio del link
+                    audio: { link: audioUrl }
                 }),
             }
         );
         return await response.json();
     } catch (error) {
         console.error("Excepción enviando audio:", error);
+        return null;
+    }
+}
+
+/**
+ * Envía una imagen a un usuario de WhatsApp mediante la Graph API de Meta.
+ * @param to Número de teléfono del destinatario
+ * @param imageUrl URL pública de la imagen
+ * @param caption Texto opcional debajo de la imagen
+ * @param token Token de acceso
+ * @param phoneNumberId ID del teléfono emisor
+ */
+export async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string, token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) {
+        console.error("ERROR: Faltan credenciales para enviar imagen.");
+        return null;
+    }
+
+    try {
+        const imagePayload: Record<string, string> = { link: imageUrl };
+        if (caption) imagePayload.caption = caption;
+
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: "image",
+                    image: imagePayload
+                }),
+            }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error("Error enviando imagen a WhatsApp:", JSON.stringify(data, null, 2));
+            return null;
+        }
+        return data;
+    } catch (error) {
+        console.error("Excepción enviando imagen:", error);
         return null;
     }
 }
