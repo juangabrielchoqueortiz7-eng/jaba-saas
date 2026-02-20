@@ -152,3 +152,135 @@ export async function downloadWhatsAppMedia(url: string, token: string): Promise
         return null;
     }
 }
+
+/**
+ * Envía un mensaje interactivo con botones a un usuario de WhatsApp.
+ * @param to Número de teléfono
+ * @param body Texto del mensaje
+ * @param buttons Lista de botones (máximo 3) [{ id: 'btn1', title: 'Botón 1' }]
+ * @param token Token de acceso
+ * @param phoneNumberId ID del teléfono
+ */
+export async function sendWhatsAppButtons(to: string, body: string, buttons: { id: string, title: string }[], token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) return null;
+
+    try {
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: "interactive",
+                    interactive: {
+                        type: "button",
+                        body: { text: body },
+                        action: {
+                            buttons: buttons.map(btn => ({
+                                type: "reply",
+                                reply: { id: btn.id, title: btn.title }
+                            }))
+                        }
+                    }
+                }),
+            }
+        );
+        return await response.json();
+    } catch (error) {
+        console.error("Excepción enviando botones:", error);
+        return null;
+    }
+}
+
+/**
+ * Envía un mensaje interactivo con una lista a un usuario de WhatsApp.
+ * @param to Número de teléfono
+ * @param body Texto del mensaje
+ * @param buttonText Texto del botón de la lista
+ * @param sections Secciones y filas de la lista
+ */
+export async function sendWhatsAppList(to: string, body: string, buttonText: string, sections: any[], token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) return null;
+
+    try {
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: "interactive",
+                    interactive: {
+                        type: "list",
+                        body: { text: body },
+                        action: {
+                            button: buttonText,
+                            sections: sections
+                        }
+                    }
+                }),
+            }
+        );
+        return await response.json();
+    } catch (error) {
+        console.error("Excepción enviando lista:", error);
+        return null;
+    }
+}
+
+/**
+ * Envía una plantilla oficial de Meta.
+ * @param to Número de teléfono
+ * @param templateName Nombre de la plantilla aprobada en Meta
+ * @param languageCode Código de idioma (ej: 'es')
+ * @param components Parámetros dinámicos para la plantilla
+ */
+export async function sendWhatsAppTemplate(to: string, templateName: string, languageCode: string = 'es', components: any[] = [], token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) return null;
+
+    try {
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: "template",
+                    template: {
+                        name: templateName,
+                        language: { code: languageCode },
+                        components: components
+                    }
+                }),
+            }
+        );
+        return await response.json();
+    } catch (error) {
+        console.error("Excepción enviando plantilla:", error);
+        return null;
+    }
+}

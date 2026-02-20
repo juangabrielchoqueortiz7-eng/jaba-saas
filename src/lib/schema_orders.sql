@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   plan TEXT NOT NULL,                          -- '1m', '3m', '6m', '9m', '1y'
   plan_name TEXT,                              -- 'Básico', 'Bronce', 'Plata', 'Gold', 'Premium'
   amount DECIMAL(10,2) NOT NULL,               -- 19.00, 39.00, 69.00, 99.00, 109.00
+  equipo TEXT, -- Para rastrear el equipo de Canva Pro
   
   -- Datos del cliente
   customer_email TEXT,

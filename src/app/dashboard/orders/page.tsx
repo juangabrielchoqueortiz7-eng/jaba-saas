@@ -29,6 +29,7 @@ type Order = {
     plan_name: string
     amount: number
     customer_email: string
+    equipo?: string
     status: 'pending_email' | 'pending_payment' | 'pending_delivery' | 'delivered' | 'cancelled'
 }
 
@@ -204,7 +205,7 @@ export default function OrdersPage() {
                             <tr className="border-b border-slate-800 bg-slate-800/20">
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha / Cliente</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan / Monto</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email de Acceso</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Acceso / Equipo</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -231,14 +232,23 @@ export default function OrdersPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-5">
-                                        {order.customer_email ? (
-                                            <div className="flex items-center gap-2 text-sm text-slate-300">
-                                                <Mail size={14} className="text-indigo-500" />
-                                                {order.customer_email}
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-slate-600 italic">No proporcionado</span>
-                                        )}
+                                        <div className="flex flex-col gap-1.5">
+                                            {order.customer_email ? (
+                                                <div className="flex items-center gap-2 text-sm text-slate-300">
+                                                    <Mail size={14} className="text-indigo-500" />
+                                                    {order.customer_email}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-600 italic">Email no proporcionado</span>
+                                            )}
+                                            {order.equipo && (
+                                                <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                    <span className="px-1.5 py-0.5 bg-slate-800 rounded text-indigo-400 font-bold border border-slate-700">
+                                                        EQ {order.equipo}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-5">
                                         <span className={cn(

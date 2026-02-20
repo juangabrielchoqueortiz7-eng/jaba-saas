@@ -15,6 +15,8 @@ const supabaseAdmin = createClient(
     SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // Fallback if service key missing (but ideally service key)
 )
 
+// Productos se cargan dinámicamente desde la DB para cada tenant
+
 // GET: Para la verificación inicial de Meta (Webhook Challenge)
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -42,6 +44,42 @@ export async function GET(request: Request) {
 
 // POST: Para recibir los mensajes de WhatsApp
 export async function POST(request: Request) {
+    // --- HELPER FUNCTIONS ---
+    async function confirmOrder(productId: string, chatId: string, phoneNumber: string, contactName: string, tenantUserId: string) {
+        // Cargar producto desde la DB
+        const { data: product } = await supabaseAdmin
+            .from('products')
+            .select('*')
+            .eq('id', productId)
+            .eq('user_id', tenantUserId)
+            .single();
+
+        if (!product) return { error: 'Producto no encontrado' };
+
+        const { error: orderError } = await supabaseAdmin.from('orders').insert({
+            user_id: tenantUserId,
+            chat_id: chatId,
+            phone_number: phoneNumber,
+            contact_name: contactName,
+            product: product.name,
+            plan: productId,
+            plan_name: product.name,
+            amount: product.price,
+            status: 'pending_email'
+        });
+
+        if (orderError) return { error: orderError.message };
+
+        console.log(`[SALES] Pedido creado: ${product.name} (Bs ${product.price}) para ${contactName}`);
+
+        // Log en el chat para visibilidad
+        await supabaseAdmin.from('chats').update({
+            last_message: `✅ Nuevo pedido: ${product.name} (Bs ${product.price})`
+        }).eq('id', chatId);
+
+        return { success: true, product };
+    }
+
     try {
         const body = await request.json()
 
@@ -97,12 +135,19 @@ export async function POST(request: Request) {
 
                 // Extract content based on message type
                 let messageText: string
+                let isReceipt = false
+
                 switch (messageType) {
                     case 'text':
                         messageText = messageObject.text?.body || 'Mensaje sin texto'
                         break
                     case 'image':
                         messageText = `📷 Imagen${messageObject.image?.caption ? ': ' + messageObject.image.caption : ''}`
+                        // Heurística básica de "comprobante"
+                        const caption = messageObject.image?.caption?.toLowerCase() || ''
+                        if (caption.includes('pago') || caption.includes('comprobante') || caption.includes('transferencia')) {
+                            isReceipt = true
+                        }
                         break
                     case 'audio':
                         messageText = '🎵 Mensaje de voz'
@@ -137,7 +182,18 @@ export async function POST(request: Request) {
 
                 console.log(`[Tenant: ${tenantUserId}] Mensaje de ${contactName}: ${messageText}`)
 
-                // 1. Buscar o Crear CHAT (Vinculado al Tenant)
+                // --- 1. PROCESAR RESPUESTAS INTERACTIVAS (Botones/Listas) ---
+                let interactiveData = null;
+                if (messageType === 'interactive') {
+                    const interactive = messageObject.interactive;
+                    if (interactive.type === 'button_reply') {
+                        interactiveData = { id: interactive.button_reply.id, title: interactive.button_reply.title };
+                    } else if (interactive.type === 'list_reply') {
+                        interactiveData = { id: interactive.list_reply.id, title: interactive.list_reply.title };
+                    }
+                }
+
+                // 2. Buscar o Crear CHAT (Vinculado al Tenant)
                 const { data: existingChat } = await supabaseAdmin
                     .from('chats')
                     .select('id, unread_count')
@@ -187,20 +243,131 @@ export async function POST(request: Request) {
                 }
 
                 // =================================================================================
+                // 3. EVALUACIÓN DE DISPARADORES (TRIGGERS) 🚀
+                // =================================================================================
+
+                // Buscar disparadores activos para este usuario
+                const { data: triggers } = await supabaseAdmin
+                    .from('triggers')
+                    .select('*, trigger_conditions(*), trigger_actions(*)')
+                    .eq('user_id', tenantUserId)
+                    .eq('is_active', true);
+
+                if (triggers && triggers.length > 0) {
+                    for (const trigger of triggers) {
+                        let matches = true;
+
+                        // Evaluar condiciones
+                        for (const cond of trigger.trigger_conditions) {
+                            if (cond.type === 'contains_words') {
+                                if (!messageText.toLowerCase().includes(cond.value.toLowerCase())) matches = false;
+                            } else if (cond.type === 'equals') {
+                                if (messageText.toLowerCase() !== cond.value.toLowerCase()) matches = false;
+                            }
+                            // Agregar más tipos de condiciones según sea necesario
+                        }
+
+                        if (matches && trigger.trigger_conditions.length > 0) {
+                            console.log(`[Trigger] Activado: ${trigger.name}`);
+                            const { sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppMessage } = await import('@/lib/whatsapp');
+
+                            for (const action of trigger.trigger_actions) {
+                                if (action.type === 'send_message') {
+                                    // Si el payload tiene botones, enviamos botones, si no, texto plano
+                                    if (action.payload.buttons) {
+                                        await sendWhatsAppButtons(phoneNumber, action.payload.message, action.payload.buttons, tenantToken, phoneId);
+                                    } else if (action.payload.sections) {
+                                        await sendWhatsAppList(phoneNumber, action.payload.message, action.payload.buttonText || 'Ver opciones', action.payload.sections, tenantToken, phoneId);
+                                    } else {
+                                        await sendWhatsAppMessage(phoneNumber, action.payload.message, tenantToken, phoneId);
+                                    }
+                                }
+                                // Implementar más acciones: update_status, add_tag, etc.
+                            }
+
+                            // Si se ejecutó un disparador, podemos decidir si queremos que la IA también responda o no.
+                            // Por ahora, si hay un trigger exacto, detenemos el flujo hacia la IA.
+                            return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                        }
+                    }
+                }
+
+                // --- PROCESAR SELECCIÓN DE PRODUCTO (INTERACTIVO) ---
+                if (interactiveData && interactiveData.id.startsWith('product_')) {
+                    const productId = interactiveData.id.replace('product_', '');
+                    console.log(`[Sales] Producto seleccionado vía interactivo: ${productId}`);
+
+                    const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
+
+                    if (result.success && result.product) {
+                        const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
+                        let responseText = `¡Excelente elección! Has seleccionado *${result.product.name}* (Bs ${result.product.price}).\n\n`;
+                        responseText += `Para continuar, por favor *escríbeme tu correo electrónico*:`;
+
+                        await sendWhatsAppMessage(phoneNumber, responseText, tenantToken, phoneId);
+
+                        // Guardar en mensajes
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId,
+                            is_from_me: true,
+                            content: responseText,
+                            status: 'delivered'
+                        });
+
+                        return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                    }
+                }
+
+                // --- PROCESAR COMPROBANTE DE PAGO ---
+                if (isReceipt && chatId) {
+                    console.log(`[Sales] Comprobante detectado de ${phoneNumber}`);
+
+                    // Buscar pedido activo
+                    const { data: activeOrder } = await supabaseAdmin
+                        .from('orders')
+                        .select('*')
+                        .eq('chat_id', chatId)
+                        .in('status', ['pending_payment', 'pending_email'])
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (activeOrder) {
+                        await supabaseAdmin.from('orders').update({
+                            status: 'pending_delivery',
+                            updated_at: new Date().toISOString()
+                        }).eq('id', activeOrder.id);
+
+                        const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
+                        const confirmationMsg = `¡Muchas gracias! He recibido tu comprobante de pago. 📄✅\n\nEstaré validando la transacción y te contactaré pronto con los detalles de tu pedido (${activeOrder.plan_name || activeOrder.product}). ¡Gracias por tu preferencia!`;
+
+                        await sendWhatsAppMessage(phoneNumber, confirmationMsg, tenantToken, phoneId);
+
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId,
+                            is_from_me: true,
+                            content: confirmationMsg,
+                            status: 'delivered'
+                        });
+
+                        return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                    }
+                }
+
+                // =================================================================================
                 // 3. CEREBRO IA (GEMINI) - AQUÍ OCURRE LA MAGIA 🧠✨
                 // =================================================================================
 
-                // Solo respondemos con IA a mensajes de TEXTO y AUDIO
-                // Imágenes, stickers, etc. se guardan pero no generan respuesta IA
-                if (messageType !== 'text' && messageType !== 'audio') {
+                // Solo respondemos con IA a mensajes de TEXTO, AUDIO y ahora INTERACTIVO (si no fue capturado arriba)
+                if (messageType !== 'text' && messageType !== 'audio' && messageType !== 'interactive') {
                     console.log(`[AI] Skipping AI response for message type: ${messageType}`)
                     return new NextResponse('EVENT_RECEIVED', { status: 200 })
                 }
 
-                // A. Buscar configuración del Asistente del Tenant
+                // A. Buscar configuración del Asistente del Tenant (incluye training_prompt)
                 const { data: aiConfig } = await supabaseAdmin
                     .from('whatsapp_credentials')
-                    .select('ai_status, bot_name, welcome_message, response_delay_seconds, audio_probability, message_delivery_mode, use_emojis, audio_voice_id, reply_audio_with_audio')
+                    .select('ai_status, bot_name, welcome_message, response_delay_seconds, audio_probability, message_delivery_mode, use_emojis, audio_voice_id, reply_audio_with_audio, training_prompt')
                     .eq('user_id', tenantUserId)
                     .single()
 
@@ -217,14 +384,7 @@ export async function POST(request: Request) {
                 const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai')
                 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!)
 
-                // Catálogo de planes
-                const PLANS: Record<string, { name: string, months: string, price: number, qr_file: string }> = {
-                    '1m': { name: 'Básico', months: '1 mes', price: 19, qr_file: 'qr_1m.jpg' },
-                    '3m': { name: 'Bronce', months: '3 meses', price: 39, qr_file: 'qr_3m.jpg' },
-                    '6m': { name: 'Plata', months: '6 meses', price: 69, qr_file: 'qr_6m.jpg' },
-                    '9m': { name: 'Gold', months: '9 meses', price: 99, qr_file: 'qr_9m.jpg' },
-                    '1y': { name: 'Premium', months: '1 año', price: 109, qr_file: 'qr_1y.jpg' },
-                }
+                // Catálogo de planes (Movido a nivel global)
 
                 // Buscar historial de mensajes recientes para contexto
                 const { data: recentMessages } = await supabaseAdmin
@@ -249,32 +409,49 @@ export async function POST(request: Request) {
                     .limit(1)
                     .maybeSingle()
 
-                const orderContext = activeOrder
-                    ? `\nPEDIDO ACTIVO: Plan ${activeOrder.plan_name} (${activeOrder.plan}) a Bs ${activeOrder.amount}. Estado: ${activeOrder.status}. Email: ${activeOrder.customer_email || 'NO proporcionado aún'}.`
-                    : ''
+                // Cargar catálogo de productos del tenant
+                const { data: tenantProducts } = await supabaseAdmin
+                    .from('products')
+                    .select('id, name, description, price, category')
+                    .eq('user_id', tenantUserId)
+                    .eq('is_active', true)
+                    .order('sort_order', { ascending: true })
 
-                // System prompt con catálogo de ventas
+                let orderContext = ''
+                if (activeOrder) {
+                    const statusLabel: Record<string, string> = {
+                        'pending_email': 'Esperando email del cliente',
+                        'pending_payment': 'QR enviado, esperando comprobante de pago',
+                        'pending_delivery': 'Pago recibido, pendiente de entregar'
+                    }
+                    orderContext = `\nPEDIDO ACTIVO: ${activeOrder.plan_name || activeOrder.product} a Bs ${activeOrder.amount}. Estado: ${statusLabel[activeOrder.status] || activeOrder.status}. Email: ${activeOrder.customer_email || 'NO proporcionado aún'}.`
+                }
+
+                // Construir catálogo dinámico para el prompt
+                let catalogText = ''
+                if (tenantProducts && tenantProducts.length > 0) {
+                    catalogText = '\nCATÁLOGO DE PRODUCTOS/SERVICIOS:\n' + tenantProducts.map(p =>
+                        `- ${p.name}: Bs ${p.price}${p.description ? ' — ' + p.description : ''} (ID: "${p.id}")`
+                    ).join('\n')
+                }
+
+                // Construir system prompt dinámico
+                const userTrainingPrompt = aiConfig.training_prompt || `Eres ${aiConfig.bot_name}, un asistente virtual profesional por WhatsApp. Responde de manera amable y profesional a los clientes.`
+
                 const salesSystemPrompt = `
-Eres ${aiConfig.bot_name}, asistente de ventas de JABA Marketing Digital por WhatsApp.
-Tu objetivo es guiar al cliente hasta la compra de Canva Pro.
+${userTrainingPrompt}
+${catalogText}
 
-PLANES DISPONIBLES:
-- Plan Básico: 1 mes → Bs 19 (ID: "1m")
-- Plan Bronce: 3 meses → Bs 39 (ID: "3m")
-- Plan Plata: 6 meses → Bs 69 (ID: "6m")
-- Plan Gold: 9 meses → Bs 99 (ID: "9m")
-- Plan Premium: 1 año → Bs 109 (ID: "1y")
-
-FLUJO OBLIGATORIO:
-1. Si el cliente elige o menciona un plan → CONFIRMA el plan y LLAMA OBLIGATORIAMENTE a la función "confirm_plan" con el ID del plan.
+FLUJO DE VENTAS (si el negocio vende productos/servicios):
+1. Si el cliente elige o menciona un producto/servicio → CONFIRMA y LLAMA a la función "confirm_plan" con el ID del producto.
 2. Una vez confirmado, PIDE el correo electrónico del cliente.
-3. Cuando el cliente dé su correo → LLAMA OBLIGATORIAMENTE a la función "process_email" con el email. Esta función es la que envía el código QR de pago automáticamente. Dile al cliente que "estás registrando su email y enviando el QR".
+3. Cuando el cliente dé su correo → LLAMA a la función "process_email" con el email.
+4. Después del QR, el cliente debe enviar foto del comprobante de pago.
 
-REGLAS CRÍTICAS:
+REGLAS:
 - NUNCA digas que has enviado el QR sin llamar a "process_email".
-- Si el cliente se queja de que no recibió el QR, vuelve a llamar a "process_email" si ya tienes su correo.
-- Si el cliente cambia de opinión, usa "confirm_plan" con el nuevo ID.
-- Siempre usa un tono amable y persuasivo.
+- Si hay un PEDIDO ACTIVO pendiente de pago, recuérdale amablemente al cliente.
+- Siempre usa un tono amable y profesional.
 
 ${orderContext}
 
@@ -283,17 +460,19 @@ ${chatHistory}
 `
 
                 // Function declarations para Gemini
+                // IDs de productos dinámicos para function calling
+                const productIds = (tenantProducts || []).map(p => p.id)
+
                 const salesFunctions: any = [
                     {
                         name: 'confirm_plan',
-                        description: 'Se llama cuando el cliente confirma que quiere comprar un plan específico de Canva Pro. Solo llamar cuando el cliente ha expresado claramente qué plan desea.',
+                        description: 'Se llama cuando el cliente confirma que quiere comprar un producto o servicio específico. Solo llamar cuando el cliente ha expresado claramente qué desea.',
                         parameters: {
                             type: SchemaType.OBJECT,
                             properties: {
                                 plan_id: {
                                     type: SchemaType.STRING,
-                                    description: 'ID del plan elegido: "1m" para 1 mes, "3m" para 3 meses, "6m" para 6 meses, "9m" para 9 meses, "1y" para 1 año',
-                                    enum: ['1m', '3m', '6m', '9m', '1y']
+                                    description: 'ID del producto/servicio elegido (UUID del catálogo)'
                                 }
                             },
                             required: ['plan_id']
@@ -301,7 +480,7 @@ ${chatHistory}
                     },
                     {
                         name: 'process_email',
-                        description: 'Se llama cuando el cliente proporciona su correo electrónico para recibir el acceso a Canva Pro.',
+                        description: 'Se llama cuando el cliente proporciona su correo electrónico para completar su pedido.',
                         parameters: {
                             type: SchemaType.OBJECT,
                             properties: {
@@ -386,36 +565,10 @@ ${chatHistory}
                         console.log(`[SALES] Function call: ${name}`, JSON.stringify(callArgs))
 
                         if (name === 'confirm_plan' && callArgs?.plan_id) {
-                            const planId = callArgs.plan_id as string
-                            const plan = PLANS[planId]
-
-                            if (plan && chatId) {
-                                // Crear pedido en estado pending_email
-                                const { error: orderError } = await supabaseAdmin.from('orders').insert({
-                                    user_id: tenantUserId,
-                                    chat_id: chatId,
-                                    phone_number: phoneNumber,
-                                    contact_name: contactName,
-                                    product: 'canva_pro',
-                                    plan: planId,
-                                    plan_name: plan.name,
-                                    amount: plan.price,
-                                    status: 'pending_email'
-                                })
-                                if (orderError) {
-                                    console.error('[SALES] Error creando pedido:', orderError)
-                                    // DEBUG: Guardar error en chat para visibilidad
-                                    await supabaseAdmin.from('chats').update({
-                                        last_message: `❌ Error Pedido: ${orderError.message}`
-                                    }).eq('id', chatId)
-                                } else {
-                                    console.log(`[SALES] Pedido creado: Plan ${plan.name} para ${contactName}`)
-                                    // DEBUG: Marcar éxito en chat
-                                    await supabaseAdmin.from('chats').update({
-                                        last_message: `✅ Pedido Creado: ${plan.name}`
-                                    }).eq('id', chatId)
-                                    actionExecuted = true
-                                }
+                            const productId = callArgs.plan_id as string
+                            const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
+                            if (result.success) {
+                                actionExecuted = true;
                             }
                         }
 
@@ -447,28 +600,31 @@ ${chatHistory}
                                         last_message: `✅ Email vinculado: ${email}`
                                     }).eq('id', chatId)
 
-                                    // Enviar QR de pago
-                                    const plan = PLANS[pendingOrder.plan]
-                                    if (plan) {
+                                    // Enviar QR de pago (buscar desde el producto)
+                                    const { data: orderProduct } = await supabaseAdmin
+                                        .from('products')
+                                        .select('name, price, qr_image_url')
+                                        .eq('id', pendingOrder.plan)
+                                        .maybeSingle()
+
+                                    if (orderProduct?.qr_image_url) {
                                         try {
                                             const { sendWhatsAppImage } = await import('@/lib/whatsapp')
-                                            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-                                            const qrUrl = `${supabaseUrl}/storage/v1/object/public/sales-assets/qr/${plan.qr_file}`
 
                                             await sendWhatsAppImage(
                                                 phoneNumber,
-                                                qrUrl,
-                                                `💳 QR de pago - Plan ${plan.name} (${plan.months})\nMonto: Bs ${plan.price}\nPagar a: Choque Ortiz Juan Gabriel`,
+                                                orderProduct.qr_image_url,
+                                                `💳 QR de pago - ${orderProduct.name}\nMonto: Bs ${orderProduct.price}`,
                                                 tenantToken,
                                                 phoneId
                                             )
-                                            console.log(`[SALES] QR enviado: ${plan.qr_file}`)
+                                            console.log(`[SALES] QR enviado para producto: ${orderProduct.name}`)
 
                                             // Guardar mensaje de imagen QR en DB
                                             await supabaseAdmin.from('messages').insert({
                                                 chat_id: chatId,
                                                 is_from_me: true,
-                                                content: `📸 QR de pago enviado - Plan ${plan.name} (Bs ${plan.price})`,
+                                                content: `📸 QR de pago enviado - ${orderProduct.name} (Bs ${orderProduct.price})`,
                                                 status: 'delivered'
                                             })
                                         } catch (qrError) {
