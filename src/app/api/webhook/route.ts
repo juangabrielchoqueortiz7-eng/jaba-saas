@@ -109,20 +109,20 @@ export async function POST(request: Request) {
 
                 if (existingChat) {
                     chatId = existingChat.id
-                    // Actualizamos chat
+                    // Actualizamos chat y NOMBRE DE CONTACTO
                     await supabaseAdmin.from('chats').update({
                         last_message: messageText,
                         last_message_time: new Date().toISOString(),
-                        unread_count: (existingChat.unread_count || 0) + 1
+                        unread_count: (existingChat.unread_count || 0) + 1,
+                        contact_name: contactName // Sync Contact Name
                     }).eq('id', chatId)
                 } else {
                     const { data: newChat, error: chatError } = await supabaseAdmin.from('chats').insert({
                         phone_number: phoneNumber,
                         user_id: tenantUserId,
-                        contact_name: contactName, // Correct column name
+                        contact_name: contactName,
                         last_message: messageText,
                         unread_count: 1
-                        // status: 'active' // Removed: Column does not exist
                     }).select().single()
 
                     if (chatError) console.error("Error creating chat:", chatError);
@@ -137,7 +137,13 @@ export async function POST(request: Request) {
                         content: messageText,
                         status: 'delivered'
                     })
-                    if (msgError) console.error("Error saving user message:", msgError);
+                    if (msgError) {
+                        console.error("Error saving user message:", msgError);
+                        // DEBUG HACK: Save error to chat so we can see it
+                        await supabaseAdmin.from('chats').update({
+                            last_message: `ERROR SAVING MSG: ${msgError.message}`
+                        }).eq('id', chatId)
+                    }
                 }
 
                 // =================================================================================
