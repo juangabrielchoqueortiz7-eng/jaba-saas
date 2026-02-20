@@ -4,7 +4,11 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-    const report = {
+    const report: {
+        timestamp: string;
+        env_vars: Record<string, any>;
+        connection_tests: any[];
+    } = {
         timestamp: new Date().toISOString(),
         env_vars: {},
         connection_tests: []
