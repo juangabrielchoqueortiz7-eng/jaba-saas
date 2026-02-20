@@ -261,18 +261,28 @@ export async function POST(request: Request) {
                 }
 
                 if (chatId) {
-                    const { error: msgError } = await supabaseAdmin.from('messages').insert({
+                    // Intentar guardar con media_url, si falla (columna no existe), guardar sin ella
+                    const msgPayload: any = {
                         chat_id: chatId,
                         is_from_me: false,
                         content: messageText,
-                        status: 'delivered',
-                        media_url: savedMediaUrl
-                    })
+                        status: 'delivered'
+                    }
+                    if (savedMediaUrl) msgPayload.media_url = savedMediaUrl
+
+                    const { error: msgError } = await supabaseAdmin.from('messages').insert(msgPayload)
                     if (msgError) {
-                        console.error("Error saving user message:", msgError);
-                        await supabaseAdmin.from('chats').update({
-                            last_message: `ERROR SAVING MSG: ${msgError.message}`
-                        }).eq('id', chatId)
+                        // Si falla por media_url, intentar sin ella
+                        if (msgError.message?.includes('media_url')) {
+                            await supabaseAdmin.from('messages').insert({
+                                chat_id: chatId,
+                                is_from_me: false,
+                                content: messageText,
+                                status: 'delivered'
+                            })
+                        } else {
+                            console.error("Error saving user message:", msgError);
+                        }
                     }
                 }
 
@@ -448,12 +458,13 @@ export async function POST(request: Request) {
                     .map(m => `${m.is_from_me ? 'Asistente' : 'Cliente'}: ${m.content}`)
                     .join('\n')
 
-                // Buscar pedido activo de este chat
+                // Buscar pedido ACTIVO de este chat (solo pending_email y pending_payment)
+                // pedidos en pending_delivery ya fueron pagados, NO bloquean nuevas ventas
                 const { data: activeOrder } = await supabaseAdmin
                     .from('orders')
                     .select('*')
                     .eq('chat_id', chatId)
-                    .in('status', ['pending_email', 'pending_payment', 'pending_delivery'])
+                    .in('status', ['pending_email', 'pending_payment'])
                     .order('created_at', { ascending: false })
                     .limit(1)
                     .maybeSingle()
@@ -469,11 +480,10 @@ export async function POST(request: Request) {
                 let orderContext = ''
                 if (activeOrder) {
                     const statusLabel: Record<string, string> = {
-                        'pending_email': 'Esperando email del cliente',
-                        'pending_payment': 'QR enviado, esperando comprobante de pago',
-                        'pending_delivery': 'Pago recibido, pendiente de entregar'
+                        'pending_email': 'Esperando que el cliente proporcione su email',
+                        'pending_payment': 'QR enviado, esperando foto del comprobante de pago'
                     }
-                    orderContext = `\nPEDIDO ACTIVO: ${activeOrder.plan_name || activeOrder.product} a Bs ${activeOrder.amount}. Estado: ${statusLabel[activeOrder.status] || activeOrder.status}. Email: ${activeOrder.customer_email || 'NO proporcionado aún'}.`
+                    orderContext = `\nPEDIDO EN PROCESO: ${activeOrder.plan_name || activeOrder.product} a Bs ${activeOrder.amount}. Estado: ${statusLabel[activeOrder.status] || activeOrder.status}. Email: ${activeOrder.customer_email || 'Aún no proporcionado'}.\nSi el estado es 'Esperando que el cliente proporcione su email', PIDE el email.\nSi el estado es 'QR enviado, esperando foto del comprobante', recuérdale que envíe la foto del comprobante.`
                 }
 
                 // Construir catálogo dinámico para el prompt (IDs solo internos para la función)
@@ -496,28 +506,32 @@ ${userTrainingPrompt}
 ${catalogText}
 ${catalogMapping}
 
-INSTRUCCIONES DE COMPORTAMIENTO:
-- Siempre saluda amablemente primero. NO vendas de inmediato.
-- Espera a que el cliente pregunte o muestre interés antes de presentar productos.
-- Cuando presentes productos, hazlo de forma limpia y ordenada, SIN MOSTRAR IDs ni códigos internos.
-- Responde de forma natural como un vendedor amable, NO como un robot.
-- Usa emojis con moderación para ser cercano.
-- Mantén los mensajes cortos y claros.
+COMPORTAMIENTO:
+- Saluda amablemente y pregunta en qué puedes ayudar.
+- NO vendas directamente, espera a que el cliente pregunte.
+- Cuando presentes productos, hazlo de forma limpia (lista numerada), SIN mostrar IDs.
+- Responde de forma natural y breve. NO repitas información.
+- Usa emojis con moderación.
 
 FLUJO DE VENTAS:
-1. Saluda cálidamente y pregunta en qué puedes ayudar.
-2. Si el cliente muestra interés, presenta los productos de forma ordenada.
-3. Cuando el cliente elija un producto → LLAMA a "confirm_plan" con el ID interno correspondiente.
-4. Después de confirmar, PIDE OBLIGATORIAMENTE el correo electrónico del cliente.
-5. Cuando el cliente dé su correo → LLAMA a "process_email" con el email.
-6. Después del QR de pago, espera la foto del comprobante.
+1. El cliente se interesa en un producto → LLAMA a "confirm_plan" con el ID interno.
+2. Después de confirmar, PIDE OBLIGATORIAMENTE el correo electrónico.
+3. Cuando dé su correo → LLAMA a "process_email" con el email.
+4. Después del QR, espera la foto del comprobante.
 
-REGLAS CRÍTICAS:
-- NUNCA muestres los IDs (UUIDs) al cliente. Solo úsalos internamente al llamar funciones.
-- NUNCA digas que has enviado el QR sin llamar a "process_email".
-- Después de confirmar un pedido, SIEMPRE pide el email antes de continuar.
-- Si hay un PEDIDO ACTIVO pendiente de pago, recuérdale amablemente al cliente que envíe su comprobante.
-- No satures al cliente con mucha información de golpe.
+ESCENARIOS FRECUENTES:
+- Si el cliente quiere otra cuenta / otro plan: Iníciale una nueva venta normal. Cada compra es independiente.
+- Si pregunta por precios: Presenta los planes.
+- Si dice "hola" o saluda: Solo saluda y pregunta en qué ayudar.
+- Si manda un mensaje que no tiene que ver con ventas: Responde amablemente.
+- Si pregunta por estado de pedido: Consulta el contexto del pedido activo.
+
+REGLAS:
+- NUNCA muestres UUIDs ni códigos internos al cliente.
+- NUNCA digas que enviaste el QR sin llamar a "process_email".
+- NUNCA repitas el mismo mensaje que ya enviaste en el historial.
+- Si ya confirmaste un pedido, NO lo confirmes de nuevo.
+- Mantén las respuestas cortas (máx 3 líneas cuando sea posible).
 
 ${orderContext}
 
@@ -686,14 +700,20 @@ ${chatHistory}
                                             )
                                             console.log(`[SALES] QR enviado para producto: ${orderProduct.name}`)
 
-                                            // Guardar mensaje de imagen QR en DB con media_url
-                                            await supabaseAdmin.from('messages').insert({
+                                            // Guardar mensaje de imagen QR en DB
+                                            const qrMsgPayload: any = {
                                                 chat_id: chatId,
                                                 is_from_me: true,
                                                 content: `💳 QR de pago - ${orderProduct.name} (Bs ${orderProduct.price})`,
-                                                status: 'delivered',
-                                                media_url: orderProduct.qr_image_url
-                                            })
+                                                status: 'delivered'
+                                            }
+                                            try {
+                                                qrMsgPayload.media_url = orderProduct.qr_image_url
+                                                await supabaseAdmin.from('messages').insert(qrMsgPayload)
+                                            } catch {
+                                                delete qrMsgPayload.media_url
+                                                await supabaseAdmin.from('messages').insert(qrMsgPayload)
+                                            }
                                         } catch (qrError) {
                                             console.error('[SALES] Error enviando QR:', qrError)
                                         }
