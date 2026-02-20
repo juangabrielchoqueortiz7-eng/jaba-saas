@@ -1,0 +1,61 @@
+{
+  "data": [
+    {
+      "name": "jaba_utility",
+      "parameter_format": "POSITIONAL",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Confirmación de sistema Jaba SaaS: Tu cuenta está conectada."
+        }
+      ],
+      "language": "es",
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2196992034407308"
+    },
+    {
+      "name": "jaba_welcome",
+      "parameter_format": "POSITIONAL",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hola! Bienvenido a Jaba SaaS. Tu integración de WhatsApp está activa y funcionando correctamente."
+        }
+      ],
+      "language": "es",
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1419941399006099"
+    },
+    {
+      "name": "hello_world",
+      "parameter_format": "POSITIONAL",
+      "components": [
+        {
+          "type": "HEADER",
+          "format": "TEXT",
+          "text": "Hello World"
+        },
+        {
+          "type": "BODY",
+          "text": "Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta. Thank you for taking the time to test with us."
+        },
+        {
+          "type": "FOOTER",
+          "text": "WhatsApp Business Platform sample message"
+        }
+      ],
+      "language": "en_US",
+      "status": "APPROVED",
+      "category": "UTILITY",
+      "id": "887897097573137"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIU1BnZATBVNTVLaEd1aS1SUkJxV0pETUxRYWxHbEdocmJZAeS1YZAzlGbklYcnlPLXNnWWg0LTk0ZAE5IQ2VoRV9vZAHBNM0JSby1kcDUyZAV9keW5md1ZAVd3dn",
+      "after": "QVFIU0VjNGZAQSmFxcXFHbXE4dDBvMklDejhMUzhyeGxIcVR0ckcwSC1rLXpkUjRaRl9USGtxXy1peHpnMVJPNko4ZAW5ZASHdDRUM5Q1E4U2NKR0hjLUN4T0ZA3"
+    }
+  }
+}

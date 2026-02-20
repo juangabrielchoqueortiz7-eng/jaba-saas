@@ -54,18 +54,26 @@ export async function POST(request: Request) {
                     return new NextResponse('NO_METADATA', { status: 200 })
                 }
 
+                console.log(`[Webhook] Received Event for Phone ID: ${phoneId}`);
+
                 // --- MULTI-TENANT LOOKUP ---
                 // Buscamos de quién es este número de teléfono
-                const { data: credentials } = await supabase
+                const { data: credentials, error: credError } = await supabase
                     .from('whatsapp_credentials')
                     .select('user_id, access_token')
-                    .eq('phone_number_id', phoneId)
+                    .or(`phone_number_id.eq.${phoneId},phone_number_id.eq.${Number(phoneId)}`)
                     .maybeSingle()
+
+                if (credError) {
+                    console.error("Error looking up credentials:", credError);
+                }
 
                 if (!credentials) {
                     console.error(`Credenciales no encontradas para Phone ID: ${phoneId}`)
                     // Si no reconocemos el número, ignoramos (retornamos 200 para que Meta no reintente)
                     return new NextResponse('TENANT_NOT_FOUND', { status: 200 })
+                } else {
+                    console.log(`[Webhook] Tenant Found: ${credentials.user_id}`);
                 }
 
                 const { user_id: tenantUserId, access_token: tenantToken } = credentials

@@ -32,7 +32,7 @@ try {
 async function testSend() {
     const token = process.env.WHATSAPP_API_TOKEN;
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const to = '59169344192'; // User Provided Number Verified
+    const to = '59167193341'; // User provided number: +591 67193341
 
     console.log("Token:", token ? "Found" : "Missing");
     console.log("Phone ID:", phoneNumberId);
@@ -43,11 +43,12 @@ async function testSend() {
         return;
     }
 
-    const url = `https://graph.facebook.com/v17.0/${phoneNumberId}/messages`;
+    const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`;
     const body = JSON.stringify({
         messaging_product: "whatsapp",
         to: to,
-        text: { body: "Hola! Esta es una prueba de envío desde Jaba SaaS." },
+        type: "text",
+        text: { body: "¡Hola! He recibido tu mensaje. El sistema Jaba SaaS está conectado y funcionando en modo En Vivo." }
     });
 
     try {
@@ -62,7 +63,13 @@ async function testSend() {
 
         const data = await response.json();
         console.log("Response Status:", response.status);
-        console.log("Response Body:", JSON.stringify(data, null, 2));
+        if (!response.ok) {
+            const fs = require('fs');
+            fs.writeFileSync('test_error_log.json', JSON.stringify(data, null, 2));
+            console.log("Error details written to test_error_log.json");
+        } else {
+            console.log("Response Body:", JSON.stringify(data, null, 2));
+        }
     } catch (error) {
         console.error("Error:", error);
     }

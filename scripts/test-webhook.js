@@ -1,31 +1,30 @@
-// Usando fetch nativo de Node.js
-
 async function sendTestMessage() {
+    // URL LOCAL (Para probar los cambios recientes en route.ts)
     const url = 'http://localhost:3000/api/webhook';
 
     const payload = {
         object: 'whatsapp_business_account',
         entry: [{
-            id: 'WHATSAPP_BUSINESS_ACCOUNT_ID',
+            id: '1439379724456162', // WABA ID
             changes: [{
                 value: {
                     messaging_product: 'whatsapp',
                     metadata: {
-                        display_phone_number: '1234567890',
-                        phone_number_id: 'PHONE_NUMBER_ID'
+                        display_phone_number: '59169344192',
+                        phone_number_id: '1017996884730043' // NEW Phone Number ID
                     },
                     contacts: [{
                         profile: {
                             name: "Test User"
                         },
-                        wa_id: "1234567890" // User's phone number
+                        wa_id: "59167193341" // User's personal number (simulated sender)
                     }],
                     messages: [{
-                        from: "1234567890", // User's phone number
-                        id: "wamid.HBgLMTIzNDU2Nzg5MA==",
+                        from: "59167193341",
+                        id: "wamid.TEST_MESSAGE_ID_" + Date.now(),
                         timestamp: Math.floor(Date.now() / 1000).toString(),
                         text: {
-                            body: "Hola, esto es una prueba desde el script local!"
+                            body: "Hola, prueba de webhook local para nuevo asistente."
                         },
                         type: "text"
                     }]
@@ -37,6 +36,7 @@ async function sendTestMessage() {
 
     try {
         console.log('Enviando mensaje de prueba a:', url);
+        // Nota: Esto requiere Node 18+ para fetch nativo
         const response = await fetch(url, {
             method: 'POST',
             headers: {
