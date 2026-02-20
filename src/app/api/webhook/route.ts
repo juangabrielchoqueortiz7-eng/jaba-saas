@@ -66,11 +66,14 @@ export async function POST(request: Request) {
 
                 // --- MULTI-TENANT LOOKUP ---
                 // Buscamos de quién es este número de teléfono
-                const { data: credentials, error: credError } = await supabaseAdmin
+                // --- MULTI-TENANT LOOKUP ---
+                // Simplificamos la query para evitar problemas de tipos o sintaxis .or()
+                const { data: credentialsList, error: credError } = await supabaseAdmin
                     .from('whatsapp_credentials')
                     .select('user_id, access_token')
-                    .or(`phone_number_id.eq.${phoneId},phone_number_id.eq.${Number(phoneId)}`)
-                    .maybeSingle()
+                    .eq('phone_number_id', String(phoneId))
+
+                const credentials = credentialsList?.[0] || null
 
                 if (credError) {
                     console.error("Error looking up credentials:", credError);

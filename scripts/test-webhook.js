@@ -47,7 +47,13 @@ async function sendTestMessage() {
 
         console.log('Status:', response.status);
         const text = await response.text();
-        console.log('Response:', text);
+        try {
+            const json = JSON.parse(text);
+            console.log('KEY PRESENT?', json.debug_key_present);
+            console.log('PHONE ID:', json.debug_phone_id);
+        } catch (e) {
+            console.log('Response Text:', text);
+        }
     } catch (error) {
         console.error('Error al enviar el mensaje:', error);
     }
