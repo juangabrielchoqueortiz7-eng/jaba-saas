@@ -10,14 +10,19 @@ import {
     Clock,
     Mail,
     Phone,
-    ExternalLink,
     MoreHorizontal,
     ShoppingBag,
-    AlertCircle
+    AlertCircle,
+    MessageSquare,
+    PlayCircle,
+    Copy,
+    Check
 } from 'lucide-react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 dayjs.locale('es')
 
@@ -30,15 +35,19 @@ type Order = {
     amount: number
     customer_email: string
     equipo?: string
+    chat_id?: string
     status: 'pending_email' | 'pending_payment' | 'pending_delivery' | 'delivered' | 'cancelled'
 }
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
+    const [sendingVideoId, setSendingVideoId] = useState<string | null>(null)
+    const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
     const [filter, setFilter] = useState<string>('all')
     const [searchTerm, setSearchTerm] = useState('')
     const supabase = createClient()
+    const router = useRouter()
 
     const fetchOrders = useCallback(async () => {
         try {
@@ -122,6 +131,47 @@ export default function OrdersPage() {
             order.customer_email?.toLowerCase().includes(searchTerm.toLowerCase())
         return matchesFilter && matchesSearch
     })
+
+    const handleCopyEmail = (email: string) => {
+        navigator.clipboard.writeText(email)
+        setCopiedEmail(email)
+        toast.success("Correo copiado al portapapeles")
+        setTimeout(() => setCopiedEmail(null), 2000)
+    }
+
+    const handleSendTutorial = async (chatId: string, orderId: string) => {
+        if (!chatId) {
+            toast.error("No se encontró el chat para este cliente")
+            return
+        }
+
+        setSendingVideoId(orderId)
+
+        try {
+            const response = await fetch('/api/chat/send-video', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: chatId,
+                    videoUrl: '/tutorial.mp4',
+                    caption: '🎬 *¡Bienvenido a Canva Pro!*\n\nAquí tienes el video tutorial de activación. Sigue los pasos y cualquier duda me avisas por aquí. 👇'
+                })
+            })
+
+            const result = await response.json()
+
+            if (response.ok) {
+                toast.success("Video tutorial enviado con éxito")
+            } else {
+                toast.error(result.error || "Hubo un error al enviar el video")
+            }
+        } catch (error) {
+            console.error("Error al enviar video:", error)
+            toast.error("Error de conexión al intentar enviar el video")
+        } finally {
+            setSendingVideoId(null)
+        }
+    }
 
     return (
         <div className="p-8 max-w-7xl mx-auto min-h-screen">
@@ -234,9 +284,16 @@ export default function OrdersPage() {
                                     <td className="px-6 py-5">
                                         <div className="flex flex-col gap-1.5">
                                             {order.customer_email ? (
-                                                <div className="flex items-center gap-2 text-sm text-slate-300">
+                                                <div className="flex items-center gap-2 group/email">
                                                     <Mail size={14} className="text-indigo-500" />
-                                                    {order.customer_email}
+                                                    <span className="text-sm text-slate-300">{order.customer_email}</span>
+                                                    <button
+                                                        onClick={() => handleCopyEmail(order.customer_email)}
+                                                        className="p-1 opacity-0 group-hover/email:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700 text-slate-400 rounded cursor-pointer"
+                                                        title="Copiar correo"
+                                                    >
+                                                        {copiedEmail === order.customer_email ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                                    </button>
                                                 </div>
                                             ) : (
                                                 <span className="text-xs text-slate-600 italic">Email no proporcionado</span>
@@ -264,13 +321,30 @@ export default function OrdersPage() {
                                     <td className="px-6 py-5 text-right">
                                         <div className="flex items-center gap-2">
                                             {order.status === 'pending_delivery' && (
-                                                <button
-                                                    onClick={() => updateOrderStatus(order.id, 'delivered')}
-                                                    className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center gap-1.5"
-                                                >
-                                                    <CheckCircle2 size={14} />
-                                                    Entregar
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-1.5"
+                                                    >
+                                                        <CheckCircle2 size={14} />
+                                                        Entregar
+                                                    </button>
+                                                    {order.chat_id && (
+                                                        <button
+                                                            onClick={() => handleSendTutorial(order.chat_id!, order.id)}
+                                                            disabled={sendingVideoId === order.id}
+                                                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-700 transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+                                                            title="Enviar Video Tutorial a WhatsApp"
+                                                        >
+                                                            {sendingVideoId === order.id ? (
+                                                                <RefreshCcw size={14} className="animate-spin text-slate-400" />
+                                                            ) : (
+                                                                <PlayCircle size={14} className="text-indigo-400" />
+                                                            )}
+                                                            Video
+                                                        </button>
+                                                    )}
+                                                </>
                                             )}
                                             {order.status === 'pending_payment' && (
                                                 <button
@@ -278,6 +352,15 @@ export default function OrdersPage() {
                                                     className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all active:scale-95"
                                                 >
                                                     Pago Recibido
+                                                </button>
+                                            )}
+                                            {order.chat_id && (
+                                                <button
+                                                    onClick={() => router.push(`/dashboard/chats?chatId=${order.chat_id}`)}
+                                                    className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
+                                                    title="Ver conversación"
+                                                >
+                                                    <MessageSquare size={16} />
                                                 </button>
                                             )}
                                             <button className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">

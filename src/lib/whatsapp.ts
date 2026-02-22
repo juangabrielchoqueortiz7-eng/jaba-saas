@@ -127,6 +127,56 @@ export async function sendWhatsAppImage(to: string, imageUrl: string, caption?: 
     }
 }
 
+/**
+ * Envía un video a un usuario de WhatsApp mediante la Graph API de Meta.
+ * @param to Número de teléfono del destinatario
+ * @param videoUrl URL pública del video (máximo 16MB recomendado para envío rápido)
+ * @param caption Texto opcional debajo del video
+ * @param token Token de acceso
+ * @param phoneNumberId ID del teléfono emisor
+ */
+export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: string, token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) {
+        console.error("ERROR: Faltan credenciales para enviar video.");
+        return null;
+    }
+
+    try {
+        const videoPayload: Record<string, string> = { link: videoUrl };
+        if (caption) videoPayload.caption = caption;
+
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: "video",
+                    video: videoPayload
+                }),
+            }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error("Error enviando video a WhatsApp:", JSON.stringify(data, null, 2));
+            return null;
+        }
+        return data;
+    } catch (error) {
+        console.error("Excepción enviando video:", error);
+        return null;
+    }
+}
+
 export async function getWhatsAppMediaUrl(mediaId: string, token: string): Promise<string | null> {
     try {
         // 1. Obtener URL de descarga

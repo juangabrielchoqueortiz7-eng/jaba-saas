@@ -506,9 +506,9 @@ export async function POST(request: Request) {
                 let orderContext = ''
                 if (activeOrder) {
                     if (activeOrder.status === 'pending_email') {
-                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}) pero AÚN NO dio su email. Tu tarea: PEDIR su correo electrónico.`
+                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). \nTu tarea: SI el cliente acaba de enviar un correo electrónico válido, DEBES ejecutar la herramienta "process_email" con ese correo. \nDe lo contrario, recuérdale amable y brevemente que necesitas su correo electrónico para enviarle el acceso.`
                     } else if (activeOrder.status === 'pending_payment') {
-                        orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y se le envió el QR de pago para "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago.`
+                        orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y ya se le envió el QR de pago para "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago por este medio, no ofrezcas planes.`
                     }
                 }
 
@@ -538,17 +538,16 @@ BENEFICIOS INCLUIDOS EN TODOS LOS PLANES:
 
 MÉTODOS DE PAGO: QR bancario (BancoSol, Banco Unión, BNB, Tigo Money)
 
-FLUJO DE VENTA OBLIGATORIO:
-1. PRIMER MENSAJE (Hola/cualquier saludo): Presenta INMEDIATAMENTE todos los beneficios y planes. Termina con: "¿Cuál plan te gustaría adquirir?" + "¡Aprovecha! Solo nos quedan pocos cupos con precio promocional 🇧🇴"
-2. CUANDO ELIJA UN PLAN: Usa la herramienta confirm_plan con el ID correspondiente.
-3. PEDIR EMAIL: Después de confirmar, pide su correo electrónico. Explica: "Necesito tu *correo electrónico* porque la invitación a *Canva Pro* se envía directamente a tu email para activar tu cuenta."
-4. CUANDO DÉ SU EMAIL: Usa la herramienta process_email. El QR de pago se envía automáticamente al chat.
-5. DESPUÉS DEL QR: "Una vez realizado el pago, envíame la foto del comprobante aquí por este chat."
+FLUJO DE VENTA OBLIGATORIO (EJECUCIÓN ESTRICTA EN ORDEN):
+1. PARA EL PRIMER MENSAJE DE SALUDO: DEBES EJECUTAR INMEDIATAMENTE la herramienta "send_welcome_menu". ¡NO RESPONDAS CON TEXTO NORMAL EN EL PRIMER MENSAJE, SOLO USA LA HERRAMIENTA! Ella se encarga de mostrar planes y beneficios de forma visual.
+2. CUANDO ELIJA UN PLAN (por botón o escribiendo): Usa la herramienta "confirm_plan" con el ID correspondiente.
+3. PEDIR EMAIL: Después de confirmar, si el sistema no lo pidió, pide su correo electrónico. "Necesito tu *correo electrónico* porque la invitación a *Canva Pro* se envía directamente a tu email para activar tu cuenta."
+4. CUANDO DÉ SU EMAIL: SI EL CLIENTE ENVÍA UN CORREO, USA LA HERRAMIENTA "process_email" de inmediato. El QR de pago se enviará automáticamente al chat, no tienes que mandarlo tú.
+5. DESPUÉS DEL QR: "Una vez realizado el pago, envíame la foto del comprobante por este chat."
 
 IMPORTANTE SOBRE EL CORREO:
 - El email es NECESARIO porque la suscripción de Canva Pro se activa mediante una invitación que llega al correo del cliente.
 - El QR de pago se envía AQUÍ al chat de WhatsApp, NO al correo.
-- NUNCA digas que el QR se envía al correo. El QR va al chat.
 
 SERVICIOS ADICIONALES: Diseño de Posts para redes, Invitaciones Digitales profesionales.
 
@@ -556,19 +555,23 @@ IDs INTERNOS (NUNCA mostrar al cliente):
 ${idMapping}
 
 REGLAS ESTRICTAS:
-- En el PRIMER mensaje siempre presenta beneficios + planes + pregunta cuál quiere.
-- Máximo 2 emojis por mensaje.
-- Usa *negritas* para precios y beneficios clave.
+- Si el cliente apenas saluda (Hola, quiero info, buenas), EJECUTA "send_welcome_menu" Y NO AGREGUES TEXTO EXTRA.
+- Máximo 2 emojis por mensaje si vas a hablar.
 - NUNCA muestres IDs, UUIDs ni generes código.
-- Si dice un número (1-5), identifica el plan correspondiente y usa confirm_plan.
-- "Quiero otra cuenta" = nueva venta independiente.
 ${orderContext}
 
-HISTORIAL:
+HISTORIAL (para que sepas en qué parte del flujo estás):
 ${chatHistory}`
 
-                // Function declarations para Gemini
                 const salesFunctions: any = [
+                    {
+                        name: 'send_welcome_menu',
+                        description: 'Enviar el menú de bienvenida con imagen de promociones y la lista interactiva de planes. Usar SIEMPRE como respuesta al primer saludo del cliente.',
+                        parameters: {
+                            type: SchemaType.OBJECT,
+                            properties: {}
+                        }
+                    },
                     {
                         name: 'confirm_plan',
                         description: 'Confirmar la compra de un plan. Usar cuando el cliente elige un plan por nombre o número.',
@@ -585,13 +588,13 @@ ${chatHistory}`
                     },
                     {
                         name: 'process_email',
-                        description: 'Registrar email del cliente y enviar QR de pago. Usar cuando el cliente da un correo electrónico.',
+                        description: 'Registrar email del cliente y enviar QR de pago. DEBE usarse INMEDIATAMENTE cuando el cliente te da un correo electrónico, especialmente si tienes un PEDIDO ACTIVO pendiente de email.',
                         parameters: {
                             type: SchemaType.OBJECT,
                             properties: {
                                 email: {
                                     type: SchemaType.STRING,
-                                    description: 'Email del cliente'
+                                    description: 'Email del cliente (ej: juan@gmail.com)'
                                 }
                             },
                             required: ['email']
@@ -673,6 +676,57 @@ ${chatHistory}`
                         const callArgs = args as any
                         console.log(`[SALES] Function call REAL: ${name}`, JSON.stringify(callArgs))
 
+                        if (name === 'send_welcome_menu') {
+                            const { sendWhatsAppImage, sendWhatsAppMessage, sendWhatsAppList } = await import('@/lib/whatsapp')
+                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+
+                            // 1. Imagen de Precios Promocionales
+                            await sendWhatsAppImage(
+                                phoneNumber,
+                                `${baseUrl}/prices_promo.jpg`,
+                                '',
+                                tenantToken,
+                                phoneId
+                            )
+
+                            // 2. Mensaje de Texto Formal de Juan
+                            const greetingText = `¡Hola! Bienvenido mi nombre es Juan de asistente de ventas. 👋 ¿Estás listo para llevar tus diseños al nivel profesional con Canva Pro?\n\nCon Canva Pro, tendrás acceso a:\n\n✅ Miles de Plantillas Pro exclusivas\n✅ Estudio Mágico (IA para crear diseños)\n✅ Kit de Marca personalizado\n✅ Quitar fondos automáticamente\n✅ Páginas Web profesionales\n✅ 100M+ fotos, videos e ilustraciones premium\n✅ Soporte 24/7 y seguridad total`
+                            await sendWhatsAppMessage(phoneNumber, greetingText, tenantToken, phoneId)
+
+                            // 3. Botón / Lista de Planes
+                            const listBody = `📋 Planes de Canva Pro disponibles:\n\nElige el plan que más te convenga y disfruta de todas las herramientas premium de Canva.\n\n💡 Todos los planes incluyen acceso completo a Canva Pro.`
+
+                            const sections = [
+                                {
+                                    title: "Planes Canva Pro",
+                                    rows: (tenantProducts || []).slice(0, 10).map(p => ({
+                                        id: `product_${p.id}`,
+                                        title: p.name.substring(0, 24),
+                                        description: `Bs ${p.price} - ${p.description || ''}`.substring(0, 72)
+                                    }))
+                                }
+                            ]
+
+                            await sendWhatsAppList(
+                                phoneNumber,
+                                listBody,
+                                "Ver Planes",
+                                sections,
+                                tenantToken,
+                                phoneId
+                            )
+
+                            // Guardar en DB para historial
+                            await supabaseAdmin.from('messages').insert([
+                                { chat_id: chatId, is_from_me: true, content: `📷 Imagen Promo Precios`, status: 'delivered' },
+                                { chat_id: chatId, is_from_me: true, content: greetingText, status: 'delivered' },
+                                { chat_id: chatId, is_from_me: true, content: `📋 Lista de Planes Enviada`, status: 'delivered' }
+                            ])
+
+                            actionExecuted = true
+                            aiResponseText = " "
+                        }
+
                         if (name === 'confirm_plan' && callArgs?.plan_id) {
                             const productId = callArgs.plan_id as string
                             const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
@@ -731,9 +785,15 @@ Para continuar, necesito tu *correo electrónico*. La invitación a *Canva Pro* 
                                         try {
                                             const { sendWhatsAppImage } = await import('@/lib/whatsapp')
 
+                                            // Make sure URL is absolute for Meta API
+                                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                                            const absQrUrl = orderProduct.qr_image_url.startsWith('http')
+                                                ? orderProduct.qr_image_url
+                                                : `${baseUrl}${orderProduct.qr_image_url.startsWith('/') ? '' : '/'}${orderProduct.qr_image_url}`;
+
                                             const qrResult = await sendWhatsAppImage(
                                                 phoneNumber,
-                                                orderProduct.qr_image_url,
+                                                absQrUrl,
                                                 `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *Bs ${orderProduct.price}*\n\nRealiza tu pago y envíame la foto del comprobante aquí 📸`,
                                                 tenantToken,
                                                 phoneId
