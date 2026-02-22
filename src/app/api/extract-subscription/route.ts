@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
         const buffer = await file.arrayBuffer();
         const base64Image = Buffer.from(buffer).toString('base64');
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
         const prompt = `
             Analyze this image (screenshot of a payment, chat, or subscription details).

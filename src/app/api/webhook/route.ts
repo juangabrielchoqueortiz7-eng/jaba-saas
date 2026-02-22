@@ -603,7 +603,7 @@ ${chatHistory}`
                 ]
 
                 const model = genAI.getGenerativeModel({
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-1.5-pro',
                     tools: [{ functionDeclarations: salesFunctions }],
                     toolConfig: { functionCallingConfig: { mode: 'AUTO' as any } },
                     systemInstruction: salesSystemPrompt
@@ -626,7 +626,7 @@ ${chatHistory}`
                             const audioBase64 = Buffer.from(audioBuffer).toString('base64')
                             const mimeType = messageObject.audio.mime_type || 'audio/ogg'
 
-                            const audioModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+                            const audioModel = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
                             const transcriptionResult = await audioModel.generateContent([
                                 {
                                     inlineData: {

@@ -11,7 +11,7 @@ export async function generateAIResponse(userMessage: string, systemPrompt?: str
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" }); // Using specific version for stability
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
         // Prompt enriquecido con el System Prompt del usuario
         const prompt = `
@@ -48,7 +48,7 @@ export async function generateChatResponse(history: { role: 'user' | 'model', pa
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash-001",
+                model: "gemini-1.5-pro",
                 systemInstruction: systemPrompt
             });
 
