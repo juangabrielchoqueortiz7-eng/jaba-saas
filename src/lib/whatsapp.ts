@@ -145,7 +145,13 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
     }
 
     try {
-        const videoPayload: Record<string, string> = { link: videoUrl };
+        const videoPayload: Record<string, string> = {};
+        // Si no empieza con http, asumimos que es un media_id
+        if (videoUrl.startsWith('http')) {
+            videoPayload.link = videoUrl;
+        } else {
+            videoPayload.id = videoUrl;
+        }
         if (caption) videoPayload.caption = caption;
 
         const response = await fetch(
@@ -173,6 +179,40 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
         return data;
     } catch (error) {
         console.error("Excepción enviando video:", error);
+        return null;
+    }
+}
+
+/**
+ * Sube un archivo local a WhatsApp y retorna su media_id
+ */
+export async function uploadMediaToWhatsApp(phoneId: string, token: string, filePath: string, mimeType: string): Promise<string | null> {
+    try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const fileBuffer = fs.readFileSync(filePath);
+        const blob = new Blob([fileBuffer], { type: mimeType });
+
+        const formData = new FormData();
+        formData.append('messaging_product', 'whatsapp');
+        formData.append('file', blob, path.basename(filePath));
+
+        const response = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/media`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error("Error subiendo media a WhatsApp:", JSON.stringify(data, null, 2));
+            return null;
+        }
+        return data.id; // Retorna el media_id
+    } catch (error) {
+        console.error("Excepción subiendo media:", error);
         return null;
     }
 }

@@ -402,6 +402,57 @@ export async function POST(request: Request) {
 
                         console.log(`[Sales] Comprobante recibido. Fecha actual (Bolivia): ${todayStr}`);
 
+                        // AGREGAR ANÁLISIS DEL COMPROBANTE CON GEMINI
+                        let extractedAmount: number | null = null;
+                        try {
+                            if (savedMediaUrl && process.env.GOOGLE_API_KEY) {
+                                const { GoogleGenerativeAI } = await import('@google/generative-ai');
+                                const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+
+                                const imageResp = await fetch(savedMediaUrl);
+                                const imageBuf = await imageResp.arrayBuffer();
+                                const base64Image = Buffer.from(imageBuf).toString('base64');
+
+                                const validationModel = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+                                const prompt = `Analiza este comprobante de pago. Extrae el monto total pagado en números (sin símbolos ni letras).
+Solo responde con el número exacto (ejemplo: 50.00). Si no encuentras el monto o está ilegible, responde 0.`;
+
+                                const validationResult = await validationModel.generateContent([
+                                    prompt,
+                                    {
+                                        inlineData: {
+                                            data: base64Image,
+                                            mimeType: 'image/jpeg'
+                                        }
+                                    }
+                                ]);
+
+                                const textResp = validationResult.response.text().trim();
+                                const amountMatch = textResp.match(/\d+(?:[.,]\d+)?/);
+                                if (amountMatch) {
+                                    extractedAmount = parseFloat(amountMatch[0].replace(',', '.'));
+                                }
+                                console.log(`[Sales] Monto pagado extraído por Gemini: ${extractedAmount} (esperado: ${activeOrder.amount})`);
+                            }
+                        } catch (aiError) {
+                            console.error("[Sales] Error validando recibo con IA:", aiError);
+                        }
+
+                        if (extractedAmount !== null && extractedAmount < activeOrder.amount) {
+                            const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
+                            const warningMsg = `⚠️ *Monto Incorrecto*\n\nGracias por enviar el comprobante, pero el sistema detecta que el pago indica *Bs ${extractedAmount}*, mientras que el *${activeOrder.plan_name || activeOrder.product}* tiene un costo de *Bs ${activeOrder.amount}*.\n\nPor favor, revisa el pago o si subiste la captura correcta. Tu pedido sigue en espera.`;
+                            await sendWhatsAppMessage(phoneNumber, warningMsg, tenantToken, phoneId);
+
+                            await supabaseAdmin.from('messages').insert({
+                                chat_id: chatId,
+                                is_from_me: true,
+                                content: warningMsg,
+                                status: 'delivered'
+                            });
+
+                            return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                        }
+
                         await supabaseAdmin.from('orders').update({
                             status: 'pending_delivery',
                             updated_at: new Date().toISOString(),

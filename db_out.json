@@ -1,0 +1,62 @@
+[
+  {
+    "id": "28726876-9748-4920-b511-5e0bd6630c52",
+    "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+    "name": "Plan Básico - 1 Mes",
+    "description": "Canva Pro por 1 mes completo",
+    "price": 19,
+    "category": "canva_pro",
+    "qr_image_url": "https://jabachat.com/qr/qr_1m.jpg",
+    "is_active": true,
+    "sort_order": 1,
+    "created_at": "2026-02-20T18:26:47.098796+00:00"
+  },
+  {
+    "id": "d57acfcd-16ce-4d03-a40e-f3adab6616ce",
+    "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+    "name": "Plan Bronce - 3 Meses",
+    "description": "Canva Pro por 3 meses",
+    "price": 39,
+    "category": "canva_pro",
+    "qr_image_url": "https://jabachat.com/qr/qr_3m.jpg",
+    "is_active": true,
+    "sort_order": 2,
+    "created_at": "2026-02-20T18:26:47.098796+00:00"
+  },
+  {
+    "id": "4d4fef80-6422-4a60-9d2e-c5a12156d688",
+    "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+    "name": "Plan Plata - 6 Meses",
+    "description": "Canva Pro por 6 meses",
+    "price": 69,
+    "category": "canva_pro",
+    "qr_image_url": "https://jabachat.com/qr/qr_6m.jpg",
+    "is_active": true,
+    "sort_order": 3,
+    "created_at": "2026-02-20T18:26:47.098796+00:00"
+  },
+  {
+    "id": "ee4aeb99-7771-491c-8f8e-ba5af79c01d4",
+    "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+    "name": "Plan Gold - 9 Meses",
+    "description": "Canva Pro por 9 meses",
+    "price": 99,
+    "category": "canva_pro",
+    "qr_image_url": "https://jabachat.com/qr/qr_9m.jpg",
+    "is_active": true,
+    "sort_order": 4,
+    "created_at": "2026-02-20T18:26:47.098796+00:00"
+  },
+  {
+    "id": "f93dc294-b1ca-48d0-9c2b-4f229a1c1a9a",
+    "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+    "name": "Plan Premium - 1 Año",
+    "description": "Canva Pro por 1 año completo",
+    "price": 109,
+    "category": "canva_pro",
+    "qr_image_url": "https://jabachat.com/qr/qr_1y.jpg",
+    "is_active": true,
+    "sort_order": 5,
+    "created_at": "2026-02-20T18:26:47.098796+00:00"
+  }
+]

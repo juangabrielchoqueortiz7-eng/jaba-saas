@@ -16,7 +16,8 @@ import {
     MessageSquare,
     PlayCircle,
     Copy,
-    Check
+    Check,
+    Trash2
 } from 'lucide-react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
@@ -43,6 +44,7 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
     const [sendingVideoId, setSendingVideoId] = useState<string | null>(null)
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null)
     const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
     const [filter, setFilter] = useState<string>('all')
     const [searchTerm, setSearchTerm] = useState('')
@@ -89,9 +91,23 @@ export default function OrdersPage() {
                 .eq('id', id)
 
             if (error) throw error
-            // Update local state is handled by realtime or fetch
+            if (newStatus === 'delivered') toast.success('Pedido marcado como entregado')
         } catch (err) {
             console.error('Error updating order status:', err)
+            toast.error('Error al actualizar el estado')
+        }
+    }
+
+    const deleteOrder = async (id: string) => {
+        if (!confirm('¿Estás seguro de eliminar permanentemente este pedido?')) return;
+        try {
+            const { error } = await supabase.from('orders').delete().eq('id', id);
+            if (error) throw error;
+            toast.success("Pedido eliminado correctamente");
+            setOrders(prev => prev.filter(o => o.id !== id));
+        } catch (err) {
+            console.error('Error deleting order:', err);
+            toast.error("Error al eliminar el pedido");
         }
     }
 
@@ -363,9 +379,35 @@ export default function OrdersPage() {
                                                     <MessageSquare size={16} />
                                                 </button>
                                             )}
-                                            <button className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
-                                                <MoreHorizontal size={18} />
-                                            </button>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => setOpenDropdown(openDropdown === order.id ? null : order.id)}
+                                                    className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                                >
+                                                    <MoreHorizontal size={18} />
+                                                </button>
+
+                                                {openDropdown === order.id && (
+                                                    <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10 py-1 overflow-hidden">
+                                                        {order.status !== 'delivered' && (
+                                                            <button
+                                                                onClick={() => { updateOrderStatus(order.id, 'delivered'); setOpenDropdown(null); }}
+                                                                className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                                                            >
+                                                                <CheckCircle2 size={16} className="text-emerald-400" />
+                                                                Marcar Entregado
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => { deleteOrder(order.id); setOpenDropdown(null); }}
+                                                            className="w-full text-left px-4 py-2.5 text-sm text-rose-400 hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                            Eliminar Pedido
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

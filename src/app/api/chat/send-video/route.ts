@@ -36,15 +36,34 @@ export async function POST(request: Request) {
         }
 
         // 3. Send to WhatsApp Graph API
-        console.log(`[Send Video] Sending to ${chat.phone_number} via PhoneID ${creds.phone_number_id}`)
+        console.log(`[Send Video] Uploading and sending to ${chat.phone_number} via PhoneID ${creds.phone_number_id}`)
 
-        // Ensure absolute URL
+        // Intentar usar Upload Local primero y si falla enviar por URL absoluta (fallback)
+        let mediaIdentifier = videoUrl;
+        let absoluteVideoUrl = videoUrl;
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
-        const absoluteVideoUrl = videoUrl.startsWith('http') ? videoUrl : `${baseUrl}${videoUrl.startsWith('/') ? '' : '/'}${videoUrl}`;
+
+        try {
+            const { uploadMediaToWhatsApp } = await import('@/lib/whatsapp');
+            const path = await import('path');
+
+            // Si el videoUrl es local (ej. '/tutorial.mp4'), podemos ubicarlo en local o public
+            if (!videoUrl.startsWith('http')) {
+                const localPath = path.join(process.cwd(), 'public', videoUrl.replace(/^\//, ''));
+                const mediaId = await uploadMediaToWhatsApp(creds.phone_number_id, creds.access_token, localPath, 'video/mp4');
+                if (mediaId) {
+                    mediaIdentifier = mediaId;
+                    console.log(`[Send Video] Media uploaded successfully: ${mediaId}`);
+                }
+                absoluteVideoUrl = `${baseUrl}${videoUrl.startsWith('/') ? '' : '/'}${videoUrl}`;
+            }
+        } catch (uploadErr) {
+            console.error('[Send Video] Falló subida local, enviando por URL', uploadErr);
+        }
 
         const whatsappResponse = await sendWhatsAppVideo(
             chat.phone_number,
-            absoluteVideoUrl,
+            mediaIdentifier, // is mediaId if uploaded, else url
             caption || '',
             creds.access_token,
             creds.phone_number_id
