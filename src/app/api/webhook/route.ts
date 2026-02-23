@@ -193,6 +193,15 @@ export async function POST(request: Request) {
 
                 console.log(`[Tenant: ${tenantUserId}] Mensaje de ${contactName}: ${messageText}`)
 
+                // --- 0. ENVIAR INDICADOR DE "ESCRIBIENDO..." ---
+                try {
+                    const { sendWhatsAppTyping } = await import('@/lib/whatsapp');
+                    // Lo disparamos sin awaiterlo mucho para que no bloquee, o con un await rápido
+                    await sendWhatsAppTyping(phoneNumber, tenantToken, phoneId);
+                } catch (typingErr) {
+                    console.error("[Typing Indicator] Error:", typingErr);
+                }
+
                 // --- 1. PROCESAR RESPUESTAS INTERACTIVAS (Botones/Listas) ---
                 let interactiveData = null;
                 if (messageType === 'interactive') {

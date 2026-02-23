@@ -186,6 +186,42 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
 }
 
 /**
+ * Muestra el indicador de "escribiendo..." en el chat del usuario.
+ * @param to Número de teléfono del destinatario
+ * @param token Token de acceso
+ * @param phoneNumberId ID del teléfono emisor
+ */
+export async function sendWhatsAppTyping(to: string, token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) return null;
+
+    try {
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    // Algunos endpoints de Meta requieren type: sender_action pero a menudo basta el campo sender_action
+                    sender_action: "typing_on"
+                }),
+            }
+        );
+        return await response.json();
+    } catch (error) {
+        console.error("Excepción enviando typing indicator:", error);
+        return null;
+    }
+}
+
+/**
  * Sube un archivo local a WhatsApp y retorna su media_id
  */
 export async function uploadMediaToWhatsApp(phoneId: string, token: string, filePath: string, mimeType: string): Promise<string | null> {
