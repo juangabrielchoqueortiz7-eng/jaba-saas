@@ -17,6 +17,15 @@ const supabaseAdmin = createClient(
 
 // Productos se cargan dinámicamente desde la DB para cada tenant
 
+// --- GLOBAL MESSAGE BUFFER ---
+// Para evitar saturar a la IA si el cliente envía 5 mensajes seguidos
+interface BufferedMessage {
+    text: string;
+    timer: NodeJS.Timeout | null;
+}
+const messageBuffer = new Map<string, BufferedMessage>();
+// -----------------------------
+
 // GET: Para la verificación inicial de Meta (Webhook Challenge)
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -221,7 +230,7 @@ export async function POST(request: Request) {
                     .eq('user_id', tenantUserId)
                     .maybeSingle()
 
-                let chatId
+                let chatId: string = '';
 
                 if (existingChat) {
                     chatId = existingChat.id
@@ -519,76 +528,115 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                     return new NextResponse('OK', { status: 200 })
                 }
 
-                // C. Esperar el delay configurado
-                const delayMs = (aiConfig.response_delay_seconds || 2) * 1000
-                await new Promise(resolve => setTimeout(resolve, delayMs))
+                // =================================================================================
+                // 3.1 MESSAGE BUFFERING (Espera 10s por si escriben en partes)
+                // =================================================================================
 
-                // D. Generar Respuesta con Gemini (con Function Calling para ventas)
-                const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai')
-                const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!)
+                // Responder inmediatamente a Meta para que no reintente
+                // Iniciaremos la IA de fondo (pero cuidado con los timeouts de Vercel de 10-15s en plan Hobby)
+                // Para Vercel Hobby, un timeout de 8-10s es arriesgado porque la función se apaga. 
+                // Usaremos 5 segundos seguros para concadenar mensajes rápidos.
 
-                // Catálogo de planes (Movido a nivel global)
+                const bufferKey = `${tenantUserId}_${chatId}`;
+                let currentBuffer = messageBuffer.get(bufferKey);
 
-                // Buscar historial de mensajes recientes para contexto
-                const { data: recentMessages } = await supabaseAdmin
-                    .from('messages')
-                    .select('content, is_from_me, created_at')
-                    .eq('chat_id', chatId)
-                    .order('created_at', { ascending: false })
-                    .limit(10)
-
-                const chatHistory = (recentMessages || [])
-                    .reverse()
-                    .map(m => `${m.is_from_me ? 'Tú' : 'Cliente'}: ${m.content}`)
-                    .join('\n')
-
-                // AUTO-CANCELAR pedidos viejos (más de 1 hora sin completar)
-                const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-                await supabaseAdmin
-                    .from('orders')
-                    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-                    .eq('chat_id', chatId)
-                    .in('status', ['pending_email', 'pending_payment'])
-                    .lt('created_at', oneHourAgo)
-
-                // Buscar pedido ACTIVO reciente (solo los de la última hora)
-                const { data: activeOrder } = await supabaseAdmin
-                    .from('orders')
-                    .select('*')
-                    .eq('chat_id', chatId)
-                    .in('status', ['pending_email', 'pending_payment'])
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle()
-
-                // Cargar catálogo de productos del tenant
-                const { data: tenantProducts } = await supabaseAdmin
-                    .from('products')
-                    .select('id, name, description, price, category')
-                    .eq('user_id', tenantUserId)
-                    .eq('is_active', true)
-                    .order('sort_order', { ascending: true })
-
-                // Contexto del pedido activo (solo si existe)
-                let orderContext = ''
-                if (activeOrder) {
-                    if (activeOrder.status === 'pending_email') {
-                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). \nTu tarea: SI el cliente acaba de enviar un correo electrónico válido, DEBES ejecutar la herramienta "process_email" con ese correo. \nDe lo contrario, recuérdale amable y brevemente que necesitas su correo electrónico para enviarle el acceso.`
-                    } else if (activeOrder.status === 'pending_payment') {
-                        orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y ya se le envió el QR de pago para "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago por este medio, no ofrezcas planes.`
-                    }
+                if (currentBuffer) {
+                    // Si ya había mensajes, limpiamos el timer viejo y concatenamos
+                    if (currentBuffer.timer) clearTimeout(currentBuffer.timer);
+                    currentBuffer.text += `\n${messageText}`;
+                } else {
+                    // Crear nuevo buffer
+                    currentBuffer = { text: messageText, timer: null };
                 }
 
-                // Construir system prompt de SUPER VENTAS
-                const planList = (tenantProducts || []).map((p, i) =>
-                    `${i + 1}. *${p.name}* — *Bs ${p.price}*${p.description ? ' (' + p.description + ')' : ''}`
-                ).join('\n')
-                const idMapping = (tenantProducts || []).map(p =>
-                    `"${p.name}" = "${p.id}"`
-                ).join('\n')
+                // Asignamos el nuevo buffer al map
+                messageBuffer.set(bufferKey, currentBuffer);
 
-                // Instrucciones personalizadas del Usuario
-                const customTrainingSection = aiConfig.training_prompt ? `
+                // Promisify the AI process to still return a NextResponse *after* processing or backgrounding
+                // In serverless, background processes might be killed, so we must `await` the timeout to ensure execution.
+                console.log(`[Buffer] Mensaje de ${phoneNumber} pausado por 6s para juntar más texto... (Actual: "${currentBuffer.text.replace(/\n/g, ' ')}")`)
+
+                await new Promise(resolve => {
+                    const timer = setTimeout(async () => {
+                        // Al expirar el tiempo, procesamos el buffer acumulado
+                        const finalBuffer = messageBuffer.get(bufferKey);
+                        messageBuffer.delete(bufferKey); // Limpiar buffer
+
+                        if (!finalBuffer) {
+                            resolve(true);
+                            return;
+                        }
+
+                        const finalMessageText = finalBuffer.text;
+                        console.log(`[Buffer] Ejecutando IA para ${phoneNumber} con texto consolidado: "${finalMessageText.replace(/\n/g, ' ')}"`)
+
+                        try {
+                            // D. Generar Respuesta con Gemini (con Function Calling para ventas)
+                            const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai')
+                            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!)
+
+                            // Catálogo de planes (Movido a nivel global)
+
+                            // Buscar historial de mensajes recientes para contexto
+                            const { data: recentMessages } = await supabaseAdmin
+                                .from('messages')
+                                .select('content, is_from_me, created_at')
+                                .eq('chat_id', chatId)
+                                .order('created_at', { ascending: false })
+                                .limit(10)
+
+                            const chatHistory = (recentMessages || [])
+                                .reverse()
+                                .map(m => `${m.is_from_me ? 'Tú' : 'Cliente'}: ${m.content}`)
+                                .join('\n')
+
+                            // AUTO-CANCELAR pedidos viejos (más de 1 hora sin completar)
+                            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+                            await supabaseAdmin
+                                .from('orders')
+                                .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+                                .eq('chat_id', chatId)
+                                .in('status', ['pending_email', 'pending_payment'])
+                                .lt('created_at', oneHourAgo)
+
+                            // Buscar pedido ACTIVO reciente (solo los de la última hora)
+                            const { data: activeOrder } = await supabaseAdmin
+                                .from('orders')
+                                .select('*')
+                                .eq('chat_id', chatId)
+                                .in('status', ['pending_email', 'pending_payment'])
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle()
+
+                            // Cargar catálogo de productos del tenant
+                            const { data: tenantProducts } = await supabaseAdmin
+                                .from('products')
+                                .select('id, name, description, price, category')
+                                .eq('user_id', tenantUserId)
+                                .eq('is_active', true)
+                                .order('sort_order', { ascending: true })
+
+                            // Contexto del pedido activo (solo si existe)
+                            let orderContext = ''
+                            if (activeOrder) {
+                                if (activeOrder.status === 'pending_email') {
+                                    orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). \nTu tarea: SI el cliente acaba de enviar un correo electrónico válido, DEBES ejecutar la herramienta "process_email" con ese correo. \nDe lo contrario, recuérdale amable y brevemente que necesitas su correo electrónico para enviarle el acceso.`
+                                } else if (activeOrder.status === 'pending_payment') {
+                                    orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y ya se le envió el QR de pago para "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago por este medio, no ofrezcas planes.`
+                                }
+                            }
+
+                            // Construir system prompt de SUPER VENTAS
+                            const planList = (tenantProducts || []).map((p, i) =>
+                                `${i + 1}. *${p.name}* — *Bs ${p.price}*${p.description ? ' (' + p.description + ')' : ''}`
+                            ).join('\n')
+                            const idMapping = (tenantProducts || []).map(p =>
+                                `"${p.name}" = "${p.id}"`
+                            ).join('\n')
+
+                            // Instrucciones personalizadas del Usuario
+                            const customTrainingSection = aiConfig.training_prompt ? `
 =============================================
 🧠 ENTRENAMIENTO PERSONALIZADO DEL NEGOCIO:
 (Debes seguir estas reglas de personalidad, tono y respuestas por encima de todo):
@@ -596,7 +644,7 @@ ${aiConfig.training_prompt}
 =============================================
 ` : '';
 
-                const salesSystemPrompt = `Eres el Asistente de Ventas Oficial del negocio.
+                            const salesSystemPrompt = `Eres el Asistente de Ventas Oficial del negocio.
 Tu objetivo es ayudar a los clientes de forma natural, humana y empática. 
 SIEMPRE habla como una persona real, NUNCA parezcas un robot automático.
 ${customTrainingSection}
@@ -642,376 +690,386 @@ ${orderContext}
 HISTORIAL (para que sepas en qué parte del flujo estás):
 ${chatHistory}`
 
-                const salesFunctions: any = [
-                    {
-                        name: 'send_welcome_menu',
-                        description: 'Enviar el menú de bienvenida con imagen de promociones y la lista interactiva de planes. Usar SIEMPRE como respuesta al primer saludo del cliente.',
-                        parameters: {
-                            type: SchemaType.OBJECT,
-                            properties: {}
-                        }
-                    },
-                    {
-                        name: 'confirm_plan',
-                        description: 'Confirmar la compra de un plan. Usar cuando el cliente elige un plan por nombre o número.',
-                        parameters: {
-                            type: SchemaType.OBJECT,
-                            properties: {
-                                plan_id: {
-                                    type: SchemaType.STRING,
-                                    description: 'UUID del producto elegido'
-                                }
-                            },
-                            required: ['plan_id']
-                        }
-                    },
-                    {
-                        name: 'process_email',
-                        description: 'Registrar email del cliente y enviar QR de pago. DEBE usarse INMEDIATAMENTE cuando el cliente te da un correo electrónico, especialmente si tienes un PEDIDO ACTIVO pendiente de email.',
-                        parameters: {
-                            type: SchemaType.OBJECT,
-                            properties: {
-                                email: {
-                                    type: SchemaType.STRING,
-                                    description: 'Email del cliente (ej: juan@gmail.com)'
-                                }
-                            },
-                            required: ['email']
-                        }
-                    }
-                ]
-
-                const model = genAI.getGenerativeModel({
-                    model: 'gemini-2.5-pro',
-                    tools: [{ functionDeclarations: salesFunctions }],
-                    toolConfig: { functionCallingConfig: { mode: 'AUTO' as any } },
-                    systemInstruction: salesSystemPrompt
-                })
-
-                // D. Preparar mensaje para Gemini (transcribir audio si es necesario)
-                let aiInputText = messageText
-
-                if (messageType === 'audio' && messageObject.audio?.id) {
-                    try {
-                        const { getWhatsAppMediaUrl } = await import('@/lib/whatsapp')
-                        const mediaUrl = await getWhatsAppMediaUrl(messageObject.audio.id, tenantToken)
-
-                        if (mediaUrl) {
-                            // Descargar el audio
-                            const audioResp = await fetch(mediaUrl, {
-                                headers: { Authorization: `Bearer ${tenantToken}` }
-                            })
-                            const audioBuffer = await audioResp.arrayBuffer()
-                            const audioBase64 = Buffer.from(audioBuffer).toString('base64')
-                            const mimeType = messageObject.audio.mime_type || 'audio/ogg'
-
-                            const audioModel = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' })
-                            const transcriptionResult = await audioModel.generateContent([
+                            const salesFunctions: any = [
                                 {
-                                    inlineData: {
-                                        mimeType: mimeType,
-                                        data: audioBase64
+                                    name: 'send_welcome_menu',
+                                    description: 'Enviar el menú de bienvenida con imagen de promociones y la lista interactiva de planes. Usar SIEMPRE como respuesta al primer saludo del cliente.',
+                                    parameters: {
+                                        type: SchemaType.OBJECT,
+                                        properties: {}
                                     }
                                 },
-                                { text: 'Transcribe este audio al español. Solo devuelve la transcripción, sin explicaciones adicionales.' }
-                            ])
-
-                            aiInputText = transcriptionResult.response.text() || messageText
-                            console.log(`[AI] Audio transcrito: "${aiInputText.substring(0, 80)}..."`)
-                        }
-                    } catch (audioErr) {
-                        console.error('[AI] Error transcribiendo audio:', audioErr)
-                        aiInputText = '(El usuario envió un mensaje de voz pero no pude transcribirlo)'
-                    }
-                }
-
-                const geminiResult = await model.generateContent({
-                    contents: [
-                        { role: 'user', parts: [{ text: aiInputText }] }
-                    ]
-                })
-
-                const response = geminiResult.response
-                const candidate = response.candidates?.[0]
-                const parts = candidate?.content?.parts || []
-
-                let aiResponseText = ''
-                let actionExecuted = false
-
-                // Procesar partes de la respuesta (texto + function calls)
-                for (const part of parts) {
-                    if (part.text) {
-                        // FILTRAR: Nunca enviar código al cliente
-                        let cleanText = part.text
-                        cleanText = cleanText.replace(/```[\s\S]*?```/g, '')
-                        cleanText = cleanText.replace(/`[^`]+`/g, '')
-                        cleanText = cleanText.replace(/^.*(?:def |import |print\(|if .*==|return\b|\.insert|\.update|\.select|tool_code|confirm_plan|process_email|function|=>).*$/gm, '')
-                        cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim()
-                        if (cleanText) aiResponseText += cleanText
-                    }
-
-                    if (part.functionCall) {
-                        const { name, args } = part.functionCall
-                        const callArgs = args as any
-                        console.log(`[SALES] Function call REAL: ${name}`, JSON.stringify(callArgs))
-
-                        if (name === 'send_welcome_menu') {
-                            const { sendWhatsAppImage, sendWhatsAppMessage, sendWhatsAppList } = await import('@/lib/whatsapp')
-                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-
-                            // 1. Imagen de Precios Promocionales
-                            await sendWhatsAppImage(
-                                phoneNumber,
-                                `${baseUrl}/prices_promo.jpg`,
-                                '',
-                                tenantToken,
-                                phoneId
-                            )
-
-                            // 2. Mensaje de Texto Formal de Juan
-                            const greetingText = `¡Hola! Bienvenido mi nombre es Juan de asistente de ventas. 👋 ¿Estás listo para llevar tus diseños al nivel profesional con Canva Pro?\n\nCon Canva Pro, tendrás acceso a:\n\n✅ Miles de Plantillas Pro exclusivas\n✅ Estudio Mágico (IA para crear diseños)\n✅ Kit de Marca personalizado\n✅ Quitar fondos automáticamente\n✅ Páginas Web profesionales\n✅ 100M+ fotos, videos e ilustraciones premium\n✅ Soporte 24/7 y seguridad total`
-                            await sendWhatsAppMessage(phoneNumber, greetingText, tenantToken, phoneId)
-
-                            // 3. Botón / Lista de Planes
-                            const listBody = `📋 Planes de Canva Pro disponibles:\n\nElige el plan que más te convenga y disfruta de todas las herramientas premium de Canva.\n\n💡 Todos los planes incluyen acceso completo a Canva Pro.`
-
-                            const sections = [
                                 {
-                                    title: "Planes Canva Pro",
-                                    rows: (tenantProducts || []).slice(0, 10).map(p => ({
-                                        id: `product_${p.id}`,
-                                        title: p.name.substring(0, 24),
-                                        description: `Bs ${p.price} - ${p.description || ''}`.substring(0, 72)
-                                    }))
+                                    name: 'confirm_plan',
+                                    description: 'Confirmar la compra de un plan. Usar cuando el cliente elige un plan por nombre o número.',
+                                    parameters: {
+                                        type: SchemaType.OBJECT,
+                                        properties: {
+                                            plan_id: {
+                                                type: SchemaType.STRING,
+                                                description: 'UUID del producto elegido'
+                                            }
+                                        },
+                                        required: ['plan_id']
+                                    }
+                                },
+                                {
+                                    name: 'process_email',
+                                    description: 'Registrar email del cliente y enviar QR de pago. DEBE usarse INMEDIATAMENTE cuando el cliente te da un correo electrónico, especialmente si tienes un PEDIDO ACTIVO pendiente de email.',
+                                    parameters: {
+                                        type: SchemaType.OBJECT,
+                                        properties: {
+                                            email: {
+                                                type: SchemaType.STRING,
+                                                description: 'Email del cliente (ej: juan@gmail.com)'
+                                            }
+                                        },
+                                        required: ['email']
+                                    }
                                 }
                             ]
 
-                            await sendWhatsAppList(
-                                phoneNumber,
-                                listBody,
-                                "Ver Planes",
-                                sections,
-                                tenantToken,
-                                phoneId
-                            )
+                            const model = genAI.getGenerativeModel({
+                                model: 'gemini-2.5-pro',
+                                tools: [{ functionDeclarations: salesFunctions }],
+                                toolConfig: { functionCallingConfig: { mode: 'AUTO' as any } },
+                                systemInstruction: salesSystemPrompt
+                            })
 
-                            // Guardar en DB para historial
-                            await supabaseAdmin.from('messages').insert([
-                                { chat_id: chatId, is_from_me: true, content: `📷 Imagen Promo Precios`, status: 'delivered' },
-                                { chat_id: chatId, is_from_me: true, content: greetingText, status: 'delivered' },
-                                { chat_id: chatId, is_from_me: true, content: `📋 Lista de Planes Enviada`, status: 'delivered' }
-                            ])
+                            // D. Preparar mensaje para Gemini (transcribir audio si es necesario)
+                            let aiInputText = messageText
 
-                            actionExecuted = true
-                        }
+                            if (messageType === 'audio' && messageObject.audio?.id) {
+                                try {
+                                    const { getWhatsAppMediaUrl } = await import('@/lib/whatsapp')
+                                    const mediaUrl = await getWhatsAppMediaUrl(messageObject.audio.id, tenantToken)
 
-                        if (name === 'confirm_plan' && callArgs?.plan_id) {
-                            const productId = callArgs.plan_id as string
-                            const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
-                            if (result.success && result.product) {
-                                actionExecuted = true;
-                                if (!aiResponseText.trim()) {
-                                    aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.
+                                    if (mediaUrl) {
+                                        // Descargar el audio
+                                        const audioResp = await fetch(mediaUrl, {
+                                            headers: { Authorization: `Bearer ${tenantToken}` }
+                                        })
+                                        const audioBuffer = await audioResp.arrayBuffer()
+                                        const audioBase64 = Buffer.from(audioBuffer).toString('base64')
+                                        const mimeType = messageObject.audio.mime_type || 'audio/ogg'
 
-Para continuar, necesito tu *correo electrónico*. La invitación a *Canva Pro* se envía directamente a tu email para activar tu cuenta. 📧`
+                                        const audioModel = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' })
+                                        const transcriptionResult = await audioModel.generateContent([
+                                            {
+                                                inlineData: {
+                                                    mimeType: mimeType,
+                                                    data: audioBase64
+                                                }
+                                            },
+                                            { text: 'Transcribe este audio al español. Solo devuelve la transcripción, sin explicaciones adicionales.' }
+                                        ])
+
+                                        aiInputText = transcriptionResult.response.text() || messageText
+                                        console.log(`[AI] Audio transcrito: "${aiInputText.substring(0, 80)}..."`)
+                                    }
+                                } catch (audioErr) {
+                                    console.error('[AI] Error transcribiendo audio:', audioErr)
+                                    aiInputText = '(El usuario envió un mensaje de voz pero no pude transcribirlo)'
                                 }
-                            } else if (result.success) {
-                                actionExecuted = true;
                             }
-                        }
 
-                        if (name === 'process_email' && callArgs?.email) {
-                            const email = callArgs.email as string
+                            const geminiResult = await model.generateContent({
+                                contents: [
+                                    { role: 'user', parts: [{ text: aiInputText }] }
+                                ]
+                            })
 
-                            if (chatId) {
-                                // Buscar pedido activo más reciente para este chat
-                                const { data: pendingOrder } = await supabaseAdmin
-                                    .from('orders')
-                                    .select('*')
-                                    .eq('chat_id', chatId)
-                                    .in('status', ['pending_email', 'pending_payment'])
-                                    .order('created_at', { ascending: false })
-                                    .limit(1)
-                                    .maybeSingle()
+                            const response = geminiResult.response
+                            const candidate = response.candidates?.[0]
+                            const parts = candidate?.content?.parts || []
 
-                                if (pendingOrder) {
-                                    // Actualizar pedido con email y cambiar status a ESPERANDO PAGO
-                                    await supabaseAdmin.from('orders').update({
-                                        customer_email: email,
-                                        status: 'pending_payment',
-                                        updated_at: new Date().toISOString()
-                                    }).eq('id', pendingOrder.id)
+                            let aiResponseText = ''
+                            let actionExecuted = false
 
-                                    console.log(`[SALES] Email registrado: ${email} para pedido ${pendingOrder.id}`)
-                                    // DEBUG: Marcar éxito en chat
-                                    await supabaseAdmin.from('chats').update({
-                                        last_message: `✅ Email vinculado: ${email}`
-                                    }).eq('id', chatId)
+                            // Procesar partes de la respuesta (texto + function calls)
+                            for (const part of parts) {
+                                if (part.text) {
+                                    // FILTRAR: Nunca enviar código al cliente
+                                    let cleanText = part.text
+                                    cleanText = cleanText.replace(/```[\s\S]*?```/g, '')
+                                    cleanText = cleanText.replace(/`[^`]+`/g, '')
+                                    cleanText = cleanText.replace(/^.*(?:def |import |print\(|if .*==|return\b|\.insert|\.update|\.select|tool_code|confirm_plan|process_email|function|=>).*$/gm, '')
+                                    cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim()
+                                    if (cleanText) aiResponseText += cleanText
+                                }
 
-                                    // Enviar QR de pago (buscar desde el producto)
-                                    const { data: orderProduct } = await supabaseAdmin
-                                        .from('products')
-                                        .select('name, price, qr_image_url')
-                                        .eq('id', pendingOrder.plan)
-                                        .maybeSingle()
+                                if (part.functionCall) {
+                                    const { name, args } = part.functionCall
+                                    const callArgs = args as any
+                                    console.log(`[SALES] Function call REAL: ${name}`, JSON.stringify(callArgs))
 
-                                    console.log(`[SALES] Producto para QR:`, JSON.stringify(orderProduct))
-                                    console.log(`[SALES] QR URL:`, orderProduct?.qr_image_url || 'NO HAY QR CONFIGURADO')
+                                    if (name === 'send_welcome_menu') {
+                                        const { sendWhatsAppImage, sendWhatsAppMessage, sendWhatsAppList } = await import('@/lib/whatsapp')
+                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
 
-                                    let qrSent = false
-                                    if (orderProduct?.qr_image_url) {
-                                        try {
-                                            const { sendWhatsAppImage } = await import('@/lib/whatsapp')
+                                        // 1. Imagen de Precios Promocionales
+                                        await sendWhatsAppImage(
+                                            phoneNumber,
+                                            `${baseUrl}/prices_promo.jpg`,
+                                            '',
+                                            tenantToken,
+                                            phoneId
+                                        )
 
-                                            // Make sure URL is absolute for Meta API
-                                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-                                            const absQrUrl = orderProduct.qr_image_url.startsWith('http')
-                                                ? orderProduct.qr_image_url
-                                                : `${baseUrl}${orderProduct.qr_image_url.startsWith('/') ? '' : '/'}${orderProduct.qr_image_url}`;
+                                        // 2. Mensaje de Texto Formal de Juan
+                                        const greetingText = `¡Hola! Bienvenido mi nombre es Juan de asistente de ventas. 👋 ¿Estás listo para llevar tus diseños al nivel profesional con Canva Pro?\n\nCon Canva Pro, tendrás acceso a:\n\n✅ Miles de Plantillas Pro exclusivas\n✅ Estudio Mágico (IA para crear diseños)\n✅ Kit de Marca personalizado\n✅ Quitar fondos automáticamente\n✅ Páginas Web profesionales\n✅ 100M+ fotos, videos e ilustraciones premium\n✅ Soporte 24/7 y seguridad total`
+                                        await sendWhatsAppMessage(phoneNumber, greetingText, tenantToken, phoneId)
 
-                                            const qrResult = await sendWhatsAppImage(
-                                                phoneNumber,
-                                                absQrUrl,
-                                                `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *Bs ${orderProduct.price}*\n\nRealiza tu pago y envíame la foto del comprobante aquí 📸`,
-                                                tenantToken,
-                                                phoneId
-                                            )
-                                            console.log(`[SALES] QR send result:`, JSON.stringify(qrResult))
+                                        // 3. Botón / Lista de Planes
+                                        const listBody = `📋 Planes de Canva Pro disponibles:\n\nElige el plan que más te convenga y disfruta de todas las herramientas premium de Canva.\n\n💡 Todos los planes incluyen acceso completo a Canva Pro.`
 
-                                            if (qrResult) {
-                                                qrSent = true
-                                                console.log(`[SALES] ✅ QR enviado exitosamente para: ${orderProduct.name}`)
-                                            } else {
-                                                console.error(`[SALES] ❌ sendWhatsAppImage retornó null`)
+                                        const sections = [
+                                            {
+                                                title: "Planes Canva Pro",
+                                                rows: (tenantProducts || []).slice(0, 10).map(p => ({
+                                                    id: `product_${p.id}`,
+                                                    title: p.name.substring(0, 24),
+                                                    description: `Bs ${p.price} - ${p.description || ''}`.substring(0, 72)
+                                                }))
                                             }
+                                        ]
 
-                                            // Guardar mensaje de imagen QR en DB
-                                            const qrMsgPayload: any = {
-                                                chat_id: chatId,
-                                                is_from_me: true,
-                                                content: `💳 QR de pago - ${orderProduct.name} (Bs ${orderProduct.price})`,
-                                                status: 'delivered'
-                                            }
-                                            try {
-                                                qrMsgPayload.media_url = orderProduct.qr_image_url
-                                                await supabaseAdmin.from('messages').insert(qrMsgPayload)
-                                            } catch {
-                                                delete qrMsgPayload.media_url
-                                                await supabaseAdmin.from('messages').insert(qrMsgPayload)
-                                            }
-                                        } catch (qrError) {
-                                            console.error('[SALES] ❌ Error enviando QR:', qrError)
-                                        }
-                                    } else {
-                                        console.error(`[SALES] ⚠️ Producto sin qr_image_url: ${pendingOrder.plan}`)
+                                        await sendWhatsAppList(
+                                            phoneNumber,
+                                            listBody,
+                                            "Ver Planes",
+                                            sections,
+                                            tenantToken,
+                                            phoneId
+                                        )
+
+                                        // Guardar en DB para historial
+                                        await supabaseAdmin.from('messages').insert([
+                                            { chat_id: chatId, is_from_me: true, content: `📷 Imagen Promo Precios`, status: 'delivered' },
+                                            { chat_id: chatId, is_from_me: true, content: greetingText, status: 'delivered' },
+                                            { chat_id: chatId, is_from_me: true, content: `📋 Lista de Planes Enviada`, status: 'delivered' }
+                                        ])
+
+                                        actionExecuted = true
                                     }
 
-                                    actionExecuted = true
-                                    if (!aiResponseText.trim()) {
-                                        if (qrSent) {
-                                            aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
+                                    if (name === 'confirm_plan' && callArgs?.plan_id) {
+                                        const productId = callArgs.plan_id as string
+                                        const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
+                                        if (result.success && result.product) {
+                                            actionExecuted = true;
+                                            if (!aiResponseText.trim()) {
+                                                aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.
+
+Para continuar, necesito tu *correo electrónico*. La invitación a *Canva Pro* se envía directamente a tu email para activar tu cuenta. 📧`
+                                            }
+                                        } else if (result.success) {
+                                            actionExecuted = true;
+                                        }
+                                    }
+
+                                    if (name === 'process_email' && callArgs?.email) {
+                                        const email = callArgs.email as string
+
+                                        if (chatId) {
+                                            // Buscar pedido activo más reciente para este chat
+                                            const { data: pendingOrder } = await supabaseAdmin
+                                                .from('orders')
+                                                .select('*')
+                                                .eq('chat_id', chatId)
+                                                .in('status', ['pending_email', 'pending_payment'])
+                                                .order('created_at', { ascending: false })
+                                                .limit(1)
+                                                .maybeSingle()
+
+                                            if (pendingOrder) {
+                                                // Actualizar pedido con email y cambiar status a ESPERANDO PAGO
+                                                await supabaseAdmin.from('orders').update({
+                                                    customer_email: email,
+                                                    status: 'pending_payment',
+                                                    updated_at: new Date().toISOString()
+                                                }).eq('id', pendingOrder.id)
+
+                                                console.log(`[SALES] Email registrado: ${email} para pedido ${pendingOrder.id}`)
+                                                // DEBUG: Marcar éxito en chat
+                                                await supabaseAdmin.from('chats').update({
+                                                    last_message: `✅ Email vinculado: ${email}`
+                                                }).eq('id', chatId)
+
+                                                // Enviar QR de pago (buscar desde el producto)
+                                                const { data: orderProduct } = await supabaseAdmin
+                                                    .from('products')
+                                                    .select('name, price, qr_image_url')
+                                                    .eq('id', pendingOrder.plan)
+                                                    .maybeSingle()
+
+                                                console.log(`[SALES] Producto para QR:`, JSON.stringify(orderProduct))
+                                                console.log(`[SALES] QR URL:`, orderProduct?.qr_image_url || 'NO HAY QR CONFIGURADO')
+
+                                                let qrSent = false
+                                                if (orderProduct?.qr_image_url) {
+                                                    try {
+                                                        const { sendWhatsAppImage } = await import('@/lib/whatsapp')
+
+                                                        // Make sure URL is absolute for Meta API
+                                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                                                        const absQrUrl = orderProduct.qr_image_url.startsWith('http')
+                                                            ? orderProduct.qr_image_url
+                                                            : `${baseUrl}${orderProduct.qr_image_url.startsWith('/') ? '' : '/'}${orderProduct.qr_image_url}`;
+
+                                                        const qrResult = await sendWhatsAppImage(
+                                                            phoneNumber,
+                                                            absQrUrl,
+                                                            `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *Bs ${orderProduct.price}*\n\nRealiza tu pago y envíame la foto del comprobante aquí 📸`,
+                                                            tenantToken,
+                                                            phoneId
+                                                        )
+                                                        console.log(`[SALES] QR send result:`, JSON.stringify(qrResult))
+
+                                                        if (qrResult) {
+                                                            qrSent = true
+                                                            console.log(`[SALES] ✅ QR enviado exitosamente para: ${orderProduct.name}`)
+                                                        } else {
+                                                            console.error(`[SALES] ❌ sendWhatsAppImage retornó null`)
+                                                        }
+
+                                                        // Guardar mensaje de imagen QR en DB
+                                                        const qrMsgPayload: any = {
+                                                            chat_id: chatId,
+                                                            is_from_me: true,
+                                                            content: `💳 QR de pago - ${orderProduct.name} (Bs ${orderProduct.price})`,
+                                                            status: 'delivered'
+                                                        }
+                                                        try {
+                                                            qrMsgPayload.media_url = orderProduct.qr_image_url
+                                                            await supabaseAdmin.from('messages').insert(qrMsgPayload)
+                                                        } catch {
+                                                            delete qrMsgPayload.media_url
+                                                            await supabaseAdmin.from('messages').insert(qrMsgPayload)
+                                                        }
+                                                    } catch (qrError) {
+                                                        console.error('[SALES] ❌ Error enviando QR:', qrError)
+                                                    }
+                                                } else {
+                                                    console.error(`[SALES] ⚠️ Producto sin qr_image_url: ${pendingOrder.plan}`)
+                                                }
+
+                                                actionExecuted = true
+                                                if (!aiResponseText.trim()) {
+                                                    if (qrSent) {
+                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
 
 Te he enviado el *QR de pago* aquí arriba ☝️ para tu *${orderProduct?.name || pendingOrder.plan_name}* (*Bs ${orderProduct?.price || pendingOrder.amount}*).
 
 Una vez realices el pago, envíame la foto del comprobante por este chat. 📸`
-                                        } else {
-                                            aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
+                                                    } else {
+                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
 
 En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pendingOrder.plan_name}*. 💳`
+                                                    }
+                                                }
+                                            } else {
+                                                console.log('[SALES] Email recibido pero no hay pedido activo')
+                                            }
                                         }
                                     }
-                                } else {
-                                    console.log('[SALES] Email recibido pero no hay pedido activo')
                                 }
                             }
-                        }
-                    }
-                }
 
-                // Fallback si no hay respuesta
-                if (!aiResponseText.trim()) {
-                    if (!actionExecuted) {
-                        aiResponseText = '¡Hola! 👋 Bienvenido a JABA Marketing Digital. ¿En qué puedo ayudarte hoy?'
-                    } else {
-                        // Si se ejecutó una acción pero no hay texto extra de la IA, terminamos el proceso sin enviar burbuja vacía
-                        return new NextResponse('EVENT_RECEIVED', { status: 200 })
-                    }
-                }
-
-                // E. Decidir si respondemos con AUDIO o TEXTO
-                const randomChance = Math.random() * 100
-                const shouldSendAudio = randomChance <= (aiConfig.audio_probability || 0)
-
-                // Importar helpers de envío
-                const { sendWhatsAppMessage, sendWhatsAppAudio } = await import('@/lib/whatsapp')
-                const { generateAudio } = await import('@/lib/ai')
-
-                if (shouldSendAudio) {
-                    // --- FLUJO DE RESPUESTA DE AUDIO ---
-                    try {
-                        const voiceId = aiConfig.audio_voice_id || 'es-US-Neural2-A';
-                        const audioBase64 = await generateAudio(aiResponseText, voiceId);
-
-                        if (audioBase64) {
-                            const audioBuffer = Buffer.from(audioBase64, 'base64');
-                            const fileName = `audio/${chatId}/${Date.now()}.mp3`;
-                            const bucketName = 'audio-messages';
-
-                            let { error: uploadError } = await supabaseAdmin.storage
-                                .from(bucketName)
-                                .upload(fileName, audioBuffer, {
-                                    contentType: 'audio/mpeg',
-                                    upsert: false
-                                });
-
-                            if (uploadError && uploadError.message.includes('bucket not found')) {
-                                console.log("Bucket no encontrado, intentando crear...");
-                                await supabaseAdmin.storage.createBucket(bucketName, { public: true });
-                                const retry = await supabaseAdmin.storage.from(bucketName).upload(fileName, audioBuffer, { contentType: 'audio/mpeg' });
-                                uploadError = retry.error;
+                            // Fallback si no hay respuesta
+                            if (!aiResponseText.trim()) {
+                                if (!actionExecuted) {
+                                    aiResponseText = '¡Hola! 👋 Bienvenido a JABA Marketing Digital. ¿En qué puedo ayudarte hoy?'
+                                } else {
+                                    // Si se ejecutó una acción pero no hay texto extra de la IA, terminamos el proceso sin enviar burbuja vacía
+                                    return new NextResponse('EVENT_RECEIVED', { status: 200 })
+                                }
                             }
 
-                            if (uploadError) throw new Error(`Error subiendo audio: ${uploadError.message}`);
+                            // E. Decidir si respondemos con AUDIO o TEXTO
+                            const randomChance = Math.random() * 100
+                            const shouldSendAudio = randomChance <= (aiConfig.audio_probability || 0)
 
-                            const { data: { publicUrl } } = supabaseAdmin.storage
-                                .from(bucketName)
-                                .getPublicUrl(fileName);
+                            // Importar helpers de envío
+                            const { sendWhatsAppMessage, sendWhatsAppAudio } = await import('@/lib/whatsapp')
+                            const { generateAudio } = await import('@/lib/ai')
 
-                            await sendWhatsAppAudio(phoneNumber, publicUrl, tenantToken, phoneId);
-                        } else {
-                            throw new Error('Fallo generación de audio (vacío)');
+                            if (shouldSendAudio) {
+                                // --- FLUJO DE RESPUESTA DE AUDIO ---
+                                try {
+                                    const voiceId = aiConfig.audio_voice_id || 'es-US-Neural2-A';
+                                    const audioBase64 = await generateAudio(aiResponseText, voiceId);
+
+                                    if (audioBase64) {
+                                        const audioBuffer = Buffer.from(audioBase64, 'base64');
+                                        const fileName = `audio/${chatId}/${Date.now()}.mp3`;
+                                        const bucketName = 'audio-messages';
+
+                                        let { error: uploadError } = await supabaseAdmin.storage
+                                            .from(bucketName)
+                                            .upload(fileName, audioBuffer, {
+                                                contentType: 'audio/mpeg',
+                                                upsert: false
+                                            });
+
+                                        if (uploadError && uploadError.message.includes('bucket not found')) {
+                                            console.log("Bucket no encontrado, intentando crear...");
+                                            await supabaseAdmin.storage.createBucket(bucketName, { public: true });
+                                            const retry = await supabaseAdmin.storage.from(bucketName).upload(fileName, audioBuffer, { contentType: 'audio/mpeg' });
+                                            uploadError = retry.error;
+                                        }
+
+                                        if (uploadError) throw new Error(`Error subiendo audio: ${uploadError.message}`);
+
+                                        const { data: { publicUrl } } = supabaseAdmin.storage
+                                            .from(bucketName)
+                                            .getPublicUrl(fileName);
+
+                                        await sendWhatsAppAudio(phoneNumber, publicUrl, tenantToken, phoneId);
+                                    } else {
+                                        throw new Error('Fallo generación de audio (vacío)');
+                                    }
+                                } catch (e) {
+                                    console.error("Error flujo audio:", e);
+                                    await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
+                                }
+                            } else {
+                                // --- FLUJO DE RESPUESTA DE TEXTO ---
+                                // Generar un retraso dinámico de "escribiendo" basado en la longitud de la respuesta para sentirse más realista
+                                // 35ms por letra de peso aprox, con un base de 1.5s y tope de 4.8s para evitar timeout de Vercel
+                                const calcDelay = 1500 + (aiResponseText.length * 35);
+                                const typingDelay = Math.min(calcDelay, 4800);
+                                console.log(`[Typing Delay] Esperando ${typingDelay}ms simulando escritura humana...`);
+                                await new Promise(resolve => setTimeout(resolve, typingDelay));
+                                await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
+                            }
+
+                            // Guardar mensaje de IA en DB
+                            if (chatId) {
+                                await supabaseAdmin.from('messages').insert({
+                                    chat_id: chatId,
+                                    is_from_me: true,
+                                    content: aiResponseText,
+                                    status: 'delivered'
+                                })
+
+                                await supabaseAdmin.from('chats').update({
+                                    last_message: aiResponseText.substring(0, 100),
+                                    last_message_time: new Date().toISOString()
+                                }).eq('id', chatId)
+                            }
+
+                            console.log(`[AI] Respondió a ${phoneNumber}: "${aiResponseText.substring(0, 50)}..."`)
+
+                        } catch (aiError) {
+                            console.error('[AI] Error procesando consolidado:', aiError);
                         }
-                    } catch (e) {
-                        console.error("Error flujo audio:", e);
-                        await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
-                    }
-                } else {
-                    // --- FLUJO DE RESPUESTA DE TEXTO ---
-                    // Generar un retraso dinámico de "escribiendo" basado en la longitud de la respuesta para sentirse más realista
-                    // 35ms por letra de peso aprox, con un base de 1.5s y tope de 4.8s para evitar timeout de Vercel
-                    const calcDelay = 1500 + (aiResponseText.length * 35);
-                    const typingDelay = Math.min(calcDelay, 4800);
-                    console.log(`[Typing Delay] Esperando ${typingDelay}ms simulando escritura humana...`);
-                    await new Promise(resolve => setTimeout(resolve, typingDelay));
-                    await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
-                }
 
-                // Guardar mensaje de IA en DB
-                if (chatId) {
-                    await supabaseAdmin.from('messages').insert({
-                        chat_id: chatId,
-                        is_from_me: true,
-                        content: aiResponseText,
-                        status: 'delivered'
-                    })
+                        // Siempre resolver la promesa para que Vercel termine
+                        resolve(true);
 
-                    await supabaseAdmin.from('chats').update({
-                        last_message: aiResponseText.substring(0, 100),
-                        last_message_time: new Date().toISOString()
-                    }).eq('id', chatId)
-                }
-
-                console.log(`[AI] Respondió a ${phoneNumber}: "${aiResponseText.substring(0, 50)}..."`)
+                    }, 6000); // <-- 6s DELAY AGREGATION
+                });
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 })
 
