@@ -414,8 +414,15 @@ export async function POST(request: Request) {
                                 const base64Image = Buffer.from(imageBuf).toString('base64');
 
                                 const validationModel = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-                                const prompt = `Analiza este comprobante de pago. Extrae el monto total pagado en números (sin símbolos ni letras).
-Solo responde con el número exacto (ejemplo: 50.00). Si no encuentras el monto o está ilegible, responde 0.`;
+                                const prompt = `Analiza detalladamente este comprobante de pago bancario de Bolivia (Qr, Yape, Transferencia).
+Tu ÚNICO objetivo es decirme cuál es el MONTO TOTAL PAGADO en números.
+
+Sigue estas reglas ESTRICTAS:
+1. IGNORA la hora (ej. 16:35 no es 16.35, es la hora).
+2. IGNORA la fecha y los números de transacción/cuenta largos.
+3. Busca textos como "Monto", "Monto Pagado", "Bs", "Bs." o números grandes destacados (ej. "Bs 150", "Bs 39").
+4. Solo responde con el número del monto pagado (ej. 150.00). NO devuelvas ningún otro texto, ni letras, ni símbolos. SOLO EL NÚMERO.
+Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`;
 
                                 const validationResult = await validationModel.generateContent([
                                     prompt,
@@ -432,7 +439,7 @@ Solo responde con el número exacto (ejemplo: 50.00). Si no encuentras el monto 
                                 if (amountMatch) {
                                     extractedAmount = parseFloat(amountMatch[0].replace(',', '.'));
                                 }
-                                console.log(`[Sales] Monto pagado extraído por Gemini: ${extractedAmount} (esperado: ${activeOrder.amount})`);
+                                console.log(`[Sales] Monto extraído en texto: '${textResp}' -> Parseado: ${extractedAmount} (esperado: ${activeOrder.amount})`);
                             }
                         } catch (aiError) {
                             console.error("[Sales] Error validando recibo con IA:", aiError);
