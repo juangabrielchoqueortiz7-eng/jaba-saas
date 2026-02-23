@@ -40,7 +40,12 @@ export async function POST(request: Request) {
 
         // Ensure absolute URL (Meta API requires public absolute URLs for downloaded media)
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
-        const absoluteVideoUrl = videoUrl.startsWith('http') ? videoUrl : `${baseUrl}${videoUrl.startsWith('/') ? '' : '/'}${videoUrl}`;
+        let absoluteVideoUrl = videoUrl.startsWith('http') ? videoUrl : `${baseUrl}${videoUrl.startsWith('/') ? '' : '/'}${videoUrl}`;
+
+        // HARD FIX: If it's the tutorial video, use the reliable Supabase Storage URL explicitly
+        if (videoUrl === '/tutorial.mp4' || videoUrl === 'tutorial.mp4') {
+            absoluteVideoUrl = 'https://mnepydxofhcgbykpcyfc.supabase.co/storage/v1/object/public/sales-assets/tutorial.mp4';
+        }
 
         console.log(`[Send Video] Using absolute URL: ${absoluteVideoUrl}`)
 
