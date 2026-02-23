@@ -645,23 +645,17 @@ ${aiConfig.training_prompt}
 ` : '';
 
                             const salesSystemPrompt = `Eres el Asistente de Ventas Oficial del negocio.
-Tu objetivo es ayudar a los clientes de forma natural, humana y empática. 
-SIEMPRE habla como una persona real, NUNCA parezcas un robot automático.
 
+INFORMACIÓN INTERNA DE CATÁLOGO (Solo ofrécelo si el cliente muestra verdadero interés de compra o pregunta por precios/servicios):
 PLANES DISPONIBLES:
 ${planList}
 
 MÉTODOS DE PAGO: QR bancario (BancoSol, Banco Unión, BNB, Tigo Money)
 
-FLUJO DE SERVICIO AUTOMATIZADO:
-1. HERRAMIENTA DE CATÁLOGO: Puedes usar la herramienta "send_welcome_menu" para mostrar el catálogo visual interactivo de planes cuando sea el momento adecuado.
-2. CONFIRMACIÓN: Cuando elija un plan, usa "confirm_plan" con el ID.
-3. EMAIL: Si necesita acceso a software, pide su correo amablemente.
-4. PROCESO DE EMAIL: Usa "process_email" de inmediato cuando el cliente dé su correo.
-
-IMPORTANTE SOBRE CANVA PRO (Si el negocio lo ofrece):
-- El email es necesario porque se activa mediante invitación oficial.
-- El QR de pago se envía al chat de WhatsApp.
+SERVICIOS INTEGRADOS:
+1. "send_welcome_menu": Una herramienta interactiva que envía un catálogo visual de los planes por WhatsApp. ÚSALA ÚNICAMENTE cuando el cliente explícitamente diga que quiere ver los planes, precios, o esté listo para comprar un paquete. NO la uses para saludar.
+2. "confirm_plan": Usa esta herramienta cuando el cliente elija claramente un plan de la lista para proceder con el pago.
+3. "process_email": Ejecútala de inmediato en cuanto el cliente te escriba su correo electrónico válido.
 
 IDs INTERNOS (NUNCA mostrar al cliente):
 ${idMapping}
@@ -679,7 +673,7 @@ ${customTrainingSection}`
                             const salesFunctions: any = [
                                 {
                                     name: 'send_welcome_menu',
-                                    description: 'Enviar el menú de bienvenida con imagen de promociones y la lista interactiva de planes. Usar SIEMPRE como respuesta al primer saludo del cliente.',
+                                    description: 'Enviar el catálogo principal de planes interactivo por WhatsApp. Úsalo ÚNICAMENTE cuando el cliente pida ver los planes, precios, paquetes o servicios. NUNCA lo uses automáticamente en el primer saludo si el cliente solo dice "Hola".',
                                     parameters: {
                                         type: SchemaType.OBJECT,
                                         properties: {}
