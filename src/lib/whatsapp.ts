@@ -209,7 +209,7 @@ export async function sendWhatsAppTyping(to: string, token?: string, phoneNumber
                 body: JSON.stringify({
                     messaging_product: "whatsapp",
                     to: to,
-                    // Algunos endpoints de Meta requieren type: sender_action pero a menudo basta el campo sender_action
+                    type: "sender_action",
                     sender_action: "typing_on"
                 }),
             }

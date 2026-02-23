@@ -976,8 +976,11 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                     }
                 } else {
                     // --- FLUJO DE RESPUESTA DE TEXTO ---
-                    // Generar un pequeño retraso de "escribiendo" para sentirse más humano (1.5 - 3.5 segundos)
-                    const typingDelay = Math.floor(Math.random() * 2000) + 1500;
+                    // Generar un retraso dinámico de "escribiendo" basado en la longitud de la respuesta para sentirse más realista
+                    // 35ms por letra de peso aprox, con un base de 1.5s y tope de 4.8s para evitar timeout de Vercel
+                    const calcDelay = 1500 + (aiResponseText.length * 35);
+                    const typingDelay = Math.min(calcDelay, 4800);
+                    console.log(`[Typing Delay] Esperando ${typingDelay}ms simulando escritura humana...`);
                     await new Promise(resolve => setTimeout(resolve, typingDelay));
                     await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
                 }
