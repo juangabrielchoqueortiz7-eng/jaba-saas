@@ -337,30 +337,13 @@ export default function OrdersPage() {
                                     <td className="px-6 py-5 text-right">
                                         <div className="flex items-center gap-2">
                                             {order.status === 'pending_delivery' && (
-                                                <>
-                                                    <button
-                                                        onClick={() => updateOrderStatus(order.id, 'delivered')}
-                                                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-1.5"
-                                                    >
-                                                        <CheckCircle2 size={14} />
-                                                        Entregar
-                                                    </button>
-                                                    {order.chat_id && (
-                                                        <button
-                                                            onClick={() => handleSendTutorial(order.chat_id!, order.id)}
-                                                            disabled={sendingVideoId === order.id}
-                                                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-700 transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
-                                                            title="Enviar Video Tutorial a WhatsApp"
-                                                        >
-                                                            {sendingVideoId === order.id ? (
-                                                                <RefreshCcw size={14} className="animate-spin text-slate-400" />
-                                                            ) : (
-                                                                <PlayCircle size={14} className="text-indigo-400" />
-                                                            )}
-                                                            Video
-                                                        </button>
-                                                    )}
-                                                </>
+                                                <button
+                                                    onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-1.5"
+                                                >
+                                                    <CheckCircle2 size={14} />
+                                                    Entregar
+                                                </button>
                                             )}
                                             {order.status === 'pending_payment' && (
                                                 <button
@@ -368,6 +351,21 @@ export default function OrdersPage() {
                                                     className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all active:scale-95"
                                                 >
                                                     Pago Recibido
+                                                </button>
+                                            )}
+                                            {order.chat_id && (
+                                                <button
+                                                    onClick={() => handleSendTutorial(order.chat_id!, order.id)}
+                                                    disabled={sendingVideoId === order.id}
+                                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-700 transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+                                                    title="Enviar Video Tutorial a WhatsApp"
+                                                >
+                                                    {sendingVideoId === order.id ? (
+                                                        <RefreshCcw size={14} className="animate-spin text-slate-400" />
+                                                    ) : (
+                                                        <PlayCircle size={14} className="text-indigo-400" />
+                                                    )}
+                                                    Video
                                                 </button>
                                             )}
                                             {order.chat_id && (
