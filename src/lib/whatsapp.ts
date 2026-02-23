@@ -145,7 +145,9 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
     }
 
     try {
-        const videoPayload: Record<string, string> = {};
+        const videoPayload: Record<string, string> = {
+            filename: "Tutorial_Acceso.mp4"
+        };
         // Si no empieza con http, asumimos que es un media_id
         if (videoUrl.startsWith('http')) {
             videoPayload.link = videoUrl;
@@ -165,8 +167,8 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
                 body: JSON.stringify({
                     messaging_product: "whatsapp",
                     to: to,
-                    type: "video",
-                    video: videoPayload
+                    type: "document",
+                    document: videoPayload
                 }),
             }
         );

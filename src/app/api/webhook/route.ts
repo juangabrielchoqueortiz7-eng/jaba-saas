@@ -967,6 +967,9 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                     }
                 } else {
                     // --- FLUJO DE RESPUESTA DE TEXTO ---
+                    // Generar un pequeño retraso de "escribiendo" para sentirse más humano (1.5 - 3.5 segundos)
+                    const typingDelay = Math.floor(Math.random() * 2000) + 1500;
+                    await new Promise(resolve => setTimeout(resolve, typingDelay));
                     await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
                 }
 
