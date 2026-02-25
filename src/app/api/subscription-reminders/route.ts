@@ -24,19 +24,27 @@ function parseDate(dateStr: string): Date | null {
 // Buscar o crear chat para que los mensajes aparezcan en el panel
 async function findOrCreateChat(phoneNumber: string, userId: string, contactName?: string): Promise<string | null> {
     try {
+        // Intentar con múltiples formatos de número
+        const cleanNum = phoneNumber.replace(/\D/g, '')
+        const withPrefix = cleanNum.startsWith('591') ? cleanNum : '591' + cleanNum
+        const withoutPrefix = cleanNum.startsWith('591') ? cleanNum.slice(3) : cleanNum
+
+        // Buscar chat existente con cualquier formato del número
         const { data: existingChat } = await supabaseAdmin
             .from('chats')
             .select('id')
-            .eq('phone_number', phoneNumber)
             .eq('user_id', userId)
+            .or(`phone_number.eq.${withPrefix},phone_number.eq.${withoutPrefix},phone_number.eq.+${withPrefix}`)
+            .limit(1)
             .maybeSingle()
 
         if (existingChat) return existingChat.id
 
+        // Crear nuevo chat con el formato completo (591...)
         const { data: newChat } = await supabaseAdmin
             .from('chats')
             .insert({
-                phone_number: phoneNumber,
+                phone_number: withPrefix,
                 user_id: userId,
                 contact_name: contactName || phoneNumber,
                 last_message: 'Recordatorio enviado',
