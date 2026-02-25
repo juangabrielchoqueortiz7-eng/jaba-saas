@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { sendWhatsAppMessage, sendWhatsAppList } from '@/lib/whatsapp'
+import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -279,8 +279,36 @@ Ref: {equipo}`
                     .replace(/{equipo}/g, sub.equipo || '')
                     .replace(/{planes}/g, plansText)
 
-                // Send text message
-                const sendResult = await sendWhatsAppMessage(fullPhone, message, creds.access_token, creds.phone_number_id)
+                // URL base para la imagen de precios (necesaria para el template)
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                const imageUrl = `${baseUrl}/prices_promo.jpg`
+
+                // Send TEMPLATE message (requerido para clientes fuera de ventana 24h)
+                const sendResult = await sendWhatsAppTemplate(
+                    fullPhone,
+                    'recordatorio_renovacion_v1', // Nombre del template a crear en Meta
+                    'es',
+                    [
+                        {
+                            type: 'header',
+                            parameters: [
+                                {
+                                    type: 'image',
+                                    image: { link: imageUrl }
+                                }
+                            ]
+                        },
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: sub.correo || 'tu cuenta' },
+                                { type: 'text', text: sub.vencimiento || 'pronto' }
+                            ]
+                        }
+                    ],
+                    creds.access_token,
+                    creds.phone_number_id
+                )
 
                 if (sendResult) {
                     // Extraer ID del mensaje de WhatsApp para tracking de status

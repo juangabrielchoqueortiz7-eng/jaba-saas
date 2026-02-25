@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { sendWhatsAppMessage, sendWhatsAppList } from '@/lib/whatsapp'
+import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -85,11 +85,39 @@ ${plansText}
 
 A continuación te llegará una lista interactiva con los planes disponibles para que puedas seleccionar uno directamente. 👇`
 
-    // Send message
-    const sendResult = await sendWhatsAppMessage(fullPhone, testMessage, creds.access_token, creds.phone_number_id)
+    // URL base para la imagen de precios (necesaria para el template)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+    const imageUrl = `${baseUrl}/prices_promo.jpg`
+
+    // Send TEMPLATE message (requerido para clientes fuera de ventana 24h)
+    const sendResult = await sendWhatsAppTemplate(
+        fullPhone,
+        'recordatorio_renovacion_v1', // Nombre del template a crear en Meta
+        'es',
+        [
+            {
+                type: 'header',
+                parameters: [
+                    {
+                        type: 'image',
+                        image: { link: imageUrl }
+                    }
+                ]
+            },
+            {
+                type: 'body',
+                parameters: [
+                    { type: 'text', text: 'usuario@ejemplo.com' },
+                    { type: 'text', text: 'hoy' }
+                ]
+            }
+        ],
+        creds.access_token,
+        creds.phone_number_id
+    )
 
     if (!sendResult) {
-        return NextResponse.json({ error: 'Failed to send message', details: 'sendWhatsAppMessage returned null' }, { status: 500 })
+        return NextResponse.json({ error: 'Failed to send template message', details: 'sendWhatsAppTemplate returned null' }, { status: 500 })
     }
 
     const waMessageId = sendResult?.messages?.[0]?.id || null
