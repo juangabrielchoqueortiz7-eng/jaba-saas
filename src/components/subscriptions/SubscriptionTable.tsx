@@ -6,7 +6,7 @@ import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { createPortal } from 'react-dom';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users } from 'lucide-react';
+import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users, PauseCircle, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -636,6 +636,13 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                                 <CheckCircle size={8} className="text-white" strokeWidth={4} />
                                                             </div>
                                                         )}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleUpdate(sub.id, 'auto_notify_paused', !sub.auto_notify_paused)}
+                                                        className={`p-2 rounded-lg border transition-colors ${sub.auto_notify_paused ? 'bg-amber-900/20 text-amber-500 border-amber-900/50 hover:bg-amber-900/40' : 'bg-slate-800 text-slate-500 border-slate-700 hover:text-amber-500'}`}
+                                                        title={sub.auto_notify_paused ? 'Automatización pausada (clic para activar)' : 'Pausar automatización para este cliente'}
+                                                    >
+                                                        {sub.auto_notify_paused ? <PlayCircle size={16} /> : <PauseCircle size={16} />}
                                                     </button>
                                                     <button onClick={() => handleDelete(sub.id)} className="p-2 rounded-lg hover:bg-red-900/20 text-slate-500 hover:text-red-400 transition-colors" title="Eliminar">
                                                         <Trash2 size={16} />

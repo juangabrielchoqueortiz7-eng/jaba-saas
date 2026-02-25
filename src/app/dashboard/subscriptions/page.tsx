@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import SubscriptionTable from '@/components/subscriptions/SubscriptionTable';
 import SubscriptionActions from '@/components/subscriptions/SubscriptionActions';
 import { Subscription } from '@/types/subscription';
 import { toast } from 'sonner';
-import { Users, CheckCircle2, XCircle } from 'lucide-react';
+import { Users, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+
+dayjs.extend(customParseFormat);
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SubscriptionsPage() {
@@ -116,6 +120,22 @@ export default function SubscriptionsPage() {
     const activeCount = subscriptions.filter(sub => sub.estado === 'ACTIVO').length;
     const inactiveCount = subscriptions.filter(sub => sub.estado !== 'ACTIVO').length;
 
+    const pendingCount = useMemo(() => {
+        const today = dayjs().startOf('day');
+        return subscriptions.filter(sub => {
+            if (sub.estado !== 'ACTIVO') return false;
+            if (sub.notified) return false;
+            if (sub.auto_notify_paused) return false;
+            if (!sub.vencimiento) return false;
+            const phone = (sub.numero || '').replace(/\D/g, '');
+            if (phone.length < 8) return false;
+            const expDate = dayjs(sub.vencimiento, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+            if (!expDate.isValid()) return false;
+            const diff = expDate.diff(today, 'day');
+            return diff <= 7;
+        }).length;
+    }, [subscriptions]);
+
     return (
         <div className="flex flex-col h-full bg-slate-950 p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -123,7 +143,7 @@ export default function SubscriptionsPage() {
                     <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Gestor de Suscripciones</h1>
                     <p className="text-slate-400 text-sm">Administra tus clientes y renovaciones</p>
                 </div>
-                <SubscriptionActions onRefresh={() => fetchSubscriptions(true)} onLocalAdd={handleLocalAdd} />
+                <SubscriptionActions onRefresh={() => fetchSubscriptions(true)} onLocalAdd={handleLocalAdd} pendingCount={pendingCount} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -166,6 +186,20 @@ export default function SubscriptionsPage() {
                         <div className="text-2xl font-bold text-red-400">{inactiveCount}</div>
                         <p className="text-xs text-slate-400">
                             Suscripciones finalizadas
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-slate-900 border-slate-800 border-amber-900/50">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-amber-400">
+                            ⏳ Por Vencer
+                        </CardTitle>
+                        <AlertTriangle className="h-4 w-4 text-amber-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-amber-400">{pendingCount}</div>
+                        <p className="text-xs text-slate-400">
+                            Pendientes de recordatorio
                         </p>
                     </CardContent>
                 </Card>

@@ -397,6 +397,87 @@ export async function POST(request: Request) {
                     }
                 }
 
+                // --- PROCESAR RENOVACIÓN DE SUSCRIPCIÓN (renew_plan_) ---
+                if (interactiveData && interactiveData.id.startsWith('renew_plan_')) {
+                    const productId = interactiveData.id.replace('renew_plan_', '');
+                    console.log(`[Renewal] Plan de renovación seleccionado: ${productId}`);
+
+                    // Buscar producto
+                    const { data: product } = await supabaseAdmin
+                        .from('products')
+                        .select('*')
+                        .eq('id', productId)
+                        .eq('user_id', tenantUserId)
+                        .single();
+
+                    if (!product) {
+                        console.error('[Renewal] Product not found:', productId);
+                        return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                    }
+
+                    // Buscar suscripción existente del cliente por número de teléfono
+                    const cleanPhone = phoneNumber.replace(/^591/, '');
+                    const { data: subscription } = await supabaseAdmin
+                        .from('subscriptions')
+                        .select('*')
+                        .eq('user_id', tenantUserId)
+                        .eq('estado', 'ACTIVO')
+                        .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhone}`)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    // Usar email de la suscripción existente (sin preguntar)
+                    const customerEmail = subscription?.correo || '';
+
+                    // Crear order tipo renewal
+                    const { error: orderError } = await supabaseAdmin.from('orders').insert({
+                        user_id: tenantUserId,
+                        chat_id: chatId,
+                        phone_number: phoneNumber,
+                        contact_name: contactName,
+                        product: 'renewal',
+                        plan: productId,
+                        plan_name: product.name,
+                        amount: product.price,
+                        customer_email: customerEmail,
+                        equipo: subscription?.equipo || '',
+                        status: 'pending_payment'
+                    });
+
+                    if (orderError) {
+                        console.error('[Renewal] Error creating order:', orderError);
+                        return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                    }
+
+                    console.log(`[Renewal] Orden creada: ${product.name} (Bs ${product.price}) para ${customerEmail || phoneNumber}`);
+
+                    // Enviar QR de pago directamente (sin pedir email)
+                    const { sendWhatsAppMessage, sendWhatsAppImage } = await import('@/lib/whatsapp');
+
+                    const renewMsg = `✅ *¡Plan seleccionado!*\n\n` +
+                        `Has elegido *${product.name}* (Bs ${product.price}) para renovar tu cuenta *${customerEmail}*.\n\n` +
+                        `💳 Realiza el pago con el siguiente QR y envíanos la foto del comprobante por este medio:`;
+
+                    await sendWhatsAppMessage(phoneNumber, renewMsg, tenantToken, phoneId);
+
+                    // Enviar QR de pago si existe
+                    if (product.qr_image_url) {
+                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
+                        const qrUrl = product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl}${product.qr_image_url}`;
+                        await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (Bs ${product.price})`, tenantToken, phoneId);
+                    }
+
+                    await supabaseAdmin.from('messages').insert({
+                        chat_id: chatId,
+                        is_from_me: true,
+                        content: renewMsg,
+                        status: 'delivered'
+                    });
+
+                    return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                }
+
                 // --- PROCESAR COMPROBANTE DE PAGO ---
                 if (isReceipt && chatId) {
                     console.log(`[Sales] Posible comprobante detectado de ${phoneNumber}`);
@@ -490,6 +571,95 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                         }).eq('id', activeOrder.id);
 
                         const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
+
+                        // --- RENOVACIÓN AUTOMÁTICA ---
+                        if (activeOrder.product === 'renewal') {
+                            console.log(`[Renewal] Processing auto-renewal for ${phoneNumber}`);
+
+                            // Calcular nueva fecha de vencimiento
+                            const today = new Date();
+                            const planName = (activeOrder.plan_name || '').toLowerCase();
+                            let monthsToAdd = 1;
+                            if (planName.includes('3 mes') || planName.includes('trimestral') || planName.includes('bronce')) monthsToAdd = 3;
+                            else if (planName.includes('6 mes') || planName.includes('semestral') || planName.includes('plata')) monthsToAdd = 6;
+                            else if (planName.includes('9 mes') || planName.includes('oro')) monthsToAdd = 9;
+                            else if (planName.includes('1 año') || planName.includes('anual') || planName.includes('premium')) monthsToAdd = 12;
+
+                            const newExpDate = new Date(today);
+                            newExpDate.setMonth(newExpDate.getMonth() + monthsToAdd);
+                            const newExpStr = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
+
+                            // Buscar suscripción del cliente
+                            const cleanPhone = phoneNumber.replace(/^591/, '');
+                            const { data: sub } = await supabaseAdmin
+                                .from('subscriptions')
+                                .select('*')
+                                .eq('user_id', tenantUserId)
+                                .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhone}`)
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle();
+
+                            const oldExpiration = sub?.vencimiento || 'N/A';
+
+                            if (sub) {
+                                // Auto-actualizar suscripción
+                                await supabaseAdmin
+                                    .from('subscriptions')
+                                    .update({
+                                        vencimiento: newExpStr,
+                                        notified: false,
+                                        notified_at: null,
+                                        followup_sent: false
+                                    })
+                                    .eq('id', sub.id);
+
+                                console.log(`[Renewal] ✅ Suscripción ${sub.id} actualizada: ${oldExpiration} → ${newExpStr}`);
+                            }
+
+                            // Crear registro de renovación
+                            const triggeredBy = sub?.followup_sent ? 'followup' : 'reminder';
+                            await supabaseAdmin.from('subscription_renewals').insert({
+                                user_id: tenantUserId,
+                                subscription_id: sub?.id || null,
+                                order_id: activeOrder.id,
+                                chat_id: chatId,
+                                phone_number: phoneNumber,
+                                customer_email: activeOrder.customer_email || sub?.correo || '',
+                                plan_name: activeOrder.plan_name,
+                                amount: activeOrder.amount,
+                                old_expiration: oldExpiration,
+                                new_expiration: newExpStr,
+                                receipt_url: savedMediaUrl,
+                                triggered_by: triggeredBy,
+                                status: 'pending_review'
+                            });
+
+                            // Log
+                            await supabaseAdmin.from('subscription_notification_logs').insert({
+                                user_id: tenantUserId,
+                                subscription_id: sub?.id || null,
+                                phone_number: phoneNumber,
+                                message_type: 'confirmation',
+                                status: 'sent'
+                            });
+
+                            // Mensaje profesional de confirmación
+                            const confirmMsg = `✅ *¡Renovación exitosa!* 🎉\n\nGracias por continuar confiando en nosotros. Tu cuenta *${activeOrder.customer_email || sub?.correo || ''}* de Canva Pro ha sido renovada con éxito.\n\n📋 *Detalle de tu renovación:*\n• Plan: ${activeOrder.plan_name}\n• Vigencia hasta: *${newExpStr}*\n• Equipo: ${activeOrder.equipo || sub?.equipo || ''}\n\nTodos tus diseños, plantillas y proyectos siguen intactos y disponibles para ti. 🎨\n\nSi tienes alguna consulta, estamos aquí para ayudarte.\n*¡Sigue creando cosas increíbles!* ✨`;
+
+                            await sendWhatsAppMessage(phoneNumber, confirmMsg, tenantToken, phoneId);
+
+                            await supabaseAdmin.from('messages').insert({
+                                chat_id: chatId,
+                                is_from_me: true,
+                                content: confirmMsg,
+                                status: 'delivered'
+                            });
+
+                            return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                        }
+
+                        // --- FLUJO NORMAL (no renovación) ---
                         const confirmationMsg = `✅ *¡Comprobante recibido!*\n\nEstamos verificando tu pago para el *${activeOrder.plan_name || activeOrder.product}* (Bs ${activeOrder.amount}).\n\nEn breve recibirás el acceso en tu correo electrónico: *${activeOrder.customer_email || '(no registrado)'}*\n\n¡Gracias por tu preferencia! 🙌`;
 
                         await sendWhatsAppMessage(phoneNumber, confirmationMsg, tenantToken, phoneId);

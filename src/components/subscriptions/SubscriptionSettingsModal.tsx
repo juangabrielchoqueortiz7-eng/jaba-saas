@@ -162,6 +162,18 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             />
                         </div>
                     </div>
+
+                    {/* Variables Guide */}
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                        <h4 className="text-sm font-bold text-indigo-800 mb-2">📌 Variables disponibles</h4>
+                        <p className="text-xs text-indigo-600 mb-2">Usa estas variables en tus mensajes y serán reemplazadas automáticamente:</p>
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                            <span className="text-slate-600"><code className="bg-white px-1 py-0.5 rounded text-indigo-700 font-mono">{'{correo}'}</code> → Email del cliente</span>
+                            <span className="text-slate-600"><code className="bg-white px-1 py-0.5 rounded text-indigo-700 font-mono">{'{vencimiento}'}</code> → Fecha de vencimiento</span>
+                            <span className="text-slate-600"><code className="bg-white px-1 py-0.5 rounded text-indigo-700 font-mono">{'{equipo}'}</code> → Número de equipo</span>
+                            <span className="text-slate-600"><code className="bg-white px-1 py-0.5 rounded text-indigo-700 font-mono">{'{planes}'}</code> → Lista de planes</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">

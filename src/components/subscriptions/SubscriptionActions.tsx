@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Plus, Upload, Download, Trash2, FileSpreadsheet, FileText } from 'lucide-react';
+import { Plus, Upload, Download, Trash2, FileSpreadsheet, FileText, Send } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -18,12 +18,13 @@ import SubscriptionFormModal from './SubscriptionFormModal';
 import { Settings } from 'lucide-react';
 import { Subscription } from '@/types/subscription';
 
-export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefresh: () => void, onLocalAdd?: (sub: Subscription) => void }) {
+export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCount }: { onRefresh: () => void, onLocalAdd?: (sub: Subscription) => void, pendingCount?: number }) {
     const supabase = createClient();
     const [isImporting, setIsImporting] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isSendingReminders, setIsSendingReminders] = useState(false);
 
     const handleFormSuccess = (newSub: Subscription) => {
         if (onLocalAdd) {
@@ -33,6 +34,40 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefre
         }
     };
 
+    const handleSendReminders = async () => {
+        const count = pendingCount || 0;
+        if (!confirm(`¿Enviar recordatorios automáticos a ${count} cliente(s) con suscripción por vencer/vencida?\n\nEsto enviará un mensaje de WhatsApp a cada uno con los planes disponibles.`)) return;
+
+        setIsSendingReminders(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                toast.error('No hay sesión activa');
+                return;
+            }
+
+            const response = await fetch('/api/subscription-reminders', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast.success(`✅ Recordatorios enviados: ${result.sent} exitosos, ${result.failed} fallidos`);
+                onRefresh();
+            } else {
+                toast.error(result.error || 'Error al enviar recordatorios');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Error de conexión');
+        } finally {
+            setIsSendingReminders(false);
+        }
+    };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -214,6 +249,16 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd }: { onRefre
 
             <button onClick={() => setShowSettings(true)} className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
                 <Settings size={16} className="text-indigo-400" /> Configurar
+            </button>
+
+            <button
+                onClick={handleSendReminders}
+                disabled={isSendingReminders || (pendingCount !== undefined && pendingCount === 0)}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded-lg shadow hover:from-emerald-700 hover:to-teal-700 transition-all text-sm font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={pendingCount !== undefined ? `${pendingCount} clientes pendientes` : 'Enviar recordatorios'}
+            >
+                <Send size={16} />
+                {isSendingReminders ? 'Enviando...' : `Recordatorios${pendingCount !== undefined ? ` (${pendingCount})` : ''}`}
             </button>
 
             <button onClick={handleDeleteAll} className="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-900/20 transition-colors" title="Borrar Todo">

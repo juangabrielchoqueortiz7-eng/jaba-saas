@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart, Package } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart, Package, RefreshCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
 
@@ -91,6 +91,22 @@ export function SidebarNav() {
                 >
                     <Users size={20} />
                     Suscripciones
+                </Link>
+            )}
+
+            {/* Renovaciones: Solo visible para el Admin/Dueño */}
+            {isAdmin && (
+                <Link
+                    href="/dashboard/renewals"
+                    className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                        pathname === '/dashboard/renewals'
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    )}
+                >
+                    <RefreshCcw size={20} />
+                    Renovaciones
                 </Link>
             )}
 
