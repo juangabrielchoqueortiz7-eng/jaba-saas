@@ -10,18 +10,38 @@ const supabaseAdmin = createClient(
 // POST: Enviar mensaje de prueba a un número específico
 export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-        return NextResponse.json({ error: 'No token' }, { status: 401 })
+    let userId: string | null = null
+
+    // Opción 1: CRON_SECRET (para llamar desde terminal)
+    const cronSecret = process.env.CRON_SECRET
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+        const body = await request.clone().json()
+        userId = body.user_id || null
+
+        // Si no se pasa user_id, buscar el primer admin
+        if (!userId) {
+            const { data: admin } = await supabaseAdmin
+                .from('whatsapp_credentials')
+                .select('user_id')
+                .eq('is_platform_admin', true)
+                .limit(1)
+                .single()
+            userId = admin?.user_id || null
+        }
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    ).auth.getUser(token)
+    // Opción 2: Token de usuario
+    if (!userId && authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user } } = await createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        ).auth.getUser(token)
+        userId = user?.id || null
+    }
 
-    if (authError || !user) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -39,7 +59,7 @@ export async function POST(request: Request) {
     const { data: creds } = await supabaseAdmin
         .from('whatsapp_credentials')
         .select('access_token, phone_number_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single()
 
     if (!creds?.access_token) {
@@ -50,7 +70,7 @@ export async function POST(request: Request) {
     const { data: products } = await supabaseAdmin
         .from('products')
         .select('id, name, description, price')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
 
@@ -82,7 +102,7 @@ A continuación te llegará una lista interactiva con los planes disponibles par
     const { data: existingChat } = await supabaseAdmin
         .from('chats')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .or(`phone_number.eq.${withPrefix},phone_number.eq.${withoutPrefix},phone_number.eq.+${withPrefix}`)
         .limit(1)
         .maybeSingle()
@@ -93,7 +113,7 @@ A continuación te llegará una lista interactiva con los planes disponibles par
             .from('chats')
             .insert({
                 phone_number: withPrefix,
-                user_id: user.id,
+                user_id: userId,
                 contact_name: `Test ${fullPhone}`,
                 last_message: 'Mensaje de prueba',
                 unread_count: 0
