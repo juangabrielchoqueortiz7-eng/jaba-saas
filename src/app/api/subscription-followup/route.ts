@@ -9,6 +9,37 @@ const supabaseAdmin = createClient(
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+// Buscar o crear chat para que los mensajes aparezcan en el panel
+async function findOrCreateChat(phoneNumber: string, userId: string, contactName?: string): Promise<string | null> {
+    try {
+        const { data: existingChat } = await supabaseAdmin
+            .from('chats')
+            .select('id')
+            .eq('phone_number', phoneNumber)
+            .eq('user_id', userId)
+            .maybeSingle()
+
+        if (existingChat) return existingChat.id
+
+        const { data: newChat } = await supabaseAdmin
+            .from('chats')
+            .insert({
+                phone_number: phoneNumber,
+                user_id: userId,
+                contact_name: contactName || phoneNumber,
+                last_message: 'Remarketing enviado',
+                unread_count: 0
+            })
+            .select('id')
+            .single()
+
+        return newChat?.id || null
+    } catch (err) {
+        console.error('[Chat] Error finding/creating chat:', err)
+        return null
+    }
+}
+
 // =============================================
 // GET: Cron 6PM Bolivia - Remarketing follow-up
 // =============================================
@@ -135,6 +166,24 @@ Ref: ${sub.equipo || ''}`
                 const sendResult = await sendWhatsAppMessage(fullPhone, followupMessage, creds.access_token, creds.phone_number_id)
 
                 if (sendResult) {
+                    // Buscar/crear chat para guardar mensajes en el panel
+                    const chatId = await findOrCreateChat(fullPhone, userId, sub.correo || fullPhone)
+
+                    // Guardar mensaje en el panel de chat
+                    if (chatId) {
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId,
+                            is_from_me: true,
+                            content: followupMessage,
+                            status: 'delivered'
+                        })
+
+                        await supabaseAdmin.from('chats').update({
+                            last_message: '⚠️ Remarketing de renovación enviado',
+                            last_message_time: new Date().toISOString()
+                        }).eq('id', chatId)
+                    }
+
                     // Send interactive list
                     if (listSections.length > 0 && listSections[0].rows.length > 0) {
                         await delay(1000)
@@ -146,6 +195,15 @@ Ref: ${sub.equipo || ''}`
                             creds.access_token,
                             creds.phone_number_id
                         )
+
+                        if (chatId) {
+                            await supabaseAdmin.from('messages').insert({
+                                chat_id: chatId,
+                                is_from_me: true,
+                                content: '📋 Lista de Planes (Remarketing) Enviada',
+                                status: 'delivered'
+                            })
+                        }
                     }
 
                     // Update
