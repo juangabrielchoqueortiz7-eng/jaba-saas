@@ -1223,6 +1223,32 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 })
 
+                // =============================================
+                // HANDLER: Status Updates (delivered, read)
+                // =============================================
+            } else if (
+                body.entry &&
+                body.entry[0]?.changes?.[0]?.value?.statuses &&
+                body.entry[0].changes[0].value.statuses[0]
+            ) {
+                const statusUpdate = body.entry[0].changes[0].value.statuses[0]
+                const waMessageId = statusUpdate.id
+                const newStatus = statusUpdate.status // 'sent', 'delivered', 'read', 'failed'
+
+                if (waMessageId && (newStatus === 'delivered' || newStatus === 'read')) {
+                    // Update message status in DB
+                    const { error: updateErr } = await supabaseAdmin
+                        .from('messages')
+                        .update({ status: newStatus })
+                        .eq('whatsapp_message_id', waMessageId)
+
+                    if (!updateErr) {
+                        console.log(`[Status] Message ${waMessageId} -> ${newStatus}`)
+                    }
+                }
+
+                return new NextResponse('EVENT_RECEIVED', { status: 200 })
+
             } else {
                 return new NextResponse('Not Found', { status: 404 })
             }

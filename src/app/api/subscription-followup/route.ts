@@ -171,6 +171,9 @@ Ref: ${sub.equipo || ''}`
                 const sendResult = await sendWhatsAppMessage(fullPhone, followupMessage, creds.access_token, creds.phone_number_id)
 
                 if (sendResult) {
+                    // Extraer ID del mensaje de WhatsApp para tracking de status
+                    const waMessageId = sendResult?.messages?.[0]?.id || null
+
                     // Buscar/crear chat para guardar mensajes en el panel
                     const chatId = await findOrCreateChat(fullPhone, userId, sub.correo || fullPhone)
 
@@ -180,7 +183,8 @@ Ref: ${sub.equipo || ''}`
                             chat_id: chatId,
                             is_from_me: true,
                             content: followupMessage,
-                            status: 'delivered'
+                            status: 'delivered',
+                            whatsapp_message_id: waMessageId
                         })
 
                         await supabaseAdmin.from('chats').update({
