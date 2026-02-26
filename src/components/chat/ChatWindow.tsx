@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Send, Paperclip, Smile, MoreVertical, Phone, Video } from 'lucide-react'
 import { MessageBubble } from './MessageBubble'
 import { createClient } from '@/utils/supabase/client'
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react'
 import { useSearchParams } from 'next/navigation'
 import { formatMessageTime, formatDateSeparator, isDifferentDay } from '@/lib/formatTime'
 
@@ -25,7 +26,10 @@ export function ChatWindow() {
     const [messages, setMessages] = useState<Message[]>([])
     const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null)
     const [newMessage, setNewMessage] = useState('')
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
     const [supabase] = useState(() => createClient())
     const searchParams = useSearchParams()
     const activeChatId = searchParams.get('chatId')
@@ -162,6 +166,59 @@ export function ChatWindow() {
         }
     }
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !activeChatId) return
+
+        try {
+            setIsUploading(true)
+
+            const formData = new FormData()
+            formData.append('chatId', activeChatId)
+            formData.append('file', file)
+            // Optional: you could add a prompt for a caption here before sending
+            // formData.append('caption', '...')
+
+            const response = await fetch('/api/chat/send-media', {
+                method: 'POST',
+                body: formData
+            })
+
+            const result = await response.json()
+
+            if (response.ok) {
+                // Determine optimistic text
+                let contentText = `📎 Archivo enviado: ${file.name}`
+                if (file.type.startsWith('image/')) contentText = `📷 Imagen enviada`
+                if (file.type.startsWith('video/')) contentText = `🎥 Video enviado`
+                if (file.type.startsWith('audio/')) contentText = `🎵 Audio enviado`
+
+                const tempMsg = {
+                    id: Date.now().toString(),
+                    content: contentText,
+                    is_from_me: true,
+                    created_at: new Date().toISOString(),
+                    status: 'sent' as const
+                }
+                setMessages(prev => [...prev, tempMsg])
+                scrollToBottom()
+            } else {
+                console.error('Error en upload:', result.error)
+                alert('Hubo un error al enviar el archivo: ' + result.error)
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error)
+            alert('Error subiendo archivo')
+        } finally {
+            setIsUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = '' // reset
+        }
+    }
+
+    const onEmojiClick = (emojiData: EmojiClickData) => {
+        setNewMessage(prev => prev + emojiData.emoji)
+    }
+
     if (!activeChatId) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-slate-500 relative overflow-hidden">
@@ -238,14 +295,45 @@ export function ChatWindow() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-slate-900/50 border-t border-slate-800">
+            <div className="p-4 bg-slate-900/50 border-t border-slate-800 relative">
+                {showEmojiPicker && (
+                    <div className="absolute bottom-20 left-4 z-50">
+                        <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowEmojiPicker(false)}
+                        ></div>
+                        <div className="relative z-50 shadow-xl rounded-lg">
+                            <EmojiPicker
+                                onEmojiClick={onEmojiClick}
+                                theme={'dark' as any}
+                                lazyLoadEmojis={true}
+                            />
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2">
-                    <button className="text-slate-400 hover:text-white transition-colors">
-                        <Smile size={20} />
+                    <button
+                        className="text-slate-400 hover:text-white transition-colors"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    >
+                        <Smile size={20} className={showEmojiPicker ? "text-indigo-400" : ""} />
                     </button>
-                    <button className="text-slate-400 hover:text-white transition-colors">
+
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                    />
+                    <button
+                        className={`transition-colors ${isUploading ? 'text-indigo-500 animate-pulse' : 'text-slate-400 hover:text-white'}`}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                    >
                         <Paperclip size={20} />
                     </button>
+
                     <input
                         className="flex-1 bg-transparent px-2 py-2 text-slate-200 focus:outline-none placeholder:text-slate-600"
                         placeholder="Escribe un mensaje..."

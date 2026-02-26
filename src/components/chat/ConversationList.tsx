@@ -22,6 +22,7 @@ export function ConversationList() {
     const [loading, setLoading] = useState(true)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [supabase] = useState(() => createClient())
+    const [searchTerm, setSearchTerm] = useState('')
     const router = useRouter()
     const searchParams = useSearchParams()
     const activeChatId = searchParams.get('chatId')
@@ -64,6 +65,18 @@ export function ConversationList() {
         router.push(`/dashboard/chats?chatId=${chatId}`)
     }
 
+    const filteredChats = chats.filter(chat =>
+        (chat.contact_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (chat.phone_number || '').includes(searchTerm)
+    )
+
+    // Check if the chat is within the 24-hour WhatsApp active window
+    const isActive = (lastMessageTime: string) => {
+        if (!lastMessageTime) return false
+        const diffHours = (new Date().getTime() - new Date(lastMessageTime).getTime()) / (1000 * 60 * 60)
+        return diffHours < 24
+    }
+
     return (
         <div className="w-80 border-r border-slate-800 bg-slate-900/50 flex flex-col h-full">
             <div className="p-4 border-b border-slate-800 bg-slate-900">
@@ -89,8 +102,11 @@ export function ConversationList() {
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                         <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-10 pr-4 text-sm text-slate-200 focus:outline-none focus:border-green-500 transition-all placeholder:text-slate-600"
-                            placeholder="Buscar..."
+                            placeholder="Buscar chats..."
                         />
                     </div>
                     <button className="bg-slate-800 hover:bg-slate-700 text-slate-400 p-2 rounded-lg border border-slate-700 transition-colors">
@@ -118,7 +134,7 @@ export function ConversationList() {
                     </p>
                 )}
 
-                {chats.map((chat) => (
+                {filteredChats.map((chat) => (
                     <div
                         key={chat.id}
                         onClick={() => handleSelectChat(chat.id)}
@@ -128,8 +144,14 @@ export function ConversationList() {
                         )}
                     >
                         <div className="flex gap-3">
-                            <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold shrink-0">
-                                {chat.contact_name ? chat.contact_name.charAt(0).toUpperCase() : '#'}
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold shrink-0">
+                                    {chat.contact_name ? chat.contact_name.charAt(0).toUpperCase() : '#'}
+                                </div>
+                                <div className={cn(
+                                    "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-900",
+                                    isActive(chat.last_message_time) ? "bg-green-500" : "bg-slate-500"
+                                )} title={isActive(chat.last_message_time) ? "Activo (Ventana 24h abierta)" : "Inactivo"}></div>
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start mb-1">

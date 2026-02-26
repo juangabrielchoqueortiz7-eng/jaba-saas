@@ -66,13 +66,87 @@ export async function sendWhatsAppAudio(to: string, audioUrl: string, token?: st
                     messaging_product: "whatsapp",
                     to: to,
                     type: "audio",
-                    audio: { link: audioUrl }
+                    audio: { link: audioUrl },
                 }),
             }
         );
         return await response.json();
     } catch (error) {
         console.error("Excepción enviando audio:", error);
+        return null;
+    }
+}
+
+/**
+ * Sube un archivo directamente a los servidores de Meta para usarlo en mensajes.
+ */
+export async function uploadWhatsAppMedia(file: File, token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) return null;
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('messaging_product', 'whatsapp');
+
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/media`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                },
+                body: formData,
+            }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+            console.error("Error uploading media to Meta:", data);
+            return null;
+        }
+        return data.id as string; // Retorna el media_id
+    } catch (error) {
+        console.error("Excepción subiendo media:", error);
+        return null;
+    }
+}
+
+/**
+ * Envía un mensaje multimedia usando un ID de Media previamente subido.
+ */
+export async function sendWhatsAppMedia(to: string, mediaId: string, type: 'image' | 'video' | 'document' | 'audio', caption?: string, filename?: string, token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) return null;
+
+    try {
+        const mediaPayload: any = { id: mediaId };
+        if (caption && type !== 'audio') mediaPayload.caption = caption;
+        if (filename && type === 'document') mediaPayload.filename = filename;
+
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: type,
+                    [type]: mediaPayload,
+                }),
+            }
+        );
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Excepción enviando media:", error);
         return null;
     }
 }
