@@ -222,8 +222,7 @@ export function ChatWindow() {
 
     if (!activeChatId) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-slate-500 relative overflow-hidden">
-                {/* Background Pattern (Watermark) */}
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#0b141a] text-[#8696a0] relative overflow-hidden">
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
                     <svg viewBox="0 0 24 24" className="w-[80%] h-[80%] text-white" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4ZM12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6ZM12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8Z" />
@@ -231,34 +230,32 @@ export function ChatWindow() {
                 </div>
 
                 <div className="z-10 text-center">
-                    <div className="bg-slate-900 p-6 rounded-full inline-flex mb-6 text-slate-400">
+                    <div className="bg-[#202c33] p-6 rounded-full inline-flex mb-6 text-[#8696a0]">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-16 h-16">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
                         </svg>
                     </div>
-                    <h3 className="text-xl font-medium text-slate-300">No se ha seleccionado ninguna conversación</h3>
-                    <p className="mt-2 text-slate-600 max-w-sm mx-auto">Selecciona un chat de la lista derecha para ver el historial y responder.</p>
+                    <h3 className="text-xl font-medium text-[#e9edef]">No se ha seleccionado ninguna conversación</h3>
+                    <p className="mt-2 text-[#8696a0] max-w-sm mx-auto">Selecciona un chat de la lista para ver el historial y responder.</p>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-slate-950">
+        <div className="flex-1 flex flex-col h-full bg-[#0b141a]">
             {/* Header */}
-            <div className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50">
+            <div className="h-16 border-b border-[#2a3942] flex items-center justify-between px-6 bg-[#202c33]">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">
+                    <div className="w-10 h-10 rounded-full bg-[#6b7b8d] flex items-center justify-center text-white font-bold">
                         {chatDetails?.contact_name?.charAt(0) || '#'}
                     </div>
                     <div>
-                        <h3 className="font-bold text-white">{chatDetails?.contact_name || 'Desconocido'}</h3>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-400">{chatDetails?.phone_number}</span>
-                        </div>
+                        <h3 className="font-bold text-[#e9edef]">{chatDetails?.contact_name || 'Desconocido'}</h3>
+                        <span className="text-xs text-[#8696a0]">{chatDetails?.phone_number}</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-4 text-slate-400">
+                <div className="flex items-center gap-4 text-[#aebac1]">
                     <button className="hover:text-white transition-colors"><Phone size={20} /></button>
                     <button className="hover:text-white transition-colors"><Video size={20} /></button>
                     <button className="hover:text-white transition-colors"><MoreVertical size={20} /></button>
@@ -268,9 +265,10 @@ export function ChatWindow() {
             {/* Messages Area */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto p-6 space-y-4 bg-[url('/chat-bg-dark.png')] bg-contain"
+                className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#0b141a]"
+                style={{ backgroundImage: 'url(/chat-bg-dark.png)', backgroundSize: 'contain' }}
             >
-                {loading && <p className="text-center text-xs text-slate-500">Cargando mensajes...</p>}
+                {loading && <p className="text-center text-xs text-[#8696a0]">Cargando mensajes...</p>}
 
                 {messages.map((msg, index) => {
                     const showDateSeparator = index === 0 || isDifferentDay(messages[index - 1].created_at, msg.created_at)
@@ -278,7 +276,7 @@ export function ChatWindow() {
                         <div key={msg.id}>
                             {showDateSeparator && (
                                 <div className="flex items-center justify-center my-4">
-                                    <div className="bg-slate-800/80 text-slate-300 text-xs px-4 py-1.5 rounded-lg shadow-sm border border-slate-700/50">
+                                    <div className="bg-[#182229] text-[#8696a0] text-[11px] px-3 py-1 rounded-lg shadow-sm">
                                         {formatDateSeparator(msg.created_at)}
                                     </div>
                                 </div>
@@ -297,7 +295,7 @@ export function ChatWindow() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-slate-900/50 border-t border-slate-800 relative">
+            <div className="px-4 py-3 bg-[#202c33] relative">
                 {showEmojiPicker && (
                     <div className="absolute bottom-20 left-4 z-50">
                         <div
@@ -314,12 +312,12 @@ export function ChatWindow() {
                     </div>
                 )}
 
-                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2">
+                <div className="flex items-center gap-2">
                     <button
-                        className="text-slate-400 hover:text-white transition-colors"
+                        className="text-[#8696a0] hover:text-[#e9edef] transition-colors"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     >
-                        <Smile size={20} className={showEmojiPicker ? "text-indigo-400" : ""} />
+                        <Smile size={24} className={showEmojiPicker ? "text-[#00a884]" : ""} />
                     </button>
 
                     <input
@@ -329,15 +327,15 @@ export function ChatWindow() {
                         className="hidden"
                     />
                     <button
-                        className={`transition-colors ${isUploading ? 'text-indigo-500 animate-pulse' : 'text-slate-400 hover:text-white'}`}
+                        className={`transition-colors ${isUploading ? 'text-[#00a884] animate-pulse' : 'text-[#8696a0] hover:text-[#e9edef]'}`}
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
                     >
-                        <Paperclip size={20} />
+                        <Paperclip size={24} />
                     </button>
 
                     <input
-                        className="flex-1 bg-transparent px-2 py-2 text-slate-200 focus:outline-none placeholder:text-slate-600"
+                        className="flex-1 bg-[#2a3942] rounded-lg px-4 py-2.5 text-[#e9edef] text-sm focus:outline-none placeholder:text-[#8696a0]"
                         placeholder="Escribe un mensaje..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
@@ -345,9 +343,9 @@ export function ChatWindow() {
                     />
                     <button
                         onClick={handleSendMessage}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg transition-colors"
+                        className="bg-[#00a884] hover:bg-[#06cf9c] text-white p-2.5 rounded-full transition-colors"
                     >
-                        <Send size={18} />
+                        <Send size={20} />
                     </button>
                 </div>
             </div>

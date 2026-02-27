@@ -17,24 +17,23 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
     const [imageLoaded, setImageLoaded] = useState(false)
     const audioRef = useRef<HTMLAudioElement>(null)
 
-    // Detectar tipo de media automáticamente si no se proporciona
     const detectedType = mediaType || (mediaUrl ? detectMediaType(mediaUrl, content) : null)
 
     return (
-        <div className={cn("flex w-full mb-1", isMine ? "justify-end" : "justify-start")}>
+        <div className={cn("flex w-full mb-0.5", isMine ? "justify-end" : "justify-start")}>
             <div className={cn(
-                "max-w-[70%] rounded-2xl shadow-sm overflow-hidden",
+                "max-w-[65%] rounded-lg shadow-md overflow-hidden relative",
                 isMine
-                    ? "bg-indigo-600 text-white rounded-tr-none"
-                    : "bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700",
-                mediaUrl && detectedType !== 'audio' ? "p-0" : "px-4 py-2"
+                    ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none"
+                    : "bg-[#202c33] text-[#e9edef] rounded-tl-none",
+                mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-1.5"
             )}>
                 {/* === IMAGE === */}
                 {mediaUrl && detectedType === 'image' && !imageError && (
                     <div className="relative">
                         {!imageLoaded && (
-                            <div className="flex items-center justify-center w-full h-48 bg-slate-700/50">
-                                <ImageIcon size={32} className="text-slate-500 animate-pulse" />
+                            <div className="flex items-center justify-center w-full h-48 bg-[#111b21]">
+                                <ImageIcon size={32} className="text-[#8696a0] animate-pulse" />
                             </div>
                         )}
                         <img
@@ -53,7 +52,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
                 {/* === IMAGE FALLBACK === */}
                 {mediaUrl && detectedType === 'image' && imageError && (
-                    <div className="flex items-center gap-2 px-4 py-3 text-slate-400">
+                    <div className="flex items-center gap-2 px-3 py-3 text-[#8696a0]">
                         <ImageIcon size={18} />
                         <span className="text-xs">Imagen no disponible</span>
                     </div>
@@ -71,10 +70,10 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                             }}
                             className={cn(
                                 "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                                isMine ? "bg-indigo-500 hover:bg-indigo-400" : "bg-slate-700 hover:bg-slate-600"
+                                isMine ? "bg-[#00a884] hover:bg-[#06cf9c]" : "bg-[#3b4a54] hover:bg-[#4a5c68]"
                             )}
                         >
-                            <Play size={18} className="ml-0.5" />
+                            <Play size={18} className="ml-0.5 text-white" />
                         </button>
                         <div className="flex-1 min-w-0">
                             <audio
@@ -82,14 +81,14 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                                 src={mediaUrl}
                                 controls
                                 controlsList="nodownload"
-                                className="w-full h-8 opacity-80"
+                                className="w-full h-8"
                                 style={{
-                                    filter: isMine ? 'invert(1) hue-rotate(180deg)' : 'invert(0.8)',
+                                    filter: 'invert(0.85) hue-rotate(180deg)',
                                     maxWidth: '200px'
                                 }}
                             />
                         </div>
-                        <Mic size={14} className={cn("flex-shrink-0", isMine ? "text-indigo-300" : "text-slate-500")} />
+                        <Mic size={14} className="flex-shrink-0 text-[#8696a0]" />
                     </div>
                 )}
 
@@ -111,22 +110,19 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                         href={mediaUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors",
-                            isMine ? "hover:bg-indigo-500/50" : "hover:bg-slate-700/50"
-                        )}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-white/5 transition-colors"
                     >
                         <div className={cn(
                             "w-10 h-10 rounded-lg flex items-center justify-center",
-                            isMine ? "bg-indigo-500" : "bg-slate-700"
+                            isMine ? "bg-[#00a884]" : "bg-[#3b4a54]"
                         )}>
-                            <FileText size={20} />
+                            <FileText size={20} className="text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">
                                 {content || 'Documento'}
                             </p>
-                            <p className={cn("text-[10px]", isMine ? "text-indigo-200" : "text-slate-500")}>
+                            <p className="text-[10px] text-[#8696a0]">
                                 Toca para abrir
                             </p>
                         </div>
@@ -135,25 +131,25 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
                 {/* Text content */}
                 {content && detectedType !== 'document' && (
-                    <div className={cn(mediaUrl && detectedType !== 'audio' ? "px-4 py-2" : "")}>
-                        <p className="whitespace-pre-wrap break-words text-sm">{content}</p>
+                    <div className={cn(mediaUrl && detectedType !== 'audio' ? "px-3 py-1.5" : "")}>
+                        <p className="whitespace-pre-wrap break-words text-[14.2px] leading-[19px]">{content}</p>
                     </div>
                 )}
 
                 {/* Timestamp & status */}
                 <div className={cn(
-                    "text-[10px] flex items-center justify-end gap-1 px-4 pb-1.5",
-                    isMine ? "text-indigo-200" : "text-slate-400"
+                    "text-[11px] flex items-center justify-end gap-1 px-2 pb-1",
+                    "text-[#ffffff99]"
                 )}>
                     <span>{timestamp}</span>
                     {isMine && (
-                        <span className="flex items-center">
+                        <span className="flex items-center ml-0.5">
                             {status === 'read' ? (
-                                <CheckCheck size={14} className="text-blue-300" />
+                                <CheckCheck size={16} className="text-[#53bdeb]" />
                             ) : status === 'delivered' ? (
-                                <CheckCheck size={14} />
+                                <CheckCheck size={16} className="text-[#ffffff99]" />
                             ) : (
-                                <Check size={14} />
+                                <Check size={16} className="text-[#ffffff99]" />
                             )}
                         </span>
                     )}
@@ -169,9 +165,8 @@ function detectMediaType(url: string, content: string): string {
     if (lower.match(/\.(mp3|ogg|opus|wav|m4a|aac)/)) return 'audio'
     if (lower.match(/\.(mp4|mov|avi|webm|mkv|3gp)/)) return 'video'
     if (lower.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip)/)) return 'document'
-    // Infer from content text
     if (content.startsWith('🎵') || content.includes('audio') || content.includes('voz')) return 'audio'
     if (content.startsWith('🎬') || content.includes('video')) return 'video'
     if (content.startsWith('📎') || content.includes('Documento')) return 'document'
-    return 'image' // default
+    return 'image'
 }
