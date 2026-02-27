@@ -255,29 +255,52 @@ export async function POST(request: Request) {
                 }
 
                 // 2. Guardar el MENSAJE (Del Usuario)
-                // Descargar imagen de WhatsApp si es tipo imagen
+                // Descargar CUALQUIER media de WhatsApp (imagen, audio, video, documento)
                 let savedMediaUrl: string | null = null
-                if (messageType === 'image' && messageObject.image?.id) {
+                let savedMediaType: string | null = null
+
+                const mediaHandlers: Record<string, { id?: string, mime?: string }> = {
+                    image: { id: messageObject.image?.id, mime: messageObject.image?.mime_type },
+                    audio: { id: messageObject.audio?.id, mime: messageObject.audio?.mime_type },
+                    video: { id: messageObject.video?.id, mime: messageObject.video?.mime_type },
+                    document: { id: messageObject.document?.id, mime: messageObject.document?.mime_type },
+                    sticker: { id: messageObject.sticker?.id, mime: messageObject.sticker?.mime_type },
+                }
+
+                const currentMediaHandler = mediaHandlers[messageType]
+                if (currentMediaHandler?.id) {
                     try {
-                        // Obtener URL temporal de la imagen de WhatsApp
                         const mediaResp = await fetch(
-                            `https://graph.facebook.com/v21.0/${messageObject.image.id}`,
+                            `https://graph.facebook.com/v21.0/${currentMediaHandler.id}`,
                             { headers: { Authorization: `Bearer ${tenantToken}` } }
                         )
                         const mediaData = await mediaResp.json()
                         if (mediaData.url) {
-                            // Descargar la imagen
-                            const imgResp = await fetch(mediaData.url, {
+                            const fileResp = await fetch(mediaData.url, {
                                 headers: { Authorization: `Bearer ${tenantToken}` }
                             })
-                            const imgBuffer = Buffer.from(await imgResp.arrayBuffer())
-                            const fileName = `receipts/${chatId}/${Date.now()}.jpg`
+                            const fileBuffer = Buffer.from(await fileResp.arrayBuffer())
 
-                            // Subir a Supabase Storage
+                            // Determinar extensión y carpeta
+                            const extMap: Record<string, string> = {
+                                image: 'jpg', audio: 'ogg', video: 'mp4',
+                                document: messageObject.document?.filename?.split('.').pop() || 'pdf',
+                                sticker: 'webp'
+                            }
+                            const contentTypeMap: Record<string, string> = {
+                                image: 'image/jpeg', audio: 'audio/ogg', video: 'video/mp4',
+                                document: currentMediaHandler.mime || 'application/octet-stream',
+                                sticker: 'image/webp'
+                            }
+
+                            const ext = extMap[messageType] || 'bin'
+                            const folder = messageType === 'image' ? 'receipts' : `media/${messageType}`
+                            const fileName = `${folder}/${chatId}/${Date.now()}.${ext}`
+
                             const { data: uploadData } = await supabaseAdmin.storage
                                 .from('sales-assets')
-                                .upload(fileName, imgBuffer, {
-                                    contentType: 'image/jpeg',
+                                .upload(fileName, fileBuffer, {
+                                    contentType: contentTypeMap[messageType] || 'application/octet-stream',
                                     upsert: true
                                 })
 
@@ -286,15 +309,16 @@ export async function POST(request: Request) {
                                     .from('sales-assets')
                                     .getPublicUrl(fileName)
                                 savedMediaUrl = publicUrl.publicUrl
+                                savedMediaType = messageType === 'sticker' ? 'image' : messageType
+                                console.log(`[Media] ${messageType} guardado: ${savedMediaUrl}`)
                             }
                         }
-                    } catch (imgErr) {
-                        console.error('[Media] Error descargando imagen:', imgErr)
+                    } catch (mediaErr) {
+                        console.error(`[Media] Error descargando ${messageType}:`, mediaErr)
                     }
                 }
 
                 if (chatId) {
-                    // Intentar guardar con media_url y whatsapp_message_id
                     const msgPayload: any = {
                         chat_id: chatId,
                         is_from_me: false,
@@ -302,18 +326,22 @@ export async function POST(request: Request) {
                         status: 'delivered'
                     }
                     if (savedMediaUrl) msgPayload.media_url = savedMediaUrl
+                    if (savedMediaType) msgPayload.media_type = savedMediaType
                     if (whatsappMessageId) msgPayload.whatsapp_message_id = whatsappMessageId
 
                     const { error: msgError } = await supabaseAdmin.from('messages').insert(msgPayload)
                     if (msgError) {
-                        // Si falla por columna inexistente, intentar con campos mínimos
                         console.warn("Error saving msg, retrying with basic fields:", msgError.message)
-                        await supabaseAdmin.from('messages').insert({
+                        // Retry sin media_type por si la columna no existe aún
+                        const fallbackPayload: any = {
                             chat_id: chatId,
                             is_from_me: false,
                             content: messageText,
                             status: 'delivered'
-                        })
+                        }
+                        if (savedMediaUrl) fallbackPayload.media_url = savedMediaUrl
+                        if (whatsappMessageId) fallbackPayload.whatsapp_message_id = whatsappMessageId
+                        await supabaseAdmin.from('messages').insert(fallbackPayload)
                     }
                 }
 
@@ -787,11 +815,71 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 .eq('is_active', true)
                                 .order('sort_order', { ascending: true })
 
+                            // ====== DETECTAR CLIENTE EXISTENTE (Suscripción) ======
+                            const cleanPhoneForLookup = phoneNumber.replace(/^591/, '');
+                            const { data: existingSub } = await supabaseAdmin
+                                .from('subscriptions')
+                                .select('correo, vencimiento, estado, equipo')
+                                .eq('user_id', tenantUserId)
+                                .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle();
+
+                            let subscriberContext = '';
+                            if (existingSub) {
+                                console.log(`[AI] Cliente EXISTENTE detectado: ${phoneNumber} → correo: ${existingSub.correo}, estado: ${existingSub.estado}`);
+                                subscriberContext = `\n[CLIENTE EXISTENTE] Este cliente YA está en nuestra base de datos.
+- Correo registrado: ${existingSub.correo}
+- Estado de su suscripción: ${existingSub.estado}
+- Vencimiento: ${existingSub.vencimiento}
+- Equipo: ${existingSub.equipo || 'N/A'}
+INSTRUCCIÓN: NO le pidas correo electrónico, ya lo tenemos. Si quiere renovar o comprar otro plan, usa directamente su correo "${existingSub.correo}" con la herramienta "process_email".`;
+
+                                // Si hay un pedido pending_email y ya tenemos el correo, auto-procesarlo
+                                if (activeOrder && activeOrder.status === 'pending_email' && existingSub.correo) {
+                                    console.log(`[AI] Auto-procesando email para cliente existente: ${existingSub.correo}`);
+                                    // Actualizar el pedido directamente con el correo conocido
+                                    await supabaseAdmin.from('orders').update({
+                                        customer_email: existingSub.correo,
+                                        status: 'pending_payment',
+                                        updated_at: new Date().toISOString()
+                                    }).eq('id', activeOrder.id);
+
+                                    // Enviar QR de pago automáticamente
+                                    const { data: orderProduct } = await supabaseAdmin
+                                        .from('products')
+                                        .select('qr_image_url')
+                                        .eq('id', activeOrder.plan)
+                                        .single();
+
+                                    if (orderProduct?.qr_image_url) {
+                                        const { sendWhatsAppImage } = await import('@/lib/whatsapp');
+                                        await sendWhatsAppImage(
+                                            phoneNumber,
+                                            orderProduct.qr_image_url,
+                                            `📱 *QR de Pago*\n\nPlan: *${activeOrder.plan_name}*\nMonto: *Bs ${activeOrder.amount}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
+                                            tenantToken,
+                                            phoneId
+                                        );
+                                    }
+
+                                    // Actualizar activeOrder en memoria para el prompt
+                                    activeOrder.status = 'pending_payment';
+                                    activeOrder.customer_email = existingSub.correo;
+                                }
+                            }
+
                             // Contexto del pedido activo (solo si existe)
                             let orderContext = ''
                             if (activeOrder) {
                                 if (activeOrder.status === 'pending_email') {
-                                    orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). \nTu tarea: SI el cliente acaba de enviar un correo electrónico válido, DEBES ejecutar la herramienta "process_email" con ese correo. \nDe lo contrario, recuérdale amable y brevemente que necesitas su correo electrónico para enviarle el acceso.`
+                                    if (existingSub?.correo) {
+                                        // Cliente existente: no pedir correo, usamos el que ya tenemos
+                                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Este cliente YA tiene correo registrado: ${existingSub.correo}. Ejecuta "process_email" con ese correo INMEDIATAMENTE sin preguntarle.`
+                                    } else {
+                                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). \nTu tarea: SI el cliente acaba de enviar un correo electrónico válido, DEBES ejecutar la herramienta "process_email" con ese correo. \nDe lo contrario, recuérdale amable y brevemente que necesitas su correo electrónico para enviarle el acceso.`
+                                    }
                                 } else if (activeOrder.status === 'pending_payment') {
                                     orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y ya se le envió el QR de pago para "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago por este medio, no ofrezcas planes.`
                                 }
@@ -833,6 +921,7 @@ ${idMapping}
 REGLAS GLOBALES ESTRICTAS:
 - Máximo 2 emojis por mensaje.
 - NUNCA muestres IDs, UUIDs ni generes código.
+${subscriberContext}
 ${orderContext}
 
 HISTORIAL (para que sepas en qué parte del flujo estás):
