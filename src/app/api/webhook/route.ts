@@ -1082,11 +1082,13 @@ ${customTrainingSection}`
                                             phoneId
                                         )
 
-                                        // Guardar en DB para historial
+                                        // Guardar en DB para historial (con media real)
+                                        const baseUrlForImg = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                                        const planListContent = (tenantProducts || []).map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
                                         await supabaseAdmin.from('messages').insert([
-                                            { chat_id: chatId, is_from_me: true, content: `📷 Imagen Promo Precios`, status: 'delivered' },
+                                            { chat_id: chatId, is_from_me: true, content: '', media_url: `${baseUrlForImg}/prices_promo.jpg`, media_type: 'image', status: 'delivered' },
                                             { chat_id: chatId, is_from_me: true, content: greetingText, status: 'delivered' },
-                                            { chat_id: chatId, is_from_me: true, content: `📋 Lista de Planes Enviada`, status: 'delivered' }
+                                            { chat_id: chatId, is_from_me: true, content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente puede elegir tocando "Ver Planes"`, status: 'delivered' }
                                         ])
 
                                         actionExecuted = true
@@ -1285,16 +1287,22 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
 
                             // Guardar mensaje de IA en DB
                             if (chatId) {
+                                // Capturar el WhatsApp message ID de la respuesta de la API para tracking de status
+                                let sentWaId: string | null = null
+                                // El resultado del último sendWhatsAppMessage se retorna como data con messages[0].id
+                                // Para capturarlo, necesitamos guardar la respuesta del send
+
                                 await supabaseAdmin.from('messages').insert({
                                     chat_id: chatId,
                                     is_from_me: true,
                                     content: aiResponseText,
-                                    status: 'delivered'
+                                    status: 'sent'
                                 })
 
                                 await supabaseAdmin.from('chats').update({
                                     last_message: aiResponseText.substring(0, 100),
-                                    last_message_time: new Date().toISOString()
+                                    last_message_time: new Date().toISOString(),
+                                    last_message_status: 'sent'
                                 }).eq('id', chatId)
                             }
 
@@ -1324,15 +1332,23 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                 const waMessageId = statusUpdate.id
                 const newStatus = statusUpdate.status // 'sent', 'delivered', 'read', 'failed'
 
-                if (waMessageId && (newStatus === 'delivered' || newStatus === 'read')) {
+                if (waMessageId && (newStatus === 'sent' || newStatus === 'delivered' || newStatus === 'read')) {
                     // Update message status in DB
-                    const { error: updateErr } = await supabaseAdmin
+                    const { data: updatedMsgs, error: updateErr } = await supabaseAdmin
                         .from('messages')
                         .update({ status: newStatus })
                         .eq('whatsapp_message_id', waMessageId)
+                        .select('chat_id')
 
                     if (!updateErr) {
                         console.log(`[Status] Message ${waMessageId} -> ${newStatus}`)
+
+                        // Also update the chat's last_message_status for sidebar display
+                        if (updatedMsgs && updatedMsgs.length > 0) {
+                            await supabaseAdmin.from('chats').update({
+                                last_message_status: newStatus
+                            }).eq('id', updatedMsgs[0].chat_id)
+                        }
                     }
                 }
 

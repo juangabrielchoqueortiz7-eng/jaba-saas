@@ -1,9 +1,10 @@
 -- Agregar columna media_type a la tabla messages (si no existe)
--- Ejecutar en Supabase SQL Editor
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT NULL;
 
--- Agregar RLS policy para subscription_renewals (lectura por usuario autenticado)
--- Primero verificar si RLS está habilitado
+-- Agregar columna last_message_status a la tabla chats (para mostrar checkmarks en sidebar)
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS last_message_status TEXT DEFAULT 'sent';
+
+-- Habilitar RLS y crear policies para renovaciones
 ALTER TABLE subscription_renewals ENABLE ROW LEVEL SECURITY;
 
 -- Policy de lectura
@@ -18,7 +19,7 @@ BEGIN
 END
 $$;
 
--- Policy de actualización (para aprobar/rechazar)
+-- Policy de actualización
 DO $$
 BEGIN
     IF NOT EXISTS (
