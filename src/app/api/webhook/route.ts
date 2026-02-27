@@ -600,11 +600,11 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                         const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
 
-                        // --- RENOVACIÓN AUTOMÁTICA ---
+                        // --- RENOVACIÓN: REVISIÓN MANUAL (ya no auto-renueva) ---
                         if (activeOrder.product === 'renewal') {
-                            console.log(`[Renewal] Processing auto-renewal for ${phoneNumber}`);
+                            console.log(`[Renewal] Comprobante recibido para revisión manual de ${phoneNumber}`);
 
-                            // Calcular nueva fecha de vencimiento
+                            // Calcular nueva fecha ESTIMADA (se aplica solo cuando el admin apruebe)
                             const today = new Date();
                             const planName = (activeOrder.plan_name || '').toLowerCase();
                             let monthsToAdd = 1;
@@ -617,7 +617,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             newExpDate.setMonth(newExpDate.getMonth() + monthsToAdd);
                             const newExpStr = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
 
-                            // Buscar suscripción del cliente
+                            // Buscar suscripción del cliente (solo para info, NO se actualiza aún)
                             const cleanPhone = phoneNumber.replace(/^591/, '');
                             const { data: sub } = await supabaseAdmin
                                 .from('subscriptions')
@@ -630,22 +630,9 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                             const oldExpiration = sub?.vencimiento || 'N/A';
 
-                            if (sub) {
-                                // Auto-actualizar suscripción
-                                await supabaseAdmin
-                                    .from('subscriptions')
-                                    .update({
-                                        vencimiento: newExpStr,
-                                        notified: false,
-                                        notified_at: null,
-                                        followup_sent: false
-                                    })
-                                    .eq('id', sub.id);
+                            // NO auto-actualizar suscripción — se hace manualmente desde el Dashboard
 
-                                console.log(`[Renewal] ✅ Suscripción ${sub.id} actualizada: ${oldExpiration} → ${newExpStr}`);
-                            }
-
-                            // Crear registro de renovación
+                            // Crear registro de renovación en estado PENDIENTE DE REVISIÓN
                             const triggeredBy = sub?.followup_sent ? 'followup' : 'reminder';
                             await supabaseAdmin.from('subscription_renewals').insert({
                                 user_id: tenantUserId,
@@ -668,21 +655,24 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 user_id: tenantUserId,
                                 subscription_id: sub?.id || null,
                                 phone_number: phoneNumber,
-                                message_type: 'confirmation',
+                                message_type: 'receipt_received',
                                 status: 'sent'
                             });
 
-                            // Mensaje profesional de confirmación
-                            const confirmMsg = `✅ *¡Renovación exitosa!* 🎉\n\nGracias por continuar confiando en nosotros. Tu cuenta *${activeOrder.customer_email || sub?.correo || ''}* de Canva Pro ha sido renovada con éxito.\n\n📋 *Detalle de tu renovación:*\n• Plan: ${activeOrder.plan_name}\n• Vigencia hasta: *${newExpStr}*\n• Equipo: ${activeOrder.equipo || sub?.equipo || ''}\n\nTodos tus diseños, plantillas y proyectos siguen intactos y disponibles para ti. 🎨\n\nSi tienes alguna consulta, estamos aquí para ayudarte.\n*¡Sigue creando cosas increíbles!* ✨`;
+                            // Mensaje al cliente: pago recibido, en validación
+                            const pendingMsg = `📩 *¡Comprobante recibido!*\n\nGracias por enviar tu comprobante de pago. 🙏\n\nEstamos *validando tu pago* para el plan *${activeOrder.plan_name}* (Bs ${activeOrder.amount}).\n\nTe confirmaremos la renovación en breve. ¡Gracias por tu paciencia! ⏳`;
 
-                            await sendWhatsAppMessage(phoneNumber, confirmMsg, tenantToken, phoneId);
+                            await sendWhatsAppMessage(phoneNumber, pendingMsg, tenantToken, phoneId);
 
                             await supabaseAdmin.from('messages').insert({
                                 chat_id: chatId,
                                 is_from_me: true,
-                                content: confirmMsg,
+                                content: pendingMsg,
                                 status: 'delivered'
                             });
+
+                            // Actualizar orden a pending_delivery (comprobante recibido)
+                            // El estado de la orden ya se actualizó arriba (línea 590)
 
                             return new NextResponse('EVENT_RECEIVED', { status: 200 });
                         }

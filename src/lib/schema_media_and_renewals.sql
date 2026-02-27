@@ -4,6 +4,9 @@ ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT NULL;
 -- Agregar columna last_message_status a la tabla chats (para mostrar checkmarks en sidebar)
 ALTER TABLE chats ADD COLUMN IF NOT EXISTS last_message_status TEXT DEFAULT 'sent';
 
+-- Agregar columna reviewed_at a subscription_renewals (para tracking de aprobación manual)
+ALTER TABLE subscription_renewals ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ DEFAULT NULL;
+
 -- Habilitar RLS y crear policies para renovaciones
 ALTER TABLE subscription_renewals ENABLE ROW LEVEL SECURITY;
 

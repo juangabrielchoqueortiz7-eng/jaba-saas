@@ -81,16 +81,30 @@ export default function RenewalsPage() {
 
     const updateStatus = async (id: string, newStatus: string) => {
         try {
-            const { error } = await supabase
-                .from('subscription_renewals')
-                .update({ status: newStatus })
-                .eq('id', id)
+            const action = newStatus === 'approved' ? 'approve' : 'reject'
+            const { data: { session } } = await supabase.auth.getSession()
 
-            if (error) throw error
-            toast.success(newStatus === 'approved' ? 'Renovación aprobada' : 'Renovación rechazada')
-        } catch (err) {
+            const res = await fetch('/api/renewals/approve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ renewal_id: id, action })
+            })
+
+            const result = await res.json()
+
+            if (!res.ok) throw new Error(result.error || 'Error al procesar')
+
+            if (action === 'approve') {
+                toast.success(`✅ Renovación aprobada. Se envió confirmación al cliente por WhatsApp.`)
+            } else {
+                toast.success('Renovación rechazada. Se notificó al cliente.')
+            }
+        } catch (err: any) {
             console.error('Error:', err)
-            toast.error('Error al actualizar')
+            toast.error(err.message || 'Error al actualizar')
         }
     }
 
