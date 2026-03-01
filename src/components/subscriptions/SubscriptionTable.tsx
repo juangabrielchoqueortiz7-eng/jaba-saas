@@ -380,61 +380,63 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     return (
         <div className="space-y-4">
             {/* Tabs & Search */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex space-x-2 bg-slate-800 p-1 rounded-lg w-fit border border-slate-700">
-                    <button
-                        onClick={() => { setFilters(prev => ({ ...prev, status: 'ACTIVO' })); setCurrentPage(1); }}
-                        className={`px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${filtersState.status === 'ACTIVO' ? 'bg-slate-700 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                    >
-                        <CheckCircle size={16} /> Activos
-                    </button>
-                    <button
-                        onClick={() => { setFilters(prev => ({ ...prev, status: 'INACTIVO' })); setCurrentPage(1); }}
-                        className={`px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${filtersState.status === 'INACTIVO' ? 'bg-slate-700 text-amber-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                    >
-                        <XCircle size={16} /> Inactivos
-                    </button>
-                    <button
-                        onClick={() => { setFilters(prev => ({ ...prev, status: 'POR_VENCER' })); setCurrentPage(1); }}
-                        className={`px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all ${filtersState.status === 'POR_VENCER' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                    >
-                        <AlertTriangle size={16} /> Por Vencer
-                    </button>
-                    <button
-                        onClick={handleNextExpiration}
-                        className="px-4 py-2 text-sm font-medium rounded-md flex items-center gap-2 transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm border border-indigo-500 ml-2"
-                        title="Ir al siguiente vencimiento"
-                    >
-                        <ArrowRightCircle size={16} /> Siguiente
-                    </button>
-
-                    {/* Team Filter Dropdown */}
-                    <div className="ml-2 w-[180px]">
-                        <Select
-                            value={filtersState.equipo}
-                            onValueChange={(val) => {
-                                setFilters(prev => ({ ...prev, equipo: val === 'ALL' ? '' : val }));
-                                setCurrentPage(1);
-                            }}
+            <div className="flex flex-col gap-3">
+                <div className="overflow-x-auto -mx-1 px-1 pb-2">
+                    <div className="flex space-x-2 bg-slate-800 p-1 rounded-lg w-max border border-slate-700">
+                        <button
+                            onClick={() => { setFilters(prev => ({ ...prev, status: 'ACTIVO' })); setCurrentPage(1); }}
+                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'ACTIVO' ? 'bg-slate-700 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
                         >
-                            <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200 h-[38px]">
-                                <div className="flex items-center gap-2">
-                                    <Users size={16} className="text-slate-400" />
-                                    <span>{filtersState.equipo ? `Equipo: ${filtersState.equipo}` : 'Todos los Equipos'}</span>
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700">
-                                <SelectItem value="ALL" className="text-slate-300 focus:bg-slate-700 focus:text-white">
-                                    Todos los Equipos
-                                </SelectItem>
-                                {teams.map(team => (
-                                    <SelectItem key={team} value={team} className="text-slate-300 focus:bg-slate-700 focus:text-white">
-                                        Equipo {team}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <CheckCircle size={14} /> Activos
+                        </button>
+                        <button
+                            onClick={() => { setFilters(prev => ({ ...prev, status: 'INACTIVO' })); setCurrentPage(1); }}
+                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'INACTIVO' ? 'bg-slate-700 text-amber-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            <XCircle size={14} /> Inactivos
+                        </button>
+                        <button
+                            onClick={() => { setFilters(prev => ({ ...prev, status: 'POR_VENCER' })); setCurrentPage(1); }}
+                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'POR_VENCER' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            <AlertTriangle size={14} /> Por Vencer
+                        </button>
+                        <button
+                            onClick={handleNextExpiration}
+                            className="px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm border border-indigo-500 whitespace-nowrap"
+                            title="Ir al siguiente vencimiento"
+                        >
+                            <ArrowRightCircle size={14} /> Siguiente
+                        </button>
                     </div>
+                </div>
+
+                {/* Team Filter Dropdown - separate row on mobile */}
+                <div className="w-full sm:w-[200px]">
+                    <Select
+                        value={filtersState.equipo}
+                        onValueChange={(val) => {
+                            setFilters(prev => ({ ...prev, equipo: val === 'ALL' ? '' : val }));
+                            setCurrentPage(1);
+                        }}
+                    >
+                        <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200 h-[38px]">
+                            <div className="flex items-center gap-2">
+                                <Users size={16} className="text-slate-400" />
+                                <span>{filtersState.equipo ? `Equipo: ${filtersState.equipo}` : 'Todos los Equipos'}</span>
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700">
+                            <SelectItem value="ALL" className="text-slate-300 focus:bg-slate-700 focus:text-white">
+                                Todos los Equipos
+                            </SelectItem>
+                            {teams.map(team => (
+                                <SelectItem key={team} value={team} className="text-slate-300 focus:bg-slate-700 focus:text-white">
+                                    Equipo {team}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 

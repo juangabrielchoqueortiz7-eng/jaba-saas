@@ -137,7 +137,7 @@ export default function SubscriptionsPage() {
     }, [subscriptions]);
 
     return (
-        <div className="flex flex-col h-full bg-slate-950 p-6 space-y-6">
+        <div className="flex flex-col h-full bg-slate-950 p-3 sm:p-6 space-y-4 sm:space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Gestor de Suscripciones</h1>
@@ -146,7 +146,7 @@ export default function SubscriptionsPage() {
                 <SubscriptionActions onRefresh={() => fetchSubscriptions(true)} onLocalAdd={handleLocalAdd} pendingCount={pendingCount} />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <Card className="bg-slate-900 border-slate-800">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-slate-200">
