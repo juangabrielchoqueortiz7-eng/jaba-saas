@@ -105,10 +105,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    console.log(`[Manual Reminders] Triggered by user ${user.id}`)
+    // Check for force mode (broadcast to all)
+    let force = false
+    try {
+        const body = await request.json()
+        force = body?.force === true
+    } catch {
+        // No body = normal mode
+    }
+
+    console.log(`[Manual Reminders] Triggered by user ${user.id}${force ? ' (FORCE/BROADCAST)' : ''}`)
 
     try {
-        const result = await processReminders(user.id)
+        const result = await processReminders(user.id, force)
         return NextResponse.json(result)
     } catch (error) {
         console.error('[Manual Reminders] Error:', error)
@@ -119,7 +128,7 @@ export async function POST(request: Request) {
 // =============================================
 // Core Logic: Procesar y enviar recordatorios
 // =============================================
-async function processReminders(specificUserId?: string) {
+async function processReminders(specificUserId?: string, force: boolean = false) {
     const today = new Date()
     const results = { sent: 0, failed: 0, skipped: 0, total: 0 }
 
@@ -128,7 +137,11 @@ async function processReminders(specificUserId?: string) {
         .from('subscriptions')
         .select('*')
         .eq('estado', 'ACTIVO')
-        .eq('notified', false)
+
+    // In normal mode, only get un-notified. In force/broadcast mode, get ALL active.
+    if (!force) {
+        query = query.eq('notified', false)
+    }
 
     if (specificUserId) {
         query = query.eq('user_id', specificUserId)
@@ -146,7 +159,7 @@ async function processReminders(specificUserId?: string) {
         return results
     }
 
-    // Filter by date: vencimiento <= 7 days from now AND not paused
+    // Filter by date (only in normal mode, skip in force/broadcast mode)
     const candidates = subscriptions.filter(sub => {
         // Skip paused
         if (sub.auto_notify_paused) return false
@@ -154,6 +167,9 @@ async function processReminders(specificUserId?: string) {
         // Must have a phone number
         const phone = (sub.numero || '').replace(/\D/g, '')
         if (phone.length < 8) return false
+
+        // In force mode, skip date filtering
+        if (force) return true
 
         // Parse date
         const expDate = parseDate(sub.vencimiento)
@@ -363,7 +379,8 @@ Ref: {equipo}`
                         .update({
                             notified: true,
                             notified_at: new Date().toISOString(),
-                            followup_sent: false
+                            followup_sent: false,
+                            urgency_sent: false
                         })
                         .eq('id', sub.id)
 

@@ -7,6 +7,10 @@
         {
             "path": "/api/subscription-followup",
             "schedule": "0 22 * * *"
+        },
+        {
+            "path": "/api/subscription-urgency",
+            "schedule": "0 13 * * *"
         }
     ]
 }

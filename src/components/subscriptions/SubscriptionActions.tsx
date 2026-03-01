@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Plus, Upload, Download, Trash2, FileSpreadsheet, FileText, Send } from 'lucide-react';
+import { Plus, Upload, Download, Trash2, FileSpreadsheet, FileText, Send, Radio } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -25,6 +25,7 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
     const [isExportOpen, setIsExportOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSendingReminders, setIsSendingReminders] = useState(false);
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
 
     const handleFormSuccess = (newSub: Subscription) => {
         if (onLocalAdd) {
@@ -66,6 +67,42 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
             toast.error('Error de conexión');
         } finally {
             setIsSendingReminders(false);
+        }
+    };
+
+    const handleBroadcast = async () => {
+        if (!confirm('⚠️ ¿Reenviar mensaje de renovación a TODOS los suscriptores activos?\n\nEsto enviará un template de WhatsApp a cada suscriptor activo sin importar si ya fue notificado.')) return;
+
+        setIsBroadcasting(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                toast.error('No hay sesión activa');
+                return;
+            }
+
+            const response = await fetch('/api/subscription-reminders', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ force: true })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast.success(`📤 Broadcast completado: ${result.sent} enviados, ${result.failed} fallidos`);
+                onRefresh();
+            } else {
+                toast.error(result.error || 'Error al enviar broadcast');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Error de conexión');
+        } finally {
+            setIsBroadcasting(false);
         }
     };
 
@@ -259,6 +296,16 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
             >
                 <Send size={16} />
                 {isSendingReminders ? 'Enviando...' : `Recordatorios${pendingCount !== undefined ? ` (${pendingCount})` : ''}`}
+            </button>
+
+            <button
+                onClick={handleBroadcast}
+                disabled={isBroadcasting}
+                className="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-4 py-2 rounded-lg shadow hover:from-violet-700 hover:to-purple-700 transition-all text-sm font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Reenviar mensaje a TODOS los suscriptores activos"
+            >
+                <Radio size={16} />
+                {isBroadcasting ? 'Enviando...' : 'Reenviar a Todos'}
             </button>
 
             <button onClick={handleDeleteAll} className="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-900/20 transition-colors" title="Borrar Todo">

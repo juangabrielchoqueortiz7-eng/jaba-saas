@@ -496,11 +496,17 @@ export async function POST(request: Request) {
                         await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (Bs ${product.price})`, tenantToken, phoneId);
                     }
 
+                    // Guardar mensaje de texto + QR en chat
+                    const baseUrl2 = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
+                    const qrUrlForDb = product.qr_image_url ? (product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl2}${product.qr_image_url}`) : null;
+
                     await supabaseAdmin.from('messages').insert({
                         chat_id: chatId,
                         is_from_me: true,
                         content: renewMsg,
-                        status: 'delivered'
+                        status: 'delivered',
+                        media_url: qrUrlForDb,
+                        media_type: qrUrlForDb ? 'image' : null
                     });
 
                     return new NextResponse('EVENT_RECEIVED', { status: 200 });
@@ -819,12 +825,12 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             let subscriberContext = '';
                             if (existingSub) {
                                 console.log(`[AI] Cliente EXISTENTE detectado: ${phoneNumber} → correo: ${existingSub.correo}, estado: ${existingSub.estado}`);
-                                subscriberContext = `\n[CLIENTE EXISTENTE] Este cliente YA está en nuestra base de datos.
+                                subscriberContext = `\n⚠️ [CLIENTE EXISTENTE - REGLA ABSOLUTA] Este cliente YA está en nuestra base de datos.
 - Correo registrado: ${existingSub.correo}
 - Estado de su suscripción: ${existingSub.estado}
 - Vencimiento: ${existingSub.vencimiento}
 - Equipo: ${existingSub.equipo || 'N/A'}
-INSTRUCCIÓN: NO le pidas correo electrónico, ya lo tenemos. Si quiere renovar o comprar otro plan, usa directamente su correo "${existingSub.correo}" con la herramienta "process_email".`;
+INSTRUCCIÓN CRÍTICA: NUNCA, bajo NINGUNA circunstancia, le pidas correo electrónico a este cliente. Ya lo tenemos registrado como "${existingSub.correo}". Si quiere renovar o comprar otro plan, usa directamente su correo "${existingSub.correo}" con la herramienta "process_email". Si necesitas ejecutar process_email, hazlo automáticamente sin preguntar. NO le preguntes "¿cuál es tu correo?". PROHÍBO completamente que solicites email a clientes existentes.`;
 
                                 // Si hay un pedido pending_email y ya tenemos el correo, auto-procesarlo
                                 if (activeOrder && activeOrder.status === 'pending_email' && existingSub.correo) {

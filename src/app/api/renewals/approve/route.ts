@@ -70,7 +70,8 @@ export async function POST(request: Request) {
                         vencimiento: renewal.new_expiration,
                         notified: false,
                         notified_at: null,
-                        followup_sent: false
+                        followup_sent: false,
+                        urgency_sent: false
                     })
                     .eq('id', renewal.subscription_id)
 

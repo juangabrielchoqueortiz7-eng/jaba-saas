@@ -9,6 +9,7 @@ export interface Subscription {
     notified: boolean;
     notified_at?: string;
     followup_sent?: boolean;
+    urgency_sent?: boolean;
     auto_notify_paused?: boolean;
     user_id?: string;
 }

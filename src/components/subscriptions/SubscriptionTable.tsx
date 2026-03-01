@@ -6,7 +6,8 @@ import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { createPortal } from 'react-dom';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users, PauseCircle, PlayCircle } from 'lucide-react';
+import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users, PauseCircle, PlayCircle, MessageSquare } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,6 +24,7 @@ interface SubscriptionTableProps {
 
 export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete, onLocalUpdate }: SubscriptionTableProps) {
     const supabase = createClient();
+    const router = useRouter();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
 
     useEffect(() => {
@@ -230,6 +232,31 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success('Copiado al portapapeles');
+    };
+
+    const goToChat = async (sub: Subscription) => {
+        const phone = sub.numero.replace(/\D/g, '');
+        const fullPhone = (phone.length === 8 && (phone.startsWith('6') || phone.startsWith('7'))) ? '591' + phone : phone;
+        const withoutPrefix = fullPhone.startsWith('591') ? fullPhone.slice(3) : fullPhone;
+
+        if (!fullPhone) {
+            toast.error('Número inválido');
+            return;
+        }
+
+        // Search for existing chat by phone number
+        const { data: chat } = await supabase
+            .from('chats')
+            .select('id')
+            .or(`phone_number.eq.${fullPhone},phone_number.eq.${withoutPrefix},phone_number.eq.+${fullPhone}`)
+            .limit(1)
+            .maybeSingle();
+
+        if (chat) {
+            router.push(`/dashboard/chats?chatId=${chat.id}`);
+        } else {
+            toast.info('No hay conversación aún con este número. Envía un mensaje primero.');
+        }
     };
 
     const openWhatsApp = (sub: Subscription) => {
@@ -625,6 +652,13 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                             document.body
                                                         )}
                                                     </div>
+                                                    <button
+                                                        onClick={() => goToChat(sub)}
+                                                        className="p-2 rounded-lg border transition-colors bg-indigo-900/20 text-indigo-400 hover:bg-indigo-900/40 border-indigo-900/50"
+                                                        title="Ir al chat interno"
+                                                    >
+                                                        <MessageSquare size={16} />
+                                                    </button>
                                                     <button
                                                         onClick={() => openWhatsApp(sub)}
                                                         className={`p-2 rounded-lg border transition-colors relative ${sub.notified ? 'bg-slate-800 text-slate-500 border-slate-700 hover:text-emerald-500' : 'bg-emerald-900/20 text-emerald-500 hover:bg-emerald-900/40 border-emerald-900/50'}`}
