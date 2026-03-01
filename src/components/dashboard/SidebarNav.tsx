@@ -7,7 +7,7 @@ import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, Shoppin
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
 
-export function SidebarNav() {
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
     const params = useParams()
     // Explicitly cast params to handle the possibility of it being empty or different type
