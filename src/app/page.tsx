@@ -233,7 +233,14 @@ const faqs = [
   }
 ];
 
-const clientLogos = ['RestaurantePro', 'Boutique Elegance', 'Dental Smile', 'TechStart', 'InmoHogar', 'FitGym Pro'];
+const clientLogos = [
+  { name: 'RestaurantePro', logo: '/logos/restaurantepro.png' },
+  { name: 'Boutique Elegance', logo: '/logos/boutique.png' },
+  { name: 'Dental Smile', logo: '/logos/dentalsmile.png' },
+  { name: 'TechStart', logo: '/logos/techstart.png' },
+  { name: 'InmoHogar', logo: '/logos/inmohogar.png' },
+  { name: 'FitGym Pro', logo: '/logos/fitgym.png' }
+];
 
 // ============ MAIN PAGE ============
 
@@ -361,13 +368,13 @@ export default function LandingPage() {
           <p className="text-center text-sm text-slate-500 uppercase tracking-wider font-semibold">Empresas que confían en nosotros</p>
         </div>
         <div className="relative">
-          <div className="flex animate-marquee whitespace-nowrap">
-            {[...clientLogos, ...clientLogos, ...clientLogos].map((name, i) => (
+          <div className="flex animate-marquee whitespace-nowrap items-center">
+            {[...clientLogos, ...clientLogos, ...clientLogos].map((client, i) => (
               <div key={i} className="mx-8 flex items-center gap-3 text-slate-500/60 hover:text-slate-300 transition-colors duration-300">
-                <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                  <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-br from-slate-400 to-slate-600">{name.charAt(0)}</span>
+                <div className="w-14 h-14 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden p-2">
+                  <Image src={client.logo} alt={client.name} width={48} height={48} className="w-full h-full object-contain filter drop-shadow-md brightness-90 group-hover:brightness-110" />
                 </div>
-                <span className="text-sm font-semibold tracking-wide">{name}</span>
+                <span className="text-sm font-semibold tracking-wide">{client.name}</span>
               </div>
             ))}
           </div>
@@ -459,7 +466,7 @@ export default function LandingPage() {
             viewport={{ once: true }}
             variants={scaleIn}
           >
-            <VideoPlayer />
+            <InteractiveDemo />
           </motion.div>
         </div>
       </section>
@@ -872,51 +879,144 @@ function ParticleBackground() {
   );
 }
 
-function VideoPlayer() {
-  const [playing, setPlaying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+function InteractiveDemo() {
+  const [messages, setMessages] = useState<{ id: number; text: string; sender: 'user' | 'bot'; time: string }[]>([]);
+  const [typing, setTyping] = useState(false);
 
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (playing) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
+  // We memoize the demoSequence to avoid recreation
+  const demoSequence = [
+    { text: "¡Hola! Quiero información sobre los planes", sender: "user", delay: 1000 },
+    { text: "¡Hola! 👋 Soy el asistente IA de JABA. Tenemos 3 planes disponibles que se adaptan a tu negocio. ¿Te gustaría verlos?", sender: "bot", delay: 1500 },
+    { text: "Sí, por favor", sender: "user", delay: 2000 },
+    { text: "Perfecto. Aquí tienes:\n1. Plan Básico: Ideal para empezar.\n2. Plan Pro: Automatización total.\n3. Plan Empresa: A medida.\n\n¿Quieres que te envíe un link con los detalles completos?", sender: "bot", delay: 1500 }
+  ];
+
+  useEffect(() => {
+    let currentTimeout: NodeJS.Timeout;
+    let isActive = true;
+
+    const runSequence = async () => {
+      setMessages([]);
+
+      for (const msg of demoSequence) {
+        if (!isActive) break;
+
+        await new Promise(resolve => {
+          currentTimeout = setTimeout(resolve, msg.delay);
+        });
+
+        if (!isActive) break;
+
+        if (msg.sender === 'bot') {
+          setTyping(true);
+          await new Promise(resolve => {
+            currentTimeout = setTimeout(resolve, 800);
+          });
+          if (!isActive) break;
+          setTyping(false);
+        }
+
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          text: msg.text,
+          sender: msg.sender as 'user' | 'bot',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
       }
-      setPlaying(!playing);
-    }
-  };
+
+      if (isActive) {
+        currentTimeout = setTimeout(() => {
+          if (isActive) runSequence();
+        }, 4000);
+      }
+    };
+
+    runSequence();
+
+    return () => {
+      isActive = false;
+      clearTimeout(currentTimeout);
+    };
+  }, []);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-white/10 glow-border">
+    <div className="relative rounded-2xl overflow-hidden border border-white/10 glow-border bg-slate-900 shadow-2xl">
       {/* Browser chrome */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/80 border-b border-white/5">
+      <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/80 border-b border-white/5 relative z-10">
         <div className="flex gap-1.5">
           <div className="w-3 h-3 rounded-full bg-red-500/60" />
           <div className="w-3 h-3 rounded-full bg-amber-500/60" />
           <div className="w-3 h-3 rounded-full bg-emerald-500/60" />
         </div>
-        <div className="flex-1 mx-4 h-7 rounded-lg bg-slate-700/50 flex items-center px-3">
-          <span className="text-xs text-slate-500">jabachat.com/dashboard</span>
+        <div className="flex-1 mx-4 h-7 rounded-lg bg-slate-700/50 flex items-center px-3 justify-center">
+          <span className="text-xs text-slate-400 font-medium tracking-wide">Asistente IA en Vivo</span>
         </div>
       </div>
-      <div className="relative bg-slate-900 aspect-video">
-        <video
-          ref={videoRef}
-          src="/tutorial.mp4"
-          className="w-full h-full object-cover"
-          playsInline
-          onEnded={() => setPlaying(false)}
-        />
-        {/* Play/Pause overlay */}
-        <button
-          onClick={togglePlay}
-          className={`absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity duration-300 ${playing ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}
-        >
-          <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center hover:scale-110 transition-transform">
-            {playing ? <Pause size={32} className="text-white" /> : <Play size={32} className="text-white ml-1" />}
+
+      {/* Chat UI Window */}
+      <div className="aspect-[16/10] sm:aspect-video relative overflow-hidden bg-[#0b141a] flex flex-col">
+        {/* Chat Header */}
+        <div className="bg-[#202c33] px-4 py-3 flex items-center gap-3 border-b border-white/5 z-10 w-full shadow-md">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center p-2 border border-indigo-500/30">
+            <Bot className="text-white w-full h-full" />
           </div>
-        </button>
+          <div>
+            <h4 className="text-slate-200 font-semibold text-sm">JABA Bot</h4>
+            <p className="text-emerald-500 text-xs flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> en línea
+            </p>
+          </div>
+        </div>
+
+        {/* Chat Background Pattern Image or simple grid */}
+        <div className="absolute inset-0 opacity-[0.02] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none z-0"></div>
+
+        {/* Messages Area */}
+        <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden flex flex-col justify-end gap-3 z-10">
+          <AnimatePresence>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, scale: 0.9, y: 10, originX: msg.sender === 'user' ? 1 : 0 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className={`max-w-[85%] rounded-xl p-3 text-sm shadow-md relative ${msg.sender === 'user'
+                    ? 'bg-[#005c4b] text-[#e9edef] self-end rounded-tr-none ml-auto'
+                    : 'bg-[#202c33] text-[#e9edef] self-start rounded-tl-none border border-white/5'
+                  }`}
+              >
+                <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                <div className="text-[10px] text-white/50 text-right mt-1 ml-4 flex justify-end items-center gap-1">
+                  {msg.time}
+                  {msg.sender === 'user' && <span className="text-sky-400 text-xs font-bold">✓✓</span>}
+                </div>
+              </motion.div>
+            ))}
+
+            {typing && (
+              <motion.div
+                key="typing-indicator"
+                initial={{ opacity: 0, scale: 0.9, originX: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-[#202c33] border border-white/5 text-[#e9edef] self-start rounded-xl rounded-tl-none p-4 max-w-[80%] shadow-md flex items-center gap-1.5 mt-2"
+              >
+                <div className="w-1.5 h-1.5 bg-slate-400/80 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 bg-slate-400/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 bg-slate-400/80 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Chat Input */}
+        <div className="bg-[#202c33] px-3 py-3 flex items-center gap-3 z-10 border-t border-white/5 w-full">
+          <div className="flex-1 bg-[#2a3942] rounded-full h-11 px-5 flex items-center border border-white/5">
+            <span className="text-slate-500 text-sm">Escribe un mensaje...</span>
+          </div>
+          <div className="w-11 h-11 rounded-full bg-[#00a884] flex items-center justify-center text-white cursor-not-allowed transition-colors hover:shadow-lg hover:shadow-emerald-500/20">
+            <Send size={18} className="-ml-0.5" />
+          </div>
+        </div>
       </div>
     </div>
   );
