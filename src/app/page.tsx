@@ -552,10 +552,10 @@ function StepCard({ number, title, description, icon: Icon, isLast }: {
 }) {
   return (
     <motion.div variants={fadeUp} className="relative text-center">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/20">
+      <span className="text-indigo-400/20 text-7xl font-extrabold absolute -top-6 left-1/2 -translate-x-1/2 pointer-events-none select-none z-0">{number}</span>
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/20 relative z-10">
         <Icon size={28} className="text-white" />
       </div>
-      <span className="text-indigo-400/50 text-6xl font-extrabold absolute -top-2 left-1/2 -translate-x-1/2 pointer-events-none select-none">{number}</span>
       <h3 className="text-xl font-bold text-white mb-3 relative z-10">{title}</h3>
       <p className="text-slate-400 leading-relaxed text-sm relative z-10">{description}</p>
       {!isLast && (
