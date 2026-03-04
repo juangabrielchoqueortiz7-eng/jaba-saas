@@ -169,7 +169,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
         .limit(1)
         .maybeSingle()
 
-    // Obtener productos para la lista
+    // Obtener productos para referencia en notas
     const { data: products } = await supabaseAdmin
         .from('products')
         .select('id, name, description, price')
@@ -181,7 +181,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
     const imageUrl = `${baseUrl}/prices_promo.jpg`
     const fullPhone = withPrefix
 
-    // Enviar template de recordatorio (funciona fuera de la ventana 24h)
+    // ✅ Enviar template de recordatorio (funciona fuera de la ventana 24h)
     const sendResult = await sendWhatsAppTemplate(
         fullPhone,
         'recordatorio_renovacion_v1',
@@ -207,16 +207,17 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
         return { error: 'Template send failed', sent: 0, hint: 'Verifica que el template "recordatorio_renovacion_v1" esté aprobado en Meta.' }
     }
 
-    // Registrar en chat panel — mostrar el texto real que recibe el cliente
+    // Buscar/crear chat para guardar mensajes en el panel
     const chatId = await findOrCreateChat(fullPhone, userId, sub?.correo || fullPhone)
+
     if (chatId) {
-        // Texto real que recibe el cliente (lo que está en el template aprobado de Meta)
-        const templatePreviewText = `⚠️ *Aviso de Renovación*\n\n¡Hola! Notamos que la suscripción de *${sub?.correo || 'tu cuenta'}* venció el *${sub?.vencimiento || 'fecha no registrada'}*.\n\nPor favor, renueva lo antes posible para seguir disfrutando del servicio. ✨\n\n—\n🔔 *[Template: recordatorio_renovacion_v1 - enviado vía Meta]*`
+        // Guardar el TEXTO EXACTO que recibe el cliente (igual al template de Meta)
+        const actualTemplateText = `⚠️ *Acción requerida: Tu acceso a Canva Pro necesita atención*\n\n¡Hola! Notamos que tu suscripción de la cuenta ${sub?.correo || 'tu cuenta'} vencerá / venció el ${sub?.vencimiento || 'fecha no registrada'}.\n\nComo valoramos tu trabajo, queremos recordarte renovar a tiempo para evitar cortes definitivos y seguir disfrutando de todos los beneficios Pro. ✨\n\nPara renovar, puedes ver los precios en la imagen adjunta o elegir tu plan en la lista que te enviaremos a continuación 👇`
 
         await supabaseAdmin.from('messages').insert({
             chat_id: chatId,
             is_from_me: true,
-            content: templatePreviewText,
+            content: actualTemplateText,
             status: 'delivered'
         })
         await supabaseAdmin.from('chats').update({
@@ -225,40 +226,64 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
         }).eq('id', chatId)
     }
 
-    // Enviar también la lista interactiva de planes
+    // ⚠️ Intentar enviar lista interactiva de planes (solo funciona si el cliente contestó en las últimas 24h)
+    let listSent = false
     if (products && products.length > 0) {
         await delay(1000)
-        const listSections = [{
-            title: 'Planes Disponibles',
-            rows: products.map(p => ({
-                id: `renew_plan_${p.id}`,
-                title: p.name.substring(0, 24),
-                description: `Bs ${p.price}`
-            }))
-        }]
-        await sendWhatsAppList(
-            fullPhone,
-            '👇 Selecciona el plan que deseas para renovar tu suscripción:',
-            'Ver Planes',
-            listSections,
-            creds.access_token,
-            creds.phone_number_id
-        )
+        try {
+            const listSections = [{
+                title: 'Planes Disponibles',
+                rows: products.map(p => ({
+                    id: `renew_plan_${p.id}`,
+                    title: p.name.substring(0, 24),
+                    description: `Bs ${p.price}`
+                }))
+            }]
+            const listResult = await sendWhatsAppList(
+                fullPhone,
+                '👇 Selecciona el plan que deseas para renovar tu suscripción:',
+                'Ver Planes',
+                listSections,
+                creds.access_token,
+                creds.phone_number_id
+            )
+            listSent = !!listResult
 
-        // Guardar con el formato correcto para que MessageBubble lo renderice como tarjeta visual
-        if (chatId) {
-            const planListContent = products.map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
+            // Si la lista SÍ se envió (cliente dentro de 24h), guardarla como tarjeta visual
+            if (listSent && chatId) {
+                const planListContent = products.map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
+                await supabaseAdmin.from('messages').insert({
+                    chat_id: chatId,
+                    is_from_me: true,
+                    content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente lo recibió como botones interactivos`,
+                    status: 'delivered'
+                })
+            }
+        } catch (listErr) {
+            console.log(`[Manual Reminders] Lista interactiva no pudo enviarse (fuera de ventana 24h): ${listErr}`)
+            listSent = false
+        }
+
+        // Si la lista NO se pudo enviar, notificar al admin en el chat
+        if (!listSent && chatId) {
+            const warningMsg = `⚠️ *Nota del sistema:* La lista de planes interactiva NO se pudo enviar porque el cliente está fuera de la ventana de 24h de WhatsApp.\n\nCuando el cliente responda, usa el botón 📋 Planes para enviarle la lista.`
             await supabaseAdmin.from('messages').insert({
                 chat_id: chatId,
                 is_from_me: true,
-                content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente lo recibió como botones interactivos`,
+                content: warningMsg,
                 status: 'delivered'
             })
         }
     }
 
-    console.log(`[Manual Reminders] ✅ Recordatorio individual enviado a ${fullPhone}`)
-    return { sent: 1, failed: 0, phone: fullPhone }
+    console.log(`[Manual Reminders] ✅ Recordatorio individual enviado a ${fullPhone} | Lista: ${listSent ? 'OK' : 'BLOQUEADA (>24h)'}`)
+    return {
+        sent: 1,
+        failed: 0,
+        phone: fullPhone,
+        listSent,
+        note: listSent ? 'Template + lista enviados' : 'Solo template enviado (cliente fuera de ventana 24h). Usa el botón Planes cuando responda.'
+    }
 }
 
 // =============================================

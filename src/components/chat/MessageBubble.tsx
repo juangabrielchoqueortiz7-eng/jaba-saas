@@ -75,45 +75,8 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
         )
     }
 
-    // === REMINDER TEMPLATE CARD (template Meta enviado para renovaci\u00f3n) ===
-    if (isReminderTemplateMessage(content)) {
-        const accountMatch = content.match(/\*([^*]+@[^*]+)\*/)
-        const dateMatch = content.match(/venci\u00f3 el \*([^*]+)\*/)
-        return (
-            <div className={cn('flex w-full mb-2', isMine ? 'justify-end' : 'justify-start')}>
-                <div className={cn(
-                    'rounded-xl overflow-hidden shadow-md border border-amber-500/20',
-                    isMine ? 'bg-[#005c4b] rounded-tr-none' : 'bg-[#202c33] rounded-tl-none'
-                )} style={{ minWidth: 230, maxWidth: '70%' }}>
-                    <div className="px-3 pt-2.5 pb-2">
-                        <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                                🔔 Recordatorio enviado por WhatsApp
-                            </span>
-                        </div>
-                        {accountMatch && (
-                            <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 mb-1">
-                                <span className="text-[#8696a0] text-[10px]">📧 Cuenta:</span>
-                                <span className="text-[#e9edef] text-xs font-medium truncate">{accountMatch[1]}</span>
-                            </div>
-                        )}
-                        {dateMatch && (
-                            <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 mb-1">
-                                <span className="text-[#8696a0] text-[10px]">📅 Venci\u00f3:</span>
-                                <span className="text-red-400 text-xs font-bold">{dateMatch[1]}</span>
-                            </div>
-                        )}
-                        <p className="text-[10px] text-[#8696a0] mt-1.5">Enviado como Template oficial (funciona despu\u00e9s de 24h)</p>
-                    </div>
-                    <div className="px-2 pb-1 flex justify-end">
-                        <span className="text-[10px] text-[#ffffff80]">{timestamp}</span>
-                    </div>
-                </div>
-            </div>
-        )
-    }
 
-    const toggleAudio = () => {
+        const toggleAudio = () => {
         if (!audioRef.current) return
         if (audioRef.current.paused) {
             audioRef.current.play()
