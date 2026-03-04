@@ -15,6 +15,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
     const [activeId, setActiveId] = useState<string | undefined>(paramId)
     const [isAdmin, setIsAdmin] = useState(false)
+    const [pendingRenewals, setPendingRenewals] = useState(0)
 
     useEffect(() => {
         // If we have an ID in params, update state and save to local storage
@@ -45,6 +46,32 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         }
         checkAdmin()
     }, [])
+
+    // Badge: conteo de renovaciones pendientes en tiempo real
+    useEffect(() => {
+        if (!isAdmin) return
+        const supabase = createClient()
+
+        const fetchPending = async () => {
+            const { count } = await supabase
+                .from('subscription_renewals')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'pending_review')
+            setPendingRenewals(count || 0)
+        }
+        fetchPending()
+
+        const channel = supabase
+            .channel('sidebar-renewals')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'subscription_renewals'
+            }, fetchPending)
+            .subscribe()
+
+        return () => { supabase.removeChannel(channel) }
+    }, [isAdmin])
 
     // Logic: If we are not in 'home' or 'assistants' root, we assume an assistant is active.
     // Enhanced logic: If we have an assistantId param OR a saved activeId, we are in assistant context.
@@ -106,7 +133,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     )}
                 >
                     <RefreshCcw size={20} />
-                    Renovaciones
+                    <span className="flex-1">Renovaciones</span>
+                    {pendingRenewals > 0 && (
+                        <span className="min-w-5 h-5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                            {pendingRenewals > 99 ? '99+' : pendingRenewals}
+                        </span>
+                    )}
                 </Link>
             )}
 

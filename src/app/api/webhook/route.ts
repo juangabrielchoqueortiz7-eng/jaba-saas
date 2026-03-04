@@ -443,9 +443,11 @@ export async function POST(request: Request) {
                         return new NextResponse('EVENT_RECEIVED', { status: 200 });
                     }
 
-                    // Buscar suscripción existente del cliente por número de teléfono
+                    // BUG 1 FIX: Buscar suscripción existente — primero ACTIVO, luego cualquier otro estado
                     const cleanPhone = phoneNumber.replace(/^591/, '');
-                    const { data: subscription } = await supabaseAdmin
+
+                    // Paso 1: Buscar en ACTIVOS (sin pedir correo)
+                    const { data: activeSubscription } = await supabaseAdmin
                         .from('subscriptions')
                         .select('*')
                         .eq('user_id', tenantUserId)
@@ -455,8 +457,39 @@ export async function POST(request: Request) {
                         .limit(1)
                         .maybeSingle();
 
-                    // Usar email de la suscripción existente (sin preguntar)
+                    // Paso 2: Si no está activo, buscar en INACTIVOS
+                    let subscription = activeSubscription;
+                    let isInactiveClient = false;
+                    if (!subscription) {
+                        const { data: inactiveSub } = await supabaseAdmin
+                            .from('subscriptions')
+                            .select('*')
+                            .eq('user_id', tenantUserId)
+                            .neq('estado', 'ACTIVO')
+                            .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhone}`)
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                        subscription = inactiveSub;
+                        if (inactiveSub) isInactiveClient = true;
+                    }
+
                     const customerEmail = subscription?.correo || '';
+
+                    const { sendWhatsAppMessage, sendWhatsAppImage } = await import('@/lib/whatsapp');
+
+                    // Si es cliente INACTIVO, confirmar correo antes de proceder
+                    if (isInactiveClient && customerEmail) {
+                        const confirmMsg = `✅ *¡Plan seleccionado!*\n\n` +
+                            `Hemos encontrado tu cuenta registrada: *${customerEmail}*\n\n` +
+                            `¿Es esta la cuenta que deseas renovar con el plan *${product.name}* (Bs ${product.price})?\n\n` +
+                            `Si es correcto, continúa con el pago a continuación. Si no es tu cuenta, escríbenos el correo correcto.`;
+                        await sendWhatsAppMessage(phoneNumber, confirmMsg, tenantToken, phoneId);
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId, is_from_me: true, content: confirmMsg, status: 'delivered'
+                        });
+                        // Crear orden en pending_payment por si confirma
+                    }
 
                     // Crear order tipo renewal
                     const { error: orderError } = await supabaseAdmin.from('orders').insert({
@@ -478,36 +511,40 @@ export async function POST(request: Request) {
                         return new NextResponse('EVENT_RECEIVED', { status: 200 });
                     }
 
-                    console.log(`[Renewal] Orden creada: ${product.name} (Bs ${product.price}) para ${customerEmail || phoneNumber}`);
+                    console.log(`[Renewal] Orden creada: ${product.name} (Bs ${product.price}) para ${customerEmail || phoneNumber} (inactivo: ${isInactiveClient})`);
 
-                    // Enviar QR de pago directamente (sin pedir email)
-                    const { sendWhatsAppMessage, sendWhatsAppImage } = await import('@/lib/whatsapp');
+                    // Solo enviar QR directamente si el cliente está ACTIVO (o es nuevo sin correo)
+                    // Para inactivos ya se envió el mensaje de confirmación arriba
+                    if (!isInactiveClient) {
+                        const renewMsg = `✅ *¡Plan seleccionado!*\n\n` +
+                            `Has elegido *${product.name}* (Bs ${product.price}) para renovar tu cuenta *${customerEmail || phoneNumber}*.\n\n` +
+                            `💳 Realiza el pago con el siguiente QR y envíanos la foto del comprobante por este medio:`;
 
-                    const renewMsg = `✅ *¡Plan seleccionado!*\n\n` +
-                        `Has elegido *${product.name}* (Bs ${product.price}) para renovar tu cuenta *${customerEmail}*.\n\n` +
-                        `💳 Realiza el pago con el siguiente QR y envíanos la foto del comprobante por este medio:`;
+                        await sendWhatsAppMessage(phoneNumber, renewMsg, tenantToken, phoneId);
 
-                    await sendWhatsAppMessage(phoneNumber, renewMsg, tenantToken, phoneId);
+                        if (product.qr_image_url) {
+                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
+                            const qrUrl = product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl}${product.qr_image_url}`;
+                            await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (Bs ${product.price})`, tenantToken, phoneId);
+                        }
 
-                    // Enviar QR de pago si existe
-                    if (product.qr_image_url) {
+                        const baseUrl2 = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
+                        const qrUrlForDb = product.qr_image_url ? (product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl2}${product.qr_image_url}`) : null;
+
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId,
+                            is_from_me: true,
+                            content: renewMsg,
+                            status: 'delivered',
+                            media_url: qrUrlForDb,
+                            media_type: qrUrlForDb ? 'image' : null
+                        });
+                    } else if (product.qr_image_url) {
+                        // Para inactivos: enviar QR después del mensaje de confirmación
                         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
                         const qrUrl = product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl}${product.qr_image_url}`;
                         await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (Bs ${product.price})`, tenantToken, phoneId);
                     }
-
-                    // Guardar mensaje de texto + QR en chat
-                    const baseUrl2 = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
-                    const qrUrlForDb = product.qr_image_url ? (product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl2}${product.qr_image_url}`) : null;
-
-                    await supabaseAdmin.from('messages').insert({
-                        chat_id: chatId,
-                        is_from_me: true,
-                        content: renewMsg,
-                        status: 'delivered',
-                        media_url: qrUrlForDb,
-                        media_type: qrUrlForDb ? 'image' : null
-                    });
 
                     return new NextResponse('EVENT_RECEIVED', { status: 200 });
                 }
@@ -610,20 +647,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                         if (activeOrder.product === 'renewal') {
                             console.log(`[Renewal] Comprobante recibido para revisión manual de ${phoneNumber}`);
 
-                            // Calcular nueva fecha ESTIMADA (se aplica solo cuando el admin apruebe)
-                            const today = new Date();
-                            const planName = (activeOrder.plan_name || '').toLowerCase();
-                            let monthsToAdd = 1;
-                            if (planName.includes('3 mes') || planName.includes('trimestral') || planName.includes('bronce')) monthsToAdd = 3;
-                            else if (planName.includes('6 mes') || planName.includes('semestral') || planName.includes('plata')) monthsToAdd = 6;
-                            else if (planName.includes('9 mes') || planName.includes('oro')) monthsToAdd = 9;
-                            else if (planName.includes('1 año') || planName.includes('anual') || planName.includes('premium')) monthsToAdd = 12;
-
-                            const newExpDate = new Date(today);
-                            newExpDate.setMonth(newExpDate.getMonth() + monthsToAdd);
-                            const newExpStr = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
-
-                            // Buscar suscripción del cliente (solo para info, NO se actualiza aún)
+                            // PASO 1: Buscar suscripción del cliente primero (necesitamos el vencimiento actual)
                             const cleanPhone = phoneNumber.replace(/^591/, '');
                             const { data: sub } = await supabaseAdmin
                                 .from('subscriptions')
@@ -636,9 +660,128 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                             const oldExpiration = sub?.vencimiento || 'N/A';
 
-                            // NO auto-actualizar suscripción — se hace manualmente desde el Dashboard
+                            // PASO 2: Calcular nueva fecha correctamente:
+                            // - Si la sub sigue vigente → extender desde el vencimiento actual
+                            // - Si ya venció → extender desde hoy
+                            const todayBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
+                            const today = new Date(todayBolivia.getFullYear(), todayBolivia.getMonth(), todayBolivia.getDate());
 
-                            // Crear registro de renovación en estado PENDIENTE DE REVISIÓN
+                            // Obtener duration_months del producto (fuente de verdad)
+                            const { data: productData } = await supabaseAdmin
+                                .from('products')
+                                .select('duration_months, name')
+                                .eq('id', activeOrder.plan)
+                                .single();
+
+                            let monthsToAdd = productData?.duration_months || 0;
+                            if (!monthsToAdd || monthsToAdd < 1) {
+                                // Fallback: inferir del nombre si no está configurado en el producto
+                                const planName = (activeOrder.plan_name || '').toLowerCase();
+                                if (planName.includes('3 mes') || planName.includes('trimestral') || planName.includes('bronce')) monthsToAdd = 3;
+                                else if (planName.includes('6 mes') || planName.includes('semestral') || planName.includes('plata')) monthsToAdd = 6;
+                                else if (planName.includes('9 mes') || planName.includes('oro')) monthsToAdd = 9;
+                                else if (planName.includes('1 año') || planName.includes('anual') || planName.includes('premium')) monthsToAdd = 12;
+                                else monthsToAdd = 1;
+                            }
+                            console.log(`[Renewal] Plan "${activeOrder.plan_name}" → ${monthsToAdd} mes(es) desde producto`);
+
+                            // Determinar fecha base: extender desde vencimiento si sigue vigente, o desde hoy si ya venció
+                            let baseDate = today;
+                            if (sub?.vencimiento) {
+                                const partsSlash = sub.vencimiento.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                                const partsDash = sub.vencimiento.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                                let currentExp: Date | null = null;
+                                if (partsSlash) currentExp = new Date(parseInt(partsSlash[3]), parseInt(partsSlash[2]) - 1, parseInt(partsSlash[1]));
+                                else if (partsDash) currentExp = new Date(parseInt(partsDash[1]), parseInt(partsDash[2]) - 1, parseInt(partsDash[3]));
+                                if (currentExp && currentExp > today) {
+                                    baseDate = currentExp; // Sub vigente: extender desde vencimiento
+                                    console.log(`[Renewal] Sub vigente hasta ${sub.vencimiento}, extendiendo desde ahí`);
+                                } else {
+                                    console.log(`[Renewal] Sub vencida (${sub.vencimiento}), extendiendo desde hoy`);
+                                }
+                            }
+                            const newExpDate = new Date(baseDate);
+                            newExpDate.setMonth(newExpDate.getMonth() + monthsToAdd);
+                            const newExpStr = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
+
+                            // ============================================================
+                            // PROTECCIÓN ANTI-DUPLICADOS
+                            // ============================================================
+                            // Guard 1: Si el pedido ya fue procesado antes, rechazar comprobante duplicado
+                            if (activeOrder.status === 'completed') {
+                                console.log(`[Renewal] ⚠️ Orden ${activeOrder.id} ya completada. Comprobante duplicado de ${phoneNumber}`);
+                                const dupMsg = `ℹ️ Tu renovación para el plan *${activeOrder.plan_name}* ya fue procesada anteriormente. Si tienes dudas, comunícate con nosotros.`;
+                                await sendWhatsAppMessage(phoneNumber, dupMsg, tenantToken, phoneId);
+                                await supabaseAdmin.from('messages').insert({ chat_id: chatId, is_from_me: true, content: dupMsg, status: 'delivered' });
+                                return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                            }
+
+                            // Guard 2: Verificar si ya existe un registro de renovación para este pedido
+                            const { data: existingRenewal } = await supabaseAdmin
+                                .from('subscription_renewals')
+                                .select('id, status')
+                                .eq('order_id', activeOrder.id)
+                                .maybeSingle();
+
+                            if (existingRenewal) {
+                                console.log(`[Renewal] ⚠️ Ya existe renovación ${existingRenewal.id} para orden ${activeOrder.id}. Ignorando comprobante duplicado.`);
+                                const dupMsg = `ℹ️ Ya recibimos y procesamos tu comprobante para el plan *${activeOrder.plan_name}*. Si no recibiste confirmación, contáctanos.`;
+                                await sendWhatsAppMessage(phoneNumber, dupMsg, tenantToken, phoneId);
+                                await supabaseAdmin.from('messages').insert({ chat_id: chatId, is_from_me: true, content: dupMsg, status: 'delivered' });
+                                return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                            }
+
+                            // ============================================================
+                            // PASO 3: RENOVACIÓN AUTOMÁTICA INMEDIATA
+                            // ============================================================
+                            console.log(`[Renewal] ✅ Procesando renovación automática para ${phoneNumber} → ${newExpStr}`);
+
+                            // Obtener nombre del negocio para el mensaje
+                            const { data: bizCreds } = await supabaseAdmin
+                                .from('whatsapp_credentials')
+                                .select('business_name')
+                                .eq('user_id', tenantUserId)
+                                .single();
+                            const bizName = bizCreds?.business_name || 'nuestro servicio';
+
+                            // ACTUALIZAR la suscripción automáticamente ahora
+                            let subUpdated = false;
+                            if (sub?.id) {
+                                const { error: updateErr } = await supabaseAdmin
+                                    .from('subscriptions')
+                                    .update({
+                                        vencimiento: newExpStr,
+                                        estado: 'ACTIVO',
+                                        notified: false,
+                                        notified_at: null,
+                                        followup_sent: false,
+                                        urgency_sent: false
+                                    })
+                                    .eq('id', sub.id);
+
+                                if (!updateErr) {
+                                    subUpdated = true;
+                                    console.log(`[Renewal] ✅ Suscripción ${sub.id} actualizada: ${oldExpiration} → ${newExpStr} (ACTIVO)`);
+                                } else {
+                                    console.error(`[Renewal] ❌ Error actualizando suscripción:`, updateErr);
+                                }
+                            } else {
+                                console.warn(`[Renewal] ⚠️ No se encontró suscripción para ${phoneNumber}. Se registra para supervisión admin.`);
+                            }
+
+                            // Actualizar orden a COMPLETED
+                            await supabaseAdmin.from('orders').update({
+                                status: 'completed',
+                                updated_at: new Date().toISOString(),
+                                metadata: {
+                                    ...(activeOrder.metadata || {}),
+                                    receipt_image_url: savedMediaUrl,
+                                    auto_renewed: true,
+                                    renewed_at: new Date().toISOString()
+                                }
+                            }).eq('id', activeOrder.id);
+
+                            // Crear registro en subscription_renewals para supervisión del admin
                             const triggeredBy = sub?.followup_sent ? 'followup' : 'reminder';
                             await supabaseAdmin.from('subscription_renewals').insert({
                                 user_id: tenantUserId,
@@ -653,34 +796,42 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 new_expiration: newExpStr,
                                 receipt_url: savedMediaUrl,
                                 triggered_by: triggeredBy,
-                                status: 'pending_review'
+                                status: subUpdated ? 'approved' : 'pending_review', // pending_review solo si fallo
+                                reviewed_at: subUpdated ? new Date().toISOString() : null
                             });
 
-                            // Log
+                            // Log de notificación
                             await supabaseAdmin.from('subscription_notification_logs').insert({
                                 user_id: tenantUserId,
                                 subscription_id: sub?.id || null,
                                 phone_number: phoneNumber,
-                                message_type: 'receipt_received',
+                                message_type: 'auto_renewed',
                                 status: 'sent'
                             });
 
-                            // Mensaje al cliente: pago recibido, en validación
-                            const pendingMsg = `📩 *¡Comprobante recibido!*\n\nGracias por enviar tu comprobante de pago. 🙏\n\nEstamos *validando tu pago* para el plan *${activeOrder.plan_name}* (Bs ${activeOrder.amount}).\n\nTe confirmaremos la renovación en breve. ¡Gracias por tu paciencia! ⏳`;
+                            // ============================================================
+                            // MENSAJE DE CONFIRMACIÓN al cliente
+                            // ============================================================
+                            const successMsg = subUpdated
+                                ? `✅ *¡Renovación completada!* 🎉\n\nTu acceso para *${activeOrder.customer_email || sub?.correo || phoneNumber}* en *${bizName}* ha sido renovado con éxito.\n\n📋 *Detalle:*\n• Plan: ${activeOrder.plan_name}\n• Monto: Bs ${activeOrder.amount}\n• Vigencia hasta: *${newExpStr}*\n\n¡Gracias por tu preferencia! 😊`
+                                : `📩 *¡Comprobante recibido!*\n\nGracias por tu pago del plan *${activeOrder.plan_name}* (Bs ${activeOrder.amount}). Tu cuenta está siendo procesada y te confirmaremos en breve. ⏳`;
 
-                            await sendWhatsAppMessage(phoneNumber, pendingMsg, tenantToken, phoneId);
+                            await sendWhatsAppMessage(phoneNumber, successMsg, tenantToken, phoneId);
 
                             await supabaseAdmin.from('messages').insert({
                                 chat_id: chatId,
                                 is_from_me: true,
-                                content: pendingMsg,
+                                content: successMsg,
                                 status: 'delivered'
                             });
 
-                            // Actualizar orden a pending_delivery (comprobante recibido)
-                            // El estado de la orden ya se actualizó arriba (línea 590)
+                            await supabaseAdmin.from('chats').update({
+                                last_message: successMsg.substring(0, 100),
+                                last_message_time: new Date().toISOString()
+                            }).eq('id', chatId);
 
                             return new NextResponse('EVENT_RECEIVED', { status: 200 });
+
                         }
 
                         // --- FLUJO NORMAL (no renovación) ---
@@ -811,60 +962,126 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 .eq('is_active', true)
                                 .order('sort_order', { ascending: true })
 
-                            // ====== DETECTAR CLIENTE EXISTENTE (Suscripción) ======
+                            // ====== DETECTAR CLIENTE EXISTENTE (Suscripción) - BUG 1 & 2 FIX ======
                             const cleanPhoneForLookup = phoneNumber.replace(/^591/, '');
-                            const { data: existingSub } = await supabaseAdmin
+
+                            // Primero buscar en ACTIVOS
+                            const { data: existingActiveSub } = await supabaseAdmin
                                 .from('subscriptions')
                                 .select('correo, vencimiento, estado, equipo')
                                 .eq('user_id', tenantUserId)
+                                .eq('estado', 'ACTIVO')
                                 .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
                                 .order('created_at', { ascending: false })
                                 .limit(1)
                                 .maybeSingle();
 
-                            let subscriberContext = '';
-                            if (existingSub) {
-                                console.log(`[AI] Cliente EXISTENTE detectado: ${phoneNumber} → correo: ${existingSub.correo}, estado: ${existingSub.estado}`);
-                                subscriberContext = `\n⚠️ [CLIENTE EXISTENTE - REGLA ABSOLUTA] Este cliente YA está en nuestra base de datos.
-- Correo registrado: ${existingSub.correo}
-- Estado de su suscripción: ${existingSub.estado}
-- Vencimiento: ${existingSub.vencimiento}
-- Equipo: ${existingSub.equipo || 'N/A'}
-INSTRUCCIÓN CRÍTICA: NUNCA, bajo NINGUNA circunstancia, le pidas correo electrónico a este cliente. Ya lo tenemos registrado como "${existingSub.correo}". Si quiere renovar o comprar otro plan, usa directamente su correo "${existingSub.correo}" con la herramienta "process_email". Si necesitas ejecutar process_email, hazlo automáticamente sin preguntar. NO le preguntes "¿cuál es tu correo?". PROHÍBO completamente que solicites email a clientes existentes.`;
+                            // Si no está activo, buscar en INACTIVOS
+                            let existingSub = existingActiveSub;
+                            let existingSubIsInactive = false;
+                            if (!existingSub) {
+                                const { data: existingInactiveSub } = await supabaseAdmin
+                                    .from('subscriptions')
+                                    .select('correo, vencimiento, estado, equipo')
+                                    .eq('user_id', tenantUserId)
+                                    .neq('estado', 'ACTIVO')
+                                    .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
+                                    .order('created_at', { ascending: false })
+                                    .limit(1)
+                                    .maybeSingle();
+                                existingSub = existingInactiveSub;
+                                if (existingInactiveSub) existingSubIsInactive = true;
+                            }
 
-                                // Si hay un pedido pending_email y ya tenemos el correo, auto-procesarlo
-                                if (activeOrder && activeOrder.status === 'pending_email' && existingSub.correo) {
-                                    console.log(`[AI] Auto-procesando email para cliente existente: ${existingSub.correo}`);
-                                    // Actualizar el pedido directamente con el correo conocido
-                                    await supabaseAdmin.from('orders').update({
-                                        customer_email: existingSub.correo,
-                                        status: 'pending_payment',
-                                        updated_at: new Date().toISOString()
-                                    }).eq('id', activeOrder.id);
+                            // BUG 2 FIX: Calcular estado real de la fecha de vencimiento
+                            let subscriptionStatusLabel = '';
+                            if (existingSub?.vencimiento) {
+                                // Fecha actual en Bolivia (UTC-4)
+                                const nowBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
+                                const todayBolivia = new Date(nowBolivia.getFullYear(), nowBolivia.getMonth(), nowBolivia.getDate());
 
-                                    // Enviar QR de pago automáticamente
-                                    const { data: orderProduct } = await supabaseAdmin
-                                        .from('products')
-                                        .select('qr_image_url')
-                                        .eq('id', activeOrder.plan)
-                                        .single();
+                                // Parsear vencimiento DD/MM/YYYY o YYYY-MM-DD
+                                let expDate: Date | null = null;
+                                const partsSlash = existingSub.vencimiento.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                                const partsDash = existingSub.vencimiento.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                                if (partsSlash) {
+                                    expDate = new Date(parseInt(partsSlash[3]), parseInt(partsSlash[2]) - 1, parseInt(partsSlash[1]));
+                                } else if (partsDash) {
+                                    expDate = new Date(parseInt(partsDash[1]), parseInt(partsDash[2]) - 1, parseInt(partsDash[3]));
+                                }
 
-                                    if (orderProduct?.qr_image_url) {
-                                        const { sendWhatsAppImage } = await import('@/lib/whatsapp');
-                                        await sendWhatsAppImage(
-                                            phoneNumber,
-                                            orderProduct.qr_image_url,
-                                            `📱 *QR de Pago*\n\nPlan: *${activeOrder.plan_name}*\nMonto: *Bs ${activeOrder.amount}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
-                                            tenantToken,
-                                            phoneId
-                                        );
+                                if (expDate) {
+                                    const diffDays = Math.ceil((expDate.getTime() - todayBolivia.getTime()) / (1000 * 60 * 60 * 24));
+                                    if (diffDays < 0) {
+                                        subscriptionStatusLabel = `❌ VENCIDA hace ${Math.abs(diffDays)} días (venció el ${existingSub.vencimiento})`;
+                                    } else if (diffDays === 0) {
+                                        subscriptionStatusLabel = `⚠️ VENCE HOY (${existingSub.vencimiento}) — última oportunidad`;
+                                    } else if (diffDays <= 7) {
+                                        subscriptionStatusLabel = `⚠️ VIGENTE pero PRÓXIMA A VENCER en ${diffDays} días (${existingSub.vencimiento})`;
+                                    } else {
+                                        subscriptionStatusLabel = `✅ VIGENTE — vence en ${diffDays} días (${existingSub.vencimiento})`;
                                     }
-
-                                    // Actualizar activeOrder en memoria para el prompt
-                                    activeOrder.status = 'pending_payment';
-                                    activeOrder.customer_email = existingSub.correo;
+                                } else {
+                                    subscriptionStatusLabel = `Vencimiento: ${existingSub.vencimiento} (fecha no parseable)`;
                                 }
                             }
+
+                            let subscriberContext = '';
+                            if (existingSub) {
+                                console.log(`[AI] Cliente EXISTENTE detectado: ${phoneNumber} → correo: ${existingSub.correo}, estado: ${existingSub.estado}, inactivo: ${existingSubIsInactive}`);
+
+                                if (existingSubIsInactive) {
+                                    // Cliente INACTIVO: mencionar el correo y preguntar si es el correcto
+                                    subscriberContext = `\n⚠️ [CLIENTE CON CUENTA INACTIVA - REGLA ABSOLUTA]
+Este cliente tiene una cuenta INACTIVA en nuestro sistema.
+- Correo registrado en sistema: ${existingSub.correo}
+- Estado registrado: INACTIVO (cuenta desactivada)
+- Equipo: ${existingSub.equipo || 'N/A'}
+${subscriptionStatusLabel ? `- Estado real de vencimiento: ${subscriptionStatusLabel}` : ''}
+INSTRUCCIÓN: Si el cliente quiere renovar, preséntale el correo que tenemos registrado ("${existingSub.correo}") y pregúntale si es ese al que desea renovar el acceso. NO inventes correos ni pidas el correo de cero, ya lo tenemos. Usa exactamente: "Tenemos registrada la cuenta ${existingSub.correo}, ¿es esta la cuenta que deseas renovar?".`;
+                                } else {
+                                    // Cliente ACTIVO o Por Vencer: no pedir correo, actuar directamente
+                                    subscriberContext = `\n⚠️ [CLIENTE EXISTENTE - REGLA ABSOLUTA] Este cliente YA está en nuestra base de datos.
+- Correo registrado: ${existingSub.correo}
+- ESTADO REAL DE LA SUSCRIPCIÓN: ${subscriptionStatusLabel || existingSub.estado}
+- Equipo: ${existingSub.equipo || 'N/A'}
+INSTRUCCIÓN CRÍTICA SOBRE FECHAS: ${subscriptionStatusLabel.includes('VENCIDA') || subscriptionStatusLabel.includes('VENCE HOY') ? `La suscripción está VENCIDA o vence hoy. NUNCA digas que sigue activa. El cliente NECESITA renovar. Dirígelo al proceso de renovación.` : `La suscripción está vigente. Si el cliente pregunta por su estado, informa correctamente el tiempo que le queda.`}
+INSTRUCCIÓN CRÍTICA SOBRE EMAIL: NUNCA, bajo NINGUNA circunstancia, le pidas correo electrónico a este cliente. Ya lo tenemos registrado como "${existingSub.correo}". Si quiere renovar, usa directamente su correo "${existingSub.correo}" con la herramienta "process_email". NO le preguntes "¿cuál es tu correo?". PROHÍBO completamente que solicites email a clientes existentes.`;
+
+                                    // Si hay un pedido pending_email y ya tenemos el correo, auto-procesarlo
+                                    if (activeOrder && activeOrder.status === 'pending_email' && existingSub.correo) {
+                                        console.log(`[AI] Auto-procesando email para cliente existente: ${existingSub.correo}`);
+                                        // Actualizar el pedido directamente con el correo conocido
+                                        await supabaseAdmin.from('orders').update({
+                                            customer_email: existingSub.correo,
+                                            status: 'pending_payment',
+                                            updated_at: new Date().toISOString()
+                                        }).eq('id', activeOrder.id);
+
+                                        // Enviar QR de pago automáticamente
+                                        const { data: orderProduct } = await supabaseAdmin
+                                            .from('products')
+                                            .select('qr_image_url')
+                                            .eq('id', activeOrder.plan)
+                                            .single();
+
+                                        if (orderProduct?.qr_image_url) {
+                                            const { sendWhatsAppImage } = await import('@/lib/whatsapp');
+                                            await sendWhatsAppImage(
+                                                phoneNumber,
+                                                orderProduct.qr_image_url,
+                                                `📱 *QR de Pago*\n\nPlan: *${activeOrder.plan_name}*\nMonto: *Bs ${activeOrder.amount}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
+                                                tenantToken,
+                                                phoneId
+                                            );
+                                        }
+
+                                        // Actualizar activeOrder en memoria para el prompt
+                                        activeOrder.status = 'pending_payment';
+                                        activeOrder.customer_email = existingSub.correo;
+                                    }
+                                } // end else (ACTIVO)
+                            } // end if (existingSub)
 
                             // Contexto del pedido activo (solo si existe)
                             let orderContext = ''

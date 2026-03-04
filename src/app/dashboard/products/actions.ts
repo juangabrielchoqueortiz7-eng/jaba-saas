@@ -12,6 +12,7 @@ export type Product = {
     qr_image_url: string | null
     is_active: boolean
     sort_order: number
+    duration_months: number | null
     created_at: string
 }
 
@@ -39,6 +40,7 @@ export async function createProduct(productData: {
     description: string
     price: number
     category: string
+    duration_months?: number
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -51,7 +53,8 @@ export async function createProduct(productData: {
             name: productData.name,
             description: productData.description,
             price: productData.price,
-            category: productData.category
+            category: productData.category,
+            duration_months: productData.duration_months || null
         })
 
     if (error) throw error
@@ -64,6 +67,7 @@ export async function updateProduct(id: string, productData: {
     price: number
     category: string
     is_active: boolean
+    duration_months?: number | null
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -76,7 +80,8 @@ export async function updateProduct(id: string, productData: {
             description: productData.description,
             price: productData.price,
             category: productData.category,
-            is_active: productData.is_active
+            is_active: productData.is_active,
+            duration_months: productData.duration_months ?? null
         })
         .eq('id', id)
         .eq('user_id', user.id)

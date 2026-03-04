@@ -62,12 +62,13 @@ export async function POST(request: Request) {
             // APROBAR: Actualizar suscripción + enviar WhatsApp
             // =============================================
 
-            // 1. Actualizar la suscripción con la nueva fecha
+            // 1. Actualizar la suscripción con la nueva fecha Y estado ACTIVO
             if (renewal.subscription_id) {
                 await supabaseAdmin
                     .from('subscriptions')
                     .update({
                         vencimiento: renewal.new_expiration,
+                        estado: 'ACTIVO',  // Siempre activar al aprobar
                         notified: false,
                         notified_at: null,
                         followup_sent: false,
@@ -75,7 +76,35 @@ export async function POST(request: Request) {
                     })
                     .eq('id', renewal.subscription_id)
 
-                console.log(`[Renewal Approve] ✅ Suscripción ${renewal.subscription_id} actualizada: ${renewal.old_expiration} → ${renewal.new_expiration}`)
+                console.log(`[Renewal Approve] ✅ Suscripción ${renewal.subscription_id} actualizada: ${renewal.old_expiration} → ${renewal.new_expiration} (ACTIVO)`);
+            } else {
+                // Si no tenemos subscription_id, buscar por número de teléfono
+                const cleanPhone = renewal.phone_number.replace(/^591/, '');
+                const { data: foundSub } = await supabaseAdmin
+                    .from('subscriptions')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .or(`numero.eq.${renewal.phone_number},numero.eq.${cleanPhone}`)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (foundSub?.id) {
+                    await supabaseAdmin
+                        .from('subscriptions')
+                        .update({
+                            vencimiento: renewal.new_expiration,
+                            estado: 'ACTIVO',
+                            notified: false,
+                            notified_at: null,
+                            followup_sent: false,
+                            urgency_sent: false
+                        })
+                        .eq('id', foundSub.id);
+                    console.log(`[Renewal Approve] ✅ Suscripción encontrada por teléfono y actualizada: ${renewal.phone_number}`);
+                } else {
+                    console.warn(`[Renewal Approve] ⚠️ No se encontró suscripción para ${renewal.phone_number}`);
+                }
             }
 
             // 2. Marcar renovación como aprobada
@@ -98,9 +127,17 @@ export async function POST(request: Request) {
                     .eq('id', renewal.order_id)
             }
 
-            // 4. Enviar mensaje de confirmación al cliente por WhatsApp
+            // 4. Obtener nombre del negocio para mensaje genérico
+            const { data: businessProfile } = await supabaseAdmin
+                .from('whatsapp_credentials')
+                .select('business_name')
+                .eq('user_id', user.id)
+                .single();
+            const businessName = businessProfile?.business_name || 'nuestro servicio';
+
+            // 5. Enviar mensaje genérico al cliente por WhatsApp
             if (creds?.access_token && creds?.phone_number_id && renewal.phone_number) {
-                const confirmMsg = `✅ *¡Renovación exitosa!* 🎉\n\nGracias por continuar confiando en nosotros. Tu cuenta *${renewal.customer_email || ''}* de Canva Pro ha sido renovada con éxito.\n\n📋 *Detalle de tu renovación:*\n• Plan: ${renewal.plan_name}\n• Vigencia hasta: *${renewal.new_expiration}*\n\nTodos tus diseños, plantillas y proyectos siguen intactos y disponibles para ti. 🎨\n\nSi tienes alguna consulta, estamos aquí para ayudarte.\n*¡Sigue creando cosas increíbles!* ✨`
+                const confirmMsg = `✅ *¡Renovación aprobada!* 🎉\n\nTu acceso para *${renewal.customer_email || renewal.phone_number}* ha sido renovado con éxito en *${businessName}*.\n\n📋 *Detalle de tu renovación:*\n• Plan: ${renewal.plan_name}\n• Monto: Bs ${renewal.amount}\n• Vigencia hasta: *${renewal.new_expiration}*\n\n¡Gracias por seguir confiando en nosotros! Si necesitas ayuda, estamos aquí. 😊`;
 
                 await sendWhatsAppMessage(
                     renewal.phone_number,

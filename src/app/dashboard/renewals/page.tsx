@@ -175,7 +175,7 @@ export default function RenewalsPage() {
                         <RefreshCcw className="text-emerald-500" />
                         Renovaciones
                     </h1>
-                    <p className="text-slate-400 mt-1">Control de renovaciones de suscripciones Canva Pro</p>
+                    <p className="text-slate-400 mt-1">Renovaciones automáticas — supervisa el historial y aprueba casos pendientes</p>
                 </div>
                 <button
                     onClick={() => { setLoading(true); fetchRenewals(); }}

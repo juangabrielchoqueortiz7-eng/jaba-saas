@@ -1,6 +1,6 @@
 
 import { cn } from '@/lib/utils'
-import { Check, CheckCheck, Image as ImageIcon, FileText, Play, Mic } from 'lucide-react'
+import { Check, CheckCheck, Image as ImageIcon, FileText, Play, Mic, Trash2 } from 'lucide-react'
 import { useState, useRef } from 'react'
 
 interface MessageBubbleProps {
@@ -10,24 +10,103 @@ interface MessageBubbleProps {
     status?: 'sent' | 'delivered' | 'read'
     mediaUrl?: string | null
     mediaType?: string | null
+    onImageClick?: (url: string) => void
+    onDelete?: () => void
 }
 
-export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType }: MessageBubbleProps) {
+// Detectar si el mensaje es una lista de planes enviada via WhatsApp interactivo
+function isPlanListMessage(content: string) {
+    return content?.startsWith('📋 *Planes Enviados:*') || content?.startsWith('📋 *Lista de Planes')
+}
+
+// Parsear los planes de un mensaje de lista
+function parsePlanLines(content: string): string[] {
+    return content
+        .split('\n')
+        .filter(line => line.startsWith('• '))
+        .map(line => line.replace('• ', '').trim())
+}
+
+export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType, onImageClick, onDelete }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false)
     const [imageLoaded, setImageLoaded] = useState(false)
+    const [showMenu, setShowMenu] = useState(false)
     const audioRef = useRef<HTMLAudioElement>(null)
+    const [isPlaying, setIsPlaying] = useState(false)
 
     const detectedType = mediaType || (mediaUrl ? detectMediaType(mediaUrl, content) : null)
 
+    // === PLAN LIST CARD (interactive WhatsApp list rendered as visual card) ===
+    if (isPlanListMessage(content)) {
+        const plans = parsePlanLines(content)
+        return (
+            <div className={cn('flex w-full mb-2 group relative', isMine ? 'justify-end' : 'justify-start')}>
+                <div className={cn(
+                    'rounded-xl overflow-hidden shadow-md',
+                    isMine ? 'bg-[#005c4b] rounded-tr-none' : 'bg-[#202c33] rounded-tl-none'
+                )} style={{ minWidth: 220, maxWidth: '65%' }}>
+                    <div className="px-3 pt-2.5 pb-1">
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <span className="text-[#00a884] text-xs font-bold uppercase tracking-wide">📋 Lista de Planes Enviada</span>
+                        </div>
+                        <div className="space-y-1">
+                            {plans.map((plan, i) => {
+                                const [namePart, pricePart] = plan.split(' — ')
+                                return (
+                                    <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-2 py-1.5">
+                                        <span className="text-[#e9edef] text-xs font-medium truncate flex-1">{namePart}</span>
+                                        {pricePart && <span className="text-[#00a884] text-xs font-bold ml-2 shrink-0">{pricePart.split(' ·')[0]}</span>}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <p className="text-[10px] text-[#8696a0] mt-2">👆 El cliente lo recibió como botones interactivos</p>
+                    </div>
+                    <div className="px-2 pb-1 flex justify-end">
+                        <span className="text-[10px] text-[#ffffff80]">{timestamp}</span>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    const toggleAudio = () => {
+        if (!audioRef.current) return
+        if (audioRef.current.paused) {
+            audioRef.current.play()
+            setIsPlaying(true)
+        } else {
+            audioRef.current.pause()
+            setIsPlaying(false)
+        }
+    }
+
     return (
-        <div className={cn("flex w-full mb-0.5", isMine ? "justify-end" : "justify-start")}>
-            <div className={cn(
-                "max-w-[65%] rounded-lg shadow-md overflow-hidden relative",
-                isMine
-                    ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none"
-                    : "bg-[#202c33] text-[#e9edef] rounded-tl-none",
-                mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-1.5"
-            )}>
+        <div
+            className={cn("flex w-full mb-0.5 group relative", isMine ? "justify-end" : "justify-start")}
+            onMouseLeave={() => setShowMenu(false)}
+        >
+            {/* Context menu (delete) - only for own messages */}
+            {isMine && onDelete && showMenu && (
+                <button
+                    onClick={() => { onDelete(); setShowMenu(false); }}
+                    className="absolute right-[calc(65%+8px)] top-1 z-10 bg-[#182229] text-[#8696a0] hover:text-red-400 border border-[#2a3942] rounded-lg px-2 py-1 text-xs flex items-center gap-1 shadow-lg transition-colors"
+                >
+                    <Trash2 size={12} />
+                    Eliminar
+                </button>
+            )}
+
+            <div
+                className={cn(
+                    "max-w-[65%] rounded-lg shadow-md overflow-hidden relative",
+                    isMine
+                        ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none"
+                        : "bg-[#202c33] text-[#e9edef] rounded-tl-none",
+                    mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-1.5"
+                )}
+                onMouseEnter={() => isMine && setShowMenu(true)}
+            >
                 {/* === IMAGE === */}
                 {mediaUrl && detectedType === 'image' && !imageError && (
                     <div className="relative">
@@ -45,7 +124,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                             )}
                             onLoad={() => setImageLoaded(true)}
                             onError={() => setImageError(true)}
-                            onClick={() => window.open(mediaUrl, '_blank')}
+                            onClick={() => onImageClick ? onImageClick(mediaUrl) : window.open(mediaUrl, '_blank')}
                         />
                     </div>
                 )}
@@ -60,35 +139,45 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
                 {/* === AUDIO === */}
                 {mediaUrl && detectedType === 'audio' && (
-                    <div className="flex items-center gap-3 min-w-[240px]">
+                    <div className="flex items-center gap-3 min-w-[220px] px-3 py-2">
                         <button
-                            onClick={() => {
-                                if (audioRef.current) {
-                                    if (audioRef.current.paused) audioRef.current.play()
-                                    else audioRef.current.pause()
-                                }
-                            }}
+                            onClick={toggleAudio}
                             className={cn(
-                                "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
+                                "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
                                 isMine ? "bg-[#00a884] hover:bg-[#06cf9c]" : "bg-[#3b4a54] hover:bg-[#4a5c68]"
                             )}
                         >
-                            <Play size={18} className="ml-0.5 text-white" />
+                            {isPlaying ? (
+                                <span className="flex gap-0.5">
+                                    <span className="w-1 h-4 bg-white rounded-sm" />
+                                    <span className="w-1 h-4 bg-white rounded-sm" />
+                                </span>
+                            ) : (
+                                <Play size={16} className="ml-0.5 text-white" />
+                            )}
                         </button>
                         <div className="flex-1 min-w-0">
                             <audio
                                 ref={audioRef}
                                 src={mediaUrl}
-                                controls
-                                controlsList="nodownload"
-                                className="w-full h-8"
-                                style={{
-                                    filter: 'invert(0.85) hue-rotate(180deg)',
-                                    maxWidth: '200px'
-                                }}
+                                onEnded={() => setIsPlaying(false)}
+                                className="hidden"
                             />
+                            {/* Waveform visual placeholder */}
+                            <div className="flex items-center gap-0.5 h-6">
+                                {Array.from({ length: 30 }).map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className={cn(
+                                            "rounded-full w-0.5",
+                                            isMine ? "bg-[#ffffff60]" : "bg-[#aebac160]"
+                                        )}
+                                        style={{ height: `${6 + Math.sin(i * 0.7) * 6 + Math.cos(i * 1.3) * 3}px` }}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                        <Mic size={14} className="flex-shrink-0 text-[#8696a0]" />
+                        <Mic size={12} className="flex-shrink-0 text-[#8696a0]" />
                     </div>
                 )}
 
@@ -119,12 +208,8 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                             <FileText size={20} className="text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                                {content || 'Documento'}
-                            </p>
-                            <p className="text-[10px] text-[#8696a0]">
-                                Toca para abrir
-                            </p>
+                            <p className="text-sm font-medium truncate">{content || 'Documento'}</p>
+                            <p className="text-[10px] text-[#8696a0]">Toca para abrir</p>
                         </div>
                     </a>
                 )}
@@ -162,8 +247,8 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 function detectMediaType(url: string, content: string): string {
     const lower = url.toLowerCase()
     if (lower.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)/)) return 'image'
-    if (lower.match(/\.(mp3|ogg|opus|wav|m4a|aac)/)) return 'audio'
-    if (lower.match(/\.(mp4|mov|avi|webm|mkv|3gp)/)) return 'video'
+    if (lower.match(/\.(mp3|ogg|opus|wav|m4a|aac|webm)/)) return 'audio'
+    if (lower.match(/\.(mp4|mov|avi|mkv|3gp)/)) return 'video'
     if (lower.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip)/)) return 'document'
     if (content.startsWith('🎵') || content.includes('audio') || content.includes('voz')) return 'audio'
     if (content.startsWith('🎬') || content.includes('video')) return 'video'

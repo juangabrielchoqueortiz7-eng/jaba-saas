@@ -86,10 +86,10 @@ export async function GET(request: Request) {
 }
 
 // =============================================
-// POST: Llamado manualmente desde el Dashboard
+// POST: Re-notificar UN número específico (Bug 3 fix)
+//        O broadcast a todos (force mode)
 // =============================================
 export async function POST(request: Request) {
-    // Verificar auth del usuario
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
         return NextResponse.json({ error: 'No token' }, { status: 401 })
@@ -105,13 +105,28 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Check for force mode (broadcast to all)
     let force = false
+    let singlePhone: string | null = null
+
     try {
         const body = await request.json()
         force = body?.force === true
+        singlePhone = body?.phoneNumber || null
     } catch {
         // No body = normal mode
+    }
+
+    // BUG 3 FIX: Re-enviar recordatorio a un número específico via Template
+    // Esto permite notificar a clientes que dijeron "renuevo mañana" aunque hayan pasado 24h
+    if (singlePhone) {
+        console.log(`[Manual Reminders] Re-notificación individual a ${singlePhone} por usuario ${user.id}`)
+        try {
+            const result = await sendSingleReminder(singlePhone, user.id)
+            return NextResponse.json(result)
+        } catch (error) {
+            console.error('[Manual Reminders] Error sending single reminder:', error)
+            return NextResponse.json({ error: 'Error sending reminder' }, { status: 500 })
+        }
     }
 
     console.log(`[Manual Reminders] Triggered by user ${user.id}${force ? ' (FORCE/BROADCAST)' : ''}`)
@@ -123,6 +138,114 @@ export async function POST(request: Request) {
         console.error('[Manual Reminders] Error:', error)
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
+}
+
+// =============================================
+// Re-enviar recordatorio a un número individual
+// =============================================
+async function sendSingleReminder(phoneNumber: string, userId: string) {
+    // Obtener credenciales WhatsApp del usuario
+    const { data: creds } = await supabaseAdmin
+        .from('whatsapp_credentials')
+        .select('access_token, phone_number_id')
+        .eq('user_id', userId)
+        .single()
+
+    if (!creds?.access_token || !creds?.phone_number_id) {
+        return { error: 'No WhatsApp credentials found', sent: 0 }
+    }
+
+    // Buscar suscripción del cliente por teléfono
+    const cleanNum = phoneNumber.replace(/\D/g, '')
+    const withPrefix = cleanNum.startsWith('591') ? cleanNum : '591' + cleanNum
+    const withoutPrefix = cleanNum.startsWith('591') ? cleanNum.slice(3) : cleanNum
+
+    const { data: sub } = await supabaseAdmin
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .or(`numero.eq.${withPrefix},numero.eq.${withoutPrefix}`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+    // Obtener productos para la lista
+    const { data: products } = await supabaseAdmin
+        .from('products')
+        .select('id, name, description, price')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+    const imageUrl = `${baseUrl}/prices_promo.jpg`
+    const fullPhone = withPrefix
+
+    // Enviar template de recordatorio (funciona fuera de la ventana 24h)
+    const sendResult = await sendWhatsAppTemplate(
+        fullPhone,
+        'recordatorio_renovacion_v1',
+        'es',
+        [
+            {
+                type: 'header',
+                parameters: [{ type: 'image', image: { link: imageUrl } }]
+            },
+            {
+                type: 'body',
+                parameters: [
+                    { type: 'text', text: sub?.correo || 'tu cuenta' },
+                    { type: 'text', text: sub?.vencimiento || 'pronto' }
+                ]
+            }
+        ],
+        creds.access_token,
+        creds.phone_number_id
+    )
+
+    if (!sendResult) {
+        return { error: 'Template send failed', sent: 0, hint: 'Verifica que el template "recordatorio_renovacion_v1" esté aprobado en Meta.' }
+    }
+
+    // Registrar en chat panel
+    const chatId = await findOrCreateChat(fullPhone, userId, sub?.correo || fullPhone)
+    if (chatId) {
+        const reminderMsg = `🔔 *Recordatorio manual enviado*\n\nSe envió un recordatorio de renovación a este número.${sub ? `\nCuenta: ${sub.correo}\nVencimiento: ${sub.vencimiento}` : ''}`
+        await supabaseAdmin.from('messages').insert({
+            chat_id: chatId,
+            is_from_me: true,
+            content: reminderMsg,
+            status: 'delivered'
+        })
+        await supabaseAdmin.from('chats').update({
+            last_message: '📤 Recordatorio manual enviado',
+            last_message_time: new Date().toISOString()
+        }).eq('id', chatId)
+    }
+
+    // Enviar también la lista interactiva de planes
+    if (products && products.length > 0) {
+        await delay(1000)
+        const listSections = [{
+            title: 'Planes Disponibles',
+            rows: products.map(p => ({
+                id: `renew_plan_${p.id}`,
+                title: p.name.substring(0, 24),
+                description: `Bs ${p.price}`
+            }))
+        }]
+        await sendWhatsAppList(
+            fullPhone,
+            '👇 Selecciona el plan que deseas para renovar tu suscripción:',
+            'Ver Planes',
+            listSections,
+            creds.access_token,
+            creds.phone_number_id
+        )
+    }
+
+    console.log(`[Manual Reminders] ✅ Recordatorio individual enviado a ${fullPhone}`)
+    return { sent: 1, failed: 0, phone: fullPhone }
 }
 
 // =============================================

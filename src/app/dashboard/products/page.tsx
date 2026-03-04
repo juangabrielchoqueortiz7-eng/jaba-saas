@@ -19,7 +19,8 @@ export default function ProductsPage() {
         name: '',
         description: '',
         price: '',
-        category: 'general'
+        category: 'general',
+        duration_months: ''
     })
 
     useEffect(() => {
@@ -32,7 +33,7 @@ export default function ProductsPage() {
     }
 
     const resetForm = () => {
-        setFormData({ name: '', description: '', price: '', category: 'general' })
+        setFormData({ name: '', description: '', price: '', category: 'general', duration_months: '' })
         setIsCreating(false)
         setEditingId(null)
     }
@@ -46,7 +47,8 @@ export default function ProductsPage() {
                     name: formData.name,
                     description: formData.description,
                     price: parseFloat(formData.price),
-                    category: formData.category
+                    category: formData.category,
+                    duration_months: formData.duration_months ? parseInt(formData.duration_months) : undefined
                 })
                 await loadProducts()
                 resetForm()
@@ -68,7 +70,8 @@ export default function ProductsPage() {
                     description: formData.description,
                     price: parseFloat(formData.price),
                     category: formData.category,
-                    is_active: product?.is_active ?? true
+                    is_active: product?.is_active ?? true,
+                    duration_months: formData.duration_months ? parseInt(formData.duration_months) : null
                 })
                 await loadProducts()
                 resetForm()
@@ -85,7 +88,8 @@ export default function ProductsPage() {
             name: product.name,
             description: product.description || '',
             price: product.price.toString(),
-            category: product.category
+            category: product.category,
+            duration_months: product.duration_months?.toString() || ''
         })
         setIsCreating(true)
     }
@@ -168,7 +172,7 @@ export default function ProductsPage() {
                                     className="bg-slate-950 border-slate-800 text-white"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <Label>Precio (Bs) *</Label>
                                     <Input
@@ -190,6 +194,18 @@ export default function ProductsPage() {
                                             <option key={cat.value} value={cat.value}>{cat.label}</option>
                                         ))}
                                     </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label title="Si el plan otorga acceso por un período, especifica cuántos meses. Requerido para renovaciones automáticas.">Duración (meses)</Label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        max="120"
+                                        value={formData.duration_months}
+                                        onChange={e => setFormData(prev => ({ ...prev, duration_months: e.target.value }))}
+                                        placeholder="Ej: 1, 3, 6, 12"
+                                        className="bg-slate-950 border-slate-800 text-white"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -245,8 +261,8 @@ export default function ProductsPage() {
                         <div
                             key={product.id}
                             className={`flex items-center justify-between p-4 rounded-xl border transition-colors group ${product.is_active
-                                    ? 'bg-slate-900/50 border-slate-800 hover:border-indigo-500/30'
-                                    : 'bg-slate-900/20 border-slate-800/50 opacity-60'
+                                ? 'bg-slate-900/50 border-slate-800 hover:border-indigo-500/30'
+                                : 'bg-slate-900/20 border-slate-800/50 opacity-60'
                                 }`}
                         >
                             <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -269,7 +285,12 @@ export default function ProductsPage() {
                                         <p className="text-slate-400 text-sm line-clamp-1 mt-1">{product.description}</p>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-3 shrink-0">
+                                    {product.duration_months && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                            {product.duration_months} mes{product.duration_months !== 1 ? 'es' : ''}
+                                        </span>
+                                    )}
                                     <DollarSign size={16} className="text-green-400" />
                                     <span className="text-lg font-bold text-green-400">Bs {product.price}</span>
                                 </div>
