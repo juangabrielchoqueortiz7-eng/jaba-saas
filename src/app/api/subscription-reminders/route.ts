@@ -207,18 +207,20 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
         return { error: 'Template send failed', sent: 0, hint: 'Verifica que el template "recordatorio_renovacion_v1" esté aprobado en Meta.' }
     }
 
-    // Registrar en chat panel
+    // Registrar en chat panel — mostrar el texto real que recibe el cliente
     const chatId = await findOrCreateChat(fullPhone, userId, sub?.correo || fullPhone)
     if (chatId) {
-        const reminderMsg = `🔔 *Recordatorio manual enviado*\n\nSe envió un recordatorio de renovación a este número.${sub ? `\nCuenta: ${sub.correo}\nVencimiento: ${sub.vencimiento}` : ''}`
+        // Texto real que recibe el cliente (lo que está en el template aprobado de Meta)
+        const templatePreviewText = `⚠️ *Aviso de Renovación*\n\n¡Hola! Notamos que la suscripción de *${sub?.correo || 'tu cuenta'}* venció el *${sub?.vencimiento || 'fecha no registrada'}*.\n\nPor favor, renueva lo antes posible para seguir disfrutando del servicio. ✨\n\n—\n🔔 *[Template: recordatorio_renovacion_v1 - enviado vía Meta]*`
+
         await supabaseAdmin.from('messages').insert({
             chat_id: chatId,
             is_from_me: true,
-            content: reminderMsg,
+            content: templatePreviewText,
             status: 'delivered'
         })
         await supabaseAdmin.from('chats').update({
-            last_message: '📤 Recordatorio manual enviado',
+            last_message: '🔔 Recordatorio de renovación enviado',
             last_message_time: new Date().toISOString()
         }).eq('id', chatId)
     }
@@ -242,6 +244,17 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
             creds.access_token,
             creds.phone_number_id
         )
+
+        // Guardar con el formato correcto para que MessageBubble lo renderice como tarjeta visual
+        if (chatId) {
+            const planListContent = products.map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
+            await supabaseAdmin.from('messages').insert({
+                chat_id: chatId,
+                is_from_me: true,
+                content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente lo recibió como botones interactivos`,
+                status: 'delivered'
+            })
+        }
     }
 
     console.log(`[Manual Reminders] ✅ Recordatorio individual enviado a ${fullPhone}`)
@@ -485,12 +498,13 @@ Ref: {equipo}`
                             creds.phone_number_id
                         )
 
-                        // Guardar lista interactiva en el panel
-                        if (chatId) {
+                        // Guardar lista interactiva en el panel con formato correcto para tarjeta visual
+                        if (chatId && products && products.length > 0) {
+                            const planListContent = products.map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
                             await supabaseAdmin.from('messages').insert({
                                 chat_id: chatId,
                                 is_from_me: true,
-                                content: '📋 Lista de Planes de Renovación Enviada',
+                                content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente lo recibió como botones interactivos`,
                                 status: 'delivered'
                             })
                         }
