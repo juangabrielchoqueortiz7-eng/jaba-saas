@@ -123,7 +123,7 @@ async function processFollowups() {
         // Get WhatsApp credentials
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, business_name, service_name')
+            .select('access_token, phone_number_id, bot_name, service_name')
             .eq('user_id', userId)
             .single()
 
@@ -155,7 +155,7 @@ async function processFollowups() {
                 const fullPhone = (phone.length === 8 && (phone.startsWith('6') || phone.startsWith('7')))
                     ? '591' + phone : phone
 
-                const serviceName = (creds as any)?.service_name || (creds as any)?.business_name || 'nuestro servicio'
+                const serviceName = (creds as any)?.service_name || (creds as any)?.bot_name || 'nuestro servicio'
 
                 // Mensaje de remarketing profesional (genérico para cualquier negocio)
                 const followupMessage = `🔔 *Último aviso sobre tu cuenta de ${serviceName}*

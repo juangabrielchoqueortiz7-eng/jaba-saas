@@ -118,7 +118,7 @@ export async function POST(request: Request) {
                 // Simplificamos la query para evitar problemas de tipos o sintaxis .or()
                 const { data: credentialsList, error: credError } = await supabaseAdmin
                     .from('whatsapp_credentials')
-                    .select('user_id, access_token, business_name, service_name, service_description')
+                    .select('user_id, access_token, bot_name, service_name, service_description')
                     .eq('phone_number_id', String(phoneId))
 
                 const credentials = credentialsList?.[0] || null
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
                 }
 
                 const { user_id: tenantUserId, access_token: tenantToken } = credentials
-                const tenantBusinessName = (credentials as any).business_name || 'Nuestro negocio'
+                const tenantBusinessName = (credentials as any).bot_name || 'Nuestro negocio'
                 const tenantServiceName = (credentials as any).service_name || tenantBusinessName
                 const tenantServiceDesc = (credentials as any).service_description || `el servicio de ${tenantServiceName}`
                 // ---------------------------
@@ -742,10 +742,10 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // Obtener nombre del negocio para el mensaje
                             const { data: bizCreds } = await supabaseAdmin
                                 .from('whatsapp_credentials')
-                                .select('business_name')
+                                .select('bot_name, service_name')
                                 .eq('user_id', tenantUserId)
                                 .single();
-                            const bizName = bizCreds?.business_name || 'nuestro servicio';
+                            const bizName = bizCreds?.bot_name || bizCreds?.service_name || 'nuestro servicio';
 
                             // ACTUALIZAR la suscripción automáticamente ahora
                             let subUpdated = false;

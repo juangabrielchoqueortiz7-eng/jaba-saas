@@ -213,7 +213,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
     if (chatId) {
         // Guardar el TEXTO EXACTO que recibe el cliente (igual al template de Meta)
         // Guardar el TEXTO EXACTO que recibe el cliente (igual al template de Meta)
-        const svcName = (creds as any)?.service_name || (creds as any)?.business_name || 'nuestro servicio'
+        const svcName = (creds as any)?.service_name || (creds as any)?.bot_name || 'nuestro servicio'
         const actualTemplateText = `⚠️ *Acción requerida: Tu acceso a ${svcName} necesita atención*\n\n¡Hola! Notamos que tu suscripción de la cuenta ${sub?.correo || 'tu cuenta'} vencerá / venció el ${sub?.vencimiento || 'fecha no registrada'}.\n\nComo valoramos tu preferencia, queremos recordarte renovar a tiempo para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${svcName}. ✨\n\nPara renovar, puedes ver los precios en la imagen adjunta o elegir tu plan en la lista que te enviaremos a continuación 👇`
 
         await supabaseAdmin.from('messages').insert({
@@ -363,7 +363,7 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         // Get WhatsApp credentials for this user
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, business_name, service_name')
+            .select('access_token, phone_number_id, bot_name, service_name')
             .eq('user_id', userId)
             .single()
 
@@ -404,7 +404,7 @@ async function processReminders(specificUserId?: string, force: boolean = false)
             }))
         }] : []
 
-        const serviceName = (creds as any)?.service_name || (creds as any)?.business_name || 'nuestro servicio'
+        const serviceName = (creds as any)?.service_name || (creds as any)?.bot_name || 'nuestro servicio'
 
         // Default messages (genéricos para cualquier negocio)
         const defaultReminder = `⚠️ *Acción requerida: Tu acceso a ${serviceName} necesita atención*
