@@ -288,6 +288,7 @@ export default function SettingsPage() {
     const [serviceName, setServiceName] = useState('')
     const [serviceDescription, setServiceDescription] = useState('')
     const [promoImageUrl, setPromoImageUrl] = useState('')
+    const [promoLocalPreview, setPromoLocalPreview] = useState('')
     const [promoUploading, setPromoUploading] = useState(false)
     const [promoDragging, setPromoDragging] = useState(false)
 
@@ -356,6 +357,7 @@ export default function SettingsPage() {
                 setServiceName(data.service_name || '')
                 setServiceDescription(data.service_description || '')
                 setPromoImageUrl(data.promo_image_url || '')
+                setPromoLocalPreview(data.promo_image_url || '')
 
                 // AI Config
                 setAiStatus(data.ai_status || 'active')
@@ -433,6 +435,31 @@ export default function SettingsPage() {
             setMessage({ type: 'error', text: error.message || 'Error al guardar' })
         } finally {
             setLoading(false)
+        }
+    }
+
+    // Subir imagen de precios — muestra preview local inmediata, sube en background
+    const handlePromoUpload = async (file: File) => {
+        // 1. Preview local inmediata
+        const localUrl = URL.createObjectURL(file)
+        setPromoLocalPreview(localUrl)
+        setPromoUploading(true)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            const ext = file.name.split('.').pop()
+            const path = `promo/${user?.id}_${Date.now()}.${ext}`
+            const { error: upErr } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
+            if (upErr) throw upErr
+            const { data: pub } = supabase.storage.from('assets').getPublicUrl(path)
+            setPromoImageUrl(pub.publicUrl)
+            setPromoLocalPreview(pub.publicUrl)
+            URL.revokeObjectURL(localUrl)
+        } catch (err: any) {
+            // Si falla el upload, mantener preview local pero avisar que no se guardó
+            setMessage({ type: 'error', text: `No se pudo subir la imagen al servidor: ${err.message}. Asegúrate de haber creado el bucket "assets" en Supabase Storage (público).` })
+            // Dejar la preview local visible para que el usuario vea su imagen
+        } finally {
+            setPromoUploading(false)
         }
     }
 
@@ -635,30 +662,45 @@ export default function SettingsPage() {
                                 <Label className="text-base font-semibold text-slate-200">Imagen de precios</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <div className="space-y-3">
-                                        {promoImageUrl ? (
-                                            /* Preview con botón eliminar */
-                                            <div className="relative inline-block">
-                                                <img
-                                                    src={promoImageUrl}
-                                                    alt="Imagen de precios"
-                                                    className="max-h-48 rounded-lg border border-slate-700 object-contain"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setPromoImageUrl('')}
-                                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg transition-colors"
-                                                    title="Eliminar imagen"
-                                                >
-                                                    ✕
-                                                </button>
+                                        {(promoImageUrl || promoLocalPreview) ? (
+                                            /* Vista previa con botón eliminar */
+                                            <div className="space-y-2">
+                                                <div className="relative inline-block">
+                                                    <img
+                                                        src={promoLocalPreview || promoImageUrl}
+                                                        alt="Imagen de precios"
+                                                        className="max-h-56 w-full rounded-xl border border-slate-700 object-contain bg-slate-900"
+                                                    />
+                                                    {promoUploading && (
+                                                        <div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center gap-2">
+                                                            <RefreshCw className="w-6 h-6 text-green-400 animate-spin" />
+                                                            <span className="text-xs text-slate-300">Guardando imagen...</span>
+                                                        </div>
+                                                    )}
+                                                    {!promoUploading && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setPromoImageUrl(''); setPromoLocalPreview('') }}
+                                                            className="absolute -top-2 -right-2 w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-xl transition-colors z-10"
+                                                            title="Eliminar imagen"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {promoImageUrl && (
+                                                    <p className="text-xs text-green-500 flex items-center gap-1">
+                                                        <CheckCircle2 className="w-3 h-3" /> Imagen guardada correctamente
+                                                    </p>
+                                                )}
                                             </div>
                                         ) : (
                                             /* Zona drag & drop */
                                             <label
                                                 htmlFor="promoImageFile"
-                                                className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${promoDragging
-                                                        ? 'border-green-500 bg-green-500/10'
-                                                        : 'border-slate-700 hover:border-slate-500 bg-slate-900'
+                                                className={`flex flex-col items-center justify-center gap-3 p-10 border-2 border-dashed rounded-xl cursor-pointer transition-all ${promoDragging
+                                                    ? 'border-green-500 bg-green-500/10 scale-[1.01]'
+                                                    : 'border-slate-700 hover:border-green-600/50 hover:bg-slate-900 bg-slate-950'
                                                     }`}
                                                 onDragOver={e => { e.preventDefault(); setPromoDragging(true) }}
                                                 onDragLeave={() => setPromoDragging(false)}
@@ -666,21 +708,8 @@ export default function SettingsPage() {
                                                     e.preventDefault()
                                                     setPromoDragging(false)
                                                     const file = e.dataTransfer.files?.[0]
-                                                    if (!file) return
-                                                    setPromoUploading(true)
-                                                    try {
-                                                        const { data: { user } } = await supabase.auth.getUser()
-                                                        const ext = file.name.split('.').pop()
-                                                        const path = `promo/${user?.id}_${Date.now()}.${ext}`
-                                                        const { error: upErr } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
-                                                        if (upErr) throw upErr
-                                                        const { data: pub } = supabase.storage.from('assets').getPublicUrl(path)
-                                                        setPromoImageUrl(pub.publicUrl)
-                                                    } catch (err: any) {
-                                                        setMessage({ type: 'error', text: 'Error al subir imagen: ' + err.message })
-                                                    } finally {
-                                                        setPromoUploading(false)
-                                                    }
+                                                    if (!file || !file.type.startsWith('image/')) return
+                                                    await handlePromoUpload(file)
                                                 }}
                                             >
                                                 <input
@@ -691,45 +720,23 @@ export default function SettingsPage() {
                                                     onChange={async e => {
                                                         const file = e.target.files?.[0]
                                                         if (!file) return
-                                                        setPromoUploading(true)
-                                                        try {
-                                                            const { data: { user } } = await supabase.auth.getUser()
-                                                            const ext = file.name.split('.').pop()
-                                                            const path = `promo/${user?.id}_${Date.now()}.${ext}`
-                                                            const { error: upErr } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
-                                                            if (upErr) throw upErr
-                                                            const { data: pub } = supabase.storage.from('assets').getPublicUrl(path)
-                                                            setPromoImageUrl(pub.publicUrl)
-                                                        } catch (err: any) {
-                                                            setMessage({ type: 'error', text: 'Error al subir imagen: ' + err.message })
-                                                        } finally {
-                                                            setPromoUploading(false)
-                                                            e.target.value = ''
-                                                        }
+                                                        await handlePromoUpload(file)
+                                                        e.target.value = ''
                                                     }}
                                                 />
-                                                {promoUploading ? (
-                                                    <>
-                                                        <RefreshCw className="w-8 h-8 text-green-500 animate-spin" />
-                                                        <span className="text-sm text-slate-400">Subiendo imagen...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl">
-                                                            🖼️
-                                                        </div>
-                                                        <div className="text-center">
-                                                            <p className="text-sm font-medium text-slate-200">Arrastra tu imagen aquí</p>
-                                                            <p className="text-xs text-slate-500 mt-1">o haz clic para seleccionar</p>
-                                                            <p className="text-xs text-slate-600 mt-1">JPG, PNG, WEBP</p>
-                                                        </div>
-                                                    </>
-                                                )}
+                                                <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl">
+                                                    🖼️
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm font-semibold text-slate-200">Arrastra tu imagen aquí</p>
+                                                    <p className="text-xs text-slate-500 mt-1">o haz clic para seleccionar</p>
+                                                    <p className="text-xs text-slate-600 mt-2">JPG · PNG · WEBP</p>
+                                                </div>
                                             </label>
                                         )}
                                     </div>
                                     <p className="text-sm text-slate-400 leading-relaxed">
-                                        Imagen con tus precios que se envía automáticamente al cliente cuando pide información sobre los planes. Usa JPG o PNG de buena calidad.
+                                        Imagen con tus precios que se envía automáticamente al cliente cuando solicita información. Usa JPG o PNG de buena calidad. Puedes eliminarla y cambiarla cuando quieras.
                                     </p>
                                 </div>
                             </div>
