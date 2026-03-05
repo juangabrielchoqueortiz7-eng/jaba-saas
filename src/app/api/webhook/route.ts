@@ -1436,7 +1436,7 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                             // Fallback si no hay respuesta
                             if (!aiResponseText.trim()) {
                                 if (!actionExecuted) {
-                                    aiResponseText = '¡Hola! 👋 Bienvenido a JABA Marketing Digital. ¿En qué puedo ayudarte hoy?'
+                                    aiResponseText = `¡Hola! 👋 Bienvenido a ${tenantBusinessName}. ¿En qué puedo ayudarte hoy?`
                                 } else {
                                     // Si se ejecutó una acción pero no hay texto extra de la IA, terminamos el proceso sin enviar burbuja vacía
                                     return new NextResponse('EVENT_RECEIVED', { status: 200 })
