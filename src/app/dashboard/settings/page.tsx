@@ -285,6 +285,8 @@ export default function SettingsPage() {
     const [botName, setBotName] = useState('Mi Asistente')
     const [phoneDisplay, setPhoneDisplay] = useState('')
     const [welcomeMessage, setWelcomeMessage] = useState('')
+    const [serviceName, setServiceName] = useState('')
+    const [serviceDescription, setServiceDescription] = useState('')
 
     // Connection Fields
     const [phoneNumberId, setPhoneNumberId] = useState('')
@@ -348,6 +350,8 @@ export default function SettingsPage() {
                 setBotName(data.bot_name || 'Mi Asistente')
                 setPhoneDisplay(data.phone_number_display || '')
                 setWelcomeMessage(data.welcome_message || '')
+                setServiceName(data.service_name || '')
+                setServiceDescription(data.service_description || '')
 
                 // AI Config
                 setAiStatus(data.ai_status || 'active')
@@ -390,6 +394,8 @@ export default function SettingsPage() {
                 bot_name: botName,
                 phone_number_display: phoneDisplay,
                 welcome_message: welcomeMessage,
+                service_name: serviceName || null,
+                service_description: serviceDescription || null,
 
                 // New AI Fields
                 ai_status: aiStatus,
@@ -581,6 +587,40 @@ export default function SettingsPage() {
                                     />
                                     <p className="text-sm text-slate-400 leading-relaxed">
                                         Permite personalizar el mensaje inicial que se muestra a los usuarios al iniciar una conversación (si aplica).
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Service Name */}
+                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                                <Label htmlFor="serviceName" className="text-base font-semibold text-slate-200">Nombre del servicio</Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <Input
+                                        id="serviceName"
+                                        value={serviceName}
+                                        onChange={e => setServiceName(e.target.value)}
+                                        placeholder="Ej: Canva Pro, Gym Premium, Academia Virtual"
+                                        className="h-11 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-green-500"
+                                    />
+                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                        El nombre del servicio que vendes. Se usará en los mensajes del bot y recordatorios. Ej: "Canva Pro", "Netflix Premium".
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Service Description */}
+                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                                <Label htmlFor="serviceDescription" className="text-base font-semibold text-slate-200">Descripción del servicio</Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <textarea
+                                        id="serviceDescription"
+                                        value={serviceDescription}
+                                        onChange={e => setServiceDescription(e.target.value)}
+                                        placeholder="Ej: acceso ilimitado a diseño profesional con plantillas premium, IA para diseños y más"
+                                        className="min-h-[80px] w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                    />
+                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                        Descripción breve de lo que ofreces. Se usará en el saludo del bot cuando un nuevo cliente escribe.
                                     </p>
                                 </div>
                             </div>

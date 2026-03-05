@@ -118,7 +118,7 @@ export async function POST(request: Request) {
                 // Simplificamos la query para evitar problemas de tipos o sintaxis .or()
                 const { data: credentialsList, error: credError } = await supabaseAdmin
                     .from('whatsapp_credentials')
-                    .select('user_id, access_token')
+                    .select('user_id, access_token, business_name, service_name, service_description')
                     .eq('phone_number_id', String(phoneId))
 
                 const credentials = credentialsList?.[0] || null
@@ -135,6 +135,9 @@ export async function POST(request: Request) {
                 }
 
                 const { user_id: tenantUserId, access_token: tenantToken } = credentials
+                const tenantBusinessName = (credentials as any).business_name || 'Nuestro negocio'
+                const tenantServiceName = (credentials as any).service_name || tenantBusinessName
+                const tenantServiceDesc = (credentials as any).service_description || `el servicio de ${tenantServiceName}`
                 // ---------------------------
 
                 const messageObject = value.messages[0]
@@ -1268,16 +1271,16 @@ ${customTrainingSection}`
                                             phoneId
                                         )
 
-                                        // 2. Mensaje de Texto Formal de Juan
-                                        const greetingText = `¡Hola! Bienvenido mi nombre es Juan de asistente de ventas. 👋 ¿Estás listo para llevar tus diseños al nivel profesional con Canva Pro?\n\nCon Canva Pro, tendrás acceso a:\n\n✅ Miles de Plantillas Pro exclusivas\n✅ Estudio Mágico (IA para crear diseños)\n✅ Kit de Marca personalizado\n✅ Quitar fondos automáticamente\n✅ Páginas Web profesionales\n✅ 100M+ fotos, videos e ilustraciones premium\n✅ Soporte 24/7 y seguridad total`
+                                        // 2. Mensaje de saludo configurable por negocio
+                                        const greetingText = `¡Hola! Bienvenido a *${tenantBusinessName}*. 👋\n\nEstamos encantados de atenderte. Aquí podrás acceder a ${tenantServiceDesc}.\n\n¿Te gustaría ver nuestros planes disponibles? 👇`
                                         await sendWhatsAppMessage(phoneNumber, greetingText, tenantToken, phoneId)
 
                                         // 3. Botón / Lista de Planes
-                                        const listBody = `📋 Planes de Canva Pro disponibles:\n\nElige el plan que más te convenga y disfruta de todas las herramientas premium de Canva.\n\n💡 Todos los planes incluyen acceso completo a Canva Pro.`
+                                        const listBody = `📋 Planes de *${tenantServiceName}* disponibles:\n\nElige el plan que más te convenga y disfruta de todos los beneficios.\n\n💡 Todos los planes incluyen acceso completo a ${tenantServiceName}.`
 
                                         const sections = [
                                             {
-                                                title: "Planes Canva Pro",
+                                                title: `Planes ${tenantServiceName}`.substring(0, 24),
                                                 rows: (tenantProducts || []).slice(0, 10).map(p => ({
                                                     id: `product_${p.id}`,
                                                     title: p.name.substring(0, 24),
@@ -1315,7 +1318,7 @@ ${customTrainingSection}`
                                             if (!aiResponseText.trim()) {
                                                 aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.
 
-Para continuar, necesito tu *correo electrónico*. La invitación a *Canva Pro* se envía directamente a tu email para activar tu cuenta. 📧`
+Para continuar, necesito tu *correo electrónico*. El acceso a *${tenantServiceName}* se enviará directamente a tu email para activar tu cuenta. 📧`
                                             }
                                         } else if (result.success) {
                                             actionExecuted = true;

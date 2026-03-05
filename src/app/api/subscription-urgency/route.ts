@@ -136,7 +136,7 @@ async function processUrgency() {
     for (const [userId, userSubs] of Object.entries(userGroups)) {
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id')
+            .select('access_token, phone_number_id, business_name, service_name')
             .eq('user_id', userId)
             .single()
 
@@ -168,16 +168,18 @@ async function processUrgency() {
                 const fullPhone = (phone.length === 8 && (phone.startsWith('6') || phone.startsWith('7')))
                     ? '591' + phone : phone
 
+                const serviceName = (creds as any)?.service_name || (creds as any)?.business_name || 'nuestro servicio'
+
                 // Mensaje de urgencia profesional y amigable con saludo dinámico
                 const urgencyMessage = `⏰ *${greeting}*
 
-Te escribimos por última vez porque tu acceso a Canva Pro de la cuenta *${sub.correo}* está a punto de ser suspendido.
+Te escribimos por última vez porque tu acceso a ${serviceName} de la cuenta *${sub.correo}* está a punto de ser suspendido.
 
-Entendemos que a veces se nos pasan las cosas, por eso queremos darte esta última oportunidad de mantener tu cuenta activa con todos tus diseños intactos. 🎨
+Entendemos que a veces se nos pasan las cosas, por eso queremos darte esta última oportunidad de mantener tu cuenta activa con todo tu contenido intacto. 📂
 
 👉 Renueva en los próximos minutos seleccionando tu plan y tu acceso seguirá activo sin interrupciones.
 
-De lo contrario, tu cuenta será suspendida y tus diseños quedarán inaccesibles temporalmente.
+De lo contrario, tu cuenta será suspendida y tu contenido quedará inaccesible temporalmente.
 
 ¡Estamos aquí para ayudarte! 💬
 

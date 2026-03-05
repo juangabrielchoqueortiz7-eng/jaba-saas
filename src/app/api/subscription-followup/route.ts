@@ -123,7 +123,7 @@ async function processFollowups() {
         // Get WhatsApp credentials
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id')
+            .select('access_token, phone_number_id, business_name, service_name')
             .eq('user_id', userId)
             .single()
 
@@ -155,16 +155,18 @@ async function processFollowups() {
                 const fullPhone = (phone.length === 8 && (phone.startsWith('6') || phone.startsWith('7')))
                     ? '591' + phone : phone
 
-                // Mensaje de remarketing profesional
-                const followupMessage = `🔔 *Último aviso sobre tu cuenta Canva Pro*
+                const serviceName = (creds as any)?.service_name || (creds as any)?.business_name || 'nuestro servicio'
+
+                // Mensaje de remarketing profesional (genérico para cualquier negocio)
+                const followupMessage = `🔔 *Último aviso sobre tu cuenta de ${serviceName}*
 
 Hola, te escribimos nuevamente porque notamos que tu suscripción de la cuenta *${sub.correo}* aún no ha sido renovada.
 
 Queremos ser transparentes contigo: para mantener la calidad del servicio, necesitamos procesar las renovaciones pendientes. *Tu acceso será suspendido en las próximas horas si no se realiza la renovación.*
 
-🎨 No pierdas tus proyectos, plantillas guardadas ni tu historial de diseños. Todo lo que has creado merece seguir disponible para ti.
+📦 No pierdas tu contenido ni tu historial. Todo lo que has creado merece seguir disponible para ti.
 
-Renueva ahora y sigue creando sin límites ✨
+Renueva ahora y sigue disfrutando de ${serviceName} sin límites ✨
 
 Ref: ${sub.equipo || ''}`
 

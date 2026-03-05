@@ -147,7 +147,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
     // Obtener credenciales WhatsApp del usuario
     const { data: creds } = await supabaseAdmin
         .from('whatsapp_credentials')
-        .select('access_token, phone_number_id')
+        .select('access_token, phone_number_id, business_name, service_name')
         .eq('user_id', userId)
         .single()
 
@@ -212,7 +212,9 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
 
     if (chatId) {
         // Guardar el TEXTO EXACTO que recibe el cliente (igual al template de Meta)
-        const actualTemplateText = `⚠️ *Acción requerida: Tu acceso a Canva Pro necesita atención*\n\n¡Hola! Notamos que tu suscripción de la cuenta ${sub?.correo || 'tu cuenta'} vencerá / venció el ${sub?.vencimiento || 'fecha no registrada'}.\n\nComo valoramos tu trabajo, queremos recordarte renovar a tiempo para evitar cortes definitivos y seguir disfrutando de todos los beneficios Pro. ✨\n\nPara renovar, puedes ver los precios en la imagen adjunta o elegir tu plan en la lista que te enviaremos a continuación 👇`
+        // Guardar el TEXTO EXACTO que recibe el cliente (igual al template de Meta)
+        const svcName = (creds as any)?.service_name || (creds as any)?.business_name || 'nuestro servicio'
+        const actualTemplateText = `⚠️ *Acción requerida: Tu acceso a ${svcName} necesita atención*\n\n¡Hola! Notamos que tu suscripción de la cuenta ${sub?.correo || 'tu cuenta'} vencerá / venció el ${sub?.vencimiento || 'fecha no registrada'}.\n\nComo valoramos tu preferencia, queremos recordarte renovar a tiempo para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${svcName}. ✨\n\nPara renovar, puedes ver los precios en la imagen adjunta o elegir tu plan en la lista que te enviaremos a continuación 👇`
 
         await supabaseAdmin.from('messages').insert({
             chat_id: chatId,
@@ -361,7 +363,7 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         // Get WhatsApp credentials for this user
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id')
+            .select('access_token, phone_number_id, business_name, service_name')
             .eq('user_id', userId)
             .single()
 
@@ -402,30 +404,32 @@ async function processReminders(specificUserId?: string, force: boolean = false)
             }))
         }] : []
 
-        // Default messages
-        const defaultReminder = `⚠️ *Acción requerida: Tu acceso a Canva Pro necesita atención*
+        const serviceName = (creds as any)?.service_name || (creds as any)?.business_name || 'nuestro servicio'
+
+        // Default messages (genéricos para cualquier negocio)
+        const defaultReminder = `⚠️ *Acción requerida: Tu acceso a ${serviceName} necesita atención*
 
 ¡Hola! Notamos que tu suscripción venció el {vencimiento} de tu cuenta {correo}
 
-Porque valoramos tu trabajo, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.
+Porque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.
 
 📋 *Planes disponibles para renovar:*
 {planes}
 
-Por favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios Pro. *¡Te esperamos!* ✨
+Por favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨
 
 Ref: {equipo}`
 
-        const defaultExpiredGrace = `⚠️ *Acción requerida: Tu acceso a Canva Pro necesita atención*
+        const defaultExpiredGrace = `⚠️ *Acción requerida: Tu acceso a ${serviceName} necesita atención*
 
 ¡Hola! Notamos que tu suscripción venció el {vencimiento} de tu cuenta {correo}
 
-Porque valoramos tu trabajo, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.
+Porque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.
 
 📋 *Planes disponibles para renovar:*
 {planes}
 
-Por favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios Pro. *¡Te esperamos!* ✨
+Por favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨
 
 Ref: {equipo}`
 
