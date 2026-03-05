@@ -287,6 +287,7 @@ export default function SettingsPage() {
     const [welcomeMessage, setWelcomeMessage] = useState('')
     const [serviceName, setServiceName] = useState('')
     const [serviceDescription, setServiceDescription] = useState('')
+    const [promoImageUrl, setPromoImageUrl] = useState('')
 
     // Connection Fields
     const [phoneNumberId, setPhoneNumberId] = useState('')
@@ -352,6 +353,7 @@ export default function SettingsPage() {
                 setWelcomeMessage(data.welcome_message || '')
                 setServiceName(data.service_name || '')
                 setServiceDescription(data.service_description || '')
+                setPromoImageUrl(data.promo_image_url || '')
 
                 // AI Config
                 setAiStatus(data.ai_status || 'active')
@@ -396,6 +398,7 @@ export default function SettingsPage() {
                 welcome_message: welcomeMessage,
                 service_name: serviceName || null,
                 service_description: serviceDescription || null,
+                promo_image_url: promoImageUrl || null,
 
                 // New AI Fields
                 ai_status: aiStatus,
@@ -621,6 +624,28 @@ export default function SettingsPage() {
                                     />
                                     <p className="text-sm text-slate-400 leading-relaxed">
                                         Descripción breve de lo que ofreces. Se usará en el saludo del bot cuando un nuevo cliente escribe.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Reference (Disabled) */}
+                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                                <Label htmlFor="promoImageUrl" className="text-base font-semibold text-slate-200">Imagen de precios (URL)</Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <div className="space-y-2">
+                                        <Input
+                                            id="promoImageUrl"
+                                            value={promoImageUrl}
+                                            onChange={e => setPromoImageUrl(e.target.value)}
+                                            placeholder="https://jabachat.com/prices_promo.jpg"
+                                            className="h-11 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-green-500"
+                                        />
+                                        {promoImageUrl && (
+                                            <img src={promoImageUrl} alt="Vista previa" className="w-32 h-20 object-cover rounded border border-slate-700" onError={e => (e.currentTarget.style.display = 'none')} />
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                        URL de la imagen de precios que se envía al cliente. Sube tu imagen a cualquier hosting y pega la URL aquí.
                                     </p>
                                 </div>
                             </div>

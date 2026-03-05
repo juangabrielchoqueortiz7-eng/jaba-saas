@@ -6,6 +6,7 @@
 -- 1. Agregar campos para que cada negocio configure su servicio
 ALTER TABLE whatsapp_credentials ADD COLUMN IF NOT EXISTS service_name TEXT DEFAULT NULL;
 ALTER TABLE whatsapp_credentials ADD COLUMN IF NOT EXISTS service_description TEXT DEFAULT NULL;
+ALTER TABLE whatsapp_credentials ADD COLUMN IF NOT EXISTS promo_image_url TEXT DEFAULT NULL;
 
 -- 2. Comentarios
 COMMENT ON COLUMN whatsapp_credentials.service_name IS 'Nombre del servicio (ej: Canva Pro, Gym Pro, Academia Virtual). Usado por el bot en los mensajes.';

@@ -118,7 +118,7 @@ export async function POST(request: Request) {
                 // Simplificamos la query para evitar problemas de tipos o sintaxis .or()
                 const { data: credentialsList, error: credError } = await supabaseAdmin
                     .from('whatsapp_credentials')
-                    .select('user_id, access_token, bot_name, service_name, service_description')
+                    .select('user_id, access_token, bot_name, service_name, service_description, promo_image_url')
                     .eq('phone_number_id', String(phoneId))
 
                 const credentials = credentialsList?.[0] || null
@@ -138,6 +138,8 @@ export async function POST(request: Request) {
                 const tenantBusinessName = (credentials as any).bot_name || 'Nuestro negocio'
                 const tenantServiceName = (credentials as any).service_name || tenantBusinessName
                 const tenantServiceDesc = (credentials as any).service_description || `el servicio de ${tenantServiceName}`
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                const tenantPromoImage = (credentials as any).promo_image_url || `${baseUrl}/prices_promo.jpg`
                 // ---------------------------
 
                 const messageObject = value.messages[0]
@@ -446,22 +448,18 @@ export async function POST(request: Request) {
                         return new NextResponse('EVENT_RECEIVED', { status: 200 });
                     }
 
-                    // BUG 1 FIX: Buscar suscripción existente — primero ACTIVO, luego cualquier otro estado
+                    // Buscar TODAS las suscripciones de este número (puede tener múltiples cuentas)
                     const cleanPhone = phoneNumber.replace(/^591/, '');
-
-                    // Paso 1: Buscar en ACTIVOS (sin pedir correo)
-                    const { data: activeSubscription } = await supabaseAdmin
+                    const { data: allActiveSubs } = await supabaseAdmin
                         .from('subscriptions')
                         .select('*')
                         .eq('user_id', tenantUserId)
                         .eq('estado', 'ACTIVO')
                         .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhone}`)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle();
+                        .order('created_at', { ascending: false });
 
-                    // Paso 2: Si no está activo, buscar en INACTIVOS
-                    let subscription = activeSubscription;
+                    // Usar la primera activa como principal (o buscar inactiva si no hay activas)
+                    let subscription = allActiveSubs?.[0] || null;
                     let isInactiveClient = false;
                     if (!subscription) {
                         const { data: inactiveSub } = await supabaseAdmin
@@ -965,36 +963,30 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 .eq('is_active', true)
                                 .order('sort_order', { ascending: true })
 
-                            // ====== DETECTAR CLIENTE EXISTENTE (Suscripción) - BUG 1 & 2 FIX ======
+                            // ====== DETECTAR TODAS LAS SUSCRIPCIONES DEL CLIENTE ======
                             const cleanPhoneForLookup = phoneNumber.replace(/^591/, '');
 
-                            // Primero buscar en ACTIVOS
-                            const { data: existingActiveSub } = await supabaseAdmin
+                            // Buscar TODAS las suscripciones activas del número
+                            const { data: allExistingActiveSubs } = await supabaseAdmin
                                 .from('subscriptions')
                                 .select('correo, vencimiento, estado, equipo')
                                 .eq('user_id', tenantUserId)
                                 .eq('estado', 'ACTIVO')
                                 .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
-                                .order('created_at', { ascending: false })
-                                .limit(1)
-                                .maybeSingle();
+                                .order('created_at', { ascending: false });
 
-                            // Si no está activo, buscar en INACTIVOS
-                            let existingSub = existingActiveSub;
-                            let existingSubIsInactive = false;
-                            if (!existingSub) {
-                                const { data: existingInactiveSub } = await supabaseAdmin
-                                    .from('subscriptions')
-                                    .select('correo, vencimiento, estado, equipo')
-                                    .eq('user_id', tenantUserId)
-                                    .neq('estado', 'ACTIVO')
-                                    .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
-                                    .order('created_at', { ascending: false })
-                                    .limit(1)
-                                    .maybeSingle();
-                                existingSub = existingInactiveSub;
-                                if (existingInactiveSub) existingSubIsInactive = true;
-                            }
+                            // También buscar inactivas
+                            const { data: allExistingInactiveSubs } = await supabaseAdmin
+                                .from('subscriptions')
+                                .select('correo, vencimiento, estado, equipo')
+                                .eq('user_id', tenantUserId)
+                                .neq('estado', 'ACTIVO')
+                                .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
+                                .order('created_at', { ascending: false });
+
+                            const allSubs = [...(allExistingActiveSubs || []), ...(allExistingInactiveSubs || [])];
+                            const existingSub = allExistingActiveSubs?.[0] || allExistingInactiveSubs?.[0] || null;
+                            const existingSubIsInactive = !allExistingActiveSubs?.length && !!allExistingInactiveSubs?.length;
 
                             // BUG 2 FIX: Calcular estado real de la fecha de vencimiento
                             let subscriptionStatusLabel = '';
@@ -1031,25 +1023,29 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                             let subscriberContext = '';
                             if (existingSub) {
-                                console.log(`[AI] Cliente EXISTENTE detectado: ${phoneNumber} → correo: ${existingSub.correo}, estado: ${existingSub.estado}, inactivo: ${existingSubIsInactive}`);
+                                const activeCnt = allExistingActiveSubs?.length || 0;
+                                const totalCnt = allSubs.length;
+                                console.log(`[AI] Cliente detectado: ${phoneNumber} → ${totalCnt} suscripciones (${activeCnt} activas)`);
+
+                                // Construir lista de TODAS las cuentas para el contexto
+                                const allAccountsList = allSubs.map((s, i) =>
+                                    `  ${i + 1}. Correo: ${s.correo} | Estado: ${s.estado} | Vence: ${s.vencimiento || 'N/A'} | Equipo: ${s.equipo || 'N/A'}`
+                                ).join('\n');
 
                                 if (existingSubIsInactive) {
-                                    // Cliente INACTIVO: mencionar el correo y preguntar si es el correcto
-                                    subscriberContext = `\n⚠️ [CLIENTE CON CUENTA INACTIVA - REGLA ABSOLUTA]
-Este cliente tiene una cuenta INACTIVA en nuestro sistema.
-- Correo registrado en sistema: ${existingSub.correo}
-- Estado registrado: INACTIVO (cuenta desactivada)
-- Equipo: ${existingSub.equipo || 'N/A'}
-${subscriptionStatusLabel ? `- Estado real de vencimiento: ${subscriptionStatusLabel}` : ''}
-INSTRUCCIÓN: Si el cliente quiere renovar, preséntale el correo que tenemos registrado ("${existingSub.correo}") y pregúntale si es ese al que desea renovar el acceso. NO inventes correos ni pidas el correo de cero, ya lo tenemos. Usa exactamente: "Tenemos registrada la cuenta ${existingSub.correo}, ¿es esta la cuenta que deseas renovar?".`;
+                                    subscriberContext = `\n⚠️ [CLIENTE CON CUENTAS REGISTRADAS - REGLA ABSOLUTA]
+Este cliente tiene ${totalCnt} cuenta(s) registrada(s) en nuestro sistema (todas INACTIVAS):
+${allAccountsList}
+INSTRUCCIÓN: Si el cliente quiere renovar, preséntale la lista de cuentas y pregúntale cuál desea renovar. Usa exactamente los correos de la lista de arriba.`;
                                 } else {
-                                    // Cliente ACTIVO o Por Vencer: no pedir correo, actuar directamente
+                                    // Tiene al menos una cuenta activa
                                     subscriberContext = `\n⚠️ [CLIENTE EXISTENTE - REGLA ABSOLUTA] Este cliente YA está en nuestra base de datos.
-- Correo registrado: ${existingSub.correo}
-- ESTADO REAL DE LA SUSCRIPCIÓN: ${subscriptionStatusLabel || existingSub.estado}
-- Equipo: ${existingSub.equipo || 'N/A'}
-INSTRUCCIÓN CRÍTICA SOBRE FECHAS: ${subscriptionStatusLabel.includes('VENCIDA') || subscriptionStatusLabel.includes('VENCE HOY') ? `La suscripción está VENCIDA o vence hoy. NUNCA digas que sigue activa. El cliente NECESITA renovar. Dirígelo al proceso de renovación.` : `La suscripción está vigente. Si el cliente pregunta por su estado, informa correctamente el tiempo que le queda.`}
-INSTRUCCIÓN CRÍTICA SOBRE EMAIL: NUNCA, bajo NINGUNA circunstancia, le pidas correo electrónico a este cliente. Ya lo tenemos registrado como "${existingSub.correo}". Si quiere renovar, usa directamente su correo "${existingSub.correo}" con la herramienta "process_email". NO le preguntes "¿cuál es tu correo?". PROHÍBO completamente que solicites email a clientes existentes.`;
+Total de cuentas registradas con este número: ${totalCnt} (${activeCnt} activa(s))
+Lista completa de cuentas:
+${allAccountsList}
+- Cuenta principal activa: ${existingSub.correo} | Estado: ${subscriptionStatusLabel || existingSub.estado} | Equipo: ${existingSub.equipo || 'N/A'}
+INSTRUCCIÓN CRÍTICA SOBRE FECHAS: ${subscriptionStatusLabel.includes('VENCIDA') || subscriptionStatusLabel.includes('VENCE HOY') ? `La suscripción principal está VENCIDA o vence hoy. Dirígelo al proceso de renovación.` : `La suscripción principal está vigente.`}
+INSTRUCCIÓN CRÍTICA SOBRE EMAIL: NUNCA pidas correo a este cliente. Si quiere renovar y tiene varias cuentas, pregúntale cuál desea renovar mostrando la lista de arriba. Si elige una, usa ese correo con "process_email". Si solo tiene una cuenta activa, usa directamente "${existingSub.correo}" con "process_email" SIN preguntar.`;
 
                                     // Si hay un pedido pending_email y ya tenemos el correo, auto-procesarlo
                                     if (activeOrder && activeOrder.status === 'pending_email' && existingSub.correo) {
@@ -1262,10 +1258,10 @@ ${customTrainingSection}`
                                         const { sendWhatsAppImage, sendWhatsAppMessage, sendWhatsAppList } = await import('@/lib/whatsapp')
                                         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
 
-                                        // 1. Imagen de Precios Promocionales
+                                        // 1. Imagen de Precios Promocionales (configurable desde panel)
                                         await sendWhatsAppImage(
                                             phoneNumber,
-                                            `${baseUrl}/prices_promo.jpg`,
+                                            tenantPromoImage,
                                             '',
                                             tenantToken,
                                             phoneId
@@ -1302,12 +1298,13 @@ ${customTrainingSection}`
                                         const baseUrlForImg = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
                                         const planListContent = (tenantProducts || []).map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
                                         await supabaseAdmin.from('messages').insert([
-                                            { chat_id: chatId, is_from_me: true, content: '', media_url: `${baseUrlForImg}/prices_promo.jpg`, media_type: 'image', status: 'delivered' },
+                                            { chat_id: chatId, is_from_me: true, content: '', media_url: tenantPromoImage, media_type: 'image', status: 'delivered' },
                                             { chat_id: chatId, is_from_me: true, content: greetingText, status: 'delivered' },
                                             { chat_id: chatId, is_from_me: true, content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente puede elegir tocando "Ver Planes"`, status: 'delivered' }
                                         ])
 
                                         actionExecuted = true
+                                        aiResponseText = '' // Suprimir texto duplicado de la IA — el menu ya se envió completo
                                     }
 
                                     if (name === 'confirm_plan' && callArgs?.plan_id) {
