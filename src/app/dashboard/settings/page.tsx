@@ -288,6 +288,8 @@ export default function SettingsPage() {
     const [serviceName, setServiceName] = useState('')
     const [serviceDescription, setServiceDescription] = useState('')
     const [promoImageUrl, setPromoImageUrl] = useState('')
+    const [promoUploading, setPromoUploading] = useState(false)
+    const [promoDragging, setPromoDragging] = useState(false)
 
     // Connection Fields
     const [phoneNumberId, setPhoneNumberId] = useState('')
@@ -628,24 +630,106 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
-                            {/* Reference (Disabled) */}
+                            {/* Promo Image - Drag & Drop Upload */}
                             <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
-                                <Label htmlFor="promoImageUrl" className="text-base font-semibold text-slate-200">Imagen de precios (URL)</Label>
+                                <Label className="text-base font-semibold text-slate-200">Imagen de precios</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
-                                    <div className="space-y-2">
-                                        <Input
-                                            id="promoImageUrl"
-                                            value={promoImageUrl}
-                                            onChange={e => setPromoImageUrl(e.target.value)}
-                                            placeholder="https://jabachat.com/prices_promo.jpg"
-                                            className="h-11 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-green-500"
-                                        />
-                                        {promoImageUrl && (
-                                            <img src={promoImageUrl} alt="Vista previa" className="w-32 h-20 object-cover rounded border border-slate-700" onError={e => (e.currentTarget.style.display = 'none')} />
+                                    <div className="space-y-3">
+                                        {promoImageUrl ? (
+                                            /* Preview con botón eliminar */
+                                            <div className="relative inline-block">
+                                                <img
+                                                    src={promoImageUrl}
+                                                    alt="Imagen de precios"
+                                                    className="max-h-48 rounded-lg border border-slate-700 object-contain"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPromoImageUrl('')}
+                                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg transition-colors"
+                                                    title="Eliminar imagen"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            /* Zona drag & drop */
+                                            <label
+                                                htmlFor="promoImageFile"
+                                                className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${promoDragging
+                                                        ? 'border-green-500 bg-green-500/10'
+                                                        : 'border-slate-700 hover:border-slate-500 bg-slate-900'
+                                                    }`}
+                                                onDragOver={e => { e.preventDefault(); setPromoDragging(true) }}
+                                                onDragLeave={() => setPromoDragging(false)}
+                                                onDrop={async e => {
+                                                    e.preventDefault()
+                                                    setPromoDragging(false)
+                                                    const file = e.dataTransfer.files?.[0]
+                                                    if (!file) return
+                                                    setPromoUploading(true)
+                                                    try {
+                                                        const { data: { user } } = await supabase.auth.getUser()
+                                                        const ext = file.name.split('.').pop()
+                                                        const path = `promo/${user?.id}_${Date.now()}.${ext}`
+                                                        const { error: upErr } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
+                                                        if (upErr) throw upErr
+                                                        const { data: pub } = supabase.storage.from('assets').getPublicUrl(path)
+                                                        setPromoImageUrl(pub.publicUrl)
+                                                    } catch (err: any) {
+                                                        setMessage({ type: 'error', text: 'Error al subir imagen: ' + err.message })
+                                                    } finally {
+                                                        setPromoUploading(false)
+                                                    }
+                                                }}
+                                            >
+                                                <input
+                                                    id="promoImageFile"
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="sr-only"
+                                                    onChange={async e => {
+                                                        const file = e.target.files?.[0]
+                                                        if (!file) return
+                                                        setPromoUploading(true)
+                                                        try {
+                                                            const { data: { user } } = await supabase.auth.getUser()
+                                                            const ext = file.name.split('.').pop()
+                                                            const path = `promo/${user?.id}_${Date.now()}.${ext}`
+                                                            const { error: upErr } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
+                                                            if (upErr) throw upErr
+                                                            const { data: pub } = supabase.storage.from('assets').getPublicUrl(path)
+                                                            setPromoImageUrl(pub.publicUrl)
+                                                        } catch (err: any) {
+                                                            setMessage({ type: 'error', text: 'Error al subir imagen: ' + err.message })
+                                                        } finally {
+                                                            setPromoUploading(false)
+                                                            e.target.value = ''
+                                                        }
+                                                    }}
+                                                />
+                                                {promoUploading ? (
+                                                    <>
+                                                        <RefreshCw className="w-8 h-8 text-green-500 animate-spin" />
+                                                        <span className="text-sm text-slate-400">Subiendo imagen...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-2xl">
+                                                            🖼️
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <p className="text-sm font-medium text-slate-200">Arrastra tu imagen aquí</p>
+                                                            <p className="text-xs text-slate-500 mt-1">o haz clic para seleccionar</p>
+                                                            <p className="text-xs text-slate-600 mt-1">JPG, PNG, WEBP</p>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </label>
                                         )}
                                     </div>
                                     <p className="text-sm text-slate-400 leading-relaxed">
-                                        URL de la imagen de precios que se envía al cliente. Sube tu imagen a cualquier hosting y pega la URL aquí.
+                                        Imagen con tus precios que se envía automáticamente al cliente cuando pide información sobre los planes. Usa JPG o PNG de buena calidad.
                                     </p>
                                 </div>
                             </div>
