@@ -26,6 +26,7 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSendingReminders, setIsSendingReminders] = useState(false);
     const [isBroadcasting, setIsBroadcasting] = useState(false);
+    const [isExportingContacts, setIsExportingContacts] = useState(false);
 
     const handleFormSuccess = (newSub: Subscription) => {
         if (onLocalAdd) {
@@ -224,6 +225,34 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
         doc.save("Suscripciones_JABA.pdf");
     };
 
+    const handleExportContacts = async () => {
+        setIsExportingContacts(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                toast.error('No hay sesión activa');
+                return;
+            }
+            const res = await fetch('/api/export-contacts', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            if (!res.ok) throw new Error('Error al exportar');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `contactos_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success('✅ Contactos exportados');
+        } catch (err) {
+            console.error(err);
+            toast.error('Error al exportar contactos');
+        } finally {
+            setIsExportingContacts(false);
+        }
+    };
+
     const handleDeleteAll = async () => {
         if (!confirm('¡PELIGRO! ¿Estás seguro de borrar TODAS las suscripciones? Esto no se puede deshacer.')) return;
 
@@ -273,9 +302,16 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
                             </button>
                             <button
                                 onClick={() => { handleExportPDF(); setIsExportOpen(false); }}
-                                className="w-full text-left px-4 py-3 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2 last:rounded-b-xl border-t border-slate-700/50"
+                                className="w-full text-left px-4 py-3 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2 border-t border-slate-700/50"
                             >
                                 <FileText size={16} className="text-red-500" /> PDF
+                            </button>
+                            <button
+                                onClick={() => { handleExportContacts(); setIsExportOpen(false); }}
+                                disabled={isExportingContacts}
+                                className="w-full text-left px-4 py-3 hover:bg-slate-700 text-sm text-slate-300 flex items-center gap-2 last:rounded-b-xl border-t border-slate-700/50"
+                            >
+                                <Download size={16} className="text-cyan-500" /> {isExportingContacts ? 'Exportando...' : 'Contactos + Tags'}
                             </button>
                         </div>
                     </>
