@@ -147,7 +147,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
     // Obtener credenciales WhatsApp del usuario
     const { data: creds } = await supabaseAdmin
         .from('whatsapp_credentials')
-        .select('access_token, phone_number_id, business_name, service_name')
+        .select('access_token, phone_number_id, bot_name, service_name')
         .eq('user_id', userId)
         .single()
 

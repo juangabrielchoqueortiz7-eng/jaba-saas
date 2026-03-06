@@ -9,6 +9,17 @@ const supabaseAdmin = createClient(
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+// Parse DD/MM/YYYY date strings
+function parseDate(dateStr: string): Date | null {
+    if (!dateStr) return null
+    const parts = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+    if (parts) {
+        return new Date(parseInt(parts[3]), parseInt(parts[2]) - 1, parseInt(parts[1]))
+    }
+    const d = new Date(dateStr)
+    return isNaN(d.getTime()) ? null : d
+}
+
 // Obtener saludo según hora de Bolivia (UTC-4)
 function getBoliviaGreeting(): string {
     const now = new Date()
@@ -104,11 +115,23 @@ async function processUrgency() {
 
     // Filter: followup must have been sent at least 48 hours ago AND not paused
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
+    const today = new Date()
     const candidates = subscriptions.filter(sub => {
         if (sub.auto_notify_paused) return false
 
         const phone = (sub.numero || '').replace(/\D/g, '')
         if (phone.length < 8) return false
+
+        // CRITICAL: Verificar que la fecha de vencimiento es cercana (dentro de 7 días)
+        // Si el admin actualizó manualmente a fecha lejana, NO enviar urgency
+        const expDate = parseDate(sub.vencimiento)
+        if (expDate) {
+            const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+            if (diffDays > 7) {
+                console.log(`[Urgency] ⏭️ Skip ${sub.correo}: vence ${sub.vencimiento} (${diffDays} días) — fecha lejana`)
+                return false
+            }
+        }
 
         // Must have notified_at and it must be >= 48h ago
         if (!sub.notified_at) return false

@@ -130,10 +130,10 @@ export async function POST(request: Request) {
             // 4. Obtener nombre del negocio para mensaje genérico
             const { data: businessProfile } = await supabaseAdmin
                 .from('whatsapp_credentials')
-                .select('business_name')
+                .select('bot_name, service_name')
                 .eq('user_id', user.id)
                 .single();
-            const businessName = businessProfile?.business_name || 'nuestro servicio';
+            const businessName = businessProfile?.service_name || businessProfile?.bot_name || 'nuestro servicio';
 
             // 5. Enviar mensaje genérico al cliente por WhatsApp
             if (creds?.access_token && creds?.phone_number_id && renewal.phone_number) {

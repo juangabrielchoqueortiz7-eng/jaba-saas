@@ -1027,16 +1027,30 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 const totalCnt = allSubs.length;
                                 console.log(`[AI] Cliente detectado: ${phoneNumber} → ${totalCnt} suscripciones (${activeCnt} activas)`);
 
-                                // Construir lista de TODAS las cuentas para el contexto
-                                const allAccountsList = allSubs.map((s, i) =>
-                                    `  ${i + 1}. Correo: ${s.correo} | Estado: ${s.estado} | Vence: ${s.vencimiento || 'N/A'} | Equipo: ${s.equipo || 'N/A'}`
-                                ).join('\n');
+                                // Construir lista de TODAS las cuentas para el contexto con DÍAS PRECALCULADOS
+                                const nowBol = new Date(Date.now() - 4 * 60 * 60 * 1000);
+                                const todayBol = new Date(nowBol.getFullYear(), nowBol.getMonth(), nowBol.getDate());
+                                const allAccountsList = allSubs.map((s, i) => {
+                                    let diasInfo = '';
+                                    if (s.vencimiento) {
+                                        let expD: Date | null = null;
+                                        const ps = s.vencimiento.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                                        const pd = s.vencimiento.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                                        if (ps) expD = new Date(parseInt(ps[3]), parseInt(ps[2]) - 1, parseInt(ps[1]));
+                                        else if (pd) expD = new Date(parseInt(pd[1]), parseInt(pd[2]) - 1, parseInt(pd[3]));
+                                        if (expD) {
+                                            const diff = Math.ceil((expD.getTime() - todayBol.getTime()) / (1000 * 60 * 60 * 24));
+                                            diasInfo = diff < 0 ? ` | VENCIDA hace ${Math.abs(diff)} días` : diff === 0 ? ' | VENCE HOY' : ` | Vence en ${diff} días`;
+                                        }
+                                    }
+                                    return `  ${i + 1}. Correo: ${s.correo} | Estado: ${s.estado} | Fecha: ${s.vencimiento || 'N/A'}${diasInfo} | Equipo: ${s.equipo || 'N/A'}`;
+                                }).join('\n');
 
                                 if (existingSubIsInactive) {
                                     subscriberContext = `\n⚠️ [CLIENTE CON CUENTAS REGISTRADAS - REGLA ABSOLUTA]
 Este cliente tiene ${totalCnt} cuenta(s) registrada(s) en nuestro sistema (todas INACTIVAS):
 ${allAccountsList}
-INSTRUCCIÓN: Si el cliente quiere renovar, preséntale la lista de cuentas y pregúntale cuál desea renovar. Usa exactamente los correos de la lista de arriba.`;
+INSTRUCCIÓN: Si el cliente quiere renovar, preséntale la lista de cuentas y pregúntale cuál desea renovar. Usa exactamente los correos de la lista de arriba. NUNCA le pidas su correo electrónico.`;
                                 } else {
                                     // Tiene al menos una cuenta activa
                                     subscriberContext = `\n⚠️ [CLIENTE EXISTENTE - REGLA ABSOLUTA] Este cliente YA está en nuestra base de datos.
@@ -1044,8 +1058,9 @@ Total de cuentas registradas con este número: ${totalCnt} (${activeCnt} activa(
 Lista completa de cuentas:
 ${allAccountsList}
 - Cuenta principal activa: ${existingSub.correo} | Estado: ${subscriptionStatusLabel || existingSub.estado} | Equipo: ${existingSub.equipo || 'N/A'}
-INSTRUCCIÓN CRÍTICA SOBRE FECHAS: ${subscriptionStatusLabel.includes('VENCIDA') || subscriptionStatusLabel.includes('VENCE HOY') ? `La suscripción principal está VENCIDA o vence hoy. Dirígelo al proceso de renovación.` : `La suscripción principal está vigente.`}
-INSTRUCCIÓN CRÍTICA SOBRE EMAIL: NUNCA pidas correo a este cliente. Si quiere renovar y tiene varias cuentas, pregúntale cuál desea renovar mostrando la lista de arriba. Si elige una, usa ese correo con "process_email". Si solo tiene una cuenta activa, usa directamente "${existingSub.correo}" con "process_email" SIN preguntar.`;
+INSTRUCCIÓN CRÍTICA SOBRE FECHAS: Los días restantes ya están calculados arriba. NUNCA calcules tú los días, usa EXACTAMENTE la información que te doy. ${subscriptionStatusLabel.includes('VENCIDA') || subscriptionStatusLabel.includes('VENCE HOY') ? `La suscripción principal está VENCIDA o vence hoy. Dirígelo al proceso de renovación.` : `La suscripción principal está vigente. NO le digas que debe renovar ni que su cuenta será suspendida.`}
+INSTRUCCIÓN CRÍTICA SOBRE EMAIL: NUNCA pidas correo a este cliente. Ya tenemos su correo registrado. Si quiere renovar y tiene varias cuentas, pregúntale cuál desea renovar mostrando la lista de arriba. Si elige una, usa ese correo con "process_email". Si solo tiene una cuenta activa, usa directamente "${existingSub.correo}" con "process_email" SIN preguntar.
+INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya renovó, NO le digas que recibirá más notificaciones. Simplemente confirma que verificarás su cuenta.`;
 
                                     // Si hay un pedido pending_email y ya tenemos el correo, auto-procesarlo
                                     if (activeOrder && activeOrder.status === 'pending_email' && existingSub.correo) {
