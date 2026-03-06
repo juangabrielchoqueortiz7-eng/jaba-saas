@@ -2,11 +2,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, Check, CheckCheck, Filter } from 'lucide-react'
+import { Search, Check, CheckCheck, Filter, X, Tag } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { formatChatListTime } from '@/lib/formatTime'
+
+// ============================================================
+// CRM TAG SYSTEM — Colores y etiquetas predefinidas
+// ============================================================
+export const CRM_TAGS: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+    'nuevo': { label: 'Nuevo', color: 'text-blue-400', bg: 'bg-blue-500/20', icon: '🆕' },
+    'cliente_potencial': { label: 'Potencial', color: 'text-cyan-400', bg: 'bg-cyan-500/20', icon: '🎯' },
+    'pago': { label: 'Pagó', color: 'text-green-400', bg: 'bg-green-500/20', icon: '✅' },
+    'renovacion_pendiente': { label: 'Renovación', color: 'text-yellow-400', bg: 'bg-yellow-500/20', icon: '⚠️' },
+    'vencido': { label: 'Vencido', color: 'text-red-400', bg: 'bg-red-500/20', icon: '🔴' },
+    'soporte': { label: 'Soporte', color: 'text-purple-400', bg: 'bg-purple-500/20', icon: '🛟' },
+    'no_interesado': { label: 'No Interesado', color: 'text-slate-400', bg: 'bg-slate-500/20', icon: '❌' },
+}
 
 interface Chat {
     id: string
@@ -16,6 +29,7 @@ interface Chat {
     unread_count: number
     phone_number: string
     last_message_status?: string
+    tags?: string[]
 }
 
 export function ConversationList() {
@@ -24,6 +38,8 @@ export function ConversationList() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [supabase] = useState(() => createClient())
     const [searchTerm, setSearchTerm] = useState('')
+    const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
+    const [showFilterMenu, setShowFilterMenu] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
     const activeChatId = searchParams.get('chatId')
@@ -64,10 +80,16 @@ export function ConversationList() {
         router.push(`/dashboard/chats?chatId=${chatId}`)
     }
 
-    const filteredChats = chats.filter(chat =>
-        (chat.contact_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (chat.phone_number || '').includes(searchTerm)
-    )
+    const filteredChats = chats.filter(chat => {
+        const matchesSearch =
+            (chat.contact_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (chat.phone_number || '').includes(searchTerm)
+
+        const matchesTag = !activeTagFilter ||
+            (chat.tags && chat.tags.includes(activeTagFilter))
+
+        return matchesSearch && matchesTag
+    })
 
     const getStatusIcon = (status?: string) => {
         switch (status) {
@@ -79,6 +101,12 @@ export function ConversationList() {
                 return <Check size={16} className="text-slate-400 flex-shrink-0" />
         }
     }
+
+    // Count chats per tag for filter menu
+    const tagCounts = Object.keys(CRM_TAGS).reduce((acc, tag) => {
+        acc[tag] = chats.filter(c => c.tags?.includes(tag)).length
+        return acc
+    }, {} as Record<string, number>)
 
     return (
         <div className="w-80 border-r border-[#2a3942] bg-[#111b21] flex flex-col h-full">
@@ -104,10 +132,70 @@ export function ConversationList() {
                             placeholder="Buscar chats..."
                         />
                     </div>
-                    <button className="bg-[#2a3942] hover:bg-[#3b4a54] text-[#aebac1] p-2 rounded-lg transition-colors">
-                        <Filter size={18} />
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowFilterMenu(!showFilterMenu)}
+                            className={cn(
+                                "p-2 rounded-lg transition-colors",
+                                activeTagFilter
+                                    ? "bg-[#00a884] text-white"
+                                    : "bg-[#2a3942] hover:bg-[#3b4a54] text-[#aebac1]"
+                            )}
+                        >
+                            <Filter size={18} />
+                        </button>
+
+                        {/* Filter dropdown */}
+                        {showFilterMenu && (
+                            <div className="absolute right-0 top-full mt-2 w-52 bg-[#233138] border border-[#2a3942] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
+                                <button
+                                    onClick={() => { setActiveTagFilter(null); setShowFilterMenu(false) }}
+                                    className={cn(
+                                        "w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-[#2a3942] transition-colors",
+                                        !activeTagFilter ? "text-[#00a884] font-medium" : "text-[#e9edef]"
+                                    )}
+                                >
+                                    <Tag size={14} />
+                                    Todos ({chats.length})
+                                </button>
+                                <div className="border-t border-[#2a3942] my-1" />
+                                {Object.entries(CRM_TAGS).map(([key, tag]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => { setActiveTagFilter(key); setShowFilterMenu(false) }}
+                                        className={cn(
+                                            "w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-[#2a3942] transition-colors",
+                                            activeTagFilter === key ? `${tag.color} font-medium` : "text-[#e9edef]"
+                                        )}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <span>{tag.icon}</span>
+                                            {tag.label}
+                                        </span>
+                                        {tagCounts[key] > 0 && (
+                                            <span className={cn("text-xs px-1.5 py-0.5 rounded-full", tag.bg, tag.color)}>
+                                                {tagCounts[key]}
+                                            </span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
+
+                {/* Active filter indicator */}
+                {activeTagFilter && CRM_TAGS[activeTagFilter] && (
+                    <div className="mt-2 flex items-center gap-2">
+                        <span className={cn("text-xs px-2 py-1 rounded-full flex items-center gap-1", CRM_TAGS[activeTagFilter].bg, CRM_TAGS[activeTagFilter].color)}>
+                            {CRM_TAGS[activeTagFilter].icon} {CRM_TAGS[activeTagFilter].label}
+                            <button onClick={() => setActiveTagFilter(null)} className="ml-1 hover:opacity-70">
+                                <X size={12} />
+                            </button>
+                        </span>
+                        <span className="text-xs text-[#8696a0]">{filteredChats.length} chats</span>
+                    </div>
+                )}
             </div>
 
             {/* Chat List */}
@@ -158,6 +246,31 @@ export function ConversationList() {
                                     {getStatusIcon(chat.last_message_status)}
                                     <p className="text-sm text-[#8696a0] truncate">{chat.last_message}</p>
                                 </div>
+
+                                {/* CRM Tags */}
+                                {chat.tags && chat.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {chat.tags.slice(0, 3).map(tag => {
+                                            const tagConfig = CRM_TAGS[tag]
+                                            if (!tagConfig) return null
+                                            return (
+                                                <span
+                                                    key={tag}
+                                                    className={cn(
+                                                        "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                                                        tagConfig.bg,
+                                                        tagConfig.color
+                                                    )}
+                                                >
+                                                    {tagConfig.icon} {tagConfig.label}
+                                                </span>
+                                            )
+                                        })}
+                                        {chat.tags.length > 3 && (
+                                            <span className="text-[10px] text-[#8696a0]">+{chat.tags.length - 3}</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Unread badge */}

@@ -53,6 +53,23 @@ export async function GET(request: Request) {
 
 // POST: Para recibir los mensajes de WhatsApp
 export async function POST(request: Request) {
+    // --- CRM TAG HELPER ---
+    async function updateChatTags(chatId: string, addTags: string[] = [], removeTags: string[] = []) {
+        try {
+            const { data: chat } = await supabaseAdmin.from('chats').select('tags').eq('id', chatId).single();
+            let currentTags: string[] = chat?.tags || [];
+            // Remove specified tags
+            if (removeTags.length > 0) currentTags = currentTags.filter(t => !removeTags.includes(t));
+            // Add new tags (no duplicates)
+            for (const tag of addTags) {
+                if (!currentTags.includes(tag)) currentTags.push(tag);
+            }
+            await supabaseAdmin.from('chats').update({ tags: currentTags }).eq('id', chatId);
+        } catch (err) {
+            console.error('[CRM Tags] Error updating tags:', err);
+        }
+    }
+
     // --- HELPER FUNCTIONS ---
     async function confirmOrder(productId: string, chatId: string, phoneNumber: string, contactName: string, tenantUserId: string) {
         // Cargar producto desde la DB
@@ -252,11 +269,13 @@ export async function POST(request: Request) {
                         user_id: tenantUserId,
                         contact_name: contactName,
                         last_message: messageText,
-                        unread_count: 1
+                        unread_count: 1,
+                        tags: ['nuevo']  // CRM: auto-tag new client
                     }).select().single()
 
                     if (chatError) console.error("Error creating chat:", chatError);
                     if (newChat) chatId = newChat.id
+                    console.log(`[CRM] 🏷️ Auto-tagged nuevo: ${contactName}`);
                 }
 
                 // 2. Guardar el MENSAJE (Del Usuario)
@@ -830,6 +849,12 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 last_message: successMsg.substring(0, 100),
                                 last_message_time: new Date().toISOString()
                             }).eq('id', chatId);
+
+                            // CRM: Auto-tag payment
+                            if (chatId) {
+                                await updateChatTags(chatId, ['pago'], ['renovacion_pendiente', 'vencido', 'nuevo', 'cliente_potencial']);
+                                console.log(`[CRM] 🏷️ Auto-tagged pago: ${phoneNumber}`);
+                            }
 
                             return new NextResponse('EVENT_RECEIVED', { status: 200 });
 

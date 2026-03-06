@@ -561,6 +561,18 @@ Ref: {equipo}`
 
                     results.sent++
                     console.log(`[Reminders] ✅ Sent to ${fullPhone} (${sub.correo})`)
+
+                    // CRM: Auto-tag renovacion_pendiente
+                    const reminderChatId = await findOrCreateChat(fullPhone, userId, sub.correo)
+                    if (reminderChatId) {
+                        try {
+                            const { data: chatData } = await supabaseAdmin.from('chats').select('tags').eq('id', reminderChatId).single()
+                            let tags: string[] = chatData?.tags || []
+                            tags = tags.filter(t => t !== 'pago') // remove pago if expired again
+                            if (!tags.includes('renovacion_pendiente')) tags.push('renovacion_pendiente')
+                            await supabaseAdmin.from('chats').update({ tags }).eq('id', reminderChatId)
+                        } catch { }
+                    }
                 } else {
                     // Log failure
                     await supabaseAdmin.from('subscription_notification_logs').insert({

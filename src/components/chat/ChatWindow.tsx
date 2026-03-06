@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Paperclip, Smile, MoreVertical, Mic, MicOff, X, Bell, Image as ImageIcon } from 'lucide-react'
+import { Send, Paperclip, Smile, MoreVertical, Mic, MicOff, X, Bell, Image as ImageIcon, Tag } from 'lucide-react'
 import { MessageBubble } from './MessageBubble'
 import { createClient } from '@/utils/supabase/client'
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react'
 import { useSearchParams } from 'next/navigation'
 import { formatMessageTime, formatDateSeparator, isDifferentDay } from '@/lib/formatTime'
+import { CRM_TAGS } from './ConversationList'
+import { cn } from '@/lib/utils'
 
 interface Message {
     id: string
@@ -22,6 +24,7 @@ interface Message {
 interface ChatDetails {
     contact_name: string
     phone_number: string
+    tags?: string[]
 }
 
 export function ChatWindow() {
@@ -37,6 +40,7 @@ export function ChatWindow() {
     const [reminderResult, setReminderResult] = useState<string | null>(null)
     const [isResendingPlans, setIsResendingPlans] = useState(false)
     const [resendPlansResult, setResendPlansResult] = useState<string | null>(null)
+    const [showTagMenu, setShowTagMenu] = useState(false)
 
     // Audio recording state
     const [isRecording, setIsRecording] = useState(false)
@@ -58,11 +62,11 @@ export function ChatWindow() {
             setLoading(true)
             const { data: chat } = await supabase
                 .from('chats')
-                .select('contact_name, phone_number')
+                .select('contact_name, phone_number, tags')
                 .eq('id', activeChatId)
                 .single()
 
-            if (chat) setChatDetails(chat)
+            if (chat) setChatDetails(chat as any)
 
             const { data: msgs } = await supabase
                 .from('messages')
@@ -432,6 +436,70 @@ export function ChatWindow() {
                         <span className="text-xs text-[#8696a0]">{chatDetails?.phone_number}</span>
                     </div>
                 </div>
+
+                {/* CRM Tags */}
+                <div className="relative">
+                    <button
+                        onClick={() => setShowTagMenu(!showTagMenu)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[#2a3942] hover:bg-[#3b4a54] text-[#aebac1] transition-colors"
+                    >
+                        <Tag size={12} />
+                        {(chatDetails?.tags?.length || 0) > 0 && (
+                            <span className="text-[10px] bg-[#00a884] text-white px-1 rounded-full">{chatDetails?.tags?.length}</span>
+                        )}
+                    </button>
+
+                    {showTagMenu && (
+                        <div className="absolute left-0 top-full mt-2 w-48 bg-[#233138] border border-[#2a3942] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
+                            <p className="px-3 py-1.5 text-[10px] text-[#8696a0] uppercase tracking-wider font-medium">Etiquetas CRM</p>
+                            {Object.entries(CRM_TAGS).map(([key, tag]) => {
+                                const isActive = chatDetails?.tags?.includes(key)
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={async () => {
+                                            if (!activeChatId) return
+                                            const action = isActive ? 'remove' : 'add'
+                                            const { data: { session } } = await supabase.auth.getSession()
+                                            await fetch('/api/chat-tags', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                                                body: JSON.stringify({ chat_id: activeChatId, action, tag: key })
+                                            })
+                                            // Update local state
+                                            setChatDetails(prev => {
+                                                if (!prev) return prev
+                                                const newTags = isActive
+                                                    ? (prev.tags || []).filter(t => t !== key)
+                                                    : [...(prev.tags || []), key]
+                                                return { ...prev, tags: newTags }
+                                            })
+                                        }}
+                                        className={cn(
+                                            "w-full px-3 py-1.5 text-left text-sm flex items-center gap-2 hover:bg-[#2a3942] transition-colors",
+                                            isActive ? tag.color + ' font-medium' : 'text-[#e9edef]'
+                                        )}
+                                    >
+                                        <span>{tag.icon}</span>
+                                        <span className="flex-1">{tag.label}</span>
+                                        {isActive && <span className="text-[10px]">✓</span>}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Current tags display */}
+                {chatDetails?.tags && chatDetails.tags.length > 0 && (
+                    <div className="flex gap-1">
+                        {chatDetails.tags.slice(0, 2).map(t => {
+                            const tc = CRM_TAGS[t]
+                            if (!tc) return null
+                            return <span key={t} className={cn("text-[10px] px-1.5 py-0.5 rounded-full", tc.bg, tc.color)}>{tc.icon} {tc.label}</span>
+                        })}
+                    </div>
+                )}
                 <div className="flex items-center gap-2 text-[#aebac1]">
                     {/* Botón reenviar lista de planes */}
                     <div className="relative">
