@@ -636,6 +636,79 @@ export async function POST(request: Request) {
                     }
                 }
 
+                // --- PROCESAR SELECCIÓN DE CUENTA PARA RENOVAR (INTERACTIVO) ---
+                if (interactiveData && interactiveData.id.startsWith('renew_account_')) {
+                    const selectedEmail = interactiveData.id.replace('renew_account_', '');
+                    console.log(`[Renewal] 🔄 Cuenta seleccionada determinísticamente: ${selectedEmail}`);
+
+                    const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
+
+                    // Asegurarnos de limpiar pedidos de selección de cuenta o plan anteriores para evitar cruces
+                    await supabaseAdmin
+                        .from('orders')
+                        .delete()
+                        .eq('chat_id', chatId)
+                        .in('status', ['pending_plan_selection', 'pending_email', 'pending_payment']);
+
+                    // Guardar el email seleccionado en la base de datos inmediatamente
+                    const { data: newOrder, error: orderErr } = await supabaseAdmin.from('orders').insert({
+                        chat_id: chatId,
+                        user_id: tenantUserId,
+                        customer_email: selectedEmail,
+                        status: 'pending_plan_selection'
+                    }).select('id').single();
+
+                    if (!orderErr) {
+                        let responseText = `¡Perfecto! Anotado. Vamos a renovar la cuenta *${selectedEmail}*.\n\n`;
+                        responseText += `Te envío nuestro menú de planes para que elijas el que más te convenga 👇`;
+
+                        await sendWhatsAppMessage(phoneNumber, responseText, tenantToken, phoneId);
+
+                        // Auto-enviar el catálogo de planes usando la función existente `send_welcome_menu` style
+                        // Para esto, buscaremos los productos activos y mandaremos la lista interactiva
+                        const { data: products } = await supabaseAdmin
+                            .from('products')
+                            .select('*')
+                            .eq('user_id', tenantUserId)
+                            .order('created_at', { ascending: false });
+
+                        if (products && products.length > 0) {
+                            const { sendWhatsAppInteractiveList } = await import('@/lib/whatsapp');
+
+                            const rows = products.map((p: any) => ({
+                                id: `renew_plan_${p.id}`,
+                                title: p.name.substring(0, 24),
+                                description: `Bs ${p.price} - ${p.description || 'Renovación'}`.substring(0, 72)
+                            }));
+
+                            const listMessage = {
+                                type: 'list',
+                                header: 'Planes Disponibles',
+                                body: 'Elige el plan que más te convenga 👇',
+                                footer: 'Renovación Jaba',
+                                action: {
+                                    button: 'Ver Planes',
+                                    sections: [{ title: 'Planes', rows }]
+                                }
+                            };
+
+                            await sendWhatsAppInteractiveList(phoneNumber, listMessage, tenantToken, phoneId);
+                        }
+
+                        // Guardar en mensajes
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId,
+                            is_from_me: true,
+                            content: responseText + "\n[Catálogo de planes enviado]",
+                            status: 'delivered'
+                        });
+
+                        return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                    } else {
+                        console.error('[Renewal] Error guardando selección de cuenta:', orderErr.message);
+                    }
+                }
+
                 // --- PROCESAR SELECCIÓN DE PRODUCTO (INTERACTIVO) ---
                 if (interactiveData && interactiveData.id.startsWith('product_')) {
                     const productId = interactiveData.id.replace('product_', '');
@@ -1467,8 +1540,9 @@ MÉTODOS DE PAGO: QR bancario (BancoSol, Banco Unión, BNB, Tigo Money)
 
 SERVICIOS INTEGRADOS:
 1. "send_welcome_menu": Una herramienta interactiva que envía un catálogo visual de los planes por WhatsApp. ÚSALA ÚNICAMENTE cuando el cliente explícitamente diga que quiere ver los planes, precios, o esté listo para comprar un paquete. NO la uses para saludar.
-2. "confirm_plan": Usa esta herramienta cuando el cliente elija claramente un plan de la lista para proceder con el pago.
-3. "process_email": Ejecútala de inmediato en cuanto el cliente te escriba su correo electrónico válido.
+2. "show_account_selection": Usa esta función INVARIABLEMENTE cuando el cliente diga que quiere renovar pero tenga MÁS DE UNA cuenta registrada. Esto le enviará botones nativos de WhatsApp para que elija. NO le preguntes qué cuenta quiere por texto, USA SIEMPRE ESTA FUNCIÓN.
+3. "confirm_plan": Usa esta herramienta cuando el cliente elija claramente un plan de la lista para proceder con el pago.
+4. "process_email": Ejecútala de inmediato en cuanto el cliente te escriba su correo electrónico válido.
 
 IDs INTERNOS (NUNCA mostrar al cliente):
 ${idMapping}
@@ -1490,6 +1564,14 @@ ${customTrainingSection}`
                                 {
                                     name: 'send_welcome_menu',
                                     description: 'Enviar el catálogo principal de planes interactivo por WhatsApp. Úsalo ÚNICAMENTE cuando el cliente pida ver los planes, precios, paquetes o servicios. NUNCA lo uses automáticamente en el primer saludo si el cliente solo dice "Hola".',
+                                    parameters: {
+                                        type: SchemaType.OBJECT,
+                                        properties: {}
+                                    }
+                                },
+                                {
+                                    name: 'show_account_selection',
+                                    description: 'Enviar una lista interactiva de WhatsApp con las cuentas que el cliente tiene disponibles para renovar. Úsala SIEMPRE que un cliente quiera renovar pero tenga más de una cuenta, o cuando quiera renovar "otra" cuenta.',
                                     parameters: {
                                         type: SchemaType.OBJECT,
                                         properties: {}
@@ -1652,6 +1734,60 @@ ${customTrainingSection}`
 
                                         actionExecuted = true
                                         aiResponseText = '' // Ya se envió arriba, no duplicar
+                                    }
+
+                                    if (name === 'show_account_selection') {
+                                        console.log(`[AI] Ejecutando show_account_selection para el número: ${phoneNumber}`);
+
+                                        // Obtener todas las suscripciones del cliente
+                                        const cleanPhoneForLookup = phoneNumber.replace(/^591/, '');
+                                        const { data: userAccounts } = await supabaseAdmin
+                                            .from('subscriptions')
+                                            .select('id, correo, estado, vencimiento, equipo')
+                                            .eq('user_id', tenantUserId)
+                                            .not('correo', 'is', null)
+                                            .neq('correo', '')
+                                            .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
+                                            .order('created_at', { ascending: false });
+
+                                        if (userAccounts && userAccounts.length > 0) {
+                                            const { sendWhatsAppInteractiveList } = await import('@/lib/whatsapp');
+
+                                            // WhatsApp lists only support up to 10 rows per section
+                                            const rows = userAccounts.slice(0, 10).map((acc: any) => ({
+                                                id: `renew_account_${acc.correo}`,
+                                                title: acc.correo.substring(0, 24),
+                                                description: `Vence: ${acc.vencimiento} - Eq: ${acc.equipo || '?'}`.substring(0, 72)
+                                            }));
+
+                                            const listMessage = {
+                                                type: 'list',
+                                                header: 'Selecciona la Cuenta',
+                                                body: '¿Cuál de tus cuentas quieres renovar ahora? 👇',
+                                                footer: 'Sistema de Renovación Jaba',
+                                                action: {
+                                                    button: 'Ver Cuentas',
+                                                    sections: [{ title: 'Tus Cuentas', rows }]
+                                                }
+                                            };
+
+                                            await sendWhatsAppInteractiveList(phoneNumber, listMessage, tenantToken, phoneId);
+
+                                            // Registrar en DB para el historial
+                                            const accountsTextList = userAccounts.map(a => `• ${a.correo} (Vence: ${a.vencimiento})`).join('\n');
+                                            await supabaseAdmin.from('messages').insert({
+                                                chat_id: chatId,
+                                                is_from_me: true,
+                                                content: `📋 *Cuentas disponibles:*\n\n${accountsTextList}\n\n👆 El cliente elegirá presionando "Ver Cuentas"`,
+                                                status: 'delivered'
+                                            });
+
+                                            actionExecuted = true;
+                                            aiResponseText = '¡Claro que sí! Aquí tienes las cuentas disponibles para renovar. 👇';
+                                        } else {
+                                            // Fallback si por alguna razón no se encontraron cuentas válidas
+                                            aiResponseText = `Pude ver que quieres renovar, pero no logré encontrar cuentas registradas con tu número de teléfono actual. ¿Me pasas el correo electrónico de la cuenta que quieres recargar?`;
+                                        }
                                     }
 
                                     if (name === 'confirm_plan' && callArgs?.plan_id) {

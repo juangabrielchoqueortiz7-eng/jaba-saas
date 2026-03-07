@@ -447,6 +447,39 @@ export async function sendWhatsAppList(to: string, body: string, buttonText: str
 }
 
 /**
+ * Envía un mensaje interactivo con una lista usando estructura completa.
+ */
+export async function sendWhatsAppInteractiveList(to: string, listMessage: any, token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) return null;
+
+    try {
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: "interactive",
+                    interactive: listMessage
+                }),
+            }
+        );
+        return await response.json();
+    } catch (error) {
+        console.error("Excepción enviando lista interactiva:", error);
+        return null;
+    }
+}
+
+/**
  * Envía una plantilla oficial de Meta.
  * @param to Número de teléfono
  * @param templateName Nombre de la plantilla aprobada en Meta
