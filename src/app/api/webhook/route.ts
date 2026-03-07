@@ -1197,24 +1197,32 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                             // ====== DETECTAR TODAS LAS SUSCRIPCIONES DEL CLIENTE ======
                             const cleanPhoneForLookup = phoneNumber.replace(/^591/, '');
+                            console.log(`[AI] Buscando suscripciones: phone=${phoneNumber}, clean=${cleanPhoneForLookup}, userId=${tenantUserId}`);
 
-                            // Buscar TODAS las suscripciones activas del número
+                            // Buscar TODAS las suscripciones activas del número (solo con correo válido)
                             const { data: allExistingActiveSubs } = await supabaseAdmin
                                 .from('subscriptions')
                                 .select('correo, vencimiento, estado, equipo')
                                 .eq('user_id', tenantUserId)
                                 .eq('estado', 'ACTIVO')
+                                .not('correo', 'is', null)
+                                .neq('correo', '')
                                 .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
                                 .order('created_at', { ascending: false });
 
-                            // También buscar inactivas
+                            // También buscar inactivas (solo con correo válido)
                             const { data: allExistingInactiveSubs } = await supabaseAdmin
                                 .from('subscriptions')
                                 .select('correo, vencimiento, estado, equipo')
                                 .eq('user_id', tenantUserId)
                                 .neq('estado', 'ACTIVO')
+                                .not('correo', 'is', null)
+                                .neq('correo', '')
                                 .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhoneForLookup}`)
                                 .order('created_at', { ascending: false });
+
+                            console.log(`[AI] Suscripciones encontradas: activas=${allExistingActiveSubs?.length || 0}, inactivas=${allExistingInactiveSubs?.length || 0}`);
+                            if (allExistingActiveSubs?.length) console.log(`[AI] Correos activos:`, allExistingActiveSubs.map(s => s.correo));
 
                             const allSubs = [...(allExistingActiveSubs || []), ...(allExistingInactiveSubs || [])];
                             const existingSub = allExistingActiveSubs?.[0] || allExistingInactiveSubs?.[0] || null;
