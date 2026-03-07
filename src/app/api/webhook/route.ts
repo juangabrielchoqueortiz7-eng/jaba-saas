@@ -479,57 +479,67 @@ export async function POST(request: Request) {
                             newExpDate.setMonth(newExpDate.getMonth() + durationMonths);
                             const newExpiration = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
 
-                            // Buscar suscripción por el correo del PEDIDO (no la primera que encuentre)
-                            const cleanPhone = phoneNumber.replace(/^591/, '');
-                            let subFilter = `numero.eq.${phoneNumber},numero.eq.${cleanPhone}`;
-                            if (orderEmail) subFilter += `,correo.eq.${orderEmail}`;
-                            console.log(`[AUTO-RENEWAL] Buscando suscripción: filter=${subFilter}, userId=${tenantUserId}`);
+                            // ===== BUSCAR SUSCRIPCIÓN: CORREO EXACTO PRIMERO =====
+                            console.log(`[AUTO-RENEWAL] orderEmail=${orderEmail}, userId=${tenantUserId}, phone=${phoneNumber}`);
 
-                            const { data: clientSub, error: subErr } = await supabaseAdmin
-                                .from('subscriptions')
-                                .select('id, vencimiento, correo')
-                                .eq('user_id', tenantUserId)
-                                .or(subFilter)
-                                .order('created_at', { ascending: false })
-                                .limit(1)
-                                .maybeSingle();
+                            let targetSub: { id: string; vencimiento: string; correo: string } | null = null;
 
-                            console.log(`[AUTO-RENEWAL] clientSub encontrado:`, clientSub ? `id=${clientSub.id}, correo=${clientSub.correo}` : 'NULL', subErr ? `ERROR: ${subErr.message}` : '');
-
-                            // Si el email del pedido no coincide con la suscripción encontrada, buscar por email exacto
-                            let targetSub = clientSub;
-                            if (orderEmail && clientSub && clientSub.correo !== orderEmail) {
-                                console.log(`[AUTO-RENEWAL] Email no coincide (${clientSub.correo} vs ${orderEmail}), buscando exacto`);
-                                const { data: exactSub } = await supabaseAdmin
+                            // 1. Si hay email del pedido → buscar POR CORREO EXACTO primero (máxima prioridad)
+                            if (orderEmail) {
+                                const { data: subByEmail } = await supabaseAdmin
                                     .from('subscriptions')
                                     .select('id, vencimiento, correo')
                                     .eq('user_id', tenantUserId)
                                     .eq('correo', orderEmail)
                                     .limit(1)
                                     .maybeSingle();
-                                if (exactSub) {
-                                    targetSub = exactSub;
-                                    console.log(`[AUTO-RENEWAL] Encontrado por email exacto: id=${exactSub.id}`);
+                                if (subByEmail) {
+                                    targetSub = subByEmail;
+                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción encontrada por email exacto: id=${subByEmail.id}, correo=${subByEmail.correo}`);
+                                } else {
+                                    console.log(`[AUTO-RENEWAL] ⚠️ No encontrada por email ${orderEmail}, intentando por teléfono`);
+                                }
+                            }
+
+                            // 2. Fallback: buscar por teléfono si no se encontró por correo
+                            if (!targetSub) {
+                                const cleanPhone = phoneNumber.replace(/^591/, '');
+                                const { data: subByPhone } = await supabaseAdmin
+                                    .from('subscriptions')
+                                    .select('id, vencimiento, correo')
+                                    .eq('user_id', tenantUserId)
+                                    .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhone}`)
+                                    .order('created_at', { ascending: false })
+                                    .limit(1)
+                                    .maybeSingle();
+                                if (subByPhone) {
+                                    targetSub = subByPhone;
+                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción encontrada por teléfono: id=${subByPhone.id}, correo=${subByPhone.correo}`);
+                                } else {
+                                    console.error(`[AUTO-RENEWAL] ❌ No se encontró suscripción para phone=${phoneNumber}, email=${orderEmail}`);
                                 }
                             }
 
                             if (targetSub) {
-                                const { data: updatedSub, error: updateErr } = await supabaseAdmin.from('subscriptions').update({
-                                    vencimiento: newExpiration,
-                                    estado: 'ACTIVO',
-                                    notified: false,
-                                    notified_at: null,
-                                    followup_sent: false,
-                                    urgency_sent: false
-                                }).eq('id', targetSub.id).select('id, vencimiento').single();
+                                const { data: updatedSub, error: updateErr } = await supabaseAdmin
+                                    .from('subscriptions')
+                                    .update({
+                                        vencimiento: newExpiration,
+                                        estado: 'ACTIVO',
+                                        notified: false,
+                                        notified_at: null,
+                                        followup_sent: false,
+                                        urgency_sent: false
+                                    })
+                                    .eq('id', targetSub.id)
+                                    .select('id, vencimiento')
+                                    .single();
 
                                 if (updateErr) {
-                                    console.error(`[AUTO-RENEWAL] ❌ ERROR actualizando suscripción ${targetSub.id}:`, updateErr.message);
+                                    console.error(`[AUTO-RENEWAL] ❌ ERROR al actualizar suscripción ${targetSub.id}:`, updateErr.message);
                                 } else {
-                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción ${targetSub.id} (${targetSub.correo}) renovada: vencimiento=${updatedSub?.vencimiento}`);
+                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción ${targetSub.id} (${targetSub.correo}) actualizada: ${updatedSub?.vencimiento}`);
                                 }
-                            } else {
-                                console.error(`[AUTO-RENEWAL] ❌ No se encontró suscripción para: phone=${phoneNumber}, email=${orderEmail}, userId=${tenantUserId}`);
                             }
 
                             // Crear registro de renovación para auditoría
