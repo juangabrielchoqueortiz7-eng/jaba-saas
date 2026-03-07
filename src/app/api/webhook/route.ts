@@ -1438,10 +1438,55 @@ ${customTrainingSection}`
                                         const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
                                         if (result.success && result.product) {
                                             actionExecuted = true;
-                                            if (!aiResponseText.trim()) {
-                                                aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.
 
-Para continuar, necesito tu *correo electrónico*. El acceso a *${tenantServiceName}* se enviará directamente a tu email para activar tu cuenta. 📧`
+                                            // Si el cliente YA tiene correo registrado → auto-procesar sin pedir email
+                                            if (existingSub?.correo) {
+                                                console.log(`[SALES] Cliente existente ${existingSub.correo} — auto-procesando email`);
+
+                                                // Actualizar el pedido con el email conocido
+                                                const { data: latestOrder } = await supabaseAdmin
+                                                    .from('orders')
+                                                    .select('*')
+                                                    .eq('chat_id', chatId)
+                                                    .in('status', ['pending_email', 'pending_payment'])
+                                                    .order('created_at', { ascending: false })
+                                                    .limit(1)
+                                                    .maybeSingle();
+
+                                                if (latestOrder) {
+                                                    await supabaseAdmin.from('orders').update({
+                                                        customer_email: existingSub.correo,
+                                                        status: 'pending_payment',
+                                                        updated_at: new Date().toISOString()
+                                                    }).eq('id', latestOrder.id);
+
+                                                    // Enviar QR de pago automáticamente
+                                                    const { data: qrProduct } = await supabaseAdmin
+                                                        .from('products')
+                                                        .select('qr_image_url')
+                                                        .eq('id', productId)
+                                                        .single();
+
+                                                    if (qrProduct?.qr_image_url) {
+                                                        const { sendWhatsAppImage } = await import('@/lib/whatsapp');
+                                                        await sendWhatsAppImage(
+                                                            phoneNumber,
+                                                            qrProduct.qr_image_url,
+                                                            `📱 *QR de Pago*\n\nPlan: *${result.product.name}*\nMonto: *Bs ${result.product.price}*\nCuenta: *${existingSub.correo}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
+                                                            tenantToken,
+                                                            phoneId
+                                                        );
+                                                    }
+                                                }
+
+                                                if (!aiResponseText.trim()) {
+                                                    aiResponseText = `¡Excelente elección! 🚀 *${result.product.name}* por *Bs ${result.product.price}* para la cuenta *${existingSub.correo}*.\n\nTe envié el QR de pago. Cuando hagas el pago, envíame la foto del comprobante por aquí. ✅`;
+                                                }
+                                            } else {
+                                                // Cliente NUEVO sin correo registrado → pedir email
+                                                if (!aiResponseText.trim()) {
+                                                    aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.\n\nPara continuar, necesito tu *correo electrónico*. El acceso a *${tenantServiceName}* se enviará directamente a tu email. 📧`
+                                                }
                                             }
                                         } else if (result.success) {
                                             actionExecuted = true;
