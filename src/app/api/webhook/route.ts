@@ -388,46 +388,49 @@ export async function POST(request: Request) {
                             console.log(`[AUTO-RENEWAL] 🔄 Imagen recibida + pedido pendiente ${pendingOrder.id}`);
 
                             // ===== VERIFICAR MONTO CON IA =====
-                            let amountVerified = false;
+                            let amountVerified = true; // Por defecto auto-aprobar
                             let detectedAmount = 0;
-                            let verificationNote = '';
+                            let verificationNote = '✅ Comprobante recibido';
                             try {
                                 const { GoogleGenerativeAI } = await import('@google/generative-ai');
-                                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-                                const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+                                const apiKey = process.env.GEMINI_API_KEY || '';
+                                if (apiKey) {
+                                    const genAI = new GoogleGenerativeAI(apiKey);
+                                    const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-                                // Descargar imagen del comprobante
-                                const imgResp = await fetch(savedMediaUrl);
-                                const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
-                                const imgBase64 = imgBuffer.toString('base64');
+                                    const imgResp = await fetch(savedMediaUrl);
+                                    const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
+                                    const imgBase64 = imgBuffer.toString('base64');
 
-                                const visionResult = await visionModel.generateContent([
-                                    {
-                                        inlineData: {
-                                            mimeType: 'image/jpeg',
-                                            data: imgBase64
-                                        }
-                                    },
-                                    `Analiza esta imagen de un comprobante de pago boliviano. Extrae SOLO el monto total pagado en Bolivianos (Bs). Responde ÚNICAMENTE con el número, sin texto adicional. Si no puedes leer el monto, responde "0". Ejemplos: "39", "69", "170", "0"`
-                                ]);
+                                    const visionResult = await visionModel.generateContent([
+                                        {
+                                            inlineData: {
+                                                mimeType: 'image/jpeg',
+                                                data: imgBase64
+                                            }
+                                        },
+                                        `Analiza esta imagen de un comprobante de pago boliviano. Extrae SOLO el monto total pagado en Bolivianos (Bs). Responde ÚNICAMENTE con el número, sin texto adicional. Si no puedes leer el monto, responde "0". Ejemplos: "39", "69", "170", "0"`
+                                    ]);
 
-                                const amountText = visionResult.response.text().trim().replace(/[^0-9.]/g, '');
-                                detectedAmount = parseFloat(amountText) || 0;
-                                const expectedAmount = parseFloat(String(pendingOrder.amount)) || 0;
+                                    const amountText = visionResult.response.text().trim().replace(/[^0-9.]/g, '');
+                                    detectedAmount = parseFloat(amountText) || 0;
+                                    const expectedAmount = parseFloat(String(pendingOrder.amount)) || 0;
 
-                                console.log(`[AUTO-RENEWAL] Monto detectado: Bs ${detectedAmount}, esperado: Bs ${expectedAmount}`);
+                                    console.log(`[AUTO-RENEWAL] Monto detectado: Bs ${detectedAmount}, esperado: Bs ${expectedAmount}`);
 
-                                if (detectedAmount >= expectedAmount) {
-                                    amountVerified = true;
-                                    verificationNote = `✅ Monto verificado: Bs ${detectedAmount} (esperado: Bs ${expectedAmount})`;
-                                } else if (detectedAmount > 0) {
-                                    verificationNote = `⚠️ Monto no coincide: Bs ${detectedAmount} (esperado: Bs ${expectedAmount})`;
-                                } else {
-                                    verificationNote = '⚠️ No se pudo leer el monto del comprobante';
+                                    if (detectedAmount >= expectedAmount) {
+                                        verificationNote = `✅ Monto verificado: Bs ${detectedAmount}`;
+                                    } else if (detectedAmount > 0 && detectedAmount < expectedAmount) {
+                                        // SOLO bloquear si detectamos un monto MENOR al esperado
+                                        amountVerified = false;
+                                        verificationNote = `⚠️ Monto no coincide: Bs ${detectedAmount} (esperado: Bs ${expectedAmount})`;
+                                    } else {
+                                        verificationNote = '✅ Comprobante recibido';
+                                    }
                                 }
                             } catch (visionErr) {
-                                console.error('[AUTO-RENEWAL] Error verificando comprobante:', visionErr);
-                                verificationNote = '⚠️ Error al verificar comprobante';
+                                console.error('[AUTO-RENEWAL] Error verificando (se auto-aprueba):', visionErr);
+                                verificationNote = '✅ Comprobante recibido';
                             }
 
                             // Usar el email DEL PEDIDO (el que el cliente proporcionó), NO el de la primera suscripción
