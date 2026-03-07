@@ -1255,6 +1255,8 @@ ${idMapping}
 REGLAS GLOBALES ESTRICTAS:
 - Máximo 2 emojis por mensaje.
 - NUNCA muestres IDs, UUIDs ni generes código.
+- NUNCA repitas saludos ni "Bienvenido" si ya hay mensajes en la conversación. Mantén un flujo natural y directo.
+- Si el cliente ya está en una conversación activa, NO lo saludes de nuevo. Ve directo al punto.
 ${subscriberContext}
 ${orderContext}
 
@@ -1380,7 +1382,15 @@ ${customTrainingSection}`
                                         const { sendWhatsAppImage, sendWhatsAppMessage, sendWhatsAppList } = await import('@/lib/whatsapp')
                                         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
 
-                                        // 1. Imagen de Precios Promocionales (configurable desde panel)
+                                        // 1. Enviar respuesta de la IA primero (respeta el entrenamiento del usuario)
+                                        if (aiResponseText.trim()) {
+                                            await sendWhatsAppMessage(phoneNumber, aiResponseText.trim(), tenantToken, phoneId)
+                                            await supabaseAdmin.from('messages').insert({
+                                                chat_id: chatId, is_from_me: true, content: aiResponseText.trim(), status: 'delivered'
+                                            })
+                                        }
+
+                                        // 2. Imagen de Precios Promocionales (configurable desde panel)
                                         await sendWhatsAppImage(
                                             phoneNumber,
                                             tenantPromoImage,
@@ -1389,12 +1399,8 @@ ${customTrainingSection}`
                                             phoneId
                                         )
 
-                                        // 2. Mensaje de saludo configurable por negocio
-                                        const greetingText = `¡Hola! Bienvenido a *${tenantBusinessName}*. 👋\n\nEstamos encantados de atenderte. Aquí podrás acceder a ${tenantServiceDesc}.\n\n¿Te gustaría ver nuestros planes disponibles? 👇`
-                                        await sendWhatsAppMessage(phoneNumber, greetingText, tenantToken, phoneId)
-
-                                        // 3. Botón / Lista de Planes
-                                        const listBody = `📋 Planes de *${tenantServiceName}* disponibles:\n\nElige el plan que más te convenga y disfruta de todos los beneficios.\n\n💡 Todos los planes incluyen acceso completo a ${tenantServiceName}.`
+                                        // 3. Lista de Planes (sin saludo adicional)
+                                        const listBody = `📋 Elige el plan que más te convenga 👇`
 
                                         const sections = [
                                             {
@@ -1416,17 +1422,15 @@ ${customTrainingSection}`
                                             phoneId
                                         )
 
-                                        // Guardar en DB para historial (con media real)
-                                        const baseUrlForImg = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                                        // Guardar en DB para historial
                                         const planListContent = (tenantProducts || []).map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
                                         await supabaseAdmin.from('messages').insert([
                                             { chat_id: chatId, is_from_me: true, content: '', media_url: tenantPromoImage, media_type: 'image', status: 'delivered' },
-                                            { chat_id: chatId, is_from_me: true, content: greetingText, status: 'delivered' },
                                             { chat_id: chatId, is_from_me: true, content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente puede elegir tocando "Ver Planes"`, status: 'delivered' }
                                         ])
 
                                         actionExecuted = true
-                                        aiResponseText = '' // Suprimir texto duplicado de la IA — el menu ya se envió completo
+                                        aiResponseText = '' // Ya se envió arriba, no duplicar
                                     }
 
                                     if (name === 'confirm_plan' && callArgs?.plan_id) {
@@ -1555,7 +1559,8 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                             // Fallback si no hay respuesta
                             if (!aiResponseText.trim()) {
                                 if (!actionExecuted) {
-                                    aiResponseText = `¡Hola! 👋 Bienvenido a ${tenantBusinessName}. ¿En qué puedo ayudarte hoy?`
+                                    // Fallback sin saludo hardcodeado — usa el training prompt
+                                    aiResponseText = `¿En qué puedo ayudarte? 😊`
                                 } else {
                                     // Si se ejecutó una acción pero no hay texto extra de la IA, terminamos el proceso sin enviar burbuja vacía
                                     return new NextResponse('EVENT_RECEIVED', { status: 200 })
