@@ -41,7 +41,7 @@ type Order = {
     equipo?: string
     chat_id?: string
     payment_proof_url?: string
-    status: 'pending_email' | 'pending_payment' | 'pending_delivery' | 'delivered' | 'completed' | 'cancelled'
+    status: 'pending_email' | 'pending_payment' | 'pending_delivery' | 'pending_review' | 'delivered' | 'completed' | 'cancelled'
 }
 
 type ChatMessage = {
@@ -145,6 +145,7 @@ export default function OrdersPage() {
     const getStatusConfig = (status: string) => {
         switch (status) {
             case 'completed': return { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', label: '✅ Auto-Aprobado', icon: <Zap size={12} /> }
+            case 'pending_review': return { color: 'bg-orange-500/10 text-orange-400 border-orange-500/20', label: '⚠️ Revisar Monto', icon: <AlertCircle size={12} /> }
             case 'delivered': return { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', label: 'Entregado', icon: <CheckCircle2 size={12} /> }
             case 'pending_delivery': return { color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', label: 'Pendiente Envío', icon: <Clock size={12} /> }
             case 'pending_payment': return { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', label: 'Esperando Pago', icon: <Clock size={12} /> }
@@ -229,6 +230,7 @@ export default function OrdersPage() {
                 >
                     <option value="all">Todos</option>
                     <option value="completed">✅ Auto-Aprobados</option>
+                    <option value="pending_review">⚠️ Revisar Monto</option>
                     <option value="pending_payment">⏳ Esperando Pago</option>
                     <option value="delivered">Entregados</option>
                     <option value="cancelled">❌ Revertidos</option>
@@ -372,7 +374,7 @@ export default function OrdersPage() {
 
                             {/* Actions */}
                             <div className="p-3 border-t border-slate-800 bg-slate-800/20 flex gap-2">
-                                {selectedOrder.status === 'completed' && (
+                                {(selectedOrder.status === 'completed' || selectedOrder.status === 'pending_review') && (
                                     <button
                                         onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
                                         className="flex-1 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs font-bold border border-rose-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
@@ -381,7 +383,7 @@ export default function OrdersPage() {
                                         Revertir
                                     </button>
                                 )}
-                                {selectedOrder.status === 'pending_payment' && (
+                                {(selectedOrder.status === 'pending_payment' || selectedOrder.status === 'pending_review') && (
                                     <button
                                         onClick={() => updateOrderStatus(selectedOrder.id, 'completed')}
                                         className="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-bold border border-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"

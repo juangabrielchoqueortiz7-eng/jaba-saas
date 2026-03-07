@@ -385,9 +385,78 @@ export async function POST(request: Request) {
                             .maybeSingle();
 
                         if (pendingOrder) {
-                            console.log(`[AUTO-RENEWAL] 🔄 Imagen recibida + pedido pendiente ${pendingOrder.id} — auto-aprobando`);
+                            console.log(`[AUTO-RENEWAL] 🔄 Imagen recibida + pedido pendiente ${pendingOrder.id}`);
 
-                            // Guardar URL del comprobante en el pedido
+                            // ===== VERIFICAR MONTO CON IA =====
+                            let amountVerified = false;
+                            let detectedAmount = 0;
+                            let verificationNote = '';
+                            try {
+                                const { GoogleGenerativeAI } = await import('@google/generative-ai');
+                                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+                                const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+                                // Descargar imagen del comprobante
+                                const imgResp = await fetch(savedMediaUrl);
+                                const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
+                                const imgBase64 = imgBuffer.toString('base64');
+
+                                const visionResult = await visionModel.generateContent([
+                                    {
+                                        inlineData: {
+                                            mimeType: 'image/jpeg',
+                                            data: imgBase64
+                                        }
+                                    },
+                                    `Analiza esta imagen de un comprobante de pago boliviano. Extrae SOLO el monto total pagado en Bolivianos (Bs). Responde ÚNICAMENTE con el número, sin texto adicional. Si no puedes leer el monto, responde "0". Ejemplos: "39", "69", "170", "0"`
+                                ]);
+
+                                const amountText = visionResult.response.text().trim().replace(/[^0-9.]/g, '');
+                                detectedAmount = parseFloat(amountText) || 0;
+                                const expectedAmount = parseFloat(String(pendingOrder.amount)) || 0;
+
+                                console.log(`[AUTO-RENEWAL] Monto detectado: Bs ${detectedAmount}, esperado: Bs ${expectedAmount}`);
+
+                                if (detectedAmount >= expectedAmount) {
+                                    amountVerified = true;
+                                    verificationNote = `✅ Monto verificado: Bs ${detectedAmount} (esperado: Bs ${expectedAmount})`;
+                                } else if (detectedAmount > 0) {
+                                    verificationNote = `⚠️ Monto no coincide: Bs ${detectedAmount} (esperado: Bs ${expectedAmount})`;
+                                } else {
+                                    verificationNote = '⚠️ No se pudo leer el monto del comprobante';
+                                }
+                            } catch (visionErr) {
+                                console.error('[AUTO-RENEWAL] Error verificando comprobante:', visionErr);
+                                verificationNote = '⚠️ Error al verificar comprobante';
+                            }
+
+                            // Usar el email DEL PEDIDO (el que el cliente proporcionó), NO el de la primera suscripción
+                            const orderEmail = pendingOrder.customer_email || '';
+
+                            // Si el monto no coincide → marcar para revisión manual
+                            if (!amountVerified) {
+                                await supabaseAdmin.from('orders').update({
+                                    payment_proof_url: savedMediaUrl,
+                                    status: 'pending_review',
+                                    updated_at: new Date().toISOString()
+                                }).eq('id', pendingOrder.id);
+
+                                const { sendWhatsAppMessage: sendWAMsg } = await import('@/lib/whatsapp');
+                                const reviewMsg = `📋 *Comprobante recibido*\n\n${verificationNote}\n\nNuestro equipo verificará tu pago manualmente. Te confirmaremos la renovación en breve. ⏳`;
+                                await sendWAMsg(phoneNumber, reviewMsg, tenantToken, phoneId);
+                                await supabaseAdmin.from('messages').insert({
+                                    chat_id: chatId, is_from_me: true, content: reviewMsg, status: 'delivered'
+                                });
+                                await supabaseAdmin.from('chats').update({
+                                    last_message: '⚠️ Comprobante requiere revisión',
+                                    last_message_time: new Date().toISOString(),
+                                    tags: ['revision_pago']
+                                }).eq('id', chatId);
+
+                                return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                            }
+
+                            // ===== MONTO VERIFICADO → AUTO-APROBAR =====
                             await supabaseAdmin.from('orders').update({
                                 payment_proof_url: savedMediaUrl,
                                 status: 'completed',
@@ -407,19 +476,34 @@ export async function POST(request: Request) {
                             newExpDate.setMonth(newExpDate.getMonth() + durationMonths);
                             const newExpiration = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
 
-                            // Buscar suscripción del cliente
+                            // Buscar suscripción por el correo del PEDIDO (no la primera que encuentre)
                             const cleanPhone = phoneNumber.replace(/^591/, '');
+                            let subFilter = `numero.eq.${phoneNumber},numero.eq.${cleanPhone}`;
+                            if (orderEmail) subFilter += `,correo.eq.${orderEmail}`;
+
                             const { data: clientSub } = await supabaseAdmin
                                 .from('subscriptions')
                                 .select('id, vencimiento, correo')
                                 .eq('user_id', tenantUserId)
-                                .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhone},correo.eq.${pendingOrder.customer_email}`)
+                                .or(subFilter)
                                 .order('created_at', { ascending: false })
                                 .limit(1)
                                 .maybeSingle();
 
-                            if (clientSub) {
-                                // Actualizar suscripción
+                            // Si el email del pedido no coincide con la suscripción encontrada, buscar por email exacto
+                            let targetSub = clientSub;
+                            if (orderEmail && clientSub && clientSub.correo !== orderEmail) {
+                                const { data: exactSub } = await supabaseAdmin
+                                    .from('subscriptions')
+                                    .select('id, vencimiento, correo')
+                                    .eq('user_id', tenantUserId)
+                                    .eq('correo', orderEmail)
+                                    .limit(1)
+                                    .maybeSingle();
+                                if (exactSub) targetSub = exactSub;
+                            }
+
+                            if (targetSub) {
                                 await supabaseAdmin.from('subscriptions').update({
                                     vencimiento: newExpiration,
                                     estado: 'ACTIVO',
@@ -427,21 +511,21 @@ export async function POST(request: Request) {
                                     notified_at: null,
                                     followup_sent: false,
                                     urgency_sent: false
-                                }).eq('id', clientSub.id);
-                                console.log(`[AUTO-RENEWAL] ✅ Suscripción ${clientSub.id} renovada hasta ${newExpiration}`);
+                                }).eq('id', targetSub.id);
+                                console.log(`[AUTO-RENEWAL] ✅ Suscripción ${targetSub.id} (${targetSub.correo}) renovada hasta ${newExpiration}`);
                             }
 
                             // Crear registro de renovación para auditoría
                             await supabaseAdmin.from('subscription_renewals').insert({
                                 user_id: tenantUserId,
-                                subscription_id: clientSub?.id || null,
+                                subscription_id: targetSub?.id || null,
                                 order_id: pendingOrder.id,
                                 chat_id: chatId,
                                 phone_number: phoneNumber,
-                                customer_email: pendingOrder.customer_email || clientSub?.correo || '',
+                                customer_email: orderEmail || targetSub?.correo || '',
                                 plan_name: pendingOrder.plan_name || planProduct?.name || '',
                                 amount: pendingOrder.amount,
-                                old_expiration: clientSub?.vencimiento || '',
+                                old_expiration: targetSub?.vencimiento || '',
                                 new_expiration: newExpiration,
                                 payment_proof_url: savedMediaUrl,
                                 status: 'auto_approved',
@@ -450,31 +534,24 @@ export async function POST(request: Request) {
 
                             // Enviar confirmación por WhatsApp
                             const { sendWhatsAppMessage: sendWAMsg } = await import('@/lib/whatsapp');
-                            const confirmMsg = `✅ *¡Pago recibido y renovación completada!* 🎉\n\nTu acceso para *${pendingOrder.customer_email || clientSub?.correo || ''}* ha sido renovado.\n\n📋 *Detalle:*\n• Plan: ${pendingOrder.plan_name || planProduct?.name}\n• Monto: Bs ${pendingOrder.amount}\n• Vigencia hasta: *${newExpiration}*\n\n¡Gracias por confiar en nosotros! 😊`;
+                            const confirmMsg = `✅ *¡Pago recibido y renovación completada!* 🎉\n\n${verificationNote}\n\nTu acceso para *${orderEmail || targetSub?.correo || ''}* ha sido renovado.\n\n📋 *Detalle:*\n• Plan: ${pendingOrder.plan_name || planProduct?.name}\n• Monto: Bs ${pendingOrder.amount}\n• Vigencia hasta: *${newExpiration}*\n\n¡Gracias por confiar en nosotros! 😊`;
 
                             await sendWAMsg(phoneNumber, confirmMsg, tenantToken, phoneId);
 
-                            // Guardar confirmación en chat
                             await supabaseAdmin.from('messages').insert({
-                                chat_id: chatId,
-                                is_from_me: true,
-                                content: confirmMsg,
-                                status: 'delivered'
+                                chat_id: chatId, is_from_me: true, content: confirmMsg, status: 'delivered'
                             });
 
-                            // Actualizar chat con tag "pago"
                             await supabaseAdmin.from('chats').update({
                                 last_message: '✅ Renovación auto-aprobada',
                                 last_message_time: new Date().toISOString(),
                                 tags: ['pago']
                             }).eq('id', chatId);
 
-                            // Ya procesado — no necesita pasar por la IA
                             return new NextResponse('EVENT_RECEIVED', { status: 200 });
                         }
                     } catch (autoRenewalErr) {
                         console.error('[AUTO-RENEWAL] Error:', autoRenewalErr);
-                        // Si falla, continuar con el flujo normal de la IA
                     }
                 }
 
