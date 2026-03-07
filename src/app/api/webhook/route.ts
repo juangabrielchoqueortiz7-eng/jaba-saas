@@ -496,6 +496,24 @@ export async function POST(request: Request) {
 
                     const customerEmail = subscription?.correo || '';
 
+                    // Check if there's a pending_plan_selection order with pre-stored email
+                    const { data: pendingSelection } = await supabaseAdmin
+                        .from('orders')
+                        .select('id, customer_email')
+                        .eq('chat_id', chatId)
+                        .eq('status', 'pending_plan_selection')
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    // If we have a pre-selected email, use it (from the email-detection flow)
+                    const finalEmail = pendingSelection?.customer_email || customerEmail;
+
+                    // Clean up the pending_plan_selection order
+                    if (pendingSelection) {
+                        await supabaseAdmin.from('orders').delete().eq('id', pendingSelection.id);
+                    }
+
                     const { sendWhatsAppMessage, sendWhatsAppImage } = await import('@/lib/whatsapp');
 
                     // Si es cliente INACTIVO, confirmar correo antes de proceder
@@ -521,7 +539,7 @@ export async function POST(request: Request) {
                         plan: productId,
                         plan_name: product.name,
                         amount: product.price,
-                        customer_email: customerEmail,
+                        customer_email: finalEmail,
                         equipo: subscription?.equipo || '',
                         status: 'pending_payment'
                     });
@@ -1124,6 +1142,70 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
 
                             // Contexto del pedido activo (solo si existe)
                             let orderContext = ''
+
+                            // ============================================================
+                            // DETECCIÓN DIRECTA: Si el cliente envió un correo que coincide
+                            // con una de sus cuentas registradas → auto-enviar lista de planes
+                            // ============================================================
+                            if (!activeOrder && allSubs.length > 0) {
+                                const msgLower = finalMessageText.trim().toLowerCase();
+                                const matchedAccount = allSubs.find(s =>
+                                    s.correo && s.correo.toLowerCase() === msgLower
+                                );
+                                if (matchedAccount) {
+                                    console.log(`[AI] ✅ Cliente seleccionó cuenta: ${matchedAccount.correo} — enviando lista de planes`);
+
+                                    // Enviar lista interactiva de planes
+                                    if (tenantProducts && tenantProducts.length > 0) {
+                                        const { sendWhatsAppList } = await import('@/lib/whatsapp');
+                                        const rows = tenantProducts.slice(0, 10).map(p => ({
+                                            id: `plan_${p.id}`,
+                                            title: p.name.substring(0, 24),
+                                            description: `Bs ${p.price}${p.description ? ' - ' + p.description.substring(0, 48) : ''}`
+                                        }));
+
+                                        try {
+                                            await sendWhatsAppList(
+                                                phoneNumber,
+                                                `¡Perfecto! 🎯 Renovaremos la cuenta *${matchedAccount.correo}*.\n\nElige tu plan:`,
+                                                'Planes Disponibles',
+                                                [{ title: 'Planes', rows }],
+                                                tenantToken,
+                                                phoneId
+                                            );
+
+                                            // Guardar mensaje en chat
+                                            await supabaseAdmin.from('messages').insert({
+                                                chat_id: chatId,
+                                                is_from_me: true,
+                                                content: `¡Perfecto! 🎯 Renovaremos la cuenta *${matchedAccount.correo}*. Elige tu plan de la lista.`,
+                                                status: 'delivered'
+                                            });
+                                            await supabaseAdmin.from('chats').update({
+                                                last_message: `Renovaremos ${matchedAccount.correo} — planes enviados`,
+                                                last_message_time: new Date().toISOString()
+                                            }).eq('id', chatId);
+
+                                            // Guardar el correo seleccionado en memoria temporal para cuando elija plan
+                                            await supabaseAdmin.from('orders').insert({
+                                                chat_id: chatId,
+                                                user_id: tenantUserId,
+                                                customer_email: matchedAccount.correo,
+                                                phone_number: phoneNumber,
+                                                status: 'pending_plan_selection',
+                                                plan: '',
+                                                plan_name: '',
+                                                amount: 0
+                                            });
+
+                                            return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                                        } catch (listErr) {
+                                            console.error('[AI] Error sending plan list:', listErr);
+                                            // Fall through to AI
+                                        }
+                                    }
+                                }
+                            }
                             if (activeOrder) {
                                 if (activeOrder.status === 'pending_email') {
                                     if (existingSub?.correo) {
