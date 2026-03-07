@@ -4,20 +4,22 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import {
     Search,
-    Filter,
     RefreshCcw,
     CheckCircle2,
     Clock,
     Mail,
     Phone,
-    MoreHorizontal,
     ShoppingBag,
     AlertCircle,
     MessageSquare,
-    PlayCircle,
     Copy,
     Check,
-    Trash2
+    Trash2,
+    Image as ImageIcon,
+    Undo2,
+    Eye,
+    X,
+    Zap
 } from 'lucide-react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
@@ -30,6 +32,7 @@ dayjs.locale('es')
 type Order = {
     id: string
     created_at: string
+    updated_at?: string
     phone_number: string
     contact_name: string
     plan_name: string
@@ -37,17 +40,29 @@ type Order = {
     customer_email: string
     equipo?: string
     chat_id?: string
-    status: 'pending_email' | 'pending_payment' | 'pending_delivery' | 'delivered' | 'cancelled'
+    payment_proof_url?: string
+    status: 'pending_email' | 'pending_payment' | 'pending_delivery' | 'delivered' | 'completed' | 'cancelled'
+}
+
+type ChatMessage = {
+    id: string
+    content: string
+    is_from_me: boolean
+    created_at: string
+    media_url?: string
+    media_type?: string
 }
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
-    const [sendingVideoId, setSendingVideoId] = useState<string | null>(null)
-    const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-    const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
     const [filter, setFilter] = useState<string>('all')
     const [searchTerm, setSearchTerm] = useState('')
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+    const [loadingChat, setLoadingChat] = useState(false)
+    const [proofModal, setProofModal] = useState<string | null>(null)
+    const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
     const supabase = createClient()
     const router = useRouter()
 
@@ -57,7 +72,6 @@ export default function OrdersPage() {
                 .from('orders')
                 .select('*')
                 .order('created_at', { ascending: false })
-
             if (error) throw error
             setOrders(data || [])
         } catch (err) {
@@ -67,75 +81,76 @@ export default function OrdersPage() {
         }
     }, [supabase])
 
+    const fetchChatMessages = useCallback(async (chatId: string) => {
+        setLoadingChat(true)
+        try {
+            const { data } = await supabase
+                .from('messages')
+                .select('id, content, is_from_me, created_at, media_url, media_type')
+                .eq('chat_id', chatId)
+                .order('created_at', { ascending: false })
+                .limit(15)
+            setChatMessages((data || []).reverse())
+        } catch (err) {
+            console.error('Error fetching chat:', err)
+        } finally {
+            setLoadingChat(false)
+        }
+    }, [supabase])
+
     useEffect(() => {
         fetchOrders()
-
-        // Realtime subscription
         const channel = supabase
-            .channel('orders-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-                fetchOrders()
-            })
+            .channel('orders-audit')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
             .subscribe()
-
-        return () => {
-            supabase.removeChannel(channel)
-        }
+        return () => { supabase.removeChannel(channel) }
     }, [fetchOrders, supabase])
+
+    useEffect(() => {
+        if (selectedOrder?.chat_id) {
+            fetchChatMessages(selectedOrder.chat_id)
+        }
+    }, [selectedOrder, fetchChatMessages])
 
     const updateOrderStatus = async (id: string, newStatus: string) => {
         try {
-            const { error } = await supabase
-                .from('orders')
-                .update({ status: newStatus, updated_at: new Date().toISOString() })
-                .eq('id', id)
-
-            if (error) throw error
-            if (newStatus === 'delivered') toast.success('Pedido marcado como entregado')
+            await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', id)
+            toast.success(newStatus === 'cancelled' ? 'Pedido revertido' : 'Estado actualizado')
+            if (selectedOrder?.id === id) setSelectedOrder(prev => prev ? { ...prev, status: newStatus as any } : null)
         } catch (err) {
-            console.error('Error updating order status:', err)
-            toast.error('Error al actualizar el estado')
+            toast.error('Error al actualizar')
         }
     }
 
     const deleteOrder = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar permanentemente este pedido?')) return;
+        if (!confirm('¿Eliminar este pedido permanentemente?')) return
         try {
-            const { error } = await supabase.from('orders').delete().eq('id', id);
-            if (error) throw error;
-            toast.success("Pedido eliminado correctamente");
-            setOrders(prev => prev.filter(o => o.id !== id));
+            await supabase.from('orders').delete().eq('id', id)
+            toast.success('Pedido eliminado')
+            setOrders(prev => prev.filter(o => o.id !== id))
+            if (selectedOrder?.id === id) setSelectedOrder(null)
         } catch (err) {
-            console.error('Error deleting order:', err);
-            toast.error("Error al eliminar el pedido");
+            toast.error('Error al eliminar')
         }
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'delivered':
-                return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-            case 'pending_delivery':
-                return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-            case 'pending_payment':
-                return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-            case 'pending_email':
-                return 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-            case 'cancelled':
-                return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-            default:
-                return 'bg-slate-500/10 text-slate-400'
-        }
+    const handleCopyEmail = (email: string) => {
+        navigator.clipboard.writeText(email)
+        setCopiedEmail(email)
+        toast.success('Correo copiado')
+        setTimeout(() => setCopiedEmail(null), 2000)
     }
 
-    const getStatusLabel = (status: string) => {
+    const getStatusConfig = (status: string) => {
         switch (status) {
-            case 'delivered': return 'Entregado'
-            case 'pending_delivery': return 'Pendiente Envío'
-            case 'pending_payment': return 'Esperando Pago'
-            case 'pending_email': return 'Sin Email'
-            case 'cancelled': return 'Cancelado'
-            default: return status
+            case 'completed': return { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', label: '✅ Auto-Aprobado', icon: <Zap size={12} /> }
+            case 'delivered': return { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', label: 'Entregado', icon: <CheckCircle2 size={12} /> }
+            case 'pending_delivery': return { color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', label: 'Pendiente Envío', icon: <Clock size={12} /> }
+            case 'pending_payment': return { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', label: 'Esperando Pago', icon: <Clock size={12} /> }
+            case 'pending_email': return { color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', label: 'Sin Email', icon: <AlertCircle size={12} /> }
+            case 'cancelled': return { color: 'bg-rose-500/10 text-rose-400 border-rose-500/20', label: '❌ Revertido', icon: <Undo2 size={12} /> }
+            default: return { color: 'bg-slate-500/10 text-slate-400', label: status, icon: null }
         }
     }
 
@@ -148,59 +163,26 @@ export default function OrdersPage() {
         return matchesFilter && matchesSearch
     })
 
-    const handleCopyEmail = (email: string) => {
-        navigator.clipboard.writeText(email)
-        setCopiedEmail(email)
-        toast.success("Correo copiado al portapapeles")
-        setTimeout(() => setCopiedEmail(null), 2000)
-    }
-
-    const handleSendTutorial = async (chatId: string, orderId: string) => {
-        if (!chatId) {
-            toast.error("No se encontró el chat para este cliente")
-            return
-        }
-
-        setSendingVideoId(orderId)
-
-        try {
-            const response = await fetch('/api/chat/send-video', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chatId: chatId,
-                    videoUrl: '/tutorial.mp4',
-                    caption: '🎬 *¡Bienvenido a Canva Pro!*\n\nAquí tienes el video tutorial de activación. Sigue los pasos y cualquier duda me avisas por aquí. 👇'
-                })
-            })
-
-            const result = await response.json()
-
-            if (response.ok) {
-                toast.success("Video tutorial enviado con éxito")
-            } else {
-                toast.error(result.error || "Hubo un error al enviar el video")
-            }
-        } catch (error) {
-            console.error("Error al enviar video:", error)
-            toast.error("Error de conexión al intentar enviar el video")
-        } finally {
-            setSendingVideoId(null)
-        }
+    const stats = {
+        total: orders.length,
+        autoApproved: orders.filter(o => o.status === 'completed').length,
+        pendingPayment: orders.filter(o => o.status === 'pending_payment').length,
+        reverted: orders.filter(o => o.status === 'cancelled').length,
     }
 
     return (
-        <div className="p-8 max-w-7xl mx-auto min-h-screen">
-            <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-6 max-w-[1600px] mx-auto min-h-screen">
+            {/* Header */}
+            <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                    <h1 className="text-2xl font-bold text-white flex items-center gap-3">
                         <ShoppingBag className="text-indigo-500" />
-                        Gestión de Pedidos
+                        Auditoría de Pedidos
                     </h1>
-                    <p className="text-slate-400 mt-1">Control de ventas de Canva Pro y suscripciones.</p>
+                    <p className="text-slate-400 text-sm mt-1">Las renovaciones se procesan automáticamente. Aquí verificas los comprobantes.</p>
                 </div>
                 <button
-                    onClick={() => { setLoading(true); fetchOrders(); }}
+                    onClick={() => { setLoading(true); fetchOrders() }}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm font-medium hover:bg-slate-800 transition-all active:scale-95"
                 >
                     <RefreshCcw size={16} className={cn(loading && "animate-spin text-indigo-500")} />
@@ -208,221 +190,245 @@ export default function OrdersPage() {
                 </button>
             </header>
 
-            {/* Stats Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-slate-400 text-sm font-medium mb-1">Total Pedidos</p>
-                    <p className="text-2xl font-bold text-white">{orders.length}</p>
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
+                    <p className="text-slate-400 text-xs font-medium">Total</p>
+                    <p className="text-xl font-bold text-white">{stats.total}</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-amber-400 text-sm font-medium mb-1">Pendientes de Envío</p>
-                    <p className="text-2xl font-bold text-white">
-                        {orders.filter(o => o.status === 'pending_delivery').length}
-                    </p>
+                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-xl">
+                    <p className="text-emerald-400 text-xs font-medium">✅ Auto-Aprobados</p>
+                    <p className="text-xl font-bold text-emerald-400">{stats.autoApproved}</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-indigo-400 text-sm font-medium mb-1">Esperando Pago</p>
-                    <p className="text-2xl font-bold text-white">
-                        {orders.filter(o => o.status === 'pending_payment').length}
-                    </p>
+                <div className="bg-indigo-500/5 border border-indigo-500/20 p-4 rounded-xl">
+                    <p className="text-indigo-400 text-xs font-medium">⏳ Esperando Pago</p>
+                    <p className="text-xl font-bold text-indigo-400">{stats.pendingPayment}</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-emerald-400 text-sm font-medium mb-1">Completados</p>
-                    <p className="text-2xl font-bold text-white">
-                        {orders.filter(o => o.status === 'delivered').length}
-                    </p>
+                <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-xl">
+                    <p className="text-rose-400 text-xs font-medium">❌ Revertidos</p>
+                    <p className="text-xl font-bold text-rose-400">{stats.reverted}</p>
                 </div>
             </div>
 
-            {/* Filters & Search */}
-            <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            {/* Search & Filter */}
+            <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl mb-4 flex gap-3">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                     <input
                         type="text"
                         placeholder="Buscar por nombre, teléfono o email..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Filter size={18} className="text-slate-500" />
-                    <select
-                        className="bg-slate-950 border border-slate-800 rounded-xl py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                    >
-                        <option value="all">Todos los estados</option>
-                        <option value="pending_email">Sin Email</option>
-                        <option value="pending_payment">Esperando Pago</option>
-                        <option value="pending_delivery">Pendiente Envío</option>
-                        <option value="delivered">Entregados</option>
-                        <option value="cancelled">Cancelados</option>
-                    </select>
-                </div>
+                <select
+                    className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                >
+                    <option value="all">Todos</option>
+                    <option value="completed">✅ Auto-Aprobados</option>
+                    <option value="pending_payment">⏳ Esperando Pago</option>
+                    <option value="delivered">Entregados</option>
+                    <option value="cancelled">❌ Revertidos</option>
+                </select>
             </div>
 
-            {/* Orders Table */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-slate-800 bg-slate-800/20">
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha / Cliente</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan / Monto</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Acceso / Equipo</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800">
-                            {filteredOrders.length > 0 ? filteredOrders.map((order) => (
-                                <tr key={order.id} className="hover:bg-slate-800/30 transition-colors group">
-                                    <td className="px-6 py-5">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-semibold text-white">{order.contact_name || 'Sin nombre'}</span>
-                                            <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
-                                                <Phone size={12} />
-                                                <span>{order.phone_number}</span>
+            {/* Main Layout: List + Detail Panel */}
+            <div className="flex gap-4" style={{ height: 'calc(100vh - 350px)', minHeight: '500px' }}>
+                {/* Left: Orders List */}
+                <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+                    <div className="overflow-y-auto flex-1">
+                        {filteredOrders.length > 0 ? filteredOrders.map((order) => {
+                            const sc = getStatusConfig(order.status)
+                            const isSelected = selectedOrder?.id === order.id
+                            return (
+                                <div
+                                    key={order.id}
+                                    onClick={() => setSelectedOrder(order)}
+                                    className={cn(
+                                        "flex items-center gap-3 px-4 py-3 border-b border-slate-800/50 cursor-pointer transition-colors hover:bg-slate-800/30",
+                                        isSelected && "bg-indigo-500/10 border-l-2 border-l-indigo-500"
+                                    )}
+                                >
+                                    {/* Payment proof thumbnail */}
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0 border border-slate-700">
+                                        {order.payment_proof_url ? (
+                                            <img
+                                                src={order.payment_proof_url}
+                                                alt="Comprobante"
+                                                className="w-full h-full object-cover"
+                                                onClick={(e) => { e.stopPropagation(); setProofModal(order.payment_proof_url!) }}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <ImageIcon size={16} className="text-slate-600" />
                                             </div>
-                                            <span className="text-[10px] text-slate-600 mt-1">
-                                                {dayjs(order.created_at).format("D [de] MMMM, HH:mm")}
+                                        )}
+                                    </div>
+
+                                    {/* Order info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-white truncate">{order.contact_name || 'Sin nombre'}</span>
+                                            <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border", sc.color)}>
+                                                {sc.icon} {sc.label}
                                             </span>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-white">{order.plan_name}</span>
-                                            <span className="text-sm text-indigo-400 font-medium">Bs {order.amount}</span>
+                                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+                                            <span className="font-medium text-indigo-400">{order.plan_name} — Bs {order.amount}</span>
+                                            <span>·</span>
+                                            <span>{dayjs(order.created_at).format("D MMM, HH:mm")}</span>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex flex-col gap-1.5">
-                                            {order.customer_email ? (
-                                                <div className="flex items-center gap-2 group/email">
-                                                    <Mail size={14} className="text-indigo-500" />
-                                                    <span className="text-sm text-slate-300">{order.customer_email}</span>
-                                                    <button
-                                                        onClick={() => handleCopyEmail(order.customer_email)}
-                                                        className="p-1 opacity-0 group-hover/email:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700 text-slate-400 rounded cursor-pointer"
-                                                        title="Copiar correo"
-                                                    >
-                                                        {copiedEmail === order.customer_email ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-slate-600 italic">Email no proporcionado</span>
-                                            )}
-                                            {order.equipo && (
-                                                <div className="flex items-center gap-2 text-xs text-slate-400">
-                                                    <span className="px-1.5 py-0.5 bg-slate-800 rounded text-indigo-400 font-bold border border-slate-700">
-                                                        EQ {order.equipo}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <span className={cn(
-                                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border",
-                                            getStatusColor(order.status)
-                                        )}>
-                                            {order.status === 'pending_delivery' && <Clock size={12} />}
-                                            {order.status === 'delivered' && <CheckCircle2 size={12} />}
-                                            {order.status === 'pending_email' && <AlertCircle size={12} />}
-                                            {getStatusLabel(order.status)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-5 text-right">
-                                        <div className="flex items-center gap-2">
-                                            {order.status === 'pending_delivery' && (
-                                                <button
-                                                    onClick={() => updateOrderStatus(order.id, 'delivered')}
-                                                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-1.5"
-                                                >
-                                                    <CheckCircle2 size={14} />
-                                                    Entregar
-                                                </button>
-                                            )}
-                                            {order.status === 'pending_payment' && (
-                                                <button
-                                                    onClick={() => updateOrderStatus(order.id, 'pending_delivery')}
-                                                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all active:scale-95"
-                                                >
-                                                    Pago Recibido
-                                                </button>
-                                            )}
-                                            {order.chat_id && (
-                                                <button
-                                                    onClick={() => handleSendTutorial(order.chat_id!, order.id)}
-                                                    disabled={sendingVideoId === order.id}
-                                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-700 transition-all active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
-                                                    title="Enviar Video Tutorial a WhatsApp"
-                                                >
-                                                    {sendingVideoId === order.id ? (
-                                                        <RefreshCcw size={14} className="animate-spin text-slate-400" />
-                                                    ) : (
-                                                        <PlayCircle size={14} className="text-indigo-400" />
-                                                    )}
-                                                    Video
-                                                </button>
-                                            )}
-                                            {order.chat_id && (
-                                                <button
-                                                    onClick={() => router.push(`/dashboard/chats?chatId=${order.chat_id}`)}
-                                                    className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
-                                                    title="Ver conversación"
-                                                >
-                                                    <MessageSquare size={16} />
-                                                </button>
-                                            )}
-                                            <div className="relative">
-                                                <button
-                                                    onClick={() => setOpenDropdown(openDropdown === order.id ? null : order.id)}
-                                                    className="p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                                                >
-                                                    <MoreHorizontal size={18} />
-                                                </button>
+                                        {order.customer_email && (
+                                            <div className="text-[11px] text-slate-500 truncate mt-0.5">📧 {order.customer_email}</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        }) : (
+                            <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                                <ShoppingBag size={40} className="text-slate-700 mb-3" />
+                                <p className="text-sm">No se encontraron pedidos.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-                                                {openDropdown === order.id && (
-                                                    <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10 py-1 overflow-hidden">
-                                                        {order.status !== 'delivered' && (
-                                                            <button
-                                                                onClick={() => { updateOrderStatus(order.id, 'delivered'); setOpenDropdown(null); }}
-                                                                className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2 transition-colors"
-                                                            >
-                                                                <CheckCircle2 size={16} className="text-emerald-400" />
-                                                                Marcar Entregado
-                                                            </button>
-                                                        )}
-                                                        <button
-                                                            onClick={() => { deleteOrder(order.id); setOpenDropdown(null); }}
-                                                            className="w-full text-left px-4 py-2.5 text-sm text-rose-400 hover:bg-slate-700 flex items-center gap-2 transition-colors"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                            Eliminar Pedido
-                                                        </button>
-                                                    </div>
+                {/* Right: Detail Panel */}
+                <div className="w-[420px] bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden flex flex-col flex-shrink-0">
+                    {selectedOrder ? (
+                        <>
+                            {/* Header */}
+                            <div className="p-4 border-b border-slate-800 bg-slate-800/20">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-sm font-bold text-white">{selectedOrder.contact_name}</h3>
+                                    <button onClick={() => setSelectedOrder(null)} className="p-1 text-slate-500 hover:text-white">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-slate-400">
+                                    <span className="flex items-center gap-1"><Phone size={11} /> {selectedOrder.phone_number}</span>
+                                    {selectedOrder.customer_email && (
+                                        <button onClick={() => handleCopyEmail(selectedOrder.customer_email)} className="flex items-center gap-1 hover:text-indigo-400 transition-colors">
+                                            <Mail size={11} /> {selectedOrder.customer_email}
+                                            {copiedEmail === selectedOrder.customer_email ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-xs font-bold text-indigo-400">{selectedOrder.plan_name} — Bs {selectedOrder.amount}</span>
+                                    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border", getStatusConfig(selectedOrder.status).color)}>
+                                        {getStatusConfig(selectedOrder.status).label}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Payment proof */}
+                            <div className="p-4 border-b border-slate-800">
+                                <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Comprobante de Pago</p>
+                                {selectedOrder.payment_proof_url ? (
+                                    <div
+                                        className="relative rounded-lg overflow-hidden cursor-pointer group border border-slate-700"
+                                        onClick={() => setProofModal(selectedOrder.payment_proof_url!)}
+                                    >
+                                        <img src={selectedOrder.payment_proof_url} alt="Comprobante" className="w-full max-h-48 object-contain bg-slate-950" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Eye size={24} className="text-white" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6 text-center">
+                                        <ImageIcon size={24} className="text-slate-600 mx-auto mb-2" />
+                                        <p className="text-xs text-slate-500">Sin comprobante</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Chat context */}
+                            <div className="flex-1 overflow-y-auto p-4">
+                                <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Conversación</p>
+                                {loadingChat ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <RefreshCcw size={16} className="animate-spin text-slate-500" />
+                                    </div>
+                                ) : chatMessages.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {chatMessages.map(msg => (
+                                            <div key={msg.id} className={cn("max-w-[90%] rounded-lg p-2", msg.is_from_me ? "ml-auto bg-indigo-500/20 border border-indigo-500/30" : "bg-slate-800 border border-slate-700")}>
+                                                {msg.media_url && msg.media_type === 'image' && (
+                                                    <img src={msg.media_url} alt="" className="w-full rounded mb-1 max-h-24 object-cover cursor-pointer" onClick={() => setProofModal(msg.media_url!)} />
                                                 )}
+                                                <p className="text-[11px] text-slate-300 whitespace-pre-wrap break-words">{msg.content}</p>
+                                                <p className="text-[9px] text-slate-500 mt-1">{dayjs(msg.created_at).format("HH:mm")}</p>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <ShoppingBag size={48} className="text-slate-800" />
-                                            <p className="text-slate-500 font-medium">No se encontraron pedidos.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-slate-500 text-center py-4">No hay mensajes</p>
+                                )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="p-3 border-t border-slate-800 bg-slate-800/20 flex gap-2">
+                                {selectedOrder.status === 'completed' && (
+                                    <button
+                                        onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
+                                        className="flex-1 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs font-bold border border-rose-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                    >
+                                        <Undo2 size={14} />
+                                        Revertir
+                                    </button>
+                                )}
+                                {selectedOrder.status === 'pending_payment' && (
+                                    <button
+                                        onClick={() => updateOrderStatus(selectedOrder.id, 'completed')}
+                                        className="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-bold border border-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                    >
+                                        <CheckCircle2 size={14} />
+                                        Aprobar Manual
+                                    </button>
+                                )}
+                                {selectedOrder.chat_id && (
+                                    <button
+                                        onClick={() => router.push(`/dashboard/chats?chatId=${selectedOrder.chat_id}`)}
+                                        className="flex-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-700 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                    >
+                                        <MessageSquare size={14} />
+                                        Ver Chat
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => deleteOrder(selectedOrder.id)}
+                                    className="px-3 py-2 bg-slate-800 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-lg text-xs border border-slate-700 transition-all active:scale-95"
+                                    title="Eliminar"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                            <Eye size={40} className="text-slate-700 mb-3" />
+                            <p className="text-sm font-medium">Selecciona un pedido</p>
+                            <p className="text-xs text-slate-600 mt-1">para ver el comprobante y la conversación</p>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* Image Modal */}
+            {proofModal && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8" onClick={() => setProofModal(null)}>
+                    <div className="relative max-w-3xl max-h-[90vh]">
+                        <button onClick={() => setProofModal(null)} className="absolute -top-3 -right-3 bg-slate-800 text-white rounded-full p-2 hover:bg-slate-700 z-10 border border-slate-600">
+                            <X size={18} />
+                        </button>
+                        <img src={proofModal} alt="Comprobante" className="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain" />
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

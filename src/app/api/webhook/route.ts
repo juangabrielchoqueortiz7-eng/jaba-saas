@@ -370,6 +370,115 @@ export async function POST(request: Request) {
                 }
 
                 // =================================================================================
+                // 2.5. AUTO-RENOVACIÓN: Si el cliente envía imagen + tiene pedido pendiente → auto-aprobar
+                // =================================================================================
+                if (messageType === 'image' && chatId && savedMediaUrl) {
+                    try {
+                        // Buscar pedido pendiente de pago para este chat
+                        const { data: pendingOrder } = await supabaseAdmin
+                            .from('orders')
+                            .select('*')
+                            .eq('chat_id', chatId)
+                            .eq('status', 'pending_payment')
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+
+                        if (pendingOrder) {
+                            console.log(`[AUTO-RENEWAL] 🔄 Imagen recibida + pedido pendiente ${pendingOrder.id} — auto-aprobando`);
+
+                            // Guardar URL del comprobante en el pedido
+                            await supabaseAdmin.from('orders').update({
+                                payment_proof_url: savedMediaUrl,
+                                status: 'completed',
+                                updated_at: new Date().toISOString()
+                            }).eq('id', pendingOrder.id);
+
+                            // Calcular nueva fecha de vencimiento según plan
+                            const { data: planProduct } = await supabaseAdmin
+                                .from('products')
+                                .select('name, duration_months')
+                                .eq('id', pendingOrder.plan)
+                                .single();
+
+                            const durationMonths = planProduct?.duration_months || 1;
+                            const today = new Date();
+                            const newExpDate = new Date(today);
+                            newExpDate.setMonth(newExpDate.getMonth() + durationMonths);
+                            const newExpiration = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
+
+                            // Buscar suscripción del cliente
+                            const cleanPhone = phoneNumber.replace(/^591/, '');
+                            const { data: clientSub } = await supabaseAdmin
+                                .from('subscriptions')
+                                .select('id, vencimiento, correo')
+                                .eq('user_id', tenantUserId)
+                                .or(`numero.eq.${phoneNumber},numero.eq.${cleanPhone},correo.eq.${pendingOrder.customer_email}`)
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle();
+
+                            if (clientSub) {
+                                // Actualizar suscripción
+                                await supabaseAdmin.from('subscriptions').update({
+                                    vencimiento: newExpiration,
+                                    estado: 'ACTIVO',
+                                    notified: false,
+                                    notified_at: null,
+                                    followup_sent: false,
+                                    urgency_sent: false
+                                }).eq('id', clientSub.id);
+                                console.log(`[AUTO-RENEWAL] ✅ Suscripción ${clientSub.id} renovada hasta ${newExpiration}`);
+                            }
+
+                            // Crear registro de renovación para auditoría
+                            await supabaseAdmin.from('subscription_renewals').insert({
+                                user_id: tenantUserId,
+                                subscription_id: clientSub?.id || null,
+                                order_id: pendingOrder.id,
+                                chat_id: chatId,
+                                phone_number: phoneNumber,
+                                customer_email: pendingOrder.customer_email || clientSub?.correo || '',
+                                plan_name: pendingOrder.plan_name || planProduct?.name || '',
+                                amount: pendingOrder.amount,
+                                old_expiration: clientSub?.vencimiento || '',
+                                new_expiration: newExpiration,
+                                payment_proof_url: savedMediaUrl,
+                                status: 'auto_approved',
+                                reviewed_at: new Date().toISOString()
+                            });
+
+                            // Enviar confirmación por WhatsApp
+                            const { sendWhatsAppMessage: sendWAMsg } = await import('@/lib/whatsapp');
+                            const confirmMsg = `✅ *¡Pago recibido y renovación completada!* 🎉\n\nTu acceso para *${pendingOrder.customer_email || clientSub?.correo || ''}* ha sido renovado.\n\n📋 *Detalle:*\n• Plan: ${pendingOrder.plan_name || planProduct?.name}\n• Monto: Bs ${pendingOrder.amount}\n• Vigencia hasta: *${newExpiration}*\n\n¡Gracias por confiar en nosotros! 😊`;
+
+                            await sendWAMsg(phoneNumber, confirmMsg, tenantToken, phoneId);
+
+                            // Guardar confirmación en chat
+                            await supabaseAdmin.from('messages').insert({
+                                chat_id: chatId,
+                                is_from_me: true,
+                                content: confirmMsg,
+                                status: 'delivered'
+                            });
+
+                            // Actualizar chat con tag "pago"
+                            await supabaseAdmin.from('chats').update({
+                                last_message: '✅ Renovación auto-aprobada',
+                                last_message_time: new Date().toISOString(),
+                                tags: ['pago']
+                            }).eq('id', chatId);
+
+                            // Ya procesado — no necesita pasar por la IA
+                            return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                        }
+                    } catch (autoRenewalErr) {
+                        console.error('[AUTO-RENEWAL] Error:', autoRenewalErr);
+                        // Si falla, continuar con el flujo normal de la IA
+                    }
+                }
+
+                // =================================================================================
                 // 3. EVALUACIÓN DE DISPARADORES (TRIGGERS) 🚀
                 // =================================================================================
 
