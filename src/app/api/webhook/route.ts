@@ -474,12 +474,9 @@ export async function POST(request: Request) {
                                 .single();
 
                             const durationMonths = planProduct?.duration_months || 1;
-                            const today = new Date();
-                            const newExpDate = new Date(today);
-                            newExpDate.setMonth(newExpDate.getMonth() + durationMonths);
-                            const newExpiration = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
 
-                            // ===== BUSCAR SUSCRIPCIÓN: CORREO EXACTO PRIMERO =====
+                            // ===== BUSCAR SUSCRIPCIÓN ANTES DE CALCULAR FECHA =====
+                            // Necesitamos saber el vencimiento actual para extender desde ahí si sigue vigente
                             console.log(`[AUTO-RENEWAL] orderEmail=${orderEmail}, userId=${tenantUserId}, phone=${phoneNumber}`);
 
                             let targetSub: { id: string; vencimiento: string; correo: string } | null = null;
@@ -519,6 +516,31 @@ export async function POST(request: Request) {
                                     console.error(`[AUTO-RENEWAL] ❌ No se encontró suscripción para phone=${phoneNumber}, email=${orderEmail}`);
                                 }
                             }
+
+                            // ===== CALCULAR FECHA DESDE VENCIMIENTO ACTUAL (NO DESDE HOY) =====
+                            const todayBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
+                            const today = new Date(todayBolivia.getFullYear(), todayBolivia.getMonth(), todayBolivia.getDate());
+                            let baseDate = today;
+
+                            if (targetSub?.vencimiento) {
+                                const partsSlash = targetSub.vencimiento.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                                const partsDash = targetSub.vencimiento.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                                let currentExp: Date | null = null;
+                                if (partsSlash) currentExp = new Date(parseInt(partsSlash[3]), parseInt(partsSlash[2]) - 1, parseInt(partsSlash[1]));
+                                else if (partsDash) currentExp = new Date(parseInt(partsDash[1]), parseInt(partsDash[2]) - 1, parseInt(partsDash[3]));
+                                if (currentExp && currentExp > today) {
+                                    baseDate = currentExp; // Sub vigente: extender desde vencimiento
+                                    console.log(`[AUTO-RENEWAL] Sub vigente hasta ${targetSub.vencimiento}, extendiendo desde ahí`);
+                                } else {
+                                    console.log(`[AUTO-RENEWAL] Sub vencida (${targetSub.vencimiento}), extendiendo desde hoy`);
+                                }
+                            }
+
+                            const newExpDate = new Date(baseDate);
+                            newExpDate.setMonth(newExpDate.getMonth() + durationMonths);
+                            const newExpiration = `${String(newExpDate.getDate()).padStart(2, '0')}/${String(newExpDate.getMonth() + 1).padStart(2, '0')}/${newExpDate.getFullYear()}`;
+                            console.log(`[AUTO-RENEWAL] Nueva fecha calculada: ${newExpiration} (base: ${baseDate === today ? 'hoy' : targetSub?.vencimiento})`);
+
 
                             if (targetSub) {
                                 const { data: updatedSub, error: updateErr } = await supabaseAdmin
