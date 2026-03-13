@@ -32,7 +32,12 @@ interface Chat {
     tags?: string[]
 }
 
-export function ConversationList() {
+interface ConversationListProps {
+    onSelectChat?: (chatId: string) => void
+    selectedChatId?: string | null
+}
+
+export function ConversationList({ onSelectChat, selectedChatId: externalChatId }: ConversationListProps = {}) {
     const [chats, setChats] = useState<Chat[]>([])
     const [loading, setLoading] = useState(true)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -42,7 +47,7 @@ export function ConversationList() {
     const [showFilterMenu, setShowFilterMenu] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
-    const activeChatId = searchParams.get('chatId')
+    const activeChatId = externalChatId !== undefined ? externalChatId : searchParams.get('chatId')
 
     useEffect(() => {
         const fetchChats = async () => {
@@ -77,7 +82,11 @@ export function ConversationList() {
     }, [supabase])
 
     const handleSelectChat = (chatId: string) => {
-        router.push(`/dashboard/chats?chatId=${chatId}`)
+        if (onSelectChat) {
+            onSelectChat(chatId)
+        } else {
+            router.push(`/dashboard/chats?chatId=${chatId}`)
+        }
     }
 
     const filteredChats = chats.filter(chat => {

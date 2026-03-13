@@ -27,7 +27,11 @@ interface ChatDetails {
     tags?: string[]
 }
 
-export function ChatWindow() {
+interface ChatWindowProps {
+    chatId?: string | null
+}
+
+export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     const [messages, setMessages] = useState<Message[]>([])
     const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null)
     const [newMessage, setNewMessage] = useState('')
@@ -52,7 +56,7 @@ export function ChatWindow() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [supabase] = useState(() => createClient())
     const searchParams = useSearchParams()
-    const activeChatId = searchParams.get('chatId')
+    const activeChatId = externalChatId !== undefined ? externalChatId : searchParams.get('chatId')
     const scrollRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {

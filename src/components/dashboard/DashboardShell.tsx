@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { SidebarNav } from './SidebarNav'
+
+const ChatPanel = lazy(() => import('@/components/chat/ChatPanel').then(m => ({ default: m.ChatPanel })))
 
 interface DashboardShellProps {
     children: React.ReactNode
@@ -13,6 +15,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, userEmail, signOutAction }: DashboardShellProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [chatPanelOpen, setChatPanelOpen] = useState(false)
     const pathname = usePathname()
 
     // Auto-close sidebar on route change (mobile)
@@ -78,7 +81,7 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                 </div>
 
                 {/* Nav Links */}
-                <SidebarNav onNavigate={() => setSidebarOpen(false)} />
+                <SidebarNav onNavigate={() => setSidebarOpen(false)} onOpenChatPanel={() => { setChatPanelOpen(true); setSidebarOpen(false) }} />
 
                 {/* User Info + Sign Out */}
                 <div className="p-4 border-t border-slate-800">
@@ -103,6 +106,11 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
             <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
                 {children}
             </main>
+
+            {/* Floating Chat Panel */}
+            <Suspense fallback={null}>
+                <ChatPanel isOpen={chatPanelOpen} onClose={() => setChatPanelOpen(false)} />
+            </Suspense>
         </div>
     )
 }

@@ -7,7 +7,7 @@ import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, Shoppin
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
 
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarNav({ onNavigate, onOpenChatPanel }: { onNavigate?: () => void; onOpenChatPanel?: () => void }) {
     const pathname = usePathname()
     const params = useParams()
     // Explicitly cast params to handle the possibility of it being empty or different type
@@ -164,10 +164,14 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                             <span className="text-lg">📄</span>
                             Descripción
                         </Link>
-                        <Link
-                            href="/dashboard/chats"
+                        <button
+                            onClick={() => {
+                                if (onOpenChatPanel) {
+                                    onOpenChatPanel()
+                                }
+                            }}
                             className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
                                 pathname.startsWith('/dashboard/chats')
                                     ? "text-white bg-slate-800/50"
                                     : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -175,7 +179,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                         >
                             <MessageSquare size={20} />
                             Chat
-                        </Link>
+                        </button>
 
                         <Link
                             href="/dashboard/orders"
