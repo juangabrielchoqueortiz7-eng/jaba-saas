@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useChat } from '@/context/ChatContext';
 
 dayjs.extend(customParseFormat);
 
@@ -25,6 +26,7 @@ interface SubscriptionTableProps {
 export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete, onLocalUpdate }: SubscriptionTableProps) {
     const supabase = createClient();
     const router = useRouter();
+    const { openChat } = useChat();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
 
     useEffect(() => {
@@ -253,7 +255,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             .maybeSingle();
 
         if (chat) {
-            router.push(`/dashboard/chats?chatId=${chat.id}`);
+            openChat(chat.id);
         } else {
             toast.info('No hay conversación aún con este número. Envía un mensaje primero.');
         }

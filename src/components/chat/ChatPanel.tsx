@@ -5,14 +5,19 @@ import { X, MessageSquare } from 'lucide-react'
 import { ConversationList } from './ConversationList'
 import { ChatWindow } from './ChatWindow'
 import { createClient } from '@/utils/supabase/client'
+import { useChat } from '@/context/ChatContext'
 
-interface ChatPanelProps {
-    isOpen: boolean
-    onClose: () => void
-}
+export function ChatPanel() {
+    const { isChatOpen, closeChat, activeChatId } = useChat()
+    
+    // We maintain a local selectedChatId for navigation within the panel, 
+    // initialized by the context's activeChatId. When context activeChatId changes, we update local state.
+    const [selectedChatId, setSelectedChatId] = useState<string | null>(activeChatId)
 
-export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
-    const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
+    useEffect(() => {
+        setSelectedChatId(activeChatId)
+    }, [activeChatId])
+
     const [totalUnread, setTotalUnread] = useState(0)
     const [supabase] = useState(() => createClient())
 
@@ -52,10 +57,10 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
     return (
         <>
             {/* Backdrop */}
-            {isOpen && (
+            {isChatOpen && (
                 <div
                     className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-                    onClick={onClose}
+                    onClick={closeChat}
                 />
             )}
 
@@ -67,7 +72,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
                     bg-[#111b21] border-l border-[#2a3942]
                     shadow-2xl shadow-black/40
                     transform transition-transform duration-300 ease-in-out
-                    ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+                    ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}
                     flex flex-col
                 `}
             >
@@ -99,7 +104,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
                         )}
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={closeChat}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-[#aebac1] hover:text-white hover:bg-[#2a3942] transition-colors"
                     >
                         <X size={20} />

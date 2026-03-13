@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, lazy } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { SidebarNav } from './SidebarNav'
+import { ChatProvider } from '@/context/ChatContext'
 
 const ChatPanel = lazy(() => import('@/components/chat/ChatPanel').then(m => ({ default: m.ChatPanel })))
 
@@ -15,7 +16,6 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, userEmail, signOutAction }: DashboardShellProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [chatPanelOpen, setChatPanelOpen] = useState(false)
     const pathname = usePathname()
 
     // Auto-close sidebar on route change (mobile)
@@ -34,9 +34,10 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
     }, [sidebarOpen])
 
     return (
-        <div className="flex h-screen bg-slate-950 text-white selection:bg-indigo-500 selection:text-white">
+        <ChatProvider>
+            <div className="flex h-screen bg-slate-950 text-white selection:bg-indigo-500 selection:text-white">
 
-            {/* Mobile Header Bar */}
+                {/* Mobile Header Bar */}
             <div className="fixed top-0 left-0 right-0 z-40 md:hidden flex items-center h-14 px-4 bg-slate-900/95 backdrop-blur-lg border-b border-slate-800">
                 <button
                     onClick={() => setSidebarOpen(true)}
@@ -81,7 +82,7 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                 </div>
 
                 {/* Nav Links */}
-                <SidebarNav onNavigate={() => setSidebarOpen(false)} onOpenChatPanel={() => { setChatPanelOpen(true); setSidebarOpen(false) }} />
+                <SidebarNav onNavigate={() => setSidebarOpen(false)} />
 
                 {/* User Info + Sign Out */}
                 <div className="p-4 border-t border-slate-800">
@@ -109,8 +110,9 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
 
             {/* Floating Chat Panel */}
             <Suspense fallback={null}>
-                <ChatPanel isOpen={chatPanelOpen} onClose={() => setChatPanelOpen(false)} />
+                <ChatPanel />
             </Suspense>
         </div>
+        </ChatProvider>
     )
 }

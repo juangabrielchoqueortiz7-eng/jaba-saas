@@ -6,12 +6,14 @@ import { useParams, usePathname } from 'next/navigation'
 import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart, Package, RefreshCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
+import { useChat } from '@/context/ChatContext'
 
-export function SidebarNav({ onNavigate, onOpenChatPanel }: { onNavigate?: () => void; onOpenChatPanel?: () => void }) {
+export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
     const params = useParams()
     // Explicitly cast params to handle the possibility of it being empty or different type
     const paramId = params?.assistantId as string | undefined
+    const { openChat } = useChat()
 
     const [activeId, setActiveId] = useState<string | undefined>(paramId)
     const [isAdmin, setIsAdmin] = useState(false)
@@ -166,9 +168,8 @@ export function SidebarNav({ onNavigate, onOpenChatPanel }: { onNavigate?: () =>
                         </Link>
                         <button
                             onClick={() => {
-                                if (onOpenChatPanel) {
-                                    onOpenChatPanel()
-                                }
+                                openChat()
+                                if (onNavigate) onNavigate()
                             }}
                             className={cn(
                                 "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
