@@ -1860,9 +1860,14 @@ ${customTrainingSection}`
 
                                                     if (qrProduct?.qr_image_url) {
                                                         const { sendWhatsAppImage } = await import('@/lib/whatsapp');
+                                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
+                                                        const absQrUrl = qrProduct.qr_image_url.startsWith('http')
+                                                            ? qrProduct.qr_image_url
+                                                            : `${baseUrl}${qrProduct.qr_image_url.startsWith('/') ? '' : '/'}${qrProduct.qr_image_url}`;
+                                                        
                                                         await sendWhatsAppImage(
                                                             phoneNumber,
-                                                            qrProduct.qr_image_url,
+                                                            absQrUrl,
                                                             `📱 *QR de Pago*\n\nPlan: *${result.product.name}*\nMonto: *Bs ${result.product.price}*\nCuenta: *${selectedEmail}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
                                                             tenantToken,
                                                             phoneId

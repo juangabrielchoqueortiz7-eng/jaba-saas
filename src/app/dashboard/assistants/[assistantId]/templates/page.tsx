@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Search, Trash2, Edit, FileText } from 'lucide-react'
-import { getTemplates, createTemplate, deleteTemplate, type Template } from './actions'
+import { Plus, Search, Trash2, Edit, FileText, Bell, BellOff } from 'lucide-react'
+import { getTemplates, createTemplate, deleteTemplate, getSubscriptionSettings, updateSubscriptionSettings, type Template } from './actions'
 
 export default function TemplatesPage() {
     const [templates, setTemplates] = useState<Template[]>([])
@@ -15,11 +15,32 @@ export default function TemplatesPage() {
     const [isCreating, setIsCreating] = useState(false)
     const [newTemplate, setNewTemplate] = useState({ name: '', content: '' })
     const [isPending, startTransition] = useTransition()
+    const [settings, setSettings] = useState<any>(null)
+    const [isSavingSettings, setIsSavingSettings] = useState(false)
 
     // Load templates on mount
     useEffect(() => {
         loadTemplates()
+        loadSettings()
     }, [])
+
+    const loadSettings = async () => {
+        const data = await getSubscriptionSettings()
+        setSettings(data || { enable_auto_notifications: true })
+    }
+
+    const toggleNotifications = async (checked: boolean) => {
+        setSettings((prev: any) => ({ ...prev, enable_auto_notifications: checked }))
+        setIsSavingSettings(true)
+        try {
+            await updateSubscriptionSettings({ enable_auto_notifications: checked })
+        } catch (e) {
+            console.error(e)
+            alert("Error al actualizar configuración")
+        } finally {
+            setIsSavingSettings(false)
+        }
+    }
 
     const loadTemplates = async () => {
         const data = await getTemplates()
@@ -118,6 +139,33 @@ export default function TemplatesPage() {
                             </Button>
                         </div>
                     </CardContent>
+                </Card>
+            )}
+
+            {settings && (
+                <Card className="mb-8 border-slate-800 bg-slate-900/40 opacity-90 overflow-hidden">
+                    <div className="bg-slate-900/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800/60 gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2.5 rounded-lg ${settings.enable_auto_notifications ? 'bg-green-500/10 text-green-400' : 'bg-slate-800 text-slate-500'}`}>
+                                {settings.enable_auto_notifications ? <Bell size={22} /> : <BellOff size={22} />}
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-white">Notificaciones Automáticas (Meta)</h3>
+                                <p className="text-sm text-slate-400">Controla el envío automático de Recordatorios y Remarketing.</p>
+                            </div>
+                        </div>
+                        <label className="flex items-center cursor-pointer gap-3 min-w-[120px] justify-end">
+                            <span className="text-sm text-slate-300 font-medium">{settings.enable_auto_notifications ? 'Activado' : 'Desactivado'}</span>
+                            <div className="relative">
+                                <input type="checkbox" className="sr-only" checked={settings.enable_auto_notifications} onChange={e => toggleNotifications(e.target.checked)} disabled={isSavingSettings} />
+                                <div className={`w-10 h-6 rounded-full shadow-inner transition-colors ${settings.enable_auto_notifications ? 'bg-green-600' : 'bg-slate-700'}`}></div>
+                                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.enable_auto_notifications ? 'translate-x-4' : ''}`}></div>
+                            </div>
+                        </label>
+                    </div>
+                    <div className="p-4 bg-slate-900/20 text-xs text-slate-500 flex flex-col gap-2">
+                        <p>ℹ️ Las plantillas de Meta se ejecutan automáticamente los días de vencimiento. Los horarios de envío generales están administrados por Vercel. Envían automáticamente los planes de compra como botones interactivos en WhatsApp.</p>
+                    </div>
                 </Card>
             )}
 

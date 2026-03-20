@@ -155,6 +155,18 @@ async function processFollowups() {
             continue
         }
 
+        const { data: settings } = await supabaseAdmin
+            .from('subscription_settings')
+            .select('enable_auto_notifications')
+            .eq('user_id', userId)
+            .single()
+
+        if (settings && settings.enable_auto_notifications === false) {
+            console.log(`[Followup] Auto notifications disabled for user ${userId}, skipping`)
+            results.skipped += userSubs.length
+            continue
+        }
+
         // Get products for interactive list
         const { data: products } = await supabaseAdmin
             .from('products')

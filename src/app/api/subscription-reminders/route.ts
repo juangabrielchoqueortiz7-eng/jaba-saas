@@ -338,9 +338,12 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         const expDate = parseDate(sub.vencimiento)
         if (!expDate) return false
 
-        // Check if expiring within 7 days or already expired
-        const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-        return diffDays <= 7
+        // Check if expiring exactly today
+        const boliviaTime = new Date(new Date().toLocaleString("en-US", { timeZone: "America/La_Paz" }));
+        const todayStr = boliviaTime.toISOString().split('T')[0];
+        const expDateStr = expDate.toISOString().split('T')[0];
+        
+        return todayStr === expDateStr
     })
 
     results.total = candidates.length
@@ -380,6 +383,13 @@ async function processReminders(specificUserId?: string, force: boolean = false)
             .select('*')
             .eq('user_id', userId)
             .single()
+
+        if (settings && settings.enable_auto_notifications === false) {
+            console.log(`[Reminders] Auto notifications disabled for user ${userId}, skipping`)
+            results.skipped += userSubs.length
+            results.total -= userSubs.length
+            continue
+        }
 
         // Get products/plans for this user
         const { data: products } = await supabaseAdmin

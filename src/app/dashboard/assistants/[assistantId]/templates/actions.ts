@@ -65,3 +65,37 @@ export async function deleteTemplate(id: string) {
 
     revalidatePath('/dashboard/assistants')
 }
+
+export async function getSubscriptionSettings() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return null
+
+    const { data } = await supabase
+        .from('subscription_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+    return data
+}
+
+export async function updateSubscriptionSettings(settings: any) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data: existing } = await supabase
+        .from('subscription_settings')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+    if (existing) {
+        await supabase.from('subscription_settings').update(settings).eq('user_id', user.id)
+    } else {
+        await supabase.from('subscription_settings').insert({ user_id: user.id, ...settings })
+    }
+    revalidatePath('/dashboard/assistants')
+}
