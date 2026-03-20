@@ -8,6 +8,8 @@ import {
     addEdge,
     applyNodeChanges,
     applyEdgeChanges,
+    Handle,
+    Position,
     type Node,
     type Edge,
     type OnNodesChange,
@@ -23,7 +25,7 @@ import '@xyflow/react/dist/style.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-    Save, ArrowLeft, Power, PowerOff,
+    Save, ArrowLeft, Power, PowerOff, Trash2,
     MessageSquare, MousePointerClick, GitBranch, Bot, Clock, Zap, ListOrdered, Image
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
@@ -48,6 +50,9 @@ const nodeColors: Record<string, { bg: string; border: string; icon: string }> =
 
 function FlowNode({ data, selected }: { data: any; selected: boolean }) {
     const colors = nodeColors[data.nodeType] || nodeColors.message
+    const isCondition = data.nodeType === 'condition'
+    const isTrigger = data.nodeType === 'trigger'
+
     return (
         <div style={{
             background: colors.bg,
@@ -58,7 +63,20 @@ function FlowNode({ data, selected }: { data: any; selected: boolean }) {
             maxWidth: 260,
             backdropFilter: 'blur(8px)',
             boxShadow: selected ? '0 0 20px rgba(129,140,248,0.3)' : '0 4px 12px rgba(0,0,0,0.3)',
+            position: 'relative' as const,
         }}>
+            {/* Target Handle (top) — all nodes except trigger */}
+            {!isTrigger && (
+                <Handle
+                    type="target"
+                    position={Position.Top}
+                    style={{
+                        width: 12, height: 12, background: colors.border,
+                        border: '2px solid #1e1e32', borderRadius: '50%', top: -6,
+                    }}
+                />
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 16 }}>{colors.icon}</span>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.border, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -72,6 +90,46 @@ function FlowNode({ data, selected }: { data: any; selected: boolean }) {
                 <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
                     {data.preview}
                 </div>
+            )}
+
+            {/* Source Handle (bottom) — for condition nodes: two handles (true/false) */}
+            {isCondition ? (
+                <>
+                    <Handle
+                        type="source"
+                        position={Position.Bottom}
+                        id="true"
+                        style={{
+                            width: 12, height: 12, background: '#22c55e',
+                            border: '2px solid #1e1e32', borderRadius: '50%',
+                            bottom: -6, left: '30%',
+                        }}
+                    />
+                    <Handle
+                        type="source"
+                        position={Position.Bottom}
+                        id="false"
+                        style={{
+                            width: 12, height: 12, background: '#ef4444',
+                            border: '2px solid #1e1e32', borderRadius: '50%',
+                            bottom: -6, left: '70%',
+                        }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.6rem', fontWeight: 700 }}>
+                        <span style={{ color: '#22c55e' }}>✓ Sí</span>
+                        <span style={{ color: '#ef4444' }}>✗ No</span>
+                    </div>
+                </>
+            ) : (
+                <Handle
+                    type="source"
+                    position={Position.Bottom}
+                    id="default"
+                    style={{
+                        width: 12, height: 12, background: colors.border,
+                        border: '2px solid #1e1e32', borderRadius: '50%', bottom: -6,
+                    }}
+                />
             )}
         </div>
     )
@@ -487,6 +545,14 @@ export default function FlowEditorPage() {
         setSelectedNode(node)
     }
 
+    const handleDeleteSelected = useCallback(() => {
+        if (selectedNode) {
+            setNodes(nds => nds.filter(n => n.id !== selectedNode.id))
+            setEdges(eds => eds.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id))
+            setSelectedNode(null)
+        }
+    }, [selectedNode])
+
     const handleNodeConfigUpdate = (config: any, label: string) => {
         if (!selectedNode) return
         setNodes(nds => nds.map(n => {
@@ -600,6 +666,7 @@ export default function FlowEditorPage() {
                     onNodeClick={handleNodeClick}
                     onPaneClick={() => setSelectedNode(null)}
                     nodeTypes={nodeTypes}
+                    deleteKeyCode={['Backspace', 'Delete']}
                     fitView
                     colorMode="dark"
                     defaultEdgeOptions={{
@@ -617,6 +684,18 @@ export default function FlowEditorPage() {
                                 <span style={{ color: saveStatus.startsWith('✅') ? '#22c55e' : '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
                                     {saveStatus}
                                 </span>
+                            )}
+                            {selectedNode && (
+                                <Button
+                                    onClick={handleDeleteSelected}
+                                    style={{
+                                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                                        color: '#ef4444', borderRadius: 10, padding: '8px 16px',
+                                        display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.85rem'
+                                    }}
+                                >
+                                    <Trash2 size={16} /> Eliminar
+                                </Button>
                             )}
                             <Button
                                 onClick={handleToggleActive}
