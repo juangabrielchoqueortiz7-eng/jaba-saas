@@ -1230,6 +1230,43 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                 }
 
                 // =================================================================================
+                // 2.9 MOTOR DE FLUJOS VISUALES — Verificar antes de usar IA
+                // =================================================================================
+                try {
+                    const { processMessage: processFlowMessage, executeFlowActions } = await import('@/lib/flow-engine')
+                    const flowCtx = {
+                        chatId,
+                        phoneNumber,
+                        contactName,
+                        messageText,
+                        messageType,
+                        interactiveData,
+                        tenantUserId,
+                        tenantToken,
+                        phoneId,
+                        mediaUrl: savedMediaUrl
+                    }
+                    const flowResult = await processFlowMessage(flowCtx)
+                    if (flowResult && flowResult.handled) {
+                        console.log(`[FlowEngine] ✅ Flujo manejó el mensaje con ${flowResult.actions.length} acciones`)
+                        // Check if any action is ai_response — if so, let the AI handle it below
+                        const hasAiAction = flowResult.actions.some(a => a.type === 'ai_response')
+                        // Execute non-AI actions
+                        const nonAiActions = flowResult.actions.filter(a => a.type !== 'ai_response')
+                        if (nonAiActions.length > 0) {
+                            await executeFlowActions(nonAiActions, flowCtx)
+                        }
+                        // If no AI action, we're done
+                        if (!hasAiAction) {
+                            return new NextResponse('EVENT_RECEIVED', { status: 200 })
+                        }
+                        console.log(`[FlowEngine] 🧠 Flujo delega a IA para esta respuesta`)
+                    }
+                } catch (flowErr) {
+                    console.error('[FlowEngine] Error (continuando con IA):', flowErr)
+                }
+
+                // =================================================================================
                 // 3. CEREBRO IA (GEMINI) - AQUÍ OCURRE LA MAGIA 🧠✨
                 // =================================================================================
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart, Package, RefreshCcw } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart, Package, RefreshCcw, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
 
@@ -247,6 +247,20 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                         >
                             <span className="text-lg">⚡</span>
                             Disparadores
+                        </Link>
+
+                        {/* Flujos Conversacionales Link */}
+                        <Link
+                            href={activeId ? `/dashboard/assistants/${activeId}/flows` : "#"}
+                            className={cn(
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
+                                pathname.includes('/flows')
+                                    ? "text-white bg-slate-800/50"
+                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                            )}
+                        >
+                            <GitBranch size={20} />
+                            Flujos
                         </Link>
 
                         {/* Recargas y Logros: Solo para clientes (NO admin) */}
