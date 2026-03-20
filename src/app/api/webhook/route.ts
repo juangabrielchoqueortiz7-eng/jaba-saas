@@ -160,9 +160,15 @@ export async function POST(request: Request) {
                 // ---------------------------
 
                 const messageObject = value.messages[0]
-                const phoneNumber = messageObject.from
+                // From March 31 2026, Meta may omit 'from' (phone number) for users who enabled usernames.
+                // In that case we use 'from_user_id' (BSUID) as the unique identifier.
+                const rawPhone = messageObject.from
+                const bsuid = messageObject.from_user_id || value.contacts?.[0]?.user_id || null
+                // Use phone number as primary identifier; fall back to BSUID if phone is absent
+                const phoneNumber: string = rawPhone || bsuid || 'unknown'
                 const messageType = messageObject.type || 'unknown'
-                const contactName = value.contacts?.[0]?.profile?.name || phoneNumber
+                // Prefer profile name; if phone is absent show the BSUID or 'Usuario'
+                const contactName = value.contacts?.[0]?.profile?.name || (rawPhone ? rawPhone : (bsuid || 'Usuario'))
                 const whatsappMessageId = messageObject.id // ID único del mensaje de WhatsApp
 
                 // DEDUPLICACIÓN: Verificar si ya procesamos este mensaje
@@ -245,33 +251,53 @@ export async function POST(request: Request) {
                 }
 
                 // 2. Buscar o Crear CHAT (Vinculado al Tenant)
-                const { data: existingChat } = await supabaseAdmin
-                    .from('chats')
-                    .select('id, unread_count')
-                    .eq('phone_number', phoneNumber)
-                    .eq('user_id', tenantUserId)
-                    .maybeSingle()
+                // Support BSUID: if phone is absent we look up by bsuid_user_id column
+                let existingChat: any = null
+                if (rawPhone) {
+                    const { data } = await supabaseAdmin
+                        .from('chats')
+                        .select('id, unread_count')
+                        .eq('phone_number', rawPhone)
+                        .eq('user_id', tenantUserId)
+                        .maybeSingle()
+                    existingChat = data
+                } else if (bsuid) {
+                    const { data } = await supabaseAdmin
+                        .from('chats')
+                        .select('id, unread_count')
+                        .eq('bsuid_user_id', bsuid)
+                        .eq('user_id', tenantUserId)
+                        .maybeSingle()
+                    existingChat = data
+                }
 
                 let chatId: string = '';
 
                 if (existingChat) {
                     chatId = existingChat.id
                     // Actualizamos chat y NOMBRE DE CONTACTO
-                    await supabaseAdmin.from('chats').update({
+                    const updatePayload: any = {
                         last_message: messageText,
                         last_message_time: new Date().toISOString(),
                         unread_count: (existingChat.unread_count || 0) + 1,
-                        contact_name: contactName // Sync Contact Name
-                    }).eq('id', chatId)
+                        contact_name: contactName
+                    }
+                    // If we now know the BSUID, persist it
+                    if (bsuid) updatePayload.bsuid_user_id = bsuid
+                    await supabaseAdmin.from('chats').update(updatePayload).eq('id', chatId)
                 } else {
-                    const { data: newChat, error: chatError } = await supabaseAdmin.from('chats').insert({
-                        phone_number: phoneNumber,
+                    const insertPayload: any = {
+                        phone_number: rawPhone || phoneNumber,
                         user_id: tenantUserId,
                         contact_name: contactName,
                         last_message: messageText,
                         unread_count: 1,
                         tags: ['nuevo']  // CRM: auto-tag new client
-                    }).select().single()
+                    }
+                    // Store BSUID if phone is absent (Meta usernames feature)
+                    if (bsuid) insertPayload.bsuid_user_id = bsuid
+
+                    const { data: newChat, error: chatError } = await supabaseAdmin.from('chats').insert(insertPayload).select().single()
 
                     if (chatError) console.error("Error creating chat:", chatError);
                     if (newChat) chatId = newChat.id
