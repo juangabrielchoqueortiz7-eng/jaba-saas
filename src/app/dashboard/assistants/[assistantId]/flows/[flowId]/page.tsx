@@ -25,7 +25,7 @@ import '@xyflow/react/dist/style.css'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-    Save, ArrowLeft, Power, PowerOff, Trash2,
+    Save, ArrowLeft, Power, PowerOff, Trash2, Copy,
     MessageSquare, MousePointerClick, GitBranch, Bot, Clock, Zap, ListOrdered, Image
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
@@ -444,6 +444,7 @@ export default function FlowEditorPage() {
     const [isActive, setIsActive] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [saveStatus, setSaveStatus] = useState<string>('')
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
 
     const nodeIdCounter = useRef(0)
 
@@ -543,15 +544,41 @@ export default function FlowEditorPage() {
 
     const handleNodeClick = (_: any, node: Node) => {
         setSelectedNode(node)
+        setContextMenu(null)
     }
 
-    const handleDeleteSelected = useCallback(() => {
-        if (selectedNode) {
-            setNodes(nds => nds.filter(n => n.id !== selectedNode.id))
-            setEdges(eds => eds.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id))
-            setSelectedNode(null)
-        }
+    const handleDeleteNode = useCallback((nodeId: string) => {
+        setNodes(nds => nds.filter(n => n.id !== nodeId))
+        setEdges(eds => eds.filter(e => e.source !== nodeId && e.target !== nodeId))
+        if (selectedNode?.id === nodeId) setSelectedNode(null)
+        setContextMenu(null)
     }, [selectedNode])
+
+    const handleDuplicateNode = useCallback((nodeId: string) => {
+        const node = nodes.find(n => n.id === nodeId)
+        if (!node) return
+        const newId = crypto.randomUUID()
+        const newNode: Node = {
+            ...node,
+            id: newId,
+            position: { x: node.position.x + 40, y: node.position.y + 60 },
+            data: { ...node.data },
+            selected: false,
+        }
+        setNodes(nds => [...nds, newNode])
+        setContextMenu(null)
+    }, [nodes])
+
+    const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+        event.preventDefault()
+        setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id })
+        setSelectedNode(node)
+    }, [])
+
+    const handlePaneClick = useCallback(() => {
+        setSelectedNode(null)
+        setContextMenu(null)
+    }, [])
 
     const handleNodeConfigUpdate = (config: any, label: string) => {
         if (!selectedNode) return
@@ -664,7 +691,8 @@ export default function FlowEditorPage() {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onNodeClick={handleNodeClick}
-                    onPaneClick={() => setSelectedNode(null)}
+                    onNodeContextMenu={handleNodeContextMenu}
+                    onPaneClick={handlePaneClick}
                     nodeTypes={nodeTypes}
                     deleteKeyCode={['Backspace', 'Delete']}
                     fitView
@@ -684,18 +712,6 @@ export default function FlowEditorPage() {
                                 <span style={{ color: saveStatus.startsWith('✅') ? '#22c55e' : '#ef4444', fontSize: '0.85rem', fontWeight: 600 }}>
                                     {saveStatus}
                                 </span>
-                            )}
-                            {selectedNode && (
-                                <Button
-                                    onClick={handleDeleteSelected}
-                                    style={{
-                                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-                                        color: '#ef4444', borderRadius: 10, padding: '8px 16px',
-                                        display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.85rem'
-                                    }}
-                                >
-                                    <Trash2 size={16} /> Eliminar
-                                </Button>
                             )}
                             <Button
                                 onClick={handleToggleActive}
@@ -724,6 +740,56 @@ export default function FlowEditorPage() {
                         </div>
                     </Panel>
                 </ReactFlow>
+
+                {/* Context Menu (right-click) */}
+                {contextMenu && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            left: contextMenu.x,
+                            top: contextMenu.y,
+                            background: 'rgba(15,15,30,0.98)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 10,
+                            padding: 4,
+                            zIndex: 100,
+                            minWidth: 160,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                            backdropFilter: 'blur(12px)',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => handleDuplicateNode(contextMenu.nodeId)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                                background: 'transparent', border: 'none', color: '#e2e8f0',
+                                borderRadius: 8, cursor: 'pointer', width: '100%', textAlign: 'left',
+                                fontSize: '0.85rem', fontWeight: 500,
+                            }}
+                            onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(129,140,248,0.15)' }}
+                            onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+                        >
+                            <Copy size={15} style={{ color: '#818cf8' }} />
+                            Duplicar nodo
+                        </button>
+                        <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 8px' }} />
+                        <button
+                            onClick={() => handleDeleteNode(contextMenu.nodeId)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                                background: 'transparent', border: 'none', color: '#ef4444',
+                                borderRadius: 8, cursor: 'pointer', width: '100%', textAlign: 'left',
+                                fontSize: '0.85rem', fontWeight: 500,
+                            }}
+                            onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(239,68,68,0.1)' }}
+                            onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+                        >
+                            <Trash2 size={15} />
+                            Eliminar nodo
+                        </button>
+                    </div>
+                )}
 
                 {/* Config Panel */}
                 {selectedNode && (
