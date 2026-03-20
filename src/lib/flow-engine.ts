@@ -281,7 +281,7 @@ async function continueFlow(state: FlowState, ctx: MessageContext): Promise<Flow
     if (currentNode.type === 'wait_input') {
         // Store the user's response in a variable
         const variableName = currentNode.config?.variable_name || 'last_input'
-        const updatedVars = { ...state.variables, [variableName]: ctx.messageText }
+        const updatedVars: Record<string, any> = { ...state.variables, [variableName]: ctx.messageText }
 
         // If user sent interactive data, store that too
         if (ctx.interactiveData) {
