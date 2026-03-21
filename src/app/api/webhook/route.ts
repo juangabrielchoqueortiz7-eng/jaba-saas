@@ -665,13 +665,26 @@ export async function POST(request: Request) {
 
                             for (const action of trigger.trigger_actions) {
                                 if (action.type === 'send_message') {
+                                    const msgContent = action.payload.message || '';
                                     // Si el payload tiene botones, enviamos botones, si no, texto plano
                                     if (action.payload.buttons) {
-                                        await sendWhatsAppButtons(phoneNumber, action.payload.message, action.payload.buttons, tenantToken, phoneId);
+                                        await sendWhatsAppButtons(phoneNumber, msgContent, action.payload.buttons, tenantToken, phoneId);
+                                        await supabaseAdmin.from('messages').insert({
+                                            chat_id: chatId, is_from_me: true,
+                                            content: msgContent + '\n[Botones enviados]', status: 'delivered'
+                                        });
                                     } else if (action.payload.sections) {
-                                        await sendWhatsAppList(phoneNumber, action.payload.message, action.payload.buttonText || 'Ver opciones', action.payload.sections, tenantToken, phoneId);
+                                        await sendWhatsAppList(phoneNumber, msgContent, action.payload.buttonText || 'Ver opciones', action.payload.sections, tenantToken, phoneId);
+                                        await supabaseAdmin.from('messages').insert({
+                                            chat_id: chatId, is_from_me: true,
+                                            content: msgContent + '\n[Lista interactiva enviada]', status: 'delivered'
+                                        });
                                     } else {
-                                        await sendWhatsAppMessage(phoneNumber, action.payload.message, tenantToken, phoneId);
+                                        await sendWhatsAppMessage(phoneNumber, msgContent, tenantToken, phoneId);
+                                        await supabaseAdmin.from('messages').insert({
+                                            chat_id: chatId, is_from_me: true,
+                                            content: msgContent, status: 'delivered'
+                                        });
                                     }
                                 }
                                 // Implementar más acciones: update_status, add_tag, etc.
@@ -916,6 +929,11 @@ export async function POST(request: Request) {
                         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
                         const qrUrl = product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl}${product.qr_image_url}`;
                         await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (Bs ${product.price})`, tenantToken, phoneId);
+                        await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId, is_from_me: true,
+                            content: `QR de pago - ${product.name} (Bs ${product.price})`,
+                            media_url: qrUrl, media_type: 'image', status: 'delivered'
+                        });
                     }
 
                     return new NextResponse('EVENT_RECEIVED', { status: 200 });
