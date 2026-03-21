@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight } from 'lucide-react'
-import { getFlows, createFlow, deleteFlow, updateFlow, type ConversationFlow } from './actions'
+import { getFlows, createFlow, deleteFlow, updateFlow, seedSalesFlow, type ConversationFlow } from './actions'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
@@ -69,12 +69,26 @@ export default function FlowsPage() {
                         Crea y gestiona flujos de conversación visuales para tu bot
                     </p>
                 </div>
-                <Button
-                    onClick={() => setIsCreating(true)}
-                    style={{ background: 'linear-gradient(135deg, #818cf8, #6366f1)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-                >
-                    <Plus size={18} /> Nuevo Flujo
-                </Button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <Button
+                        onClick={async () => {
+                            startTransition(async () => {
+                                const flowId = await seedSalesFlow()
+                                if (flowId) loadFlows()
+                            })
+                        }}
+                        disabled={isPending}
+                        style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 12, padding: '10px 16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                        🚀 Crear Flujo de Ventas
+                    </Button>
+                    <Button
+                        onClick={() => setIsCreating(true)}
+                        style={{ background: 'linear-gradient(135deg, #818cf8, #6366f1)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                    >
+                        <Plus size={18} /> Nuevo Flujo
+                    </Button>
+                </div>
             </div>
 
             {/* Search */}
