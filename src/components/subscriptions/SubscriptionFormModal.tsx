@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { Subscription } from '@/types/subscription';
-import { ImagePlus, Loader2, Sparkles } from 'lucide-react';
+import { ImagePlus, Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
 
 dayjs.extend(customParseFormat);
 
@@ -23,12 +23,15 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
     const [isLoading, setIsLoading] = useState(false);
     const [isProcessingImage, setIsProcessingImage] = useState(false);
     const [fileInputKey, setFileInputKey] = useState(0);
+    const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         numero: '',
         correo: '',
-        vencimiento: dayjs().add(1, 'month').format('YYYY-MM-DD'), // Default next month, input type="date" uses YYYY-MM-DD
+        vencimiento: dayjs().add(1, 'month').format('YYYY-MM-DD'),
         estado: 'ACTIVO',
-        equipo: ''
+        equipo: '',
+        servicio: 'CANVA',
+        password: ''
     });
 
     const processImage = async (file: File) => {
@@ -121,14 +124,18 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
             // Input date gives YYYY-MM-DD
             const formattedDate = dayjs(formData.vencimiento).format('DD/MM/YYYY');
 
-            const newSub = {
+            const newSub: Record<string, any> = {
                 numero: formData.numero,
                 correo: formData.correo,
                 vencimiento: formattedDate,
                 estado: formData.estado,
                 equipo: formData.equipo,
+                servicio: formData.servicio,
                 user_id: user.id
             };
+            if (formData.servicio !== 'CANVA' && formData.password) {
+                newSub.password = formData.password;
+            }
 
             const { data, error } = await supabase
                 .from('subscriptions')
@@ -147,7 +154,9 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                 correo: '',
                 vencimiento: dayjs().add(1, 'month').format('YYYY-MM-DD'),
                 estado: 'ACTIVO',
-                equipo: ''
+                equipo: '',
+                servicio: 'CANVA',
+                password: ''
             });
 
         } catch (error: any) {
@@ -211,6 +220,23 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
+                            <Label htmlFor="servicio" className="text-slate-300">Servicio</Label>
+                            <Select
+                                value={formData.servicio}
+                                onValueChange={(val) => handleChange('servicio', val)}
+                            >
+                                <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                                    <SelectValue placeholder="Servicio" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                    <SelectItem value="CANVA">🎨 Canva</SelectItem>
+                                    <SelectItem value="CHATGPT">🤖 ChatGPT</SelectItem>
+                                    <SelectItem value="GEMINI">✨ Gemini</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
                             <Label htmlFor="numero" className="text-slate-300">WhatsApp (Número)</Label>
                             <Input
                                 id="numero"
@@ -222,17 +248,42 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="correo" className="text-slate-300">Correo Electrónico <span className="text-red-400">*</span></Label>
+                            <Label htmlFor="correo" className="text-slate-300">
+                                {formData.servicio === 'CANVA' ? 'Correo del Cliente' : 'Correo de la Cuenta'} <span className="text-red-400">*</span>
+                            </Label>
                             <Input
                                 id="correo"
                                 type="email"
                                 required
                                 value={formData.correo}
                                 onChange={(e) => handleChange('correo', e.target.value)}
-                                placeholder="cliente@ejemplo.com"
+                                placeholder={formData.servicio === 'CANVA' ? 'cliente@ejemplo.com' : 'cuenta@tudominio.com'}
                                 className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500"
                             />
                         </div>
+
+                        {formData.servicio !== 'CANVA' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="password" className="text-slate-300">Contraseña de la Cuenta</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={formData.password}
+                                        onChange={(e) => handleChange('password', e.target.value)}
+                                        placeholder="Contraseña de tu cuenta compartida"
+                                        className="bg-slate-800 border-slate-700 text-slate-100 focus:ring-indigo-500 pr-10"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(p => !p)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <Label htmlFor="vencimiento" className="text-slate-300">Fecha de Vencimiento</Label>

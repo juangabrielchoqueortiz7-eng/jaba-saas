@@ -73,7 +73,7 @@ export default function RechargesPage() {
 
     if (loadingWallet) return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-[#F97316] animate-spin" />
         </div>
     )
 
@@ -83,12 +83,12 @@ export default function RechargesPage() {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Recargas y Saldo</h1>
-                    <p className="text-slate-400">Gestiona tu saldo disponible para conversaciones y audios.</p>
+                    <h1 className="text-3xl font-bold text-[#eef0ff] mb-2">Recargas y Saldo</h1>
+                    <p className="text-[rgba(238,240,255,0.45)]">Gestiona tu saldo disponible para conversaciones y audios.</p>
                 </div>
 
                 {/* Visual Wallet Card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-6 shadow-lg min-w-[280px]">
+                <div className="bg-[#13152a] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-6 shadow-lg min-w-[280px]">
                     <div className="space-y-1 flex-1">
                         <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Tu Saldo Actual</p>
                         <div className="flex items-baseline gap-1">
@@ -103,7 +103,7 @@ export default function RechargesPage() {
                             </span>
                         </div>
                     </div>
-                    <div className={`p-3 rounded-xl ${activeTab === 'conversations' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'}`}>
+                    <div className={`p-3 rounded-xl ${activeTab === 'conversations' ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]' : 'bg-[rgba(249,115,22,0.1)] text-[#F97316]'}`}>
                         {activeTab === 'conversations' ? <MessageSquare size={24} /> : <Mic size={24} />}
                     </div>
                 </div>
@@ -116,14 +116,14 @@ export default function RechargesPage() {
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* Tabs */}
-                    <div className="bg-slate-900/50 p-1 rounded-xl flex gap-1 border border-slate-800/50 backdrop-blur-sm">
+                    <div className="bg-[#13152a] p-1 rounded-xl flex gap-1 border border-white/[0.06] backdrop-blur-sm">
                         <button
                             onClick={() => setActiveTab('conversations')}
                             className={cn(
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'conversations'
-                                    ? "bg-slate-800 text-white shadow-sm ring-1 ring-slate-700"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                    ? "bg-[rgba(16,185,129,0.1)] text-[#10b981] shadow-sm ring-1 ring-[rgba(16,185,129,0.25)]"
+                                    : "text-slate-400 hover:text-white hover:bg-white/[0.05]"
                             )}
                         >
                             <MessageSquare size={16} />
@@ -134,8 +134,8 @@ export default function RechargesPage() {
                             className={cn(
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'audios'
-                                    ? "bg-slate-800 text-white shadow-sm ring-1 ring-slate-700"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                    ? "bg-[rgba(249,115,22,0.1)] text-[#F97316] shadow-sm ring-1 ring-[rgba(249,115,22,0.25)]"
+                                    : "text-slate-400 hover:text-white hover:bg-white/[0.05]"
                             )}
                         >
                             <Mic size={16} />
@@ -154,8 +154,8 @@ export default function RechargesPage() {
                                     className={cn(
                                         "relative border rounded-2xl p-5 cursor-pointer transition-all duration-200 group hover:shadow-lg",
                                         isSelected
-                                            ? "bg-indigo-600/10 border-indigo-500/50 ring-1 ring-indigo-500/50"
-                                            : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                                            ? "bg-[rgba(249,115,22,0.08)] border-[rgba(249,115,22,0.4)] ring-1 ring-[rgba(249,115,22,0.3)]"
+                                            : "bg-[#13152a] border-white/[0.06] hover:border-white/[0.12]"
                                     )}
                                 >
                                     {/* Popular Badge */}
@@ -170,8 +170,8 @@ export default function RechargesPage() {
                                     <div className={cn(
                                         "absolute top-4 right-4 w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
                                         isSelected
-                                            ? "bg-indigo-500 border-indigo-500 text-white"
-                                            : "border-slate-700 text-transparent"
+                                            ? "bg-[#F97316] border-[#F97316] text-white"
+                                            : "border-white/[0.15] text-transparent"
                                     )}>
                                         <Check size={12} strokeWidth={4} />
                                     </div>
@@ -209,8 +209,8 @@ export default function RechargesPage() {
 
                 {/* Right Column: Checkout Summary */}
                 <div className="space-y-6">
-                    <Card className="bg-slate-900 border-slate-800 sticky top-6 shadow-xl overflow-hidden">
-                        <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+                    <Card className="bg-[#13152a] border-white/[0.06] sticky top-6 shadow-xl overflow-hidden">
+                        <div className="h-2 bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#f59e0b]" />
                         <CardContent className="p-6 space-y-6">
                             <div>
                                 <h3 className="text-lg font-semibold text-white mb-4">Resumen de compra</h3>
@@ -232,7 +232,7 @@ export default function RechargesPage() {
                                             <span>-${selectedPackage.save}</span>
                                         </div>
                                     )}
-                                    <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
+                                    <div className="pt-3 border-t border-white/[0.05] flex justify-between items-center">
                                         <span className="text-white font-bold">Total a pagar</span>
                                         <span className="text-2xl font-bold text-white">${selectedPackage?.price}</span>
                                     </div>
@@ -240,7 +240,7 @@ export default function RechargesPage() {
                             </div>
 
                             <Button
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 rounded-xl shadow-lg shadow-indigo-600/20"
+                                className="w-full bg-[#F97316] hover:bg-[#ea6a0a] text-white font-bold h-12 rounded-xl shadow-lg shadow-[rgba(249,115,22,0.3)]"
                                 onClick={handlePayment}
                                 disabled={isProcessing || !selectedPackage}
                             >
@@ -261,7 +261,7 @@ export default function RechargesPage() {
                     </Card>
 
                     {/* Frequently Asked Questions Mini */}
-                    <div className="bg-slate-950/50 rounded-xl p-5 border border-slate-800/50">
+                    <div className="bg-[#13152a] rounded-xl p-5 border border-white/[0.06]">
                         <h4 className="text-sm font-semibold text-slate-300 mb-3">¿Cómo funciona?</h4>
                         <ul className="text-xs text-slate-500 space-y-2 list-disc pl-4">
                             <li>El saldo se acredita inmediatamente.</li>

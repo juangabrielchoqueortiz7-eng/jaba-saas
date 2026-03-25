@@ -1,7 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { Subscription } from '@/types/subscription';
-import { Copy, MessageCircle, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Copy, MessageCircle, Trash2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+
+const getServicioBadge = (servicio: string) => {
+    switch ((servicio || 'CANVA').toUpperCase()) {
+        case 'CHATGPT': return { label: 'ChatGPT', className: 'bg-teal-900/40 text-teal-400 border-teal-800/60' };
+        case 'GEMINI': return { label: 'Gemini', className: 'bg-blue-900/40 text-blue-400 border-blue-800/60' };
+        default: return { label: 'Canva', className: 'bg-violet-900/40 text-violet-400 border-violet-800/60' };
+    }
+};
 
 interface SubscriptionCardProps {
     sub: Subscription;
@@ -22,11 +31,19 @@ export default function SubscriptionCard({
     onCopy,
     dateInfo
 }: SubscriptionCardProps) {
+    const [showPassword, setShowPassword] = useState(false);
+    const badge = getServicioBadge(sub.servicio);
+
     return (
         <div className={`p-4 rounded-xl border shadow-sm ${sub.estado === 'ACTIVO' ? 'bg-slate-900 border-slate-800' : 'bg-slate-900 border-slate-800 opacity-75'}`}>
-            {/* Header: Number and Status */}
+            {/* Header: Number, Service badge and Status */}
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.className}`}>
+                            {badge.label}
+                        </span>
+                    </div>
                     <label className="text-xs text-slate-500 font-semibold uppercase">WhatsApp</label>
                     <input
                         className="block w-full font-mono text-slate-200 font-medium bg-transparent focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1"
@@ -44,8 +61,10 @@ export default function SubscriptionCard({
             </div>
 
             {/* Email */}
-            <div className="mb-4">
-                <label className="text-xs text-slate-500 font-semibold uppercase">Correo</label>
+            <div className="mb-3">
+                <label className="text-xs text-slate-500 font-semibold uppercase">
+                    {(sub.servicio || 'CANVA') === 'CANVA' ? 'Correo' : 'Correo de la Cuenta'}
+                </label>
                 <div className="flex items-center gap-2">
                     <input
                         className="block w-full text-sm text-slate-300 bg-transparent focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500 rounded px-1 -ml-1 truncate"
@@ -61,6 +80,31 @@ export default function SubscriptionCard({
                     </button>
                 </div>
             </div>
+
+            {/* Password (only for ChatGPT/Gemini) */}
+            {sub.password && (
+                <div className="mb-4 p-3 bg-slate-800/60 rounded-lg border border-slate-700/50">
+                    <label className="text-xs text-slate-500 font-semibold uppercase">Contraseña</label>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="flex-1 text-sm font-mono text-slate-300">
+                            {showPassword ? sub.password : '••••••••'}
+                        </span>
+                        <button
+                            onClick={() => setShowPassword(p => !p)}
+                            className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                        >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                        <button
+                            onClick={() => onCopy(sub.password!)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-400 transition-colors"
+                            title="Copiar contraseña"
+                        >
+                            <Copy size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Date & Team */}
             <div className="grid grid-cols-2 gap-4 mb-4">

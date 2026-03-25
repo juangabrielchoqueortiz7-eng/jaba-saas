@@ -136,6 +136,48 @@ export async function getSystemConfig() {
     return {
         webhookVerifyToken: process.env.WEBHOOK_VERIFY_TOKEN || 'No configurado en .env',
         hasGoogleApiKey: !!process.env.GOOGLE_API_KEY,
-        webhookUrl: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook` : 'https://[TU-DOMINIO]/api/webhook'
+        webhookUrl: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook` : 'https://jabachat.com/api/webhook'
+    }
+}
+
+export async function testWebhook(webhookUrl: string, verifyToken: string) {
+    try {
+        const challenge = `jaba_test_${Date.now()}`
+        const url = `${webhookUrl}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(verifyToken)}&hub.challenge=${challenge}`
+        const res = await fetch(url, { cache: 'no-store' })
+        const text = await res.text()
+        if (text.trim() === challenge) {
+            return { success: true }
+        }
+        return { success: false, error: `Respuesta inesperada: "${text.slice(0, 100)}"` }
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Error de conexión' }
+    }
+}
+
+export async function sendTestWhatsAppMessage(phoneNumberId: string, accessToken: string, toPhone: string) {
+    if (!phoneNumberId || !accessToken || !toPhone) {
+        return { success: false, error: 'Faltan datos' }
+    }
+    try {
+        const clean = toPhone.replace(/\D/g, '')
+        const res = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: clean,
+                type: 'text',
+                text: { body: '👋 ¡Hola! Este es un mensaje de prueba enviado desde *JABA*.\n\nTu conexión de WhatsApp está funcionando correctamente ✅' }
+            })
+        })
+        const data = await res.json()
+        if (data.error) return { success: false, error: data.error.message || JSON.stringify(data.error) }
+        return { success: true, messageId: data.messages?.[0]?.id }
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Error de conexión con Meta' }
     }
 }

@@ -136,13 +136,13 @@ export default function ProductsPage() {
         <div className="p-8 max-w-7xl mx-auto text-slate-200">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Productos y Servicios</h1>
-                    <p className="text-slate-400">Define tu catálogo. La IA usará esta información para responder a tus clientes.</p>
+                    <h1 className="text-3xl font-bold text-[#eef0ff] mb-2">Productos y Servicios</h1>
+                    <p className="text-[rgba(238,240,255,0.45)]">Define tu catálogo. La IA usará esta información para responder a tus clientes.</p>
                 </div>
                 {!isCreating && (
                     <Button
                         onClick={() => { resetForm(); setIsCreating(true) }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                        className="bg-[#F97316] hover:bg-[#ea6a0a] text-white gap-2"
                     >
                         <Plus size={20} />
                         Nuevo Producto
@@ -152,7 +152,7 @@ export default function ProductsPage() {
 
             {/* Create/Edit Form */}
             {isCreating && (
-                <Card className="mb-8 border-slate-800 bg-slate-900/50">
+                <Card className="mb-8 border-white/[0.06] bg-[#13152a]">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-white">
                             {editingId ? 'Editar Producto' : 'Nuevo Producto'}
@@ -169,7 +169,7 @@ export default function ProductsPage() {
                                     value={formData.name}
                                     onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                                     placeholder="Ej: Masaje Relajante, Plan Premium, Consulta General..."
-                                    className="bg-slate-950 border-slate-800 text-white"
+                                    className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff]"
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
@@ -180,7 +180,7 @@ export default function ProductsPage() {
                                         value={formData.price}
                                         onChange={e => setFormData(prev => ({ ...prev, price: e.target.value }))}
                                         placeholder="0"
-                                        className="bg-slate-950 border-slate-800 text-white"
+                                        className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff]"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -188,7 +188,7 @@ export default function ProductsPage() {
                                     <select
                                         value={formData.category}
                                         onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                                        className="w-full h-10 px-3 bg-slate-950 border border-slate-800 text-white rounded-md text-sm"
+                                        className="w-full h-10 px-3 bg-[#0f1120] border border-white/[0.06] text-[#eef0ff] rounded-md text-sm"
                                     >
                                         {categories.map(cat => (
                                             <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -204,7 +204,7 @@ export default function ProductsPage() {
                                         value={formData.duration_months}
                                         onChange={e => setFormData(prev => ({ ...prev, duration_months: e.target.value }))}
                                         placeholder="Ej: 1, 3, 6, 12"
-                                        className="bg-slate-950 border-slate-800 text-white"
+                                        className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff]"
                                     />
                                 </div>
                             </div>
@@ -215,20 +215,20 @@ export default function ProductsPage() {
                                 value={formData.description}
                                 onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                                 placeholder="Describe tu producto o servicio. Esta información la usará la IA para responder a tus clientes..."
-                                className="bg-slate-950 border-slate-800 text-white h-24"
+                                className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff] h-24"
                             />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
                             <Button
                                 onClick={resetForm}
-                                className="bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
+                                className="bg-transparent hover:bg-white/[0.05] text-slate-400 hover:text-white"
                             >
                                 Cancelar
                             </Button>
                             <Button
                                 onClick={editingId ? handleUpdate : handleCreate}
                                 disabled={isPending || !formData.name || !formData.price}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                className="bg-[#F97316] hover:bg-[#ea6a0a] text-white"
                             >
                                 {isPending ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear Producto'}
                             </Button>
@@ -244,14 +244,14 @@ export default function ProductsPage() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar productos..."
-                    className="pl-10 bg-slate-900/50 border-slate-800 text-white w-full max-w-md"
+                    className="pl-10 bg-[#13152a] border-white/[0.06] text-[#eef0ff] w-full max-w-md"
                 />
             </div>
 
             {/* Products List */}
             <div className="space-y-3">
                 {filteredProducts.length === 0 ? (
-                    <div className="text-center py-16 text-slate-500 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                    <div className="text-center py-16 text-slate-500 bg-[#13152a] rounded-xl border border-dashed border-white/[0.08]">
                         <Package size={48} className="mx-auto mb-4 opacity-20" />
                         <p className="text-lg font-medium mb-2">No tienes productos creados aún</p>
                         <p className="text-sm">Agrega tus productos o servicios para que la IA pueda informar a tus clientes.</p>
@@ -261,12 +261,12 @@ export default function ProductsPage() {
                         <div
                             key={product.id}
                             className={`flex items-center justify-between p-4 rounded-xl border transition-colors group ${product.is_active
-                                ? 'bg-slate-900/50 border-slate-800 hover:border-indigo-500/30'
-                                : 'bg-slate-900/20 border-slate-800/50 opacity-60'
+                                ? 'bg-[#13152a] border-white/[0.06] hover:border-[rgba(249,115,22,0.3)]'
+                                : 'bg-[#0f1120] border-white/[0.04] opacity-60'
                                 }`}
                         >
                             <div className="flex items-start gap-4 flex-1 min-w-0">
-                                <div className={`p-3 rounded-lg ${product.is_active ? 'bg-indigo-500/10 text-indigo-400' : 'bg-slate-800 text-slate-500'}`}>
+                                <div className={`p-3 rounded-lg ${product.is_active ? 'bg-[rgba(249,115,22,0.1)] text-[#F97316]' : 'bg-white/[0.05] text-slate-500'}`}>
                                     <Package size={24} />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -287,7 +287,7 @@ export default function ProductsPage() {
                                 </div>
                                 <div className="flex items-center gap-3 shrink-0">
                                     {product.duration_months && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(249,115,22,0.1)] text-[#F97316] border border-[rgba(249,115,22,0.2)]">
                                             {product.duration_months} mes{product.duration_months !== 1 ? 'es' : ''}
                                         </span>
                                     )}
@@ -323,8 +323,8 @@ export default function ProductsPage() {
 
             {/* Info Box */}
             {products.length > 0 && (
-                <div className="mt-8 p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
-                    <p className="text-sm text-indigo-300">
+                <div className="mt-8 p-4 rounded-lg bg-[rgba(249,115,22,0.05)] border border-[rgba(249,115,22,0.15)]">
+                    <p className="text-sm text-[#F97316]">
                         💡 <strong>Tip:</strong> La IA usará estos productos automáticamente al conversar con tus clientes.
                         Asegúrate de que las descripciones sean claras y detalladas.
                     </p>

@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import * as XLSX from 'xlsx'
 
+const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+if (!serviceRoleKey) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
+
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    serviceRoleKey
 )
 
 // GET: Exportar contactos a Excel
@@ -26,18 +29,37 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
         }
 
-        // Obtener suscripciones
-        const { data: subs } = await supabaseAdmin
-            .from('subscriptions')
-            .select('correo, numero, vencimiento, estado, equipo, plan_name, auto_notify_paused, notified, followup_sent, urgency_sent, created_at')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
+        // Obtener TODAS las suscripciones paginando de 1000 en 1000
+        const BATCH = 1000
+        let subs: any[] = []
+        let page = 0
+        while (true) {
+            const { data: batch } = await supabaseAdmin
+                .from('subscriptions')
+                .select('correo, numero, vencimiento, estado, equipo, plan_name, auto_notify_paused, notified, followup_sent, urgency_sent, created_at')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .range(page * BATCH, (page + 1) * BATCH - 1)
+            if (!batch || batch.length === 0) break
+            subs = subs.concat(batch)
+            if (batch.length < BATCH) break
+            page++
+        }
 
-        // Obtener chats con tags
-        const { data: chats } = await supabaseAdmin
-            .from('chats')
-            .select('phone_number, contact_name, tags, last_message_time')
-            .eq('user_id', user.id)
+        // Obtener TODOS los chats paginando de 1000 en 1000
+        let chats: any[] = []
+        page = 0
+        while (true) {
+            const { data: batch } = await supabaseAdmin
+                .from('chats')
+                .select('phone_number, contact_name, tags, last_message_time')
+                .eq('user_id', user.id)
+                .range(page * BATCH, (page + 1) * BATCH - 1)
+            if (!batch || batch.length === 0) break
+            chats = chats.concat(batch)
+            if (batch.length < BATCH) break
+            page++
+        }
 
         // Crear mapa de chats por teléfono
         const chatMap: Record<string, any> = {}

@@ -49,6 +49,22 @@ export async function createTemplate(name: string, content: string) {
     revalidatePath('/dashboard/assistants')
 }
 
+export async function updateTemplate(id: string, name: string, content: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) throw new Error('Unauthorized')
+
+    const { error } = await supabase
+        .from('templates')
+        .update({ name, content })
+        .eq('id', id)
+        .eq('user_id', user.id)
+
+    if (error) throw error
+    revalidatePath('/dashboard/assistants')
+}
+
 export async function deleteTemplate(id: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

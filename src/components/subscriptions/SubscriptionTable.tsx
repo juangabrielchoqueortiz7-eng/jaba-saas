@@ -6,7 +6,7 @@ import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { createPortal } from 'react-dom';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users, PauseCircle, PlayCircle, MessageSquare } from 'lucide-react';
+import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users, PauseCircle, PlayCircle, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
@@ -28,6 +28,16 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     const router = useRouter();
     const { openChat } = useChat();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
+    const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+
+    const togglePasswordVisibility = (id: string) => {
+        setVisiblePasswords(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -57,7 +67,8 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
         correo: '',
         vencimiento: '',
         equipo: '',
-        status: 'ACTIVO' // 'ACTIVO' | 'INACTIVO'
+        servicio: '',
+        status: 'ACTIVO'
     });
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -174,6 +185,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             if (filtersState.correo && !sub.correo?.toLowerCase().includes(filtersState.correo.toLowerCase())) return false;
             if (filtersState.vencimiento && !sub.vencimiento?.toLowerCase().includes(filtersState.vencimiento.toLowerCase())) return false;
             if (filtersState.equipo && !sub.equipo?.toLowerCase().includes(filtersState.equipo.toLowerCase())) return false;
+            if (filtersState.servicio && (sub.servicio || 'CANVA') !== filtersState.servicio) return false;
 
             return true;
         }).sort((a, b) => {
@@ -234,6 +246,17 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success('Copiado al portapapeles');
+    };
+
+    const getServicioBadge = (servicio: string) => {
+        switch ((servicio || 'CANVA').toUpperCase()) {
+            case 'CHATGPT':
+                return { label: 'ChatGPT', className: 'bg-teal-900/40 text-teal-400 border-teal-800/60' };
+            case 'GEMINI':
+                return { label: 'Gemini', className: 'bg-blue-900/40 text-blue-400 border-blue-800/60' };
+            default:
+                return { label: 'Canva', className: 'bg-violet-900/40 text-violet-400 border-violet-800/60' };
+        }
     };
 
     const goToChat = async (sub: Subscription) => {
@@ -413,8 +436,28 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                     </div>
                 </div>
 
-                {/* Team Filter Dropdown - separate row on mobile */}
-                <div className="w-full sm:w-[200px]">
+                {/* Filters Row */}
+                <div className="flex flex-wrap gap-2">
+                    <Select
+                        value={filtersState.servicio || 'ALL'}
+                        onValueChange={(val) => {
+                            setFilters(prev => ({ ...prev, servicio: val === 'ALL' ? '' : val }));
+                            setCurrentPage(1);
+                        }}
+                    >
+                        <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200 h-[38px] w-full sm:w-[160px]">
+                            <div className="flex items-center gap-2">
+                                <span>{filtersState.servicio ? filtersState.servicio : 'Todos los Servicios'}</span>
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700">
+                            <SelectItem value="ALL" className="text-slate-300 focus:bg-slate-700 focus:text-white">Todos los Servicios</SelectItem>
+                            <SelectItem value="CANVA" className="text-violet-400 focus:bg-slate-700 focus:text-white">🎨 Canva</SelectItem>
+                            <SelectItem value="CHATGPT" className="text-teal-400 focus:bg-slate-700 focus:text-white">🤖 ChatGPT</SelectItem>
+                            <SelectItem value="GEMINI" className="text-blue-400 focus:bg-slate-700 focus:text-white">✨ Gemini</SelectItem>
+                        </SelectContent>
+                    </Select>
+
                     <Select
                         value={filtersState.equipo}
                         onValueChange={(val) => {
@@ -422,7 +465,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                             setCurrentPage(1);
                         }}
                     >
-                        <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200 h-[38px]">
+                        <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200 h-[38px] w-full sm:w-[200px]">
                             <div className="flex items-center gap-2">
                                 <Users size={16} className="text-slate-400" />
                                 <span>{filtersState.equipo ? `Equipo: ${filtersState.equipo}` : 'Todos los Equipos'}</span>
@@ -470,6 +513,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-950 text-slate-400 uppercase text-xs border-b border-slate-800">
                             <tr>
+                                <th className="px-4 py-3 w-[90px]">Servicio</th>
                                 <th className="px-6 py-3 min-w-[140px]">
                                     <div className="flex flex-col gap-1">
                                         <span>WhatsApp</span>
@@ -482,9 +526,9 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                         />
                                     </div>
                                 </th>
-                                <th className="px-6 py-3 min-w-[200px]">
+                                <th className="px-6 py-3 min-w-[220px]">
                                     <div className="flex flex-col gap-1">
-                                        <span>Correo</span>
+                                        <span>Correo / Contraseña</span>
                                         <input
                                             type="text"
                                             placeholder="Buscar..."
@@ -525,11 +569,11 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                         <tbody className="divide-y divide-slate-800">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-10 text-slate-500">Cargando...</td>
+                                    <td colSpan={7} className="text-center py-10 text-slate-500">Cargando...</td>
                                 </tr>
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-10 text-slate-500">No hay registros</td>
+                                    <td colSpan={7} className="text-center py-10 text-slate-500">No hay registros</td>
                                 </tr>
                             ) : (
                                 paginatedData.map(sub => {
@@ -543,8 +587,14 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                     // I will just let dateInfo classes be what they use if they work, but they use bg-red-50 etc. 
                                     // I should update getDateStatus too.
 
+                                    const badge = getServicioBadge(sub.servicio);
                                     return (
                                         <tr key={sub.id} className="hover:bg-slate-800/50 group transition-colors">
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${badge.className}`}>
+                                                    {badge.label}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-3">
                                                 <input
                                                     className="bg-transparent w-full focus:outline-none focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500 rounded px-1 text-slate-300 font-mono"
@@ -553,19 +603,42 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                 />
                                             </td>
                                             <td className="px-6 py-3">
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        className="bg-transparent w-full focus:outline-none focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500 rounded px-1 truncate text-slate-300"
-                                                        defaultValue={sub.correo}
-                                                        onBlur={(e) => handleUpdate(sub.id, 'correo', e.target.value)}
-                                                    />
-                                                    <button
-                                                        onClick={() => copyToClipboard(sub.correo)}
-                                                        className="p-1.5 hover:bg-slate-700/50 rounded-md text-slate-400 hover:text-indigo-400 transition-all"
-                                                        title="Copiar correo"
-                                                    >
-                                                        <Copy size={14} />
-                                                    </button>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            className="bg-transparent w-full focus:outline-none focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500 rounded px-1 truncate text-slate-300"
+                                                            defaultValue={sub.correo}
+                                                            onBlur={(e) => handleUpdate(sub.id, 'correo', e.target.value)}
+                                                        />
+                                                        <button
+                                                            onClick={() => copyToClipboard(sub.correo)}
+                                                            className="p-1.5 hover:bg-slate-700/50 rounded-md text-slate-400 hover:text-indigo-400 transition-all"
+                                                            title="Copiar correo"
+                                                        >
+                                                            <Copy size={14} />
+                                                        </button>
+                                                    </div>
+                                                    {sub.password && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-xs text-slate-500 font-mono flex-1 truncate">
+                                                                {visiblePasswords.has(sub.id) ? sub.password : '••••••••'}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => togglePasswordVisibility(sub.id)}
+                                                                className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+                                                                title={visiblePasswords.has(sub.id) ? 'Ocultar' : 'Ver contraseña'}
+                                                            >
+                                                                {visiblePasswords.has(sub.id) ? <EyeOff size={12} /> : <Eye size={12} />}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => copyToClipboard(sub.password!)}
+                                                                className="p-1 text-slate-500 hover:text-indigo-400 transition-colors"
+                                                                title="Copiar contraseña"
+                                                            >
+                                                                <Copy size={12} />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-3">

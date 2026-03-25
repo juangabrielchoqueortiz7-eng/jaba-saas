@@ -171,66 +171,66 @@ export default function RenewalsPage() {
         <div className="p-8 max-w-7xl mx-auto min-h-screen">
             <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                        <RefreshCcw className="text-emerald-500" />
+                    <h1 className="text-3xl font-bold text-[#eef0ff] flex items-center gap-3">
+                        <RefreshCcw className="text-[#10b981]" />
                         Renovaciones
                     </h1>
-                    <p className="text-slate-400 mt-1">Renovaciones automáticas — supervisa el historial y aprueba casos pendientes</p>
+                    <p className="text-[rgba(238,240,255,0.45)] mt-1">Renovaciones automáticas — supervisa el historial y aprueba casos pendientes</p>
                 </div>
                 <button
                     onClick={() => { setLoading(true); fetchRenewals(); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm font-medium hover:bg-slate-800 transition-all active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#13152a] border border-white/[0.06] rounded-xl text-sm font-medium hover:bg-white/[0.05] text-slate-300 transition-all active:scale-95"
                 >
-                    <RefreshCcw size={16} className={cn(loading && "animate-spin text-emerald-500")} />
+                    <RefreshCcw size={16} className={cn(loading && "animate-spin text-[#10b981]")} />
                     Actualizar
                 </button>
             </header>
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
+                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
                     <p className="text-slate-400 text-sm font-medium mb-1">Total</p>
-                    <p className="text-2xl font-bold text-white">{totalRenewals}</p>
+                    <p className="text-2xl font-bold text-[#eef0ff]">{totalRenewals}</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-amber-400 text-sm font-medium mb-1">Pendientes</p>
-                    <p className="text-2xl font-bold text-white">{pendingCount}</p>
+                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
+                    <p className="text-[#FBBF24] text-sm font-medium mb-1">Pendientes</p>
+                    <p className="text-2xl font-bold text-[#eef0ff]">{pendingCount}</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-emerald-400 text-sm font-medium mb-1">Aprobadas</p>
-                    <p className="text-2xl font-bold text-white">{approvedCount}</p>
+                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
+                    <p className="text-[#10b981] text-sm font-medium mb-1">Aprobadas</p>
+                    <p className="text-2xl font-bold text-[#eef0ff]">{approvedCount}</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
+                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
-                        <DollarSign size={14} className="text-indigo-400" />
-                        <p className="text-indigo-400 text-sm font-medium">Ingresos Mes</p>
+                        <DollarSign size={14} className="text-[#F97316]" />
+                        <p className="text-[#F97316] text-sm font-medium">Ingresos Mes</p>
                     </div>
-                    <p className="text-2xl font-bold text-white mt-1">Bs {monthlyRevenue}</p>
+                    <p className="text-2xl font-bold text-[#eef0ff] mt-1">Bs {monthlyRevenue}</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
+                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
-                        <TrendingUp size={14} className="text-teal-400" />
-                        <p className="text-teal-400 text-sm font-medium">Conversión</p>
+                        <TrendingUp size={14} className="text-[#10b981]" />
+                        <p className="text-[#10b981] text-sm font-medium">Conversión</p>
                     </div>
-                    <p className="text-2xl font-bold text-white mt-1">{conversionRate}%</p>
+                    <p className="text-2xl font-bold text-[#eef0ff] mt-1">{conversionRate}%</p>
                 </div>
-                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
+                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
-                        <BarChart3 size={14} className="text-violet-400" />
-                        <p className="text-violet-400 text-sm font-medium">1er vs 2do Msg</p>
+                        <BarChart3 size={14} className="text-[#F97316]" />
+                        <p className="text-[#F97316] text-sm font-medium">1er vs 2do Msg</p>
                     </div>
-                    <p className="text-lg font-bold text-white mt-1">{reminderConversions} / {followupConversions}</p>
+                    <p className="text-lg font-bold text-[#eef0ff] mt-1">{reminderConversions} / {followupConversions}</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-[#13152a] border border-white/[0.06] p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input
                         type="text"
                         placeholder="Buscar por email, teléfono o plan..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                        className="w-full bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/50 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -238,7 +238,7 @@ export default function RenewalsPage() {
                 <div className="flex items-center gap-2 w-full md:w-auto">
                     <Filter size={18} className="text-slate-500" />
                     <select
-                        className="bg-slate-950 border border-slate-800 rounded-xl py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+                        className="bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 px-4 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/50 cursor-pointer"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
@@ -251,20 +251,20 @@ export default function RenewalsPage() {
             </div>
 
             {/* Table */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="bg-[#13152a] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-slate-800 bg-slate-800/20">
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha / Cliente</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan / Monto</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha Anterior → Nueva</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Origen</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
+                            <tr className="border-b border-white/[0.05] bg-white/[0.03]">
+                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Fecha / Cliente</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Plan / Monto</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Fecha Anterior → Nueva</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Origen</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-white/[0.03]">
                             {filteredRenewals.length > 0 ? filteredRenewals.map((renewal) => (
                                 <tr key={renewal.id} className="hover:bg-slate-800/30 transition-colors group">
                                     <td className="px-6 py-5">
@@ -284,8 +284,8 @@ export default function RenewalsPage() {
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-white">{renewal.plan_name}</span>
-                                            <span className="text-sm text-emerald-400 font-medium">Bs {renewal.amount}</span>
+                                            <span className="text-sm font-bold text-[#eef0ff]">{renewal.plan_name}</span>
+                                            <span className="text-sm text-[#10b981] font-medium">Bs {renewal.amount}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5">
@@ -320,14 +320,14 @@ export default function RenewalsPage() {
                                                 <>
                                                     <button
                                                         onClick={() => updateStatus(renewal.id, 'approved')}
-                                                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-1.5"
+                                                        className="px-3 py-1.5 bg-[#10b981] hover:bg-[#059669] text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-[rgba(16,185,129,0.3)] active:scale-95 flex items-center gap-1.5"
                                                     >
                                                         <CheckCircle2 size={14} />
                                                         Aprobar
                                                     </button>
                                                     <button
                                                         onClick={() => updateStatus(renewal.id, 'rejected')}
-                                                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg text-xs font-bold border border-slate-700 transition-all active:scale-95"
+                                                        className="px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] text-rose-400 rounded-lg text-xs font-bold border border-white/[0.08] transition-all active:scale-95"
                                                     >
                                                         Rechazar
                                                     </button>

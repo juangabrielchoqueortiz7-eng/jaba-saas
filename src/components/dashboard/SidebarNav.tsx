@@ -3,55 +3,145 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
-import { LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit, Users, ShoppingCart, Package, RefreshCcw, GitBranch } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import {
+    LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit,
+    ShoppingCart, Package, RefreshCcw, GitBranch, Zap,
+    FileText, Settings, Users, Trophy, CreditCard, ChevronRight, Building2, Bell
+} from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 
+// ── NavItem ──────────────────────────────────────────────────
+interface NavItemProps {
+    href: string
+    icon: React.ReactNode
+    label: string
+    active: boolean
+    badge?: number
+    onNavigate?: () => void
+    disabled?: boolean
+    accentColor?: string
+}
+
+function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accentColor = '#6366f1' }: NavItemProps) {
+    if (disabled) {
+        return (
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium opacity-25 cursor-not-allowed select-none"
+                style={{ color: 'rgba(238,240,255,0.5)' }}>
+                {icon}
+                <span className="flex-1">{label}</span>
+            </div>
+        )
+    }
+
+    // Convert hex to rgba for active bg
+    const hexToRgb = (hex: string) => {
+        const r = parseInt(hex.slice(1,3), 16)
+        const g = parseInt(hex.slice(3,5), 16)
+        const b = parseInt(hex.slice(5,7), 16)
+        return `${r},${g},${b}`
+    }
+    const rgb = hexToRgb(accentColor)
+
+    return (
+        <Link
+            href={href}
+            onClick={onNavigate}
+            className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group relative"
+            style={active ? {
+                background: `linear-gradient(90deg, rgba(${rgb},0.16) 0%, rgba(${rgb},0.04) 100%)`,
+                color: accentColor,
+                borderLeft: `3px solid ${accentColor}`,
+                paddingLeft: 13,
+                boxShadow: `inset 0 0 0 1px rgba(${rgb},0.12)`,
+            } : {
+                color: 'rgba(238,240,255,0.55)',
+                borderLeft: '3px solid transparent',
+            }}
+            onMouseEnter={e => {
+                if (!active) {
+                    (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'
+                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(238,240,255,0.9)'
+                }
+            }}
+            onMouseLeave={e => {
+                if (!active) {
+                    (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(238,240,255,0.55)'
+                }
+            }}
+        >
+            <span className="transition-transform duration-150 group-hover:scale-110 flex-shrink-0"
+                style={{ color: active ? accentColor : 'inherit' }}>
+                {icon}
+            </span>
+            <span className="flex-1 truncate">{label}</span>
+            {badge !== undefined && badge > 0 && (
+                <span className="min-w-5 h-5 px-1.5 text-white text-[10px] font-bold rounded-full flex items-center justify-center badge-pulse"
+                    style={{ background: '#f59e0b', boxShadow: '0 0 8px rgba(245,158,11,0.5)' }}>
+                    {badge > 99 ? '99+' : badge}
+                </span>
+            )}
+        </Link>
+    )
+}
+
+// ── SectionLabel ─────────────────────────────────────────────
+function SectionLabel({ label }: { label: string }) {
+    return (
+        <div className="px-4 pt-5 pb-1">
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em]"
+                style={{ color: 'rgba(99,102,241,0.45)' }}>
+                {label}
+            </p>
+        </div>
+    )
+}
+
+// ── SidebarNav ────────────────────────────────────────────────
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
     const params = useParams()
-    // Explicitly cast params to handle the possibility of it being empty or different type
     const paramId = params?.assistantId as string | undefined
 
     const [activeId, setActiveId] = useState<string | undefined>(paramId)
+    const [assistantName, setAssistantName] = useState<string>('')
     const [isAdmin, setIsAdmin] = useState(false)
     const [pendingRenewals, setPendingRenewals] = useState(0)
 
     useEffect(() => {
-        // If we have an ID in params, update state and save to local storage
         if (paramId) {
             setActiveId(paramId)
             localStorage.setItem('jaba_active_assistant', paramId)
         } else {
-            // If no ID in params (e.g. /dashboard/chats), try to recover from storage
             const savedId = localStorage.getItem('jaba_active_assistant')
-            if (savedId) {
-                setActiveId(savedId)
-            }
+            if (savedId) setActiveId(savedId)
         }
     }, [paramId])
 
-    // Cargar flag is_platform_admin
     useEffect(() => {
-        async function checkAdmin() {
+        async function loadData() {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
-            const { data } = await supabase
-                .from('whatsapp_credentials')
-                .select('is_platform_admin')
-                .eq('user_id', user.id)
-                .single()
-            setIsAdmin(data?.is_platform_admin === true)
-        }
-        checkAdmin()
-    }, [])
 
-    // Badge: conteo de renovaciones pendientes en tiempo real
+            const { data: creds } = await supabase
+                .from('whatsapp_credentials')
+                .select('id, bot_name, is_platform_admin')
+                .eq('user_id', user.id)
+
+            if (creds && creds.length > 0) {
+                setIsAdmin(creds.some(c => c.is_platform_admin === true))
+                const targetId = activeId || localStorage.getItem('jaba_active_assistant')
+                const active = creds.find(c => c.id === targetId) || creds[0]
+                if (active) setAssistantName(active.bot_name || 'Mi Asistente')
+            }
+        }
+        loadData()
+    }, [activeId])
+
     useEffect(() => {
         if (!isAdmin) return
         const supabase = createClient()
-
         const fetchPending = async () => {
             const { count } = await supabase
                 .from('subscription_renewals')
@@ -60,254 +150,154 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             setPendingRenewals(count || 0)
         }
         fetchPending()
-
         const channel = supabase
             .channel('sidebar-renewals')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'subscription_renewals'
-            }, fetchPending)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_renewals' }, fetchPending)
             .subscribe()
-
         return () => { supabase.removeChannel(channel) }
     }, [isAdmin])
 
-    // Logic: If we are not in 'home' or 'assistants' root, we assume an assistant is active.
-    // Enhanced logic: If we have an assistantId param OR a saved activeId, we are in assistant context.
-    const isAssistantActive = pathname === '/dashboard' || pathname.startsWith('/dashboard/chats') || pathname.startsWith('/dashboard/settings') || !!activeId
+    const hasAssistant = !!activeId
+    const nav = () => { if (onNavigate) onNavigate() }
+    const is = (path: string) => pathname === path
+    const startsWith = (path: string) => pathname.startsWith(path)
+    const includes = (path: string) => pathname.includes(path)
 
     return (
-        <nav className="flex-1 p-4 space-y-2">
-            <Link
-                href="/dashboard/home"
-                className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                    pathname === '/dashboard/home'
-                        ? "bg-indigo-500/10 text-indigo-400"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800"
-                )}
-            >
-                <Home size={20} />
-                Inicio
-            </Link>
+        <nav className="flex-1 overflow-y-auto py-2 space-y-0.5"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(99,102,241,0.2) transparent' }}>
 
-            <Link
-                href="/dashboard/assistants"
-                className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                    pathname === '/dashboard/assistants' || pathname === '/dashboard/assistants/new'
-                        ? "bg-indigo-500/10 text-indigo-400"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800"
-                )}
-            >
-                <Bot size={20} />
-                Asistentes
-            </Link>
+            {/* ── GENERAL ── */}
+            <div className="px-3">
+                <NavItem href="/dashboard/home"
+                    icon={<Home size={17} />} label="Inicio"
+                    active={is('/dashboard/home')} onNavigate={nav}
+                    accentColor="#6366f1" />
+                <NavItem
+                    href={hasAssistant ? `/dashboard/assistants/${activeId}` : '/dashboard'}
+                    icon={<LayoutDashboard size={17} />} label="Dashboard"
+                    active={is('/dashboard') || is(`/dashboard/assistants/${activeId}`)}
+                    onNavigate={nav} accentColor="#3b82f6" />
+                <NavItem href="/dashboard/assistants"
+                    icon={<Bot size={17} />} label="Asistentes"
+                    active={is('/dashboard/assistants') || is('/dashboard/assistants/new')}
+                    onNavigate={nav} accentColor="#8b5cf6" />
+            </div>
 
-            {/* Suscripciones: Solo visible para el Admin/Dueño */}
+            {/* ── COMUNICACIÓN ── */}
+            <div className="px-3">
+                <SectionLabel label="Comunicación" />
+                <NavItem href="/dashboard/chats"
+                    icon={<MessageSquare size={17} />} label="Conversaciones"
+                    active={startsWith('/dashboard/chats')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#10b981" />
+                <NavItem href="/dashboard/orders"
+                    icon={<ShoppingCart size={17} />} label="Pedidos"
+                    active={startsWith('/dashboard/orders')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#f59e0b" />
+                <NavItem href="/dashboard/products"
+                    icon={<Package size={17} />} label="Catálogo"
+                    active={startsWith('/dashboard/products')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#f97316" />
+            </div>
+
+            {/* ── AUTOMATIZACIÓN ── */}
+            <div className="px-3">
+                <SectionLabel label="Automatización" />
+                <NavItem
+                    href={hasAssistant ? `/dashboard/assistants/${activeId}/training` : '#'}
+                    icon={<BrainCircuit size={17} />} label="Entrenamiento IA"
+                    active={includes('/training')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#8b5cf6" />
+                <NavItem
+                    href={hasAssistant ? `/dashboard/assistants/${activeId}/flows` : '#'}
+                    icon={<GitBranch size={17} />} label="Flujos"
+                    active={includes('/flows')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#06b6d4" />
+                <NavItem
+                    href={hasAssistant ? `/dashboard/assistants/${activeId}/triggers` : '#'}
+                    icon={<Zap size={17} />} label="Disparadores"
+                    active={includes('/triggers')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#eab308" />
+                <NavItem
+                    href={hasAssistant ? `/dashboard/assistants/${activeId}/templates` : '#'}
+                    icon={<FileText size={17} />} label="Plantillas"
+                    active={includes('/templates')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#06b6d4" />
+            </div>
+
+            {/* ── GESTIÓN (admin) ── */}
             {isAdmin && (
-                <Link
-                    href="/dashboard/subscriptions"
-                    className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                        pathname === '/dashboard/subscriptions'
-                            ? "bg-indigo-500/10 text-indigo-400"
-                            : "text-slate-400 hover:text-white hover:bg-slate-800"
-                    )}
-                >
-                    <Users size={20} />
-                    Suscripciones
-                </Link>
+                <div className="px-3">
+                    <SectionLabel label="Gestión" />
+                    <NavItem href="/dashboard/subscriptions"
+                        icon={<Users size={17} />} label="Suscripciones"
+                        active={is('/dashboard/subscriptions')} onNavigate={nav}
+                        accentColor="#3b82f6" />
+                    <NavItem href="/dashboard/renewals"
+                        icon={<RefreshCcw size={17} />} label="Renovaciones"
+                        active={is('/dashboard/renewals')} badge={pendingRenewals}
+                        onNavigate={nav} accentColor="#10b981" />
+                    <NavItem href="/dashboard/notifications"
+                        icon={<Bell size={17} />} label="Notificaciones"
+                        active={is('/dashboard/notifications')} onNavigate={nav}
+                        accentColor="#6366f1" />
+                    <NavItem href="/dashboard/admin-accounts"
+                        icon={<Building2 size={17} />} label="Cuentas"
+                        active={startsWith('/dashboard/admin-accounts')} onNavigate={nav}
+                        accentColor="#f43f5e" />
+                </div>
             )}
 
-            {/* Renovaciones: Solo visible para el Admin/Dueño */}
-            {isAdmin && (
-                <Link
-                    href="/dashboard/renewals"
-                    className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                        pathname === '/dashboard/renewals'
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "text-slate-400 hover:text-white hover:bg-slate-800"
-                    )}
-                >
-                    <RefreshCcw size={20} />
-                    <span className="flex-1">Renovaciones</span>
-                    {pendingRenewals > 0 && (
-                        <span className="min-w-5 h-5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                            {pendingRenewals > 99 ? '99+' : pendingRenewals}
-                        </span>
-                    )}
-                </Link>
+            {/* ── MI CUENTA (no-admin) ── */}
+            {!isAdmin && (
+                <div className="px-3">
+                    <SectionLabel label="Mi cuenta" />
+                    <NavItem href="/dashboard/recharges"
+                        icon={<CreditCard size={17} />} label="Recargas"
+                        active={includes('/recharges')} onNavigate={nav}
+                        accentColor="#6366f1" />
+                    <NavItem href="/dashboard/achievements"
+                        icon={<Trophy size={17} />} label="Logros"
+                        active={includes('/achievements')} onNavigate={nav}
+                        accentColor="#fbbf24" />
+                </div>
             )}
 
-            {/* Assistant Specific Tools (Conditional) */}
-            {isAssistantActive && (
-                <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-                    <div className="px-4 pt-4 pb-2">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            Asistente Activo
-                        </p>
+            {/* ── CONFIGURACIÓN ── */}
+            <div className="px-3 pt-2">
+                <NavItem href="/dashboard/settings"
+                    icon={<Settings size={17} />} label="Configuración"
+                    active={startsWith('/dashboard/settings')} onNavigate={nav}
+                    disabled={!hasAssistant} accentColor="#94a3b8" />
+            </div>
+
+            {/* ── Asistente activo ── */}
+            {hasAssistant && assistantName && (
+                <div className="mx-3 mt-4 p-3 rounded-2xl" style={{
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.06) 100%)',
+                    border: '1px solid rgba(99,102,241,0.2)',
+                }}>
+                    <p className="text-[9px] font-bold uppercase tracking-widest mb-2"
+                        style={{ color: 'rgba(99,102,241,0.55)' }}>
+                        Asistente activo
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0 pulse-green"
+                            style={{ background: '#10b981' }} />
+                        <p className="text-sm font-semibold truncate"
+                            style={{ color: 'rgba(238,240,255,0.85)' }}>{assistantName}</p>
                     </div>
-
-                    <div className="ml-2 border-l border-slate-800 pl-2 space-y-1">
-                        <Link
-                            href={activeId ? `/dashboard/assistants/${activeId}` : "/dashboard"}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname === (activeId ? `/dashboard/assistants/${activeId}` : '/dashboard')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
+                    {activeId && (
+                        <Link href="/dashboard/assistants"
+                            className="flex items-center gap-1 mt-2 text-[11px] font-medium transition-colors"
+                            style={{ color: 'rgba(99,102,241,0.45)' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#818cf8')}
+                            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(99,102,241,0.45)')}
                         >
-                            <span className="text-lg">📄</span>
-                            Descripción
+                            Cambiar asistente <ChevronRight size={10} />
                         </Link>
-                        <Link
-                            href="/dashboard/chats"
-                            onClick={() => {
-                                if (onNavigate) onNavigate()
-                            }}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.startsWith('/dashboard/chats')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <MessageSquare size={20} />
-                            Chat
-                        </Link>
-
-                        <Link
-                            href="/dashboard/orders"
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.startsWith('/dashboard/orders')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <ShoppingCart size={20} />
-                            Pedidos
-                        </Link>
-
-                        {/* Products/Catalog Link */}
-                        <Link
-                            href="/dashboard/products"
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.startsWith('/dashboard/products')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <Package size={20} />
-                            Productos
-                        </Link>
-
-                        {/* Training Link - Only shows if we have an ID or if we are in training page */}
-                        <Link
-                            href={activeId ? `/dashboard/assistants/${activeId}/training` : "#"}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.endsWith('/training')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <BrainCircuit size={20} />
-                            Entrenamiento
-                        </Link>
-
-                        {/* Templates Link */}
-                        <Link
-                            href={activeId ? `/dashboard/assistants/${activeId}/templates` : "#"}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.includes('/templates')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <span className="text-lg">📋</span>
-                            Plantillas
-                        </Link>
-
-                        {/* Triggers Link */}
-                        <Link
-                            href={activeId ? `/dashboard/assistants/${activeId}/triggers` : "#"}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.includes('/triggers')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <span className="text-lg">⚡</span>
-                            Disparadores
-                        </Link>
-
-                        {/* Flujos Conversacionales Link */}
-                        <Link
-                            href={activeId ? `/dashboard/assistants/${activeId}/flows` : "#"}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.includes('/flows')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <GitBranch size={20} />
-                            Flujos
-                        </Link>
-
-                        {/* Recargas y Logros: Solo para clientes (NO admin) */}
-                        {!isAdmin && (
-                            <>
-                                <Link
-                                    href="/dashboard/recharges"
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                        pathname.includes('/recharges')
-                                            ? "text-white bg-slate-800/50"
-                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
-                                    )}
-                                >
-                                    <span className="text-lg">💳</span>
-                                    Recargas
-                                </Link>
-
-                                <Link
-                                    href="/dashboard/achievements"
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                        pathname.includes('/achievements')
-                                            ? "text-white bg-slate-800/50"
-                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
-                                    )}
-                                >
-                                    <span className="text-lg">🏆</span>
-                                    Logros
-                                </Link>
-                            </>
-                        )}
-
-                        {/* Settings Link */}
-                        <Link
-                            href="/dashboard/settings"
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                                pathname.startsWith('/dashboard/settings')
-                                    ? "text-white bg-slate-800/50"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <span className="text-lg">⚙️</span>
-                            Configuración
-                        </Link>
-                    </div>
+                    )}
                 </div>
             )}
         </nav>

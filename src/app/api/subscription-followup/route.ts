@@ -2,9 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
 
+const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+if (!serviceRoleKey) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
+
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    serviceRoleKey
 )
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -64,7 +67,7 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -157,7 +160,7 @@ async function processFollowups() {
 
         const { data: settings } = await supabaseAdmin
             .from('subscription_settings')
-            .select('enable_auto_notifications')
+            .select('enable_auto_notifications, template_config')
             .eq('user_id', userId)
             .single()
 
@@ -209,10 +212,17 @@ Ref: ${sub.equipo || ''}`
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
                 const imageUrl = `${baseUrl}/prices_promo.jpg`
 
+                // Seleccionar template según servicio del suscriptor
+                const templateConfig = (settings as any)?.template_config || {}
+                const servicio = (sub.servicio || 'CANVA') as string
+                const templateName = templateConfig?.[servicio]?.followup
+                    || templateConfig?.['CANVA']?.followup
+                    || 'remarketing_suscripcion_v1'
+
                 // Send TEMPLATE message (requerido para clientes fuera de ventana 24h)
                 const sendResult = await sendWhatsAppTemplate(
                     fullPhone,
-                    'remarketing_suscripcion_v1', // Nombre del template a crear en Meta
+                    templateName,
                     'es',
                     [
                         {

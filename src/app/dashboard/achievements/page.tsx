@@ -1,116 +1,128 @@
-'use client'
+import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
+import { Trophy, Star, MessageSquare, Mic, Users } from 'lucide-react'
 
-import { Card } from '@/components/ui/card'
-import { MessageSquare, Mic, Wallet, Trophy, Star } from 'lucide-react'
+export default async function AchievementsPage() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return redirect('/login')
 
-// Mock Data for Achievements
-const ACHIEVEMENTS = [
-    {
-        id: 'conversations',
-        title: 'Maestro de la Charla',
-        icon: <MessageSquare className="h-8 w-8 text-blue-400" />,
-        description: 'Mantén el flujo de conversación constante con tus clientes.',
-        milestone: '1000 conversaciones',
-        reward: '100 Créditos',
-        current: 250,
-        target: 1000,
-        color: 'from-blue-500 to-cyan-500',
-        bg: 'bg-blue-500/10',
-        border: 'border-blue-500/20'
-    },
-    {
-        id: 'audios',
-        title: 'Voz del Futuro',
-        icon: <Mic className="h-8 w-8 text-purple-400" />,
-        description: 'Utiliza audios generados por IA para respuestas más humanas.',
-        milestone: '30 min de audio',
-        reward: '3 min Gratis',
-        current: 5,
-        target: 30,
-        color: 'from-purple-500 to-pink-500',
-        bg: 'bg-purple-500/10',
-        border: 'border-purple-500/20'
-    },
-    {
-        id: 'recharges',
-        title: 'Inversor',
-        icon: <Wallet className="h-8 w-8 text-green-400" />,
-        description: 'Total de recargas efectuadas para potenciar tu asistente.',
-        milestone: '4 recargas',
-        reward: '100 Créditos',
-        current: 1,
-        target: 4,
-        color: 'from-green-500 to-emerald-500',
-        bg: 'bg-green-500/10',
-        border: 'border-green-500/20'
-    }
-]
+    const [{ count: totalChats }, { count: totalMessages }] = await Promise.all([
+        supabase.from('chats').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('messages').select('id', { count: 'exact', head: true })
+            .in('chat_id', (await supabase.from('chats').select('id').eq('user_id', user.id)).data?.map(c => c.id) || []),
+    ])
 
-export default function AchievementsPage() {
+    const { count: totalAudios } = await supabase.from('messages')
+        .select('id', { count: 'exact', head: true }).eq('type', 'audio').eq('is_from_me', true)
+        .in('chat_id', (await supabase.from('chats').select('id').eq('user_id', user.id)).data?.map(c => c.id) || [])
+
+    const ACHIEVEMENTS = [
+        {
+            id: 'conversations', title: 'Maestro de la Charla', emoji: '💬',
+            icon: MessageSquare, description: 'Mantén flujo constante de conversación con tus clientes.',
+            milestone: '1,000 mensajes', reward: '100 Créditos',
+            current: totalMessages || 0, target: 1000,
+            gradient: 'linear-gradient(135deg, #25D366, #1da851)',
+            glow: 'rgba(37,211,102,0.2)', border: 'rgba(37,211,102,0.2)',
+            bg: 'rgba(37,211,102,0.06)', iconColor: '#25D366',
+        },
+        {
+            id: 'audios', title: 'Voz del Futuro', emoji: '🎤',
+            icon: Mic, description: 'Usa audios generados por IA para respuestas más humanas.',
+            milestone: '30 audios enviados', reward: '3 min gratis',
+            current: totalAudios || 0, target: 30,
+            gradient: 'linear-gradient(135deg, #F97316, #ea6a0a)',
+            glow: 'rgba(249,115,22,0.2)', border: 'rgba(249,115,22,0.2)',
+            bg: 'rgba(249,115,22,0.06)', iconColor: '#F97316',
+        },
+        {
+            id: 'chats', title: 'Comunidad Activa', emoji: '👥',
+            icon: Users, description: 'Crece tu base de clientes con conversaciones activas.',
+            milestone: '100 contactos', reward: '100 Créditos',
+            current: totalChats || 0, target: 100,
+            gradient: 'linear-gradient(135deg, #FBBF24, #f59e0b)',
+            glow: 'rgba(251,191,36,0.2)', border: 'rgba(251,191,36,0.2)',
+            bg: 'rgba(251,191,36,0.06)', iconColor: '#FBBF24',
+        },
+    ]
+
+    const totalCompleted = ACHIEVEMENTS.filter(a => a.current >= a.target).length
+
     return (
-        <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-            <header className="mb-10">
-                <div className="flex items-center gap-3 mb-2">
-                    <Trophy className="text-yellow-500" size={32} />
-                    <h1 className="text-3xl font-bold text-white">Logros y Recompensas</h1>
+        <div style={{ padding: '32px', maxWidth: 1100, margin: '0 auto' }}>
+
+            {/* Header */}
+            <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Trophy size={22} style={{ color: '#FBBF24' }} />
+                    </div>
+                    <div>
+                        <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#eef0ff', margin: 0 }}>Logros y Recompensas</h1>
+                        <p style={{ fontSize: '0.82rem', color: 'rgba(238,240,255,0.45)', margin: 0 }}>
+                            {totalCompleted} de {ACHIEVEMENTS.length} logros completados
+                        </p>
+                    </div>
                 </div>
-                <p className="text-slate-400 ml-11">Completa objetivos para desbloquear bonificaciones exclusivas.</p>
-            </header>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {ACHIEVEMENTS.map((achievement) => {
-                    const progress = Math.min(100, (achievement.current / achievement.target) * 100)
-
+            {/* Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+                {ACHIEVEMENTS.map((a) => {
+                    const progress = Math.min(100, (a.current / a.target) * 100)
+                    const completed = progress >= 100
                     return (
-                        <Card
-                            key={achievement.id}
-                            className={`bg-slate-900 border ${achievement.border} shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}
-                        >
-                            {/* Background decoration */}
-                            <div className={`absolute -right-10 -top-10 w-40 h-40 ${achievement.bg} rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity`} />
+                        <div key={a.id} style={{
+                            background: '#13152a',
+                            border: `1px solid ${completed ? a.border : 'rgba(255,255,255,0.06)'}`,
+                            borderRadius: 22,
+                            padding: '28px 24px',
+                            position: 'relative', overflow: 'hidden',
+                            transition: 'all 0.3s ease',
+                        }}>
+                            {/* Glow de fondo */}
+                            <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: `radial-gradient(circle, ${a.glow} 0%, transparent 70%)`, opacity: completed ? 1 : 0.4, pointerEvents: 'none' }} />
 
-                            <div className="p-6 relative z-10 flex flex-col h-full">
-                                {/* Header */}
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className={`p-4 rounded-2xl ${achievement.bg} ring-1 ring-white/5`}>
-                                        {achievement.icon}
+                            {/* Badge completado */}
+                            {completed && (
+                                <div style={{ position: 'absolute', top: 16, right: 16, background: '#FBBF24', color: '#000', fontSize: '0.68rem', fontWeight: 800, padding: '3px 10px', borderRadius: 20 }}>
+                                    ✓ Completado
+                                </div>
+                            )}
+
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                {/* Icono + reward */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                                    <div style={{ width: 52, height: 52, borderRadius: 14, background: a.bg, border: `1px solid ${a.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <a.icon size={26} style={{ color: a.iconColor }} />
                                     </div>
-                                    <div className="bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800 text-xs font-medium text-slate-300 flex items-center gap-1">
-                                        <Star size={12} className="text-yellow-500" />
-                                        {achievement.reward}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', padding: '5px 10px', borderRadius: 8 }}>
+                                        <Star size={11} style={{ color: '#FBBF24' }} />
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#FBBF24' }}>{a.reward}</span>
                                     </div>
                                 </div>
 
-                                {/* Content */}
-                                <div className="mb-6">
-                                    <h2 className="text-xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-slate-300 transition-colors">
-                                        {achievement.title}
-                                    </h2>
-                                    <p className="text-slate-400 text-sm leading-relaxed">
-                                        {achievement.description}
-                                    </p>
-                                </div>
+                                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#eef0ff', marginBottom: 6 }}>{a.title}</h2>
+                                <p style={{ fontSize: '0.8rem', color: 'rgba(148,163,184,0.6)', lineHeight: 1.5, marginBottom: 22 }}>{a.description}</p>
 
-                                {/* Progress Section */}
-                                <div className="mt-auto space-y-3">
-                                    <div className="flex justify-between text-xs font-medium">
-                                        <span className="text-slate-300">{progress.toFixed(0)}% Completado</span>
-                                        <span className="text-slate-500">{achievement.current} / {achievement.target}</span>
+                                {/* Progress */}
+                                <div style={{ marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: a.iconColor }}>{progress.toFixed(0)}%</span>
+                                        <span style={{ fontSize: '0.75rem', color: 'rgba(148,163,184,0.4)', fontFamily: 'monospace' }}>
+                                            {a.current.toLocaleString()} / {a.target.toLocaleString()}
+                                        </span>
                                     </div>
-
-                                    <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden p-[2px] border border-slate-800">
-                                        <div
-                                            className={`h-full rounded-full bg-gradient-to-r ${achievement.color} shadow-[0_0_10px_rgba(0,0,0,0.3)] transition-all duration-1000 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]`}
-                                            style={{ width: `${progress}%` }}
-                                        />
+                                    <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${progress}%`, background: a.gradient, borderRadius: 3, boxShadow: `0 0 8px ${a.glow}`, transition: 'width 1s ease' }} />
                                     </div>
-
-                                    <p className="text-xs text-center text-slate-500 pt-2 font-mono">
-                                        Meta: {achievement.milestone}
-                                    </p>
                                 </div>
+                                <p style={{ fontSize: '0.72rem', color: 'rgba(148,163,184,0.35)', fontFamily: 'monospace', textAlign: 'center', marginTop: 10 }}>
+                                    Meta: {a.milestone}
+                                </p>
                             </div>
-                        </Card>
+                        </div>
                     )
                 })}
             </div>

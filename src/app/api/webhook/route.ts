@@ -1,19 +1,23 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { createHmac } from 'crypto'
 
 // Token de verificación que configuraste en .env.local.
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN
 
 // Configurar Cliente Supabase Admin para bypass RLS
-// INTENTO DE BYPASS: Usamos una variable nueva para asegurar que no hay cache
-const SERVICE_ROLE_KEY = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-console.log(`[Webhook] Init Admin Client. Service Role Key present? ${!!SERVICE_ROLE_KEY}`)
+const SERVICE_ROLE_KEY = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+if (!SERVICE_ROLE_KEY) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // Fallback if service key missing (but ideally service key)
+    SERVICE_ROLE_KEY
 )
+
+// Helpers para ocultar datos sensibles en logs
+function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
+function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
 
 // Productos se cargan dinámicamente desde la DB para cada tenant
 
@@ -25,6 +29,26 @@ interface BufferedMessage {
 }
 const messageBuffer = new Map<string, BufferedMessage>();
 // -----------------------------
+
+// --- RATE LIMITER ---
+// Máximo 15 mensajes por número de teléfono por minuto
+interface RateLimitEntry { count: number; resetAt: number }
+const rateLimitMap = new Map<string, RateLimitEntry>()
+const RATE_LIMIT_MAX = 15
+const RATE_LIMIT_WINDOW_MS = 60_000
+
+function isRateLimited(phone: string): boolean {
+    const now = Date.now()
+    const entry = rateLimitMap.get(phone)
+    if (!entry || now > entry.resetAt) {
+        rateLimitMap.set(phone, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+        return false
+    }
+    entry.count++
+    if (entry.count > RATE_LIMIT_MAX) return true
+    return false
+}
+// --------------------
 
 // GET: Para la verificación inicial de Meta (Webhook Challenge)
 export async function GET(request: Request) {
@@ -50,6 +74,19 @@ export async function GET(request: Request) {
     return new NextResponse('Bad Request', { status: 400 })
 }
 
+
+// Verifica que el mensaje viene realmente de Meta usando su firma HMAC-SHA256
+async function verifyMetaSignature(request: Request, rawBody: string): Promise<boolean> {
+    const appSecret = process.env.META_APP_SECRET
+    if (!appSecret) {
+        console.warn('[Webhook] META_APP_SECRET no configurado — omitiendo verificación de firma')
+        return true // Si no está configurado aún, no bloqueamos pero advertimos
+    }
+    const signature = request.headers.get('x-hub-signature-256')
+    if (!signature) return false
+    const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBody).digest('hex')
+    return signature === expected
+}
 
 // POST: Para recibir los mensajes de WhatsApp
 export async function POST(request: Request) {
@@ -107,7 +144,16 @@ export async function POST(request: Request) {
     }
 
     try {
-        const body = await request.json()
+        const rawBody = await request.text()
+
+        // Verificar que el mensaje viene realmente de Meta
+        const isValid = await verifyMetaSignature(request, rawBody)
+        if (!isValid) {
+            console.error('[Webhook] Firma inválida — mensaje rechazado')
+            return new NextResponse('Forbidden', { status: 403 })
+        }
+
+        const body = JSON.parse(rawBody)
 
         // Validar si es un mensaje de WhatsApp Business API
         if (body.object) {
@@ -170,6 +216,12 @@ export async function POST(request: Request) {
                 // Prefer profile name; if phone is absent show the BSUID or 'Usuario'
                 const contactName = value.contacts?.[0]?.profile?.name || (rawPhone ? rawPhone : (bsuid || 'Usuario'))
                 const whatsappMessageId = messageObject.id // ID único del mensaje de WhatsApp
+
+                // RATE LIMITING: máximo 15 mensajes por número por minuto
+                if (isRateLimited(phoneNumber)) {
+                    console.warn(`[RateLimit] Número bloqueado temporalmente: ${phoneNumber.slice(-4).padStart(phoneNumber.length, '*')}`)
+                    return new NextResponse('EVENT_RECEIVED', { status: 200 })
+                }
 
                 // DEDUPLICACIÓN: Verificar si ya procesamos este mensaje
                 if (whatsappMessageId) {
@@ -1020,7 +1072,9 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             return new NextResponse('EVENT_RECEIVED', { status: 200 });
                         }
 
-                        await supabaseAdmin.from('orders').update({
+                        // Actualización atómica: solo procede si el estado sigue siendo pending_payment
+                        // Esto previene doble procesamiento si dos imágenes llegan al mismo tiempo
+                        const { data: updatedRows } = await supabaseAdmin.from('orders').update({
                             status: 'pending_delivery',
                             updated_at: new Date().toISOString(),
                             metadata: {
@@ -1029,7 +1083,12 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 receipt_date: todayStr,
                                 receipt_time: boliviaTime.toTimeString().slice(0, 8)
                             }
-                        }).eq('id', activeOrder.id);
+                        }).eq('id', activeOrder.id).eq('status', 'pending_payment').select('id');
+
+                        if (!updatedRows || updatedRows.length === 0) {
+                            console.log(`[Renewal] Orden ${activeOrder.id} ya fue procesada por otro proceso, ignorando`)
+                            return new NextResponse('EVENT_RECEIVED', { status: 200 })
+                        }
 
                         const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
 
@@ -1422,7 +1481,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 .order('created_at', { ascending: false });
 
                             console.log(`[AI] Suscripciones encontradas: activas=${allExistingActiveSubs?.length || 0}, inactivas=${allExistingInactiveSubs?.length || 0}`);
-                            if (allExistingActiveSubs?.length) console.log(`[AI] Correos activos:`, allExistingActiveSubs.map(s => s.correo));
+                            if (allExistingActiveSubs?.length) console.log(`[AI] Suscripciones activas: ${allExistingActiveSubs.length}`);
 
                             const allSubs = [...(allExistingActiveSubs || []), ...(allExistingInactiveSubs || [])];
                             const existingSub = allExistingActiveSubs?.[0] || allExistingInactiveSubs?.[0] || null;
@@ -2059,13 +2118,13 @@ ${customTrainingSection}`
                                                 actionExecuted = true
                                                 if (!aiResponseText.trim()) {
                                                     if (qrSent) {
-                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
+                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *${tenantServiceName}* se activará en *${email}*.
 
 Te he enviado el *QR de pago* aquí arriba ☝️ para tu *${orderProduct?.name || pendingOrder.plan_name}* (*Bs ${orderProduct?.price || pendingOrder.amount}*).
 
 Una vez realices el pago, envíame la foto del comprobante por este chat. 📸`
                                                     } else {
-                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *Canva Pro* se activará en *${email}*.
+                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *${tenantServiceName}* se activará en *${email}*.
 
 En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pendingOrder.plan_name}*. 💳`
                                                     }
@@ -2138,12 +2197,6 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                                 }
                             } else {
                                 // --- FLUJO DE RESPUESTA DE TEXTO ---
-                                // Generar un retraso dinámico de "escribiendo" basado en la longitud de la respuesta para sentirse más realista
-                                // 35ms por letra de peso aprox, con un base de 1.5s y tope de 4.8s para evitar timeout de Vercel
-                                const calcDelay = 1500 + (aiResponseText.length * 35);
-                                const typingDelay = Math.min(calcDelay, 4800);
-                                console.log(`[Typing Delay] Esperando ${typingDelay}ms simulando escritura humana...`);
-                                await new Promise(resolve => setTimeout(resolve, typingDelay));
                                 await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
                             }
 

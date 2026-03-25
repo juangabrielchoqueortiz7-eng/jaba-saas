@@ -6,6 +6,8 @@ export interface Subscription {
     vencimiento: string;
     estado: string;
     equipo: string;
+    servicio: string;
+    password?: string;
     notified: boolean;
     notified_at?: string;
     followup_sent?: boolean;

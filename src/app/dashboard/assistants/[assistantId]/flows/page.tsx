@@ -62,10 +62,10 @@ export default function FlowsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 style={{ fontSize: '1.75rem', fontWeight: 700, background: 'linear-gradient(135deg, #818cf8, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#eef0ff' }}>
                         Flujos Conversacionales
                     </h1>
-                    <p style={{ color: '#94a3b8', marginTop: 4 }}>
+                    <p style={{ color: 'rgba(238,240,255,0.45)', marginTop: 4 }}>
                         Crea y gestiona flujos de conversación visuales para tu bot
                     </p>
                 </div>
@@ -78,13 +78,13 @@ export default function FlowsPage() {
                             })
                         }}
                         disabled={isPending}
-                        style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 12, padding: '10px 16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem' }}
+                        style={{ background: 'rgba(6,182,212,0.12)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 12, padding: '10px 16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem' }}
                     >
                         🚀 Crear Flujo de Ventas
                     </Button>
                     <Button
                         onClick={() => setIsCreating(true)}
-                        style={{ background: 'linear-gradient(135deg, #818cf8, #6366f1)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                        style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
                     >
                         <Plus size={18} /> Nuevo Flujo
                     </Button>
@@ -104,7 +104,7 @@ export default function FlowsPage() {
 
             {/* Create Form */}
             {isCreating && (
-                <Card style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(129,140,248,0.3)', borderRadius: 16 }}>
+                <Card style={{ background: '#13152a', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 16 }}>
                     <CardContent style={{ padding: 24 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <Input
@@ -126,7 +126,7 @@ export default function FlowsPage() {
                                     Cancelar
                                 </Button>
                                 <Button onClick={handleCreate} disabled={isPending || !newFlowName.trim()}
-                                    style={{ background: 'linear-gradient(135deg, #818cf8, #6366f1)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600 }}>
+                                    style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600 }}>
                                     {isPending ? 'Creando...' : 'Crear Flujo'}
                                 </Button>
                             </div>
@@ -137,7 +137,7 @@ export default function FlowsPage() {
 
             {/* Flows List */}
             {filtered.length === 0 ? (
-                <Card style={{ background: 'rgba(30,30,50,0.5)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, textAlign: 'center', padding: '48px 24px' }}>
+                <Card style={{ background: 'rgba(15,26,20,0.5)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, textAlign: 'center', padding: '48px 24px' }}>
                     <GitBranch size={48} style={{ color: '#4b5563', margin: '0 auto 16px' }} />
                     <p style={{ color: '#64748b', fontSize: '1.1rem' }}>No hay flujos creados</p>
                     <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: 4 }}>Crea tu primer flujo conversacional para automatizar las respuestas de tu bot</p>
@@ -146,8 +146,8 @@ export default function FlowsPage() {
                 <div style={{ display: 'grid', gap: 16 }}>
                     {filtered.map(flow => (
                         <Card key={flow.id} style={{
-                            background: 'rgba(30,30,50,0.6)',
-                            border: flow.is_active ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                            background: 'rgba(15,26,20,0.6)',
+                            border: flow.is_active ? '1px solid rgba(37,211,102,0.4)' : '1px solid rgba(255,255,255,0.08)',
                             borderRadius: 16,
                             transition: 'all 0.2s',
                             cursor: 'default'
@@ -156,9 +156,9 @@ export default function FlowsPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
                                     <div style={{
                                         width: 48, height: 48, borderRadius: 12,
-                                        background: flow.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(100,116,139,0.15)',
+                                        background: flow.is_active ? 'rgba(6,182,212,0.12)' : 'rgba(100,116,139,0.15)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        border: flow.is_active ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(255,255,255,0.05)'
+                                        border: flow.is_active ? '1px solid rgba(6,182,212,0.3)' : '1px solid rgba(255,255,255,0.05)'
                                     }}>
                                         <GitBranch size={22} style={{ color: flow.is_active ? '#22c55e' : '#64748b' }} />
                                     </div>
@@ -168,9 +168,9 @@ export default function FlowsPage() {
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
                                             <span style={{
                                                 fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                                                background: flow.is_active ? 'rgba(34,197,94,0.15)' : 'rgba(100,116,139,0.15)',
+                                                background: flow.is_active ? 'rgba(6,182,212,0.12)' : 'rgba(100,116,139,0.15)',
                                                 color: flow.is_active ? '#22c55e' : '#64748b',
-                                                border: flow.is_active ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(255,255,255,0.05)'
+                                                border: flow.is_active ? '1px solid rgba(6,182,212,0.2)' : '1px solid rgba(255,255,255,0.05)'
                                             }}>
                                                 {flow.is_active ? '● Activo' : '○ Inactivo'}
                                             </span>

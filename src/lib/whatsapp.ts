@@ -209,7 +209,7 @@ export async function sendWhatsAppImage(to: string, imageUrl: string, caption?: 
  * @param token Token de acceso
  * @param phoneNumberId ID del teléfono emisor
  */
-export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: string, token?: string, phoneNumberId?: string) {
+export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: string, token?: string, phoneNumberId?: string, filename?: string) {
     const apiToken = token || process.env.WHATSAPP_API_TOKEN;
     const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
 
@@ -220,7 +220,7 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
 
     try {
         const videoPayload: Record<string, string> = {
-            filename: "Tutorial_Acceso.mp4"
+            filename: filename || videoUrl.split('/').pop()?.split('?')[0] || 'video.mp4'
         };
         // Si no empieza con http, asumimos que es un media_id
         if (videoUrl.startsWith('http')) {

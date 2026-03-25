@@ -11,8 +11,8 @@ import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
-import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode, registerWhatsAppNumber } from './actions'
-import { Smartphone, RefreshCw, X } from "lucide-react"
+import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode, registerWhatsAppNumber, testWebhook, sendTestWhatsAppMessage } from './actions'
+import { Smartphone, RefreshCw, X, Wifi, Send as SendIcon, FlaskConical } from "lucide-react"
 
 export default function SettingsPage() {
 
@@ -314,6 +314,15 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
+    // Test webhook state
+    const [webhookTestLoading, setWebhookTestLoading] = useState(false)
+    const [webhookTestResult, setWebhookTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+    // Test message state
+    const [testPhone, setTestPhone] = useState('')
+    const [testMsgLoading, setTestMsgLoading] = useState(false)
+    const [testMsgResult, setTestMsgResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
     const supabase = createClient()
 
 
@@ -348,6 +357,8 @@ export default function SettingsPage() {
             if (data) {
                 // Connection
                 setPhoneNumberId(data.phone_number_id || '')
+                setWabaId(data.waba_id || '')
+                setAppId(data.app_id || '')
                 setAccessToken(data.access_token || '')
 
                 // General Config
@@ -484,7 +495,7 @@ export default function SettingsPage() {
             className={cn(
                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors border-b-2",
                 activeTab === id
-                    ? "border-green-500 text-green-400 bg-green-500/10"
+                    ? "border-[#6366f1] text-[#6366f1] bg-[rgba(99,102,241,0.1)]"
                     : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800"
             )}
         >
@@ -499,7 +510,7 @@ export default function SettingsPage() {
             className={cn(
                 "px-4 py-2 text-sm font-medium transition-colors border-l-2 first:border-l-0 md:border-l-0 md:border-b-2",
                 activeAiTab === id
-                    ? "border-green-500 text-green-400 bg-green-500/10"
+                    ? "border-[#6366f1] text-[#6366f1] bg-[rgba(99,102,241,0.1)]"
                     : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800"
             )}
         >
@@ -508,7 +519,7 @@ export default function SettingsPage() {
     )
 
     const SettingRow = ({ label, description, children }: { label: string, description: string, children: React.ReactNode }) => (
-        <div className="grid gap-4 p-5 border border-slate-800 rounded-lg bg-slate-950/40 hover:border-slate-700 transition-colors">
+        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1 md:w-1/2">
                     <Label className="text-base font-semibold text-slate-200">{label}</Label>
@@ -537,11 +548,11 @@ export default function SettingsPage() {
     return (
         <div className="container mx-auto p-6 max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-white">
-                    <Settings2 className="w-8 h-8 text-green-500" />
+                <h1 className="text-3xl font-bold flex items-center gap-3 text-[#eef0ff]">
+                    <Settings2 className="w-8 h-8 text-[#6366f1]" />
                     Panel de Administración
                 </h1>
-                <Button onClick={handleSave} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                <Button onClick={handleSave} disabled={loading} className="bg-[#6366f1] hover:bg-[#4f46e5] text-white gap-2">
                     <Save className="w-4 h-4" />
                     {loading ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
@@ -559,21 +570,21 @@ export default function SettingsPage() {
             )}
 
             {/* Tabs Header */}
-            <div className="bg-slate-900 border border-slate-800 rounded-t-lg flex overflow-x-auto">
+            <div className="bg-[#13152a] border border-white/[0.06] rounded-t-lg flex overflow-x-auto">
                 <TabButton id="general" label="General" icon={Bot} />
                 <TabButton id="ai" label="Inteligencia Artificial (IA)" icon={BrainCircuit} />
                 <TabButton id="chat" label="Conexión (Chat)" icon={MessageSquare} />
             </div>
 
             {/* Tabs Content */}
-            <div className="bg-slate-900 border border-slate-800 border-t-0 rounded-b-lg p-6 min-h-[400px]">
+            <div className="bg-[#13152a] border border-white/[0.06] border-t-0 rounded-b-lg p-6 min-h-[400px]">
 
                 {/* --- GENERAL TAB --- */}
                 {activeTab === 'general' && (
                     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
                         <div className="grid gap-6">
                             {/* Bot Name */}
-                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
                                 <Label htmlFor="botName" className="text-base font-semibold text-slate-200">Nombre del Asistente</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <Input
@@ -581,7 +592,7 @@ export default function SettingsPage() {
                                         value={botName}
                                         onChange={e => setBotName(e.target.value)}
                                         placeholder="Ej: JabaBot"
-                                        className="h-11 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-green-500"
+                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-slate-500 focus-visible:ring-[#6366f1]"
                                     />
                                     <p className="text-sm text-slate-400 leading-relaxed">
                                         Este parámetro permite personalizar el nombre al asistente y brindarle una identificación única ante tus clientes.
@@ -590,7 +601,7 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Phone Display */}
-                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
                                 <Label htmlFor="phoneDisplay" className="text-base font-semibold text-slate-200">Teléfono Visible</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <Input
@@ -598,7 +609,7 @@ export default function SettingsPage() {
                                         value={phoneDisplay}
                                         onChange={e => setPhoneDisplay(e.target.value)}
                                         placeholder="+591 00000000"
-                                        className="h-11 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-green-500"
+                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-slate-500 focus-visible:ring-[#6366f1]"
                                     />
                                     <p className="text-sm text-slate-400 leading-relaxed">
                                         Permite ingresar información de contacto o identificación telefónica visual del asistente.
@@ -607,7 +618,7 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Welcome Message */}
-                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
                                 <Label htmlFor="welcomeMessage" className="text-base font-semibold text-slate-200">Mensaje de bienvenida</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <textarea
@@ -624,7 +635,7 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Service Name */}
-                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
                                 <Label htmlFor="serviceName" className="text-base font-semibold text-slate-200">Nombre del servicio</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <Input
@@ -632,7 +643,7 @@ export default function SettingsPage() {
                                         value={serviceName}
                                         onChange={e => setServiceName(e.target.value)}
                                         placeholder="Ej: Canva Pro, Gym Premium, Academia Virtual"
-                                        className="h-11 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-green-500"
+                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-slate-500 focus-visible:ring-[#6366f1]"
                                     />
                                     <p className="text-sm text-slate-400 leading-relaxed">
                                         El nombre del servicio que vendes. Se usará en los mensajes del bot y recordatorios. Ej: "Canva Pro", "Netflix Premium".
@@ -641,7 +652,7 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Service Description */}
-                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
                                 <Label htmlFor="serviceDescription" className="text-base font-semibold text-slate-200">Descripción del servicio</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <textarea
@@ -658,7 +669,7 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Promo Image - Drag & Drop Upload */}
-                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors bg-slate-950/50">
+                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
                                 <Label className="text-base font-semibold text-slate-200">Imagen de precios</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <div className="space-y-3">
@@ -886,7 +897,7 @@ export default function SettingsPage() {
                         )}
 
                         {/* Phone Number ID */}
-                        <div className="grid gap-4 p-5 border border-slate-800 rounded-lg bg-slate-950/40 hover:border-slate-700 transition-colors">
+                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
                                     <Label htmlFor="phoneId" className="text-base font-semibold text-slate-200">Id. Número de teléfono</Label>
@@ -907,7 +918,7 @@ export default function SettingsPage() {
                         </div>
 
                         {/* WABA ID */}
-                        <div className="grid gap-4 p-5 border border-slate-800 rounded-lg bg-slate-950/40 hover:border-slate-700 transition-colors">
+                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
                                     <Label htmlFor="wabaId" className="text-base font-semibold text-slate-200">Id. cuenta de WhatsApp Business</Label>
@@ -925,7 +936,7 @@ export default function SettingsPage() {
                         </div>
 
                         {/* App ID */}
-                        <div className="grid gap-4 p-5 border border-slate-800 rounded-lg bg-slate-950/40 hover:border-slate-700 transition-colors">
+                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
                                     <Label htmlFor="appId" className="text-base font-semibold text-slate-200">Id. de la aplicación</Label>
@@ -943,7 +954,7 @@ export default function SettingsPage() {
                         </div>
 
                         {/* Access Token */}
-                        <div className="grid gap-4 p-5 border border-slate-800 rounded-lg bg-slate-950/40 hover:border-slate-700 transition-colors">
+                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
                                     <Label htmlFor="token" className="text-base font-semibold text-slate-200">Token permanente</Label>
@@ -962,32 +973,121 @@ export default function SettingsPage() {
                         </div>
 
                         {/* Webhook Configuration */}
-                        <div className="grid gap-4 p-5 border border-slate-800 rounded-lg bg-slate-950/40 hover:border-slate-700 transition-colors">
-                            <Label className="text-base font-semibold text-slate-200">Configuración de Webhook</Label>
+                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-base font-semibold text-slate-200">Configuración de Webhook</Label>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        setWebhookTestLoading(true)
+                                        setWebhookTestResult(null)
+                                        const res = await testWebhook(webhookUrl, webhookToken)
+                                        setWebhookTestResult({ ok: res.success, msg: res.success ? '✅ Webhook responde correctamente' : `❌ ${res.error}` })
+                                        setWebhookTestLoading(false)
+                                    }}
+                                    disabled={webhookTestLoading || webhookToken === 'Cargando...'}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 transition-colors disabled:opacity-40"
+                                >
+                                    {webhookTestLoading
+                                        ? <RefreshCw size={13} className="animate-spin" />
+                                        : <Wifi size={13} />
+                                    }
+                                    Probar Webhook
+                                </button>
+                            </div>
+
+                            {webhookTestResult && (
+                                <div className={cn(
+                                    'px-3 py-2 rounded-lg text-sm font-medium border',
+                                    webhookTestResult.ok
+                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                        : 'bg-red-500/10 border-red-500/30 text-red-400'
+                                )}>
+                                    {webhookTestResult.msg}
+                                </div>
+                            )}
 
                             <div className="grid md:grid-cols-2 gap-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
-                                        https://jaba-saas.vercel.app/api/webhook
+                                <div className="space-y-1">
+                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">URL del Webhook</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
+                                            {webhookUrl}
+                                        </div>
+                                        <CopyButton text={webhookUrl} />
                                     </div>
-                                    <CopyButton text="https://jaba-saas.vercel.app/api/webhook" />
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
-                                        {webhookUrl}
+                                <div className="space-y-1">
+                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Token de verificación</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
+                                            {webhookToken}
+                                        </div>
+                                        <CopyButton text={webhookToken} />
                                     </div>
-                                    <CopyButton text={webhookUrl} />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
-                                        {webhookToken}
-                                    </div>
-                                    <CopyButton text={webhookToken} />
                                 </div>
                             </div>
-                            <p className="text-sm text-slate-400 leading-relaxed text-justify mt-2">
-                                Copia estos valores en el Panel de Desarrolladores de Meta.
+                            <p className="text-xs text-slate-500 mt-1">
+                                Copia estos valores en el Panel de Desarrolladores de Meta → WhatsApp → Configuración → Webhooks.
                             </p>
+                        </div>
+
+                        {/* Enviar mensaje de prueba */}
+                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                            <div className="flex items-center gap-2">
+                                <FlaskConical size={16} className="text-amber-400" />
+                                <Label className="text-base font-semibold text-slate-200">Enviar mensaje de prueba</Label>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                                Verifica que tu token y número estén funcionando enviando un WhatsApp de prueba.
+                            </p>
+                            <div className="flex gap-3 items-start">
+                                <div className="flex-1">
+                                    <Input
+                                        placeholder="Ej: 59170000000"
+                                        value={testPhone}
+                                        onChange={e => setTestPhone(e.target.value)}
+                                        className="font-mono bg-slate-900 border-slate-700 text-white placeholder:text-slate-600"
+                                    />
+                                    <p className="text-xs text-slate-500 mt-1">Número con código de país (sin + ni espacios)</p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    disabled={testMsgLoading || !phoneNumberId || !accessToken || !testPhone.trim()}
+                                    onClick={async () => {
+                                        setTestMsgLoading(true)
+                                        setTestMsgResult(null)
+                                        const res = await sendTestWhatsAppMessage(phoneNumberId, accessToken, testPhone.trim())
+                                        setTestMsgResult({
+                                            ok: res.success,
+                                            msg: res.success
+                                                ? `✅ Mensaje enviado (ID: ${(res as any).messageId || 'ok'})`
+                                                : `❌ ${(res as any).error}`
+                                        })
+                                        setTestMsgLoading(false)
+                                    }}
+                                    className="bg-amber-600 hover:bg-amber-700 text-white gap-2 shrink-0"
+                                >
+                                    {testMsgLoading
+                                        ? <RefreshCw size={14} className="animate-spin" />
+                                        : <SendIcon size={14} />
+                                    }
+                                    Enviar prueba
+                                </Button>
+                            </div>
+                            {testMsgResult && (
+                                <div className={cn(
+                                    'px-3 py-2 rounded-lg text-sm font-medium border',
+                                    testMsgResult.ok
+                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                        : 'bg-red-500/10 border-red-500/30 text-red-400'
+                                )}>
+                                    {testMsgResult.msg}
+                                </div>
+                            )}
+                            {(!phoneNumberId || !accessToken) && (
+                                <p className="text-xs text-amber-500/70">⚠️ Guarda primero las credenciales (Phone ID + Token) para habilitar esta función.</p>
+                            )}
                         </div>
                     </div>
                 )}

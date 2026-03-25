@@ -6,11 +6,12 @@ import { revalidatePath } from 'next/cache'
 export type Trigger = {
     id: string
     name: string
-    type: 'logic' | 'flow' | 'time' | 'manual'
+    type: 'logic' | 'flow' | 'time' | 'manual' | 'scheduled'
     description: string | null
     is_active: boolean
     created_at: string
-    trigger_actions: { count: number }[] // Adjusted for common count patterns, or we fetch count separately
+    last_run_at: string | null
+    trigger_actions: { count: number }[]
 }
 
 export async function getTriggers() {
@@ -24,7 +25,7 @@ export async function getTriggers() {
     const { data, error } = await supabase
         .from('triggers')
         .select(`
-            *,
+            id, name, type, description, is_active, created_at, last_run_at,
             trigger_actions (count)
         `)
         .eq('user_id', user.id)
@@ -105,7 +106,7 @@ export async function saveTrigger(
     triggerData: {
         id?: string,
         name: string,
-        type: 'logic' | 'flow' | 'time' | 'manual',
+        type: 'logic' | 'flow' | 'time' | 'manual' | 'scheduled',
         description: string,
         actions: { type: string, payload: any }[],
         conditions?: { type: string, operator: string, value: string }[]

@@ -1,249 +1,233 @@
 import { createClient } from '@/utils/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AssistantNotFound } from '@/components/dashboard/AssistantNotFound'
-import { MessageSquare, Mic, TrendingUp, Power, RefreshCw } from 'lucide-react'
 import { redirect } from 'next/navigation'
 
 export default async function AssistantDashboardPage({ params }: { params: Promise<{ assistantId: string }> }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const { assistantId } = await params
+    if (!user) redirect('/login')
 
-    if (!user) {
-        redirect('/login')
-    }
-
-    // 1. Fetch Credentials (Status & General Info) - Specific to this assistant
     const { data: credentials } = await supabase
         .from('whatsapp_credentials')
         .select('*')
-        .eq('id', assistantId) // Fetch by specific ID
-        .single() // Should be unique
+        .eq('id', assistantId)
+        .single()
 
-    if (!credentials) {
-        // Fallback if ID invalid or not found
-        // Use client component to clear local storage
-        return <AssistantNotFound />
-    }
-
-    // 2. Fetch Usage Stats
-    // 2.A. Total Conversations (Chats) - Filtered by this assistant (via phone_number_id?)
-    // Note: The schema might link chats to the USER, not specifically the credential ID yet. 
-    // Assuming 'chats' table might need a link to the credential if multiple assistants exist.
-    // For now, let's keep it filtered by user since the original code did that, 
-    // BUT realistically it should filter by the assistant's phone number or ID if possible.
-    // Let's stick to user filter for charts to avoid breaking if schema isn't fully ready for multi-tenant assistants.
-    // OR: If the 'chats' table has 'whatsapp_credential_id' or 'assistant_id', use it.
-    // Reviewing schema_chats.sql earlier... let's check assumptions. 
-    // I recall viewing test_data.sql. 
-    // Let's assume for now valid metrics are global or user-based, but we show the status of THIS assistant.
+    if (!credentials) return <AssistantNotFound />
 
     const { count: totalChats } = await supabase
-        .from('chats')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+        .from('chats').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
 
-    // 2.B. Total Audios Sent by AI
     const { count: totalAudios } = await supabase
         .from('messages')
         .select('chat_id, chats!inner(user_id)', { count: 'exact', head: true })
-        .eq('chats.user_id', user.id)
-        .eq('type', 'audio')
-        .eq('sender', 'ai')
+        .eq('chats.user_id', user.id).eq('type', 'audio').eq('sender', 'ai')
 
-    // 2.C. Recent Conversations (Last 7 Days) for Chart
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
     sevenDaysAgo.setHours(0, 0, 0, 0)
 
     const { data: recentChats } = await supabase
-        .from('chats')
-        .select('created_at')
-        .eq('user_id', user.id)
+        .from('chats').select('created_at').eq('user_id', user.id)
         .gte('created_at', sevenDaysAgo.toISOString())
 
-    // Process Chart Data
-    const chartData = []
     const days = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
-
-    for (let i = 0; i < 7; i++) {
+    const chartData = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(sevenDaysAgo)
         d.setDate(d.getDate() + i)
         const dayKey = d.toISOString().split('T')[0]
-        const dayName = days[d.getDay()]
-
-        const count = recentChats?.filter(c => c.created_at.startsWith(dayKey)).length || 0
-        chartData.push({ day: dayName, count, fullDate: dayKey })
-    }
+        return { day: days[d.getDay()], count: recentChats?.filter(c => c.created_at.startsWith(dayKey)).length || 0, isToday: i === 6 }
+    })
 
     const maxVal = Math.max(...chartData.map(d => d.count), 5)
     const LIMIT_CHATS = 500
     const LIMIT_AUDIOS = 100
-    const aiStatus = credentials?.ai_status || 'sleep'
-    const isActive = aiStatus === 'active'
+    const isActive = credentials?.ai_status === 'active'
+
+    // Stat cards con colores únicos por tipo
+    const stats = [
+        { label: 'Conversaciones', value: totalChats || 0, limit: LIMIT_CHATS, icon: '💬', color: '#10b981', rgb: '16,185,129', pct: Math.min(((totalChats || 0) / LIMIT_CHATS) * 100, 100) },
+        { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, icon: '🎤', color: '#8b5cf6', rgb: '139,92,246', pct: Math.min(((totalAudios || 0) / LIMIT_AUDIOS) * 100, 100) },
+        { label: 'Hoy', value: chartData[6].count, icon: '📅', color: '#f59e0b', rgb: '245,158,11', pct: null },
+        { label: 'Esta semana', value: chartData.reduce((a, b) => a + b.count, 0), icon: '📊', color: '#6366f1', rgb: '99,102,241', pct: null },
+    ]
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-8 fade-in animate-in duration-500">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div style={{ padding: '28px 32px', maxWidth: 1300, margin: '0 auto' }}>
+
+            {/* ── HEADER ── */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        {credentials.phone_number_id || 'Asistente'}
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#eef0ff', marginBottom: 4 }}>
+                        {credentials.bot_name || 'Mi Asistente'}
                     </h1>
-                    <p className="text-slate-400">ID: {credentials.id?.slice(0, 8)}...</p>
+                    <p style={{ color: 'rgba(238,240,255,0.5)', fontSize: '0.85rem' }}>
+                        {credentials.phone_number_display || credentials.phone_number_id || 'Sin número configurado'}
+                    </p>
                 </div>
-                <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-full px-4 py-2">
-                    <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></div>
-                    <span className="text-sm font-medium text-slate-300">
-                        {isActive ? 'Sistema Operativo' : 'Sistema en Reposo'}
+
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 18px', borderRadius: 50,
+                    background: isActive ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.04)',
+                    border: isActive ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(255,255,255,0.1)',
+                }}>
+                    <div style={{
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: isActive ? '#10b981' : '#64748b',
+                        boxShadow: isActive ? '0 0 8px rgba(16,185,129,0.7)' : 'none',
+                    }} />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isActive ? '#10b981' : '#64748b' }}>
+                        {isActive ? 'Asistente activo' : 'Asistente inactivo'}
                     </span>
                 </div>
-            </header>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* LEFT COLUMN */}
-                <div className="space-y-6">
+            {/* ── STAT CARDS — cada una con su color único ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+                {stats.map((stat, i) => (
+                    <div key={i} style={{
+                        background: '#13152a',
+                        border: `1px solid rgba(${stat.rgb},0.18)`,
+                        borderRadius: 18,
+                        padding: '20px 22px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        boxShadow: `0 0 0 1px rgba(${stat.rgb},0.07), 0 4px 20px rgba(0,0,0,0.35)`,
+                        transition: 'all 0.2s ease',
+                    }}>
+                        {/* Top accent bar */}
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: stat.color }} />
+                        {/* Glow bg */}
+                        <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: `radial-gradient(circle, rgba(${stat.rgb},0.15) 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
-                    {/* STATUS CARD */}
-                    <Card className="bg-slate-900 border-slate-800">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-medium text-slate-200">Estado</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-3 rounded-full ${isActive ? 'bg-green-500/10 text-green-500' : 'bg-slate-800 text-slate-500'}`}>
-                                    <Power className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-white font-medium">{isActive ? 'Activo' : 'Dormido'}</p>
-                                    <p className="text-xs text-slate-500">
-                                        {isActive ? 'El asistente está respondiendo mensajes.' : 'El asistente no procesará mensajes nuevos.'}
-                                    </p>
-                                </div>
+                        <div style={{ fontSize: 22, marginBottom: 10 }}>{stat.icon}</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#eef0ff', lineHeight: 1, marginBottom: 4 }}>
+                            {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(238,240,255,0.6)', fontWeight: 500, marginBottom: stat.pct !== null ? 10 : 0 }}>
+                            {stat.label}
+                            {stat.limit && <span style={{ color: 'rgba(238,240,255,0.3)' }}> / {stat.limit}</span>}
+                        </div>
+                        {stat.pct !== null && (
+                            <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${stat.pct}%`, background: stat.color, borderRadius: 2, boxShadow: `0 0 6px rgba(${stat.rgb},0.5)` }} />
                             </div>
+                        )}
+                    </div>
+                ))}
+            </div>
 
-                            <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500' : 'bg-slate-600'}`}></div>
-                                <span className="text-sm font-medium text-slate-300">{isActive ? 'Activar' : 'Desactivado'}</span>
+            {/* ── MAIN GRID ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
+
+                {/* CHART — azul/indigo */}
+                <div style={{
+                    background: '#13152a',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 20,
+                    padding: '24px 28px',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                        <div>
+                            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#eef0ff' }}>Conversaciones — últimos 7 días</h3>
+                            <p style={{ fontSize: '0.75rem', color: 'rgba(238,240,255,0.45)', marginTop: 2 }}>Nuevos chats iniciados por día</p>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#818cf8', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.22)', padding: '4px 10px', borderRadius: 6 }}>
+                            {chartData.reduce((a, b) => a + b.count, 0)} total
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 180, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
+                        {chartData.map((d, i) => (
+                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+                                <span style={{ fontSize: '0.65rem', color: d.count > 0 ? (d.isToday ? '#818cf8' : 'rgba(238,240,255,0.4)') : 'transparent' }}>{d.count}</span>
+                                <div style={{
+                                    width: '100%', maxWidth: 32, borderRadius: '4px 4px 0 0',
+                                    height: `${Math.max((d.count / maxVal) * 140, d.count > 0 ? 4 : 2)}px`,
+                                    background: d.isToday
+                                        ? 'linear-gradient(180deg, #818cf8, #6366f1)'
+                                        : 'rgba(99,102,241,0.2)',
+                                    boxShadow: d.isToday ? '0 0 14px rgba(99,102,241,0.5)' : 'none',
+                                    transition: 'all 0.3s ease',
+                                }} />
+                                <span style={{ fontSize: '0.68rem', color: d.isToday ? '#818cf8' : 'rgba(238,240,255,0.35)', fontWeight: d.isToday ? 700 : 400, textTransform: 'capitalize' }}>{d.day}</span>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* QUOTAS CARD */}
-                    <Card className="bg-slate-900 border-slate-800">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-lg font-medium text-slate-200">Cuotas</CardTitle>
-                            <RefreshCw className="w-4 h-4 text-slate-500" />
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* Conversations Bar */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400 flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4" /> Conversaciones
-                                    </span>
-                                    <span className="text-white font-mono">{totalChats || 0} <span className="text-slate-500">/ {LIMIT_CHATS}</span></span>
-                                </div>
-                                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-blue-500 rounded-full transition-all duration-1000"
-                                        style={{ width: `${Math.min(((totalChats || 0) / LIMIT_CHATS) * 100, 100)}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-
-                            {/* Audios Bar */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400 flex items-center gap-2">
-                                        <Mic className="w-4 h-4" /> Audios
-                                    </span>
-                                    <span className="text-white font-mono">{totalAudios || 0} <span className="text-slate-500">/ {LIMIT_AUDIOS}</span></span>
-                                </div>
-                                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-green-500 rounded-full transition-all duration-1000"
-                                        style={{ width: `${Math.min(((totalAudios || 0) / LIMIT_AUDIOS) * 100, 100)}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between text-xs text-slate-600 mt-2">
-                                <span>{totalChats || 0} Actual</span>
-                                <span>{LIMIT_CHATS} Límite</span>
-                            </div>
-
-                        </CardContent>
-                    </Card>
-
-                    {/* DAILY STATS */}
-                    <Card className="bg-slate-900 border-slate-800">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-medium text-slate-200">Nuevas conversaciones hoy</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-bold text-white">
-                                    {chartData[6].count}
-                                </span>
-                                <span className="text-sm text-green-500 font-medium flex items-center">
-                                    <TrendingUp className="w-3 h-3 mr-1" /> Hoy
-                                </span>
-                            </div>
-                        </CardContent>
-                    </Card>
-
+                        ))}
+                    </div>
                 </div>
 
-                {/* RIGHT COLUMN - CHART */}
-                <div className="space-y-6 h-full">
-                    <Card className="bg-slate-900 border-slate-800 h-full flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-medium text-slate-200">Nuevas conversaciones últimos 7 días</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col justify-end pt-8">
-                            {/* Custom CSS Bar Chart */}
-                            <div className="w-full flex items-end justify-between gap-2 h-64 border-b border-slate-800 pb-2 relative">
+                {/* STATUS + QUICK INFO */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-                                {/* Grid Lines (Visual only) */}
-                                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
-                                    <div className="border-t border-slate-600 w-full h-0"></div>
-                                    <div className="border-t border-slate-600 w-full h-0"></div>
-                                    <div className="border-t border-slate-600 w-full h-0"></div>
-                                    <div className="border-t border-slate-600 w-full h-0"></div>
-                                    <div className="border-t border-slate-600 w-full h-0"></div>
-                                </div>
+                    {/* Estado del bot */}
+                    <div style={{
+                        background: '#13152a',
+                        border: `1px solid ${isActive ? 'rgba(16,185,129,0.22)' : 'rgba(255,255,255,0.07)'}`,
+                        borderRadius: 18, padding: '20px 22px',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+                    }}>
+                        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(238,240,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Estado del bot</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{
+                                width: 44, height: 44, borderRadius: 12,
+                                background: isActive ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                border: isActive ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(255,255,255,0.1)',
+                                fontSize: 20,
+                            }}>
+                                {isActive ? '🟢' : '⚫'}
+                            </div>
+                            <div>
+                                <p style={{ fontWeight: 700, color: isActive ? '#10b981' : '#64748b', fontSize: '0.95rem' }}>
+                                    {isActive ? 'Activo' : 'Inactivo'}
+                                </p>
+                                <p style={{ fontSize: '0.73rem', color: 'rgba(238,240,255,0.45)', marginTop: 1 }}>
+                                    {isActive ? 'Respondiendo mensajes' : 'No procesa mensajes'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
-                                {/* Bars */}
-                                {chartData.map((d, i) => (
-                                    <div key={i} className="flex flex-col items-center gap-2 group w-full">
-                                        {/* Tooltip-ish value */}
-                                        <div className="bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 pointer-events-none">
-                                            {d.count}
-                                        </div>
-
-                                        <div
-                                            className="w-full max-w-[40px] bg-blue-500 rounded-t-sm hover:bg-blue-400 transition-all cursor-pointer relative z-10"
-                                            style={{
-                                                height: `${Math.max((d.count / maxVal) * 100, 2)}%`,
-                                                opacity: i === 6 ? 1 : 0.6 // Highlight today
-                                            }}
-                                        ></div>
-                                        <span className="text-xs text-slate-500 font-medium capitalize">{d.day}</span>
+                    {/* Cuotas */}
+                    <div style={{ background: '#13152a', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '20px 22px', flex: 1, boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
+                        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(238,240,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Cuotas del plan</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            {[
+                                { label: 'Conversaciones', value: totalChats || 0, limit: LIMIT_CHATS, color: '#10b981', rgb: '16,185,129' },
+                                { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, color: '#8b5cf6', rgb: '139,92,246' },
+                            ].map((q, i) => (
+                                <div key={i}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: '0.78rem', color: 'rgba(238,240,255,0.6)' }}>{q.label}</span>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#eef0ff', fontFamily: 'monospace' }}>
+                                            {q.value} <span style={{ color: 'rgba(238,240,255,0.3)' }}>/ {q.limit}</span>
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
+                                    <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${Math.min((q.value / q.limit) * 100, 100)}%`, background: q.color, borderRadius: 3, boxShadow: `0 0 6px rgba(${q.rgb},0.5)` }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-                            <div className="flex justify-between text-xs text-slate-600 mt-4">
-                                <span>0</span>
-                                <span>{Math.round(maxVal * 0.2)}</span>
-                                <span>{Math.round(maxVal * 0.4)}</span>
-                                <span>{Math.round(maxVal * 0.6)}</span>
-                                <span>{Math.round(maxVal * 0.8)}</span>
-                                <span>{maxVal}</span>
-                            </div>
-
-                        </CardContent>
-                    </Card>
+                    {/* Hoy */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                        border: '1px solid rgba(99,102,241,0.2)',
+                        borderRadius: 18, padding: '20px 22px',
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        boxShadow: '0 0 24px rgba(99,102,241,0.1)',
+                    }}>
+                        <div style={{ fontSize: 32 }}>💬</div>
+                        <div>
+                            <p style={{ fontSize: '2rem', fontWeight: 800, color: '#818cf8', lineHeight: 1 }}>{chartData[6].count}</p>
+                            <p style={{ fontSize: '0.75rem', color: 'rgba(238,240,255,0.5)', marginTop: 2 }}>Conversaciones hoy</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

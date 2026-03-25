@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, Check, CheckCheck, Filter, X, Tag } from 'lucide-react'
+import { Search, Check, CheckCheck, Filter, X, Tag, Archive, ArchiveRestore } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,7 @@ interface Chat {
     phone_number: string
     last_message_status?: string
     tags?: string[]
+    archived?: boolean
 }
 
 interface ConversationListProps {
@@ -45,6 +46,8 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
     const [searchTerm, setSearchTerm] = useState('')
     const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
     const [showFilterMenu, setShowFilterMenu] = useState(false)
+    const [showArchived, setShowArchived] = useState(false)
+    const [contextMenu, setContextMenu] = useState<{ chatId: string; x: number; y: number; archived: boolean } | null>(null)
     const router = useRouter()
     const searchParams = useSearchParams()
     const activeChatId = externalChatId !== undefined ? externalChatId : searchParams.get('chatId')
@@ -89,6 +92,12 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
         }
     }
 
+    const handleArchive = async (chatId: string, archive: boolean) => {
+        await supabase.from('chats').update({ archived: archive }).eq('id', chatId)
+        setChats(prev => prev.map(c => c.id === chatId ? { ...c, archived: archive } : c))
+        setContextMenu(null)
+    }
+
     const filteredChats = chats.filter(chat => {
         const matchesSearch =
             (chat.contact_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -97,7 +106,9 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
         const matchesTag = !activeTagFilter ||
             (chat.tags && chat.tags.includes(activeTagFilter))
 
-        return matchesSearch && matchesTag
+        const matchesArchive = showArchived ? chat.archived === true : !chat.archived
+
+        return matchesSearch && matchesTag && matchesArchive
     })
 
     const getStatusIcon = (status?: string) => {
@@ -121,12 +132,28 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
         <div className="w-80 border-r border-[#2a3942] bg-[#111b21] flex flex-col h-full">
             {/* Header */}
             <div className="p-4 border-b border-[#2a3942] bg-[#202c33]">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                     <h2 className="text-lg font-bold text-[#e9edef]">Chats</h2>
                     <button className="bg-[#00a884] hover:bg-[#06cf9c] text-white p-2 rounded-lg transition-colors">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
+                    </button>
+                </div>
+
+                {/* Tabs: Chats / Archivados */}
+                <div className="flex gap-1 mb-3">
+                    <button
+                        onClick={() => setShowArchived(false)}
+                        className={cn("flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors", !showArchived ? "bg-[#00a884] text-white" : "text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]")}
+                    >
+                        Chats
+                    </button>
+                    <button
+                        onClick={() => setShowArchived(true)}
+                        className={cn("flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors flex items-center justify-center gap-1", showArchived ? "bg-[#00a884] text-white" : "text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]")}
+                    >
+                        <Archive size={12} /> Archivados
                     </button>
                 </div>
 
@@ -207,6 +234,27 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                 )}
             </div>
 
+            {/* Context Menu */}
+            {contextMenu && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
+                    <div
+                        className="fixed z-50 bg-[#233138] border border-[#2a3942] rounded-xl shadow-xl py-1 w-44"
+                        style={{ left: contextMenu.x, top: contextMenu.y }}
+                    >
+                        <button
+                            onClick={() => handleArchive(contextMenu.chatId, !contextMenu.archived)}
+                            className="w-full px-4 py-2.5 text-left text-sm text-[#e9edef] hover:bg-[#2a3942] flex items-center gap-2 transition-colors"
+                        >
+                            {contextMenu.archived
+                                ? <><ArchiveRestore size={14} className="text-[#00a884]" /> Desarchivar</>
+                                : <><Archive size={14} className="text-[#8696a0]" /> Archivar</>
+                            }
+                        </button>
+                    </div>
+                </>
+            )}
+
             {/* Chat List */}
             <div className="flex-1 overflow-y-auto">
                 {errorMsg && (
@@ -226,6 +274,10 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                     <div
                         key={chat.id}
                         onClick={() => handleSelectChat(chat.id)}
+                        onContextMenu={(e) => {
+                            e.preventDefault()
+                            setContextMenu({ chatId: chat.id, x: e.clientX, y: e.clientY, archived: !!chat.archived })
+                        }}
                         className={cn(
                             "px-3 py-3 cursor-pointer border-b border-[#222d34] transition-colors hover:bg-[#2a3942]",
                             activeChatId === chat.id && "bg-[#2a3942]"

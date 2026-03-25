@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Paperclip, Smile, MoreVertical, Mic, MicOff, X, Bell, Image as ImageIcon, Tag } from 'lucide-react'
+import { Send, Paperclip, Smile, MoreVertical, Mic, MicOff, X, Bell, Image as ImageIcon, Tag, Zap } from 'lucide-react'
 import { MessageBubble } from './MessageBubble'
 import { createClient } from '@/utils/supabase/client'
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react'
@@ -45,6 +45,41 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     const [isResendingPlans, setIsResendingPlans] = useState(false)
     const [resendPlansResult, setResendPlansResult] = useState<string | null>(null)
     const [showTagMenu, setShowTagMenu] = useState(false)
+
+    // Quick replies
+    const QR_KEY = 'jaba_quick_replies'
+    type QuickReply = { id: string; shortcut: string; content: string }
+    const [quickReplies, setQuickReplies] = useState<QuickReply[]>([])
+    const [showQRPopup, setShowQRPopup] = useState(false)
+    const [qrFilter, setQrFilter] = useState('')
+    const [selectedQRIndex, setSelectedQRIndex] = useState(0)
+    const [showQRModal, setShowQRModal] = useState(false)
+    const [newQRShortcut, setNewQRShortcut] = useState('')
+    const [newQRContent, setNewQRContent] = useState('')
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem(QR_KEY)
+            if (stored) setQuickReplies(JSON.parse(stored))
+        } catch {}
+    }, [])
+
+    const saveQuickReplies = (replies: QuickReply[]) => {
+        setQuickReplies(replies)
+        localStorage.setItem(QR_KEY, JSON.stringify(replies))
+    }
+
+    const filteredQR = quickReplies.filter(qr =>
+        qrFilter === '' ||
+        qr.shortcut.toLowerCase().includes(qrFilter.toLowerCase()) ||
+        qr.content.toLowerCase().includes(qrFilter.toLowerCase())
+    )
+
+    const applyQR = (qr: QuickReply) => {
+        setNewMessage(qr.content)
+        setShowQRPopup(false)
+        setQrFilter('')
+    }
 
     // Audio recording state
     const [isRecording, setIsRecording] = useState(false)
@@ -587,8 +622,84 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 })}
             </div>
 
+            {/* Quick Replies Modal */}
+            {showQRModal && (
+                <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowQRModal(false)}>
+                    <div className="bg-[#111b21] rounded-2xl border border-[#2a3942] w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b border-[#2a3942] flex justify-between items-center">
+                            <h3 className="text-[#e9edef] font-bold flex items-center gap-2"><Zap size={16} className="text-[#00a884]" /> Respuestas Rápidas</h3>
+                            <button onClick={() => setShowQRModal(false)} className="text-[#8696a0] hover:text-white"><X size={20} /></button>
+                        </div>
+                        <div className="p-4 border-b border-[#2a3942] space-y-2">
+                            <p className="text-xs text-[#8696a0]">Escribe <span className="text-[#00a884] font-mono">/atajo</span> en el chat para insertar rápido.</p>
+                            <input
+                                placeholder="Atajo (ej: hola, pago, gracias)"
+                                value={newQRShortcut}
+                                onChange={e => setNewQRShortcut(e.target.value.toLowerCase().replace(/\s/g, '_'))}
+                                className="w-full bg-[#2a3942] rounded-lg px-3 py-2 text-sm text-[#e9edef] focus:outline-none focus:ring-1 focus:ring-[#00a884] placeholder:text-[#8696a0]"
+                            />
+                            <textarea
+                                placeholder="Mensaje completo..."
+                                value={newQRContent}
+                                onChange={e => setNewQRContent(e.target.value)}
+                                rows={3}
+                                className="w-full bg-[#2a3942] rounded-lg px-3 py-2 text-sm text-[#e9edef] focus:outline-none focus:ring-1 focus:ring-[#00a884] placeholder:text-[#8696a0] resize-none"
+                            />
+                            <button
+                                onClick={() => {
+                                    if (!newQRShortcut.trim() || !newQRContent.trim()) return
+                                    saveQuickReplies([...quickReplies, { id: Date.now().toString(), shortcut: newQRShortcut.trim(), content: newQRContent.trim() }])
+                                    setNewQRShortcut(''); setNewQRContent('')
+                                }}
+                                className="w-full bg-[#00a884] hover:bg-[#06cf9c] text-white rounded-lg py-2 text-sm font-medium transition-colors"
+                            >
+                                Agregar Respuesta
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {quickReplies.length === 0 && <p className="text-[#8696a0] text-sm text-center py-4">No hay respuestas rápidas aún.</p>}
+                            {quickReplies.map(qr => (
+                                <div key={qr.id} className="bg-[#202c33] rounded-lg p-3 flex gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <span className="text-[#00a884] font-mono text-xs">/{qr.shortcut}</span>
+                                        <p className="text-[#e9edef] text-sm mt-1 line-clamp-2">{qr.content}</p>
+                                    </div>
+                                    <button onClick={() => saveQuickReplies(quickReplies.filter(r => r.id !== qr.id))} className="text-[#8696a0] hover:text-red-400 transition-colors shrink-0 mt-1">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Input Area */}
             <div className="px-3 py-2 bg-[#202c33] shrink-0 relative">
+                {/* Quick Replies Popup */}
+                {showQRPopup && (
+                    <div className="absolute bottom-full left-3 right-3 mb-1 bg-[#233138] border border-[#2a3942] rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto">
+                        <div className="px-3 py-2 flex items-center justify-between border-b border-[#2a3942]">
+                            <span className="text-[10px] text-[#8696a0] uppercase tracking-wider flex items-center gap-1"><Zap size={10} /> Respuestas rápidas</span>
+                            <button onClick={() => { setShowQRPopup(false); setShowQRModal(true) }} className="text-[10px] text-[#00a884] hover:underline">Gestionar</button>
+                        </div>
+                        {filteredQR.length === 0 ? (
+                            <div className="px-3 py-3 text-sm text-[#8696a0] text-center">
+                                No hay respuestas. <button onClick={() => { setShowQRPopup(false); setShowQRModal(true) }} className="text-[#00a884]">Crear una</button>
+                            </div>
+                        ) : filteredQR.map((qr, i) => (
+                            <button
+                                key={qr.id}
+                                onClick={() => applyQR(qr)}
+                                className={cn("w-full px-3 py-2.5 text-left hover:bg-[#2a3942] transition-colors flex items-center gap-3", i === selectedQRIndex && "bg-[#2a3942]")}
+                            >
+                                <span className="text-[#00a884] font-mono text-xs shrink-0">/{qr.shortcut}</span>
+                                <span className="text-[#e9edef] text-sm truncate">{qr.content}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 {showEmojiPicker && (
                     <div className="absolute bottom-[70px] left-3 z-50">
                         <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
@@ -651,13 +762,38 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         >
                             <Paperclip size={22} />
                         </button>
+                        <button
+                            className="text-[#8696a0] hover:text-[#00a884] transition-colors p-1.5"
+                            onClick={() => setShowQRModal(true)}
+                            title="Respuestas rápidas (o escribe /)"
+                        >
+                            <Zap size={20} />
+                        </button>
 
                         <input
                             className="flex-1 bg-[#2a3942] rounded-xl px-4 py-2.5 text-[#e9edef] text-sm focus:outline-none placeholder:text-[#8696a0] min-w-0"
-                            placeholder="Escribe un mensaje..."
+                            placeholder="Escribe un mensaje... (/ para respuestas rápidas)"
                             value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                            onChange={(e) => {
+                                const val = e.target.value
+                                setNewMessage(val)
+                                if (val.startsWith('/')) {
+                                    setQrFilter(val.slice(1))
+                                    setShowQRPopup(true)
+                                    setSelectedQRIndex(0)
+                                } else {
+                                    setShowQRPopup(false)
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (showQRPopup && filteredQR.length > 0) {
+                                    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedQRIndex(i => Math.min(i + 1, filteredQR.length - 1)); return }
+                                    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedQRIndex(i => Math.max(i - 1, 0)); return }
+                                    if (e.key === 'Enter') { e.preventDefault(); applyQR(filteredQR[selectedQRIndex]); return }
+                                    if (e.key === 'Escape') { setShowQRPopup(false); return }
+                                }
+                                if (e.key === 'Enter' && !e.shiftKey && !showQRPopup) handleSendMessage()
+                            }}
                         />
 
                         {newMessage.trim() ? (

@@ -307,6 +307,86 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                     </>
                 )}
 
+                {/* LIST CONFIG */}
+                {nodeType === 'list' && (
+                    <>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje principal</label>
+                        <textarea
+                            value={config.body || ''}
+                            onChange={e => updateConfig('body', e.target.value)}
+                            placeholder="Selecciona una opción del menú:"
+                            rows={3}
+                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
+                        />
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Texto del botón para abrir lista</label>
+                        <Input
+                            value={config.button_text || ''}
+                            onChange={e => updateConfig('button_text', e.target.value)}
+                            placeholder="Ver opciones"
+                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                        />
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>
+                            Opciones de la lista
+                            <span style={{ color: '#4b5563', fontWeight: 400, marginLeft: 6 }}>máx 10</span>
+                        </label>
+                        {(config.rows || [{ id: '', title: '', description: '' }]).map((row: any, i: number) => (
+                            <div key={i} style={{ background: 'rgba(15,15,25,0.6)', borderRadius: 8, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                    <Input
+                                        value={row.id}
+                                        onChange={e => {
+                                            const rows = [...(config.rows || [])]
+                                            rows[i] = { ...rows[i], id: e.target.value }
+                                            updateConfig('rows', rows)
+                                        }}
+                                        placeholder={`ID (ej: opt_${i + 1})`}
+                                        style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#e2e8f0', flex: 1, fontSize: '0.8rem' }}
+                                    />
+                                    <Button
+                                        onClick={() => updateConfig('rows', (config.rows || []).filter((_: any, idx: number) => idx !== i))}
+                                        style={{ color: '#ef4444', background: 'transparent', padding: '4px 8px', flexShrink: 0 }}
+                                    >✕</Button>
+                                </div>
+                                <Input
+                                    value={row.title}
+                                    onChange={e => {
+                                        const rows = [...(config.rows || [])]
+                                        rows[i] = { ...rows[i], title: e.target.value }
+                                        updateConfig('rows', rows)
+                                    }}
+                                    placeholder="Título de la opción"
+                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#e2e8f0', fontSize: '0.8rem' }}
+                                />
+                                <Input
+                                    value={row.description || ''}
+                                    onChange={e => {
+                                        const rows = [...(config.rows || [])]
+                                        rows[i] = { ...rows[i], description: e.target.value }
+                                        updateConfig('rows', rows)
+                                    }}
+                                    placeholder="Descripción (opcional)"
+                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#94a3b8', fontSize: '0.75rem' }}
+                                />
+                            </div>
+                        ))}
+                        {(config.rows || []).length < 10 && (
+                            <Button
+                                onClick={() => updateConfig('rows', [...(config.rows || []), { id: `opt_${(config.rows || []).length + 1}`, title: '', description: '' }])}
+                                style={{ color: '#06b6d4', fontSize: '0.8rem', background: 'transparent' }}
+                            >
+                                + Agregar opción
+                            </Button>
+                        )}
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Pie de página (opcional)</label>
+                        <Input
+                            value={config.footer || ''}
+                            onChange={e => updateConfig('footer', e.target.value)}
+                            placeholder="Texto del footer..."
+                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                        />
+                    </>
+                )}
+
                 {/* CONDITION CONFIG */}
                 {nodeType === 'condition' && (
                     <>
@@ -498,6 +578,7 @@ export default function FlowEditorPage() {
         if (type === 'trigger' && config.keywords?.length) return `Palabras: ${config.keywords.join(', ')}`
         if (type === 'message' && config.text) return config.text.substring(0, 60)
         if (type === 'buttons' && config.buttons?.length) return `${config.buttons.length} botones`
+        if (type === 'list' && config.rows?.length) return `${config.rows.length} opciones — "${config.button_text || 'Ver opciones'}"`
         if (type === 'condition') return `${config.condition_type}: ${config.value || ''}`
         if (type === 'delay') return `${config.seconds || 2}s de pausa`
         if (type === 'wait_input') return `Guarda en: ${config.variable_name || 'respuesta'}`
@@ -599,6 +680,23 @@ export default function FlowEditorPage() {
     }
 
     const handleSave = async () => {
+        // Validación básica
+        const triggerNodes = nodes.filter(n => n.data.nodeType === 'trigger')
+        if (triggerNodes.length === 0) {
+            setSaveStatus('❌ Agrega al menos un nodo Disparador para activar el flujo')
+            setTimeout(() => setSaveStatus(''), 4000)
+            return
+        }
+        const emptyTrigger = triggerNodes.find(n => {
+            const cfg = n.data.config as any
+            return cfg.trigger_type === 'keyword' && (!cfg.keywords || cfg.keywords.length === 0)
+        })
+        if (emptyTrigger) {
+            setSaveStatus('❌ El nodo Disparador necesita al menos una palabra clave')
+            setTimeout(() => setSaveStatus(''), 4000)
+            return
+        }
+
         setIsSaving(true)
         setSaveStatus('')
         try {

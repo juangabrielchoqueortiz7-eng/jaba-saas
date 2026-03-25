@@ -9,9 +9,12 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+if (!serviceRoleKey) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
+
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    serviceRoleKey
 )
 
 // ========================
@@ -178,7 +181,7 @@ async function findMatchingTrigger(ctx: MessageContext): Promise<{ flowId: strin
     if (!triggerNodes || triggerNodes.length === 0) return null
 
     for (const node of triggerNodes) {
-        if (matchesTrigger(node, ctx)) {
+        if (await matchesTrigger(node, ctx)) {
             return { flowId: node.flow_id, triggerNode: node }
         }
     }
@@ -186,7 +189,7 @@ async function findMatchingTrigger(ctx: MessageContext): Promise<{ flowId: strin
     return null
 }
 
-function matchesTrigger(node: FlowNode, ctx: MessageContext): boolean {
+async function matchesTrigger(node: FlowNode, ctx: MessageContext): Promise<boolean> {
     const config = node.config || {}
 
     switch (config.trigger_type) {
@@ -216,8 +219,13 @@ function matchesTrigger(node: FlowNode, ctx: MessageContext): boolean {
 
         case 'event': {
             if (config.event === 'first_message') {
-                // This would need additional context about whether this is the first message
-                return false // TODO: implement
+                // Verificar si no hay mensajes previos en este chat
+                const { count } = await supabaseAdmin
+                    .from('messages')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('chat_id', ctx.chatId)
+                if (count === 0 || count === null) return true
+                return false
             }
             if (config.event === 'image_received') {
                 return ctx.messageType === 'image'

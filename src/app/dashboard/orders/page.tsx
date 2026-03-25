@@ -176,34 +176,34 @@ export default function OrdersPage() {
             {/* Header */}
             <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <ShoppingBag className="text-indigo-500" />
+                    <h1 className="text-2xl font-bold text-[#eef0ff] flex items-center gap-3">
+                        <ShoppingBag className="text-[#F97316]" />
                         Auditoría de Pedidos
                     </h1>
-                    <p className="text-slate-400 text-sm mt-1">Las renovaciones se procesan automáticamente. Aquí verificas los comprobantes.</p>
+                    <p className="text-[rgba(238,240,255,0.45)] text-sm mt-1">Las renovaciones se procesan automáticamente. Aquí verificas los comprobantes.</p>
                 </div>
                 <button
                     onClick={() => { setLoading(true); fetchOrders() }}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm font-medium hover:bg-slate-800 transition-all active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#13152a] border border-white/[0.06] rounded-xl text-sm font-medium text-slate-300 hover:bg-white/[0.05] transition-all active:scale-95"
                 >
-                    <RefreshCcw size={16} className={cn(loading && "animate-spin text-indigo-500")} />
+                    <RefreshCcw size={16} className={cn(loading && "animate-spin text-[#F97316]")} />
                     Actualizar
                 </button>
             </header>
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
+                <div className="bg-[#13152a] border border-white/[0.06] p-4 rounded-xl">
                     <p className="text-slate-400 text-xs font-medium">Total</p>
-                    <p className="text-xl font-bold text-white">{stats.total}</p>
+                    <p className="text-xl font-bold text-[#eef0ff]">{stats.total}</p>
                 </div>
-                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-xl">
-                    <p className="text-emerald-400 text-xs font-medium">✅ Auto-Aprobados</p>
-                    <p className="text-xl font-bold text-emerald-400">{stats.autoApproved}</p>
+                <div className="bg-[rgba(37,211,102,0.05)] border border-[rgba(16,185,129,0.2)] p-4 rounded-xl">
+                    <p className="text-[#10b981] text-xs font-medium">✅ Auto-Aprobados</p>
+                    <p className="text-xl font-bold text-[#10b981]">{stats.autoApproved}</p>
                 </div>
-                <div className="bg-indigo-500/5 border border-indigo-500/20 p-4 rounded-xl">
-                    <p className="text-indigo-400 text-xs font-medium">⏳ Esperando Pago</p>
-                    <p className="text-xl font-bold text-indigo-400">{stats.pendingPayment}</p>
+                <div className="bg-[rgba(249,115,22,0.05)] border border-[rgba(249,115,22,0.2)] p-4 rounded-xl">
+                    <p className="text-[#F97316] text-xs font-medium">⏳ Esperando Pago</p>
+                    <p className="text-xl font-bold text-[#F97316]">{stats.pendingPayment}</p>
                 </div>
                 <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-xl">
                     <p className="text-rose-400 text-xs font-medium">❌ Revertidos</p>
@@ -212,19 +212,19 @@ export default function OrdersPage() {
             </div>
 
             {/* Search & Filter */}
-            <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl mb-4 flex gap-3">
+            <div className="bg-[#13152a] border border-white/[0.06] p-3 rounded-xl mb-4 flex gap-3">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                     <input
                         type="text"
                         placeholder="Buscar por nombre, teléfono o email..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        className="w-full bg-[#0f1120] border border-white/[0.06] rounded-lg py-2 pl-9 pr-4 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <select
-                    className="bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
+                    className="bg-[#0f1120] border border-white/[0.06] rounded-lg py-2 px-3 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 cursor-pointer"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                 >
@@ -240,7 +240,7 @@ export default function OrdersPage() {
             {/* Main Layout: List + Detail Panel */}
             <div className="flex gap-4" style={{ height: 'calc(100vh - 350px)', minHeight: '500px' }}>
                 {/* Left: Orders List */}
-                <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+                <div className="flex-1 bg-[#13152a] border border-white/[0.06] rounded-xl overflow-hidden flex flex-col">
                     <div className="overflow-y-auto flex-1">
                         {filteredOrders.length > 0 ? filteredOrders.map((order) => {
                             const sc = getStatusConfig(order.status)
@@ -250,8 +250,8 @@ export default function OrdersPage() {
                                     key={order.id}
                                     onClick={() => setSelectedOrder(order)}
                                     className={cn(
-                                        "flex items-center gap-3 px-4 py-3 border-b border-slate-800/50 cursor-pointer transition-colors hover:bg-slate-800/30",
-                                        isSelected && "bg-indigo-500/10 border-l-2 border-l-indigo-500"
+                                        "flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] cursor-pointer transition-colors hover:bg-white/[0.03]",
+                                        isSelected && "bg-[rgba(249,115,22,0.08)] border-l-2 border-l-[#F97316]"
                                     )}
                                 >
                                     {/* Payment proof thumbnail */}
@@ -279,7 +279,7 @@ export default function OrdersPage() {
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
-                                            <span className="font-medium text-indigo-400">{order.plan_name} — Bs {order.amount}</span>
+                                            <span className="font-medium text-[#F97316]">{order.plan_name} — Bs {order.amount}</span>
                                             <span>·</span>
                                             <span>{dayjs(order.created_at).format("D MMM, HH:mm")}</span>
                                         </div>
@@ -299,11 +299,11 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Right: Detail Panel */}
-                <div className="w-[420px] bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden flex flex-col flex-shrink-0">
+                <div className="w-[420px] bg-[#13152a] border border-white/[0.06] rounded-xl overflow-hidden flex flex-col flex-shrink-0">
                     {selectedOrder ? (
                         <>
                             {/* Header */}
-                            <div className="p-4 border-b border-slate-800 bg-slate-800/20">
+                            <div className="p-4 border-b border-white/[0.05] bg-white/[0.03]">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-sm font-bold text-white">{selectedOrder.contact_name}</h3>
                                     <button onClick={() => setSelectedOrder(null)} className="p-1 text-slate-500 hover:text-white">
@@ -320,7 +320,7 @@ export default function OrdersPage() {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-2">
-                                    <span className="text-xs font-bold text-indigo-400">{selectedOrder.plan_name} — Bs {selectedOrder.amount}</span>
+                                    <span className="text-xs font-bold text-[#F97316]">{selectedOrder.plan_name} — Bs {selectedOrder.amount}</span>
                                     <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border", getStatusConfig(selectedOrder.status).color)}>
                                         {getStatusConfig(selectedOrder.status).label}
                                     </span>
@@ -373,7 +373,7 @@ export default function OrdersPage() {
                             </div>
 
                             {/* Actions */}
-                            <div className="p-3 border-t border-slate-800 bg-slate-800/20 flex gap-2">
+                            <div className="p-3 border-t border-white/[0.05] bg-white/[0.03] flex gap-2">
                                 {(selectedOrder.status === 'completed' || selectedOrder.status === 'pending_review') && (
                                     <button
                                         onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
@@ -386,7 +386,7 @@ export default function OrdersPage() {
                                 {(selectedOrder.status === 'pending_payment' || selectedOrder.status === 'pending_review') && (
                                     <button
                                         onClick={() => updateOrderStatus(selectedOrder.id, 'completed')}
-                                        className="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-bold border border-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                        className="flex-1 px-3 py-2 bg-[rgba(16,185,129,0.1)] hover:bg-[rgba(16,185,129,0.15)] text-[#10b981] rounded-lg text-xs font-bold border border-[rgba(16,185,129,0.2)] transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                     >
                                         <CheckCircle2 size={14} />
                                         Aprobar Manual
@@ -395,7 +395,7 @@ export default function OrdersPage() {
                                 {selectedOrder.chat_id && (
                                     <button
                                         onClick={() => router.push(`/dashboard/chats?chatId=${selectedOrder.chat_id}`)}
-                                        className="flex-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-700 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                        className="flex-1 px-3 py-2 bg-white/[0.05] hover:bg-white/[0.08] text-slate-300 rounded-lg text-xs font-bold border border-white/[0.08] transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                     >
                                         <MessageSquare size={14} />
                                         Ver Chat
@@ -403,7 +403,7 @@ export default function OrdersPage() {
                                 )}
                                 <button
                                     onClick={() => deleteOrder(selectedOrder.id)}
-                                    className="px-3 py-2 bg-slate-800 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-lg text-xs border border-slate-700 transition-all active:scale-95"
+                                    className="px-3 py-2 bg-white/[0.05] hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-lg text-xs border border-white/[0.08] transition-all active:scale-95"
                                     title="Eliminar"
                                 >
                                     <Trash2 size={14} />

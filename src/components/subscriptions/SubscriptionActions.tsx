@@ -196,10 +196,28 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
         reader.readAsArrayBuffer(file);
     };
 
+    // Trae TODAS las suscripciones paginando de 1000 en 1000
+    const fetchAllSubscriptions = async () => {
+        const BATCH = 1000;
+        let all: any[] = [];
+        let page = 0;
+        while (true) {
+            const { data: batch } = await supabase
+                .from('subscriptions')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .range(page * BATCH, (page + 1) * BATCH - 1);
+            if (!batch || batch.length === 0) break;
+            all = all.concat(batch);
+            if (batch.length < BATCH) break;
+            page++;
+        }
+        return all;
+    };
+
     const handleExportExcel = async () => {
-        // Fetch all data
-        const { data } = await supabase.from('subscriptions').select('*');
-        if (!data) return;
+        const data = await fetchAllSubscriptions();
+        if (!data.length) return;
 
         const ws = XLSX.utils.json_to_sheet(data.map(s => ({
             NUMERO: s.numero,
@@ -214,13 +232,13 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
     };
 
     const handleExportPDF = async () => {
-        const { data } = await supabase.from('subscriptions').select('*');
-        if (!data) return;
+        const data = await fetchAllSubscriptions();
+        if (!data.length) return;
 
         const doc = new jsPDF();
         autoTable(doc, {
             head: [['#', 'Correo', 'Vencimiento', 'Estado', 'Equipo']],
-            body: data.map(s => [s.numero, s.correo, s.vencimiento, s.estado, s.equipo]),
+            body: data.map((s: any) => [s.numero, s.correo, s.vencimiento, s.estado, s.equipo]),
         });
         doc.save("Suscripciones_JABA.pdf");
     };

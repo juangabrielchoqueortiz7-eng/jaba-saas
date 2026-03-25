@@ -1,85 +1,99 @@
 import { createClient } from '@/utils/supabase/server'
-import { Plus, Power, MessageSquare, Wrench } from 'lucide-react'
+import { Plus, Bot, Phone, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { DeleteAssistantButton } from './DeleteAssistantButton'
+import { AssistantActions } from './AssistantActions'
 
 export default async function AssistantsPage() {
     const supabase = await createClient()
-    // ... (rest of file) ...
     const { data: { user } } = await supabase.auth.getUser()
-
     if (!user) return redirect('/login')
 
-    // Fetch existing credentials (acting as "Assistants")
     const { data: assistants } = await supabase
-        .from('whatsapp_credentials')
-        .select('*')
-        .eq('user_id', user.id)
+        .from('whatsapp_credentials').select('*').eq('user_id', user.id)
 
     return (
-        <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
-            <header className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold text-white">Mis Asistentes</h1>
-                <Link
-                    href="/dashboard/assistants/new"
-                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                    <Plus size={20} />
-                    Agregar asistente
+        <div style={{ padding: '32px', maxWidth: 900, margin: '0 auto' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+                <div>
+                    <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#eef0ff', marginBottom: 4 }}>Mis Asistentes</h1>
+                    <p style={{ fontSize: '0.85rem', color: 'rgba(238,240,255,0.45)' }}>Gestiona los bots de WhatsApp conectados</p>
+                </div>
+                <Link href="/dashboard/assistants/new" style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12,
+                    background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', color: '#fff', fontWeight: 700,
+                    fontSize: '0.88rem', textDecoration: 'none', boxShadow: '0 4px 15px rgba(139,92,246,0.35)',
+                }}>
+                    <Plus size={18} /> Nuevo asistente
                 </Link>
-            </header>
+            </div>
 
-            <div className="grid gap-4">
-                {assistants?.map((asst) => (
-                    <div key={asst.id} className="bg-white rounded-xl overflow-hidden shadow-sm flex items-center p-4 gap-6 group">
-                        {/* Robot Icon */}
-                        <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
-                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10">
-                                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4ZM12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6ZM12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8Z" />
-                            </svg>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {assistants?.map((asst) => {
+                    const isActive = asst.ai_status === 'active'
+                    return (
+                        <div key={asst.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 18,
+                            background: '#13152a', border: '1px solid rgba(255,255,255,0.07)',
+                            borderRadius: 20, padding: '18px 22px', position: 'relative', overflow: 'hidden',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                        }}>
+                            <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: isActive ? 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' : 'none', pointerEvents: 'none' }} />
+                            <div style={{
+                                width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                                background: isActive ? 'rgba(139,92,246,0.1)' : 'rgba(100,116,139,0.1)',
+                                border: isActive ? '1px solid rgba(139,92,246,0.25)' : '1px solid rgba(100,116,139,0.15)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <Bot size={24} style={{ color: isActive ? '#a78bfa' : '#64748b' }} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                    <h3 style={{ fontWeight: 700, fontSize: '1rem', color: '#eef0ff', margin: 0 }}>
+                                        {asst.bot_name || 'Asistente sin nombre'}
+                                    </h3>
+                                    <span style={{
+                                        fontSize: '0.68rem', fontWeight: 700, padding: '2px 9px', borderRadius: 6,
+                                        background: isActive ? 'rgba(16,185,129,0.12)' : 'rgba(100,116,139,0.12)',
+                                        color: isActive ? '#10b981' : '#64748b',
+                                        border: isActive ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(100,116,139,0.15)',
+                                    }}>
+                                        {isActive ? '● Activo' : '○ Inactivo'}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(238,240,255,0.4)', fontSize: '0.78rem' }}>
+                                    <Phone size={12} />
+                                    <span>{asst.phone_number_display || asst.phone_number_id || 'Sin número'}</span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 1 }}>
+                                <AssistantActions asst={asst} />
+                                <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.07)' }} />
+                                <DeleteAssistantButton id={asst.id} />
+                                <Link href={`/dashboard/assistants/${asst.id}`} style={{
+                                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10,
+                                    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
+                                    color: '#818cf8', fontWeight: 700, fontSize: '0.82rem', textDecoration: 'none',
+                                }}>
+                                    <Zap size={14} /> Ver panel
+                                </Link>
+                            </div>
                         </div>
-
-                        {/* Info */}
-                        <div className="flex-1">
-                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                {asst.bot_name || asst.phone_number_id || 'Asistente sin Nombre'}
-                                <span className="text-sm font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                    {asst.phone_number_display || asst.phone_number_id || 'N/A'}
-                                </span>
-                            </h3>
-                            <p className="text-slate-500">{asst.phone_number_id ? 'Conectado' : 'Pendiente de conexión'}</p>
-                        </div>
-
-                        {/* Actions (Hover) */}
-                        <div className="flex items-center gap-1 text-slate-400">
-                            <button title="Chat" className="hover:text-green-500 transition-colors p-2 rounded-md hover:bg-slate-100"><MessageSquare size={20} /></button>
-                            <button title="Configurar" className="hover:text-blue-500 transition-colors p-2 rounded-md hover:bg-slate-100"><Wrench size={20} /></button>
-                            <button title="Estado" className={`hover:text-green-500 transition-colors p-2 rounded-md hover:bg-slate-100 ${asst.ai_status === 'active' ? 'text-green-500' : ''}`}>
-                                <Power size={20} />
-                            </button>
-                            <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                            <DeleteAssistantButton id={asst.id} />
-                        </div>
-
-                        {/* Select Button */}
-                        <Link
-                            href={`/dashboard/assistants/${asst.id}`}
-                            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                        >
-                            Seleccionar
-                        </Link>
-                    </div>
-                ))}
+                    )
+                })}
 
                 {(!assistants || assistants.length === 0) && (
-                    <div className="text-center py-12 bg-slate-900/50 rounded-xl border border-slate-800 border-dashed">
-                        <p className="text-slate-400 mb-4">No tienes asistentes configurados.</p>
-                        <Link
-                            href="/dashboard/assistants/new"
-                            className="text-indigo-400 hover:underline"
-                        >
-                            Crear tu primer asistente
+                    <div style={{ textAlign: 'center', padding: '60px 24px', background: '#13152a', border: '2px dashed rgba(99,102,241,0.2)', borderRadius: 20 }}>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
+                        <p style={{ color: 'rgba(238,240,255,0.45)', marginBottom: 20, fontSize: '0.95rem' }}>No tienes asistentes configurados aún.</p>
+                        <Link href="/dashboard/assistants/new" style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 12,
+                            background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', color: '#fff', fontWeight: 700,
+                            textDecoration: 'none', boxShadow: '0 4px 15px rgba(139,92,246,0.35)',
+                        }}>
+                            <Plus size={18} /> Crear primer asistente
                         </Link>
                     </div>
                 )}
