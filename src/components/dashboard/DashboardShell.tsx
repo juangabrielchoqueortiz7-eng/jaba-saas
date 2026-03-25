@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, lazy } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, LogOut } from 'lucide-react'
 import { SidebarNav } from './SidebarNav'
 import { ChatProvider } from '@/context/ChatContext'
 import { OnboardingWidget } from './OnboardingWidget'
@@ -41,9 +41,9 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                         onClick={() => setSidebarOpen(true)}
                         className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
                         style={{
-                            background: 'rgba(99,102,241,0.12)',
-                            color: '#818cf8',
-                            border: '1px solid rgba(99,102,241,0.25)',
+                            background: 'rgba(255,255,255,0.05)',
+                            color: 'rgba(238,240,255,0.7)',
+                            border: '1px solid rgba(255,255,255,0.08)',
                         }}
                         aria-label="Abrir menú"
                     >
@@ -72,9 +72,9 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                 `} style={{
                     width: 256,
-                    background: 'linear-gradient(180deg, #090c1a 0%, #0b0e1e 60%, #090c1a 100%)',
-                    borderRight: '1px solid rgba(255,255,255,0.06)',
-                    boxShadow: '4px 0 32px rgba(0,0,0,0.5)',
+                    background: '#090c1a',
+                    borderRight: '1px solid rgba(255,255,255,0.07)',
+                    boxShadow: '1px 0 0 rgba(255,255,255,0.04)',
                 }}>
 
                     {/* Logo header */}
@@ -106,11 +106,11 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                     <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                         <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-xl"
                             style={{ background: 'rgba(255,255,255,0.03)' }}>
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
                                 style={{
-                                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                    color: '#fff',
-                                    boxShadow: '0 0 12px rgba(99,102,241,0.4)',
+                                    background: 'rgba(99,102,241,0.2)',
+                                    color: '#818cf8',
+                                    border: '1px solid rgba(99,102,241,0.25)',
                                 }}>
                                 {userEmail?.charAt(0).toUpperCase()}
                             </div>
@@ -132,7 +132,7 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                                     ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
                                 }}
                             >
-                                <span>🚪</span>
+                                <LogOut size={15} />
                                 Cerrar sesión
                             </button>
                         </form>

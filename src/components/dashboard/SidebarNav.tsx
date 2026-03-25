@@ -48,11 +48,10 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
             onClick={onNavigate}
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group relative"
             style={active ? {
-                background: `linear-gradient(90deg, rgba(${rgb},0.16) 0%, rgba(${rgb},0.04) 100%)`,
+                background: `rgba(${rgb},0.1)`,
                 color: accentColor,
                 borderLeft: `3px solid ${accentColor}`,
                 paddingLeft: 13,
-                boxShadow: `inset 0 0 0 1px rgba(${rgb},0.12)`,
             } : {
                 color: 'rgba(238,240,255,0.55)',
                 borderLeft: '3px solid transparent',
@@ -274,9 +273,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
             {/* ── Asistente activo ── */}
             {hasAssistant && assistantName && (
-                <div className="mx-3 mt-4 p-3 rounded-2xl" style={{
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.06) 100%)',
-                    border: '1px solid rgba(99,102,241,0.2)',
+                <div className="mx-3 mt-4 p-3 rounded-xl" style={{
+                    background: 'rgba(99,102,241,0.07)',
+                    border: '1px solid rgba(99,102,241,0.15)',
                 }}>
                     <p className="text-[9px] font-bold uppercase tracking-widest mb-2"
                         style={{ color: 'rgba(99,102,241,0.55)' }}>

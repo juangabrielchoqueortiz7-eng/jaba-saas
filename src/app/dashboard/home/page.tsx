@@ -113,12 +113,11 @@ export default async function HomePage() {
 
             {/* ── HERO ── */}
             <div style={{
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 50%, rgba(59,130,246,0.05) 100%)',
-                border: '1px solid rgba(99,102,241,0.2)',
-                borderRadius: 24, padding: '36px 40px', marginBottom: 28, position: 'relative', overflow: 'hidden',
-                boxShadow: '0 0 80px rgba(99,102,241,0.08), 0 2px 24px rgba(0,0,0,0.4)',
+                background: '#13152a',
+                border: '1px solid rgba(99,102,241,0.18)',
+                borderRadius: 16, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
+                borderTop: '2px solid rgba(99,102,241,0.5)',
             }}>
-                <div style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <div style={{ position: 'relative', zIndex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                         <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: '0.05em' }}>
@@ -135,8 +134,8 @@ export default async function HomePage() {
                             </div>
                         )}
                     </div>
-                    <h1 style={{ fontSize: '2.2rem', fontWeight: 800, color: '#eef0ff', marginBottom: 10, lineHeight: 1.2 }}>
-                        Hola, <span style={{ background: 'linear-gradient(135deg, #818cf8, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{userName}</span> 👋
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#eef0ff', marginBottom: 10, lineHeight: 1.2 }}>
+                        Hola, <span style={{ color: '#818cf8' }}>{userName}</span>
                     </h1>
                     <p style={{ color: 'rgba(238,240,255,0.6)', fontSize: '1rem', maxWidth: 520, lineHeight: 1.6 }}>
                         {allDone
@@ -145,8 +144,8 @@ export default async function HomePage() {
                     </p>
                     {!allDone && (
                         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{ flex: 1, maxWidth: 280, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg, #6366f1, #8b5cf6)', borderRadius: 3, boxShadow: '0 0 10px rgba(99,102,241,0.6)' }} />
+                            <div style={{ flex: 1, maxWidth: 280, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${progressPct}%`, background: '#6366f1', borderRadius: 3 }} />
                             </div>
                             <span style={{ fontSize: 13, fontWeight: 700, color: '#818cf8' }}>{progressPct}% listo</span>
                         </div>
@@ -165,12 +164,11 @@ export default async function HomePage() {
                     { icon: '🤖', label: 'Asistente IA', value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? '#10b981' : '#6b7280', rgb: hasTraining ? '16,185,129' : '107,114,128' },
                 ].map((stat, i) => (
                     <div key={i} style={{
-                        padding: '16px 18px', borderRadius: 16, background: '#13152a',
-                        border: `1px solid rgba(${stat.rgb},0.2)`,
-                        boxShadow: `0 0 0 1px rgba(${stat.rgb},0.06), 0 4px 16px rgba(0,0,0,0.3)`,
+                        padding: '16px 18px', borderRadius: 12, background: '#13152a',
+                        border: `1px solid rgba(255,255,255,0.06)`,
+                        borderTop: `2px solid ${stat.color}`,
                         position: 'relative', overflow: 'hidden',
                     }}>
-                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: stat.color, opacity: 0.9 }} />
                         <div style={{ fontSize: 20, marginBottom: 8 }}>{stat.icon}</div>
                         <div style={{ fontSize: '1.7rem', fontWeight: 800, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
                         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(238,240,255,0.7)', marginTop: 5 }}>{stat.label}</div>
@@ -198,8 +196,7 @@ export default async function HomePage() {
                                 {Object.entries(porServicio).map(([svc, data]) => {
                                     const c = SVC_COLOR[svc] || { color: '#94a3b8', rgb: '148,163,184', bg: 'rgba(148,163,184,0.1)' }
                                     return (
-                                        <div key={svc} style={{ padding: '18px 20px', borderRadius: 16, background: '#13152a', border: `1px solid rgba(${c.rgb},0.22)`, position: 'relative', overflow: 'hidden' }}>
-                                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: c.color }} />
+                                        <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#13152a', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${c.color}`, position: 'relative', overflow: 'hidden' }}>
                                             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: c.color, letterSpacing: '0.08em', marginBottom: 8 }}>{svc}</div>
                                             <div style={{ fontSize: '2rem', fontWeight: 800, color: '#eef0ff', lineHeight: 1 }}>{data.total}</div>
                                             <div style={{ fontSize: '0.7rem', color: 'rgba(238,240,255,0.45)', marginTop: 4 }}>activas</div>

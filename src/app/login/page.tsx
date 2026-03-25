@@ -53,20 +53,12 @@ export default function Login({
     }
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-[#F3F4F6] relative overflow-hidden">
-            {/* Background Pattern (Robot Watermark) */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex flex-wrap gap-12 p-8 justify-center items-center">
-                {/* Repeating pattern of bots for effect */}
-                {Array.from({ length: 20 }).map((_, i) => (
-                    <Bot key={i} size={120} strokeWidth={1} />
-                ))}
-            </div>
-
-            <div className="w-full max-w-[420px] px-8 py-10 bg-white border border-slate-100 rounded-3xl shadow-2xl relative z-10">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 relative overflow-hidden">
+<div className="w-full max-w-[420px] px-8 py-10 bg-white border border-slate-100 rounded-3xl shadow-2xl relative z-10">
                 {/* Branding Header */}
                 <div className="flex flex-col items-center mb-8">
-                    <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3 mb-4">
-                        <Bot className="text-white w-10 h-10" />
+                    <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4" style={{ boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
+                        <Bot className="text-white w-8 h-8" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
                         Jaba SaaS
