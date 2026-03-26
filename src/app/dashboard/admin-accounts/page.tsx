@@ -1,7 +1,7 @@
 import { createClient as createServerClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
-import { Building2, Bot, Phone, Calendar, Zap, ZapOff, ShieldCheck, Users } from 'lucide-react'
+import { Building2, Bot, Phone, Calendar, Zap, ZapOff, ShieldCheck, Users, User } from 'lucide-react'
 
 export default async function AdminAccountsPage() {
     const supabase = await createServerClient()
@@ -47,13 +47,13 @@ export default async function AdminAccountsPage() {
             {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
                 {[
-                    { label: 'Total cuentas', value: accounts.length, icon: '🤖', color: '#3b82f6' },
-                    { label: 'Bots activos', value: activeAccounts, icon: '⚡', color: '#10b981' },
-                    { label: 'Sin bot aún', value: usersWithoutBot.length, icon: '👤', color: '#94a3b8' },
-                    { label: 'Admins', value: accounts.filter(a => a.is_platform_admin).length, icon: '🛡️', color: '#f43f5e' },
+                    { label: 'Total cuentas', value: accounts.length, Icon: Bot, color: '#3b82f6' },
+                    { label: 'Bots activos', value: activeAccounts, Icon: Zap, color: '#10b981' },
+                    { label: 'Sin bot aún', value: usersWithoutBot.length, Icon: User, color: '#94a3b8' },
+                    { label: 'Admins', value: accounts.filter(a => a.is_platform_admin).length, Icon: ShieldCheck, color: '#f43f5e' },
                 ].map((s, i) => (
-                    <div key={i} style={{ background: '#13152a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '18px 20px' }}>
-                        <div style={{ fontSize: 20, marginBottom: 8 }}>{s.icon}</div>
+                    <div key={i} style={{ background: '#13152a', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${s.color}`, borderRadius: 12, padding: '18px 20px' }}>
+                        <s.Icon size={16} style={{ color: s.color, marginBottom: 8 }} />
                         <div style={{ fontSize: '1.7rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
                         <div style={{ fontSize: '0.75rem', color: 'rgba(148,163,184,0.5)', marginTop: 4 }}>{s.label}</div>
                     </div>
@@ -84,7 +84,7 @@ export default async function AdminAccountsPage() {
                                 <tr key={acc.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.15s' }}>
                                     <td style={{ padding: '12px 16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 800, color: '#eef0ff', flexShrink: 0 }}>
+                                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#818cf8', flexShrink: 0 }}>
                                                 {acc.email?.charAt(0).toUpperCase()}
                                             </div>
                                             <div>

@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { CheckCircle, CheckCircle2, Bot, BookOpen, Zap, ShoppingBag, MessageSquare, Sparkles, TrendingUp, ArrowRight, Bell, AlertTriangle, Calendar, Users, Activity } from 'lucide-react'
+import { CheckCircle, CheckCircle2, Bot, BookOpen, Zap, ShoppingBag, MessageSquare, Sparkles, TrendingUp, ArrowRight, Bell, AlertTriangle, Calendar, Users, Activity, Send, FileText, Rocket } from 'lucide-react'
 import Link from 'next/link'
 
 // Parsear fecha DD/MM/YYYY o YYYY-MM-DD
@@ -156,12 +156,12 @@ export default async function HomePage() {
             {/* ── KPI CARDS ROW ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 28 }}>
                 {[
-                    { icon: '💬', label: 'Chats hoy', value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`, color: '#10b981', rgb: '16,185,129' },
-                    { icon: '📋', label: 'Suscripciones activas', value: totalActivas, sub: `${vencidas.length} vencidas sin renovar`, color: '#8b5cf6', rgb: '139,92,246' },
-                    { icon: '⚠️', label: 'Vencen esta semana', value: vencen7d.length, sub: `${vencenHoy.length} vencen hoy`, color: vencen7d.length > 0 ? '#f59e0b' : '#6b7280', rgb: vencen7d.length > 0 ? '245,158,11' : '107,114,128' },
-                    { icon: '⚡', label: 'Disparadores activos', value: activeTriggers ?? 0, sub: 'en ejecución automática', color: '#06b6d4', rgb: '6,182,212' },
-                    { icon: '📤', label: 'Notificaciones (7d)', value: notifsEnviadas, sub: `${notifsFallidas} fallidas`, color: '#6366f1', rgb: '99,102,241' },
-                    { icon: '🤖', label: 'Asistente IA', value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? '#10b981' : '#6b7280', rgb: hasTraining ? '16,185,129' : '107,114,128' },
+                    { Icon: MessageSquare, label: 'Chats hoy', value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`, color: '#10b981', rgb: '16,185,129' },
+                    { Icon: Users, label: 'Suscripciones activas', value: totalActivas, sub: `${vencidas.length} vencidas sin renovar`, color: '#8b5cf6', rgb: '139,92,246' },
+                    { Icon: AlertTriangle, label: 'Vencen esta semana', value: vencen7d.length, sub: `${vencenHoy.length} vencen hoy`, color: vencen7d.length > 0 ? '#f59e0b' : '#6b7280', rgb: vencen7d.length > 0 ? '245,158,11' : '107,114,128' },
+                    { Icon: Zap, label: 'Disparadores activos', value: activeTriggers ?? 0, sub: 'en ejecución automática', color: '#06b6d4', rgb: '6,182,212' },
+                    { Icon: Send, label: 'Notificaciones (7d)', value: notifsEnviadas, sub: `${notifsFallidas} fallidas`, color: '#6366f1', rgb: '99,102,241' },
+                    { Icon: Bot, label: 'Asistente IA', value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? '#10b981' : '#6b7280', rgb: hasTraining ? '16,185,129' : '107,114,128' },
                 ].map((stat, i) => (
                     <div key={i} style={{
                         padding: '16px 18px', borderRadius: 12, background: '#13152a',
@@ -169,7 +169,7 @@ export default async function HomePage() {
                         borderTop: `2px solid ${stat.color}`,
                         position: 'relative', overflow: 'hidden',
                     }}>
-                        <div style={{ fontSize: 20, marginBottom: 8 }}>{stat.icon}</div>
+                        <stat.Icon size={18} style={{ color: stat.color, marginBottom: 8 }} />
                         <div style={{ fontSize: '1.7rem', fontWeight: 800, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
                         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(238,240,255,0.7)', marginTop: 5 }}>{stat.label}</div>
                         <div style={{ fontSize: '0.65rem', color: 'rgba(238,240,255,0.35)', marginTop: 3 }}>{stat.sub}</div>
@@ -265,7 +265,7 @@ export default async function HomePage() {
                                 padding: '20px 24px', borderRadius: 16, background: 'rgba(16,185,129,0.06)',
                                 border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', gap: 16,
                             }}>
-                                <div style={{ fontSize: 36 }}>🚀</div>
+                                <Rocket size={32} style={{ color: '#10b981', flexShrink: 0 }} />
                                 <div>
                                     <p style={{ fontWeight: 700, color: '#10b981', fontSize: '0.95rem' }}>¡Tu asistente está completamente operativo!</p>
                                     <p style={{ fontSize: '0.78rem', color: 'rgba(238,240,255,0.5)', marginTop: 4 }}>
@@ -343,8 +343,8 @@ export default async function HomePage() {
                                             padding: '10px 12px', borderRadius: 12, background: '#13152a',
                                             border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none',
                                         }}>
-                                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }}>
-                                                💬
+                                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <MessageSquare size={15} style={{ color: '#10b981' }} />
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#eef0ff', marginBottom: 2 }}>
@@ -412,18 +412,18 @@ export default async function HomePage() {
                         </h2>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             {[
-                                { emoji: '💬', label: 'Chats', href: '/dashboard/chats', color: '#10b981', rgb: '16,185,129' },
-                                { emoji: '📋', label: 'Suscripciones', href: '/dashboard/subscriptions', color: '#8b5cf6', rgb: '139,92,246' },
-                                { emoji: '⚡', label: 'Disparadores', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants', color: '#f59e0b', rgb: '245,158,11' },
-                                { emoji: '📊', label: 'Plantillas Meta', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants', color: '#06b6d4', rgb: '6,182,212' },
+                                { Icon: MessageSquare, label: 'Chats', href: '/dashboard/chats', color: '#10b981', rgb: '16,185,129' },
+                                { Icon: Users, label: 'Suscripciones', href: '/dashboard/subscriptions', color: '#8b5cf6', rgb: '139,92,246' },
+                                { Icon: Zap, label: 'Disparadores', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants', color: '#f59e0b', rgb: '245,158,11' },
+                                { Icon: FileText, label: 'Plantillas Meta', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants', color: '#06b6d4', rgb: '6,182,212' },
                             ].map((item, i) => (
                                 <Link key={i} href={item.href} style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
-                                    padding: '11px 14px', borderRadius: 12, background: '#13152a',
-                                    border: `1px solid rgba(${item.rgb},0.18)`, textDecoration: 'none',
-                                    fontSize: '0.8rem', fontWeight: 600, color: '#eef0ff',
+                                    padding: '11px 14px', borderRadius: 10, background: '#13152a',
+                                    border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none',
+                                    fontSize: '0.82rem', fontWeight: 600, color: 'rgba(238,240,255,0.8)',
                                 }}>
-                                    <span style={{ fontSize: 18 }}>{item.emoji}</span>
+                                    <item.Icon size={16} style={{ color: item.color, flexShrink: 0 }} />
                                     {item.label}
                                 </Link>
                             ))}

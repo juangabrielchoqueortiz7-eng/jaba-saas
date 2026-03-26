@@ -22,11 +22,11 @@ export default async function AssistantsPage() {
                     <p style={{ fontSize: '0.85rem', color: 'rgba(238,240,255,0.45)' }}>Gestiona los bots de WhatsApp conectados</p>
                 </div>
                 <Link href="/dashboard/assistants/new" style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12,
-                    background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', color: '#fff', fontWeight: 700,
-                    fontSize: '0.88rem', textDecoration: 'none', boxShadow: '0 4px 15px rgba(139,92,246,0.35)',
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 10,
+                    background: '#6366f1', color: '#fff', fontWeight: 600,
+                    fontSize: '0.85rem', textDecoration: 'none',
                 }}>
-                    <Plus size={18} /> Nuevo asistente
+                    <Plus size={16} /> Nuevo asistente
                 </Link>
             </div>
 
@@ -86,14 +86,16 @@ export default async function AssistantsPage() {
 
                 {(!assistants || assistants.length === 0) && (
                     <div style={{ textAlign: 'center', padding: '60px 24px', background: '#13152a', border: '2px dashed rgba(99,102,241,0.2)', borderRadius: 20 }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
+                        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <Bot size={28} style={{ color: '#818cf8' }} />
+                        </div>
                         <p style={{ color: 'rgba(238,240,255,0.45)', marginBottom: 20, fontSize: '0.95rem' }}>No tienes asistentes configurados aún.</p>
                         <Link href="/dashboard/assistants/new" style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 12,
-                            background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', color: '#fff', fontWeight: 700,
-                            textDecoration: 'none', boxShadow: '0 4px 15px rgba(139,92,246,0.35)',
+                            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 10,
+                            background: '#6366f1', color: '#fff', fontWeight: 600,
+                            textDecoration: 'none', fontSize: '0.88rem',
                         }}>
-                            <Plus size={18} /> Crear primer asistente
+                            <Plus size={16} /> Crear primer asistente
                         </Link>
                     </div>
                 )}

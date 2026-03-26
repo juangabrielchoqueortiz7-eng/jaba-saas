@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { AssistantNotFound } from '@/components/dashboard/AssistantNotFound'
 import { redirect } from 'next/navigation'
+import { MessageSquare, Mic, Calendar, BarChart2 } from 'lucide-react'
 
 export default async function AssistantDashboardPage({ params }: { params: Promise<{ assistantId: string }> }) {
     const supabase = await createClient()
@@ -47,10 +48,10 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
 
     // Stat cards con colores únicos por tipo
     const stats = [
-        { label: 'Conversaciones', value: totalChats || 0, limit: LIMIT_CHATS, icon: '💬', color: '#10b981', rgb: '16,185,129', pct: Math.min(((totalChats || 0) / LIMIT_CHATS) * 100, 100) },
-        { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, icon: '🎤', color: '#8b5cf6', rgb: '139,92,246', pct: Math.min(((totalAudios || 0) / LIMIT_AUDIOS) * 100, 100) },
-        { label: 'Hoy', value: chartData[6].count, icon: '📅', color: '#f59e0b', rgb: '245,158,11', pct: null },
-        { label: 'Esta semana', value: chartData.reduce((a, b) => a + b.count, 0), icon: '📊', color: '#6366f1', rgb: '99,102,241', pct: null },
+        { label: 'Conversaciones', value: totalChats || 0, limit: LIMIT_CHATS, Icon: MessageSquare, color: '#10b981', rgb: '16,185,129', pct: Math.min(((totalChats || 0) / LIMIT_CHATS) * 100, 100) },
+        { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, Icon: Mic, color: '#8b5cf6', rgb: '139,92,246', pct: Math.min(((totalAudios || 0) / LIMIT_AUDIOS) * 100, 100) },
+        { label: 'Hoy', value: chartData[6].count, Icon: Calendar, color: '#f59e0b', rgb: '245,158,11', pct: null },
+        { label: 'Esta semana', value: chartData.reduce((a, b) => a + b.count, 0), Icon: BarChart2, color: '#6366f1', rgb: '99,102,241', pct: null },
     ]
 
     return (
@@ -89,20 +90,14 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                 {stats.map((stat, i) => (
                     <div key={i} style={{
                         background: '#13152a',
-                        border: `1px solid rgba(${stat.rgb},0.18)`,
-                        borderRadius: 18,
-                        padding: '20px 22px',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        borderTop: `2px solid ${stat.color}`,
+                        borderRadius: 12,
+                        padding: '18px 20px',
                         position: 'relative',
                         overflow: 'hidden',
-                        boxShadow: `0 0 0 1px rgba(${stat.rgb},0.07), 0 4px 20px rgba(0,0,0,0.35)`,
-                        transition: 'all 0.2s ease',
                     }}>
-                        {/* Top accent bar */}
-                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: stat.color }} />
-                        {/* Glow bg */}
-                        <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: `radial-gradient(circle, rgba(${stat.rgb},0.15) 0%, transparent 70%)`, pointerEvents: 'none' }} />
-
-                        <div style={{ fontSize: 22, marginBottom: 10 }}>{stat.icon}</div>
+                        <stat.Icon size={16} style={{ color: stat.color, marginBottom: 10 }} />
                         <div style={{ fontSize: '2rem', fontWeight: 800, color: '#eef0ff', lineHeight: 1, marginBottom: 4 }}>
                             {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                         </div>
@@ -112,7 +107,7 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                         </div>
                         {stat.pct !== null && (
                             <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${stat.pct}%`, background: stat.color, borderRadius: 2, boxShadow: `0 0 6px rgba(${stat.rgb},0.5)` }} />
+                                <div style={{ height: '100%', width: `${stat.pct}%`, background: stat.color, borderRadius: 2 }} />
                             </div>
                         )}
                     </div>
@@ -216,13 +211,13 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
 
                     {/* Hoy */}
                     <div style={{
-                        background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+                        background: '#13152a',
                         border: '1px solid rgba(99,102,241,0.2)',
-                        borderRadius: 18, padding: '20px 22px',
+                        borderTop: '2px solid #6366f1',
+                        borderRadius: 12, padding: '18px 20px',
                         display: 'flex', alignItems: 'center', gap: 14,
-                        boxShadow: '0 0 24px rgba(99,102,241,0.1)',
                     }}>
-                        <div style={{ fontSize: 32 }}>💬</div>
+                        <MessageSquare size={24} style={{ color: '#6366f1', flexShrink: 0 }} />
                         <div>
                             <p style={{ fontSize: '2rem', fontWeight: 800, color: '#818cf8', lineHeight: 1 }}>{chartData[6].count}</p>
                             <p style={{ fontSize: '0.75rem', color: 'rgba(238,240,255,0.5)', marginTop: 2 }}>Conversaciones hoy</p>
