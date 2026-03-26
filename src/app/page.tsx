@@ -11,7 +11,6 @@ import {
   BarChart3,
   ShoppingBag,
   RefreshCw,
-  Globe,
   CheckCircle,
   Send,
   Sparkles,
@@ -77,7 +76,10 @@ const services = [
     description: 'Asistentes virtuales entrenados con los datos de tu negocio. Respuestas inteligentes 24/7 que venden, atienden y fidelizan.',
     iconColor: 'text-[#25D366]',
     popular: true,
-    keyBenefit: 'Atiende a tus clientes aunque estés durmiendo'
+    keyBenefit: 'Atiende a tus clientes aunque estés durmiendo',
+    stat: '+200',
+    statLabel: 'negocios activos',
+    hero: true
   },
   {
     icon: MessageSquare,
@@ -85,7 +87,10 @@ const services = [
     description: 'Panel unificado para gestionar todas tus conversaciones de WhatsApp Business desde un solo lugar.',
     iconColor: 'text-white',
     popular: false,
-    keyBenefit: 'Todas tus conversaciones en un solo panel'
+    keyBenefit: 'Todas tus conversaciones en un solo panel',
+    stat: '+15K',
+    statLabel: 'chats gestionados',
+    hero: false
   },
   {
     icon: RefreshCw,
@@ -93,7 +98,10 @@ const services = [
     description: 'Control total de tus clientes, fechas de vencimiento y renovaciones automáticas con recordatorios inteligentes.',
     iconColor: 'text-white',
     popular: false,
-    keyBenefit: 'Sin más clientes que se van sin pagar'
+    keyBenefit: 'Sin más clientes que se van sin pagar',
+    stat: '98%',
+    statLabel: 'tasa de retención',
+    hero: false
   },
   {
     icon: Zap,
@@ -101,7 +109,10 @@ const services = [
     description: 'Recordatorios, remarketing y seguimiento automático en 3 etapas. Tus clientes siempre informados sin esfuerzo.',
     iconColor: 'text-white',
     popular: false,
-    keyBenefit: 'Recupera ventas perdidas en piloto automático'
+    keyBenefit: 'Recupera ventas perdidas en piloto automático',
+    stat: '+50K',
+    statLabel: 'mensajes enviados',
+    hero: false
   },
   {
     icon: ShoppingBag,
@@ -109,7 +120,10 @@ const services = [
     description: 'Gestiona tus productos, planes y precios. Cobros automáticos con QR bancario integrado.',
     iconColor: 'text-white',
     popular: false,
-    keyBenefit: 'Cobra sin perseguir a tus clientes'
+    keyBenefit: 'Cobra sin perseguir a tus clientes',
+    stat: '+$120K',
+    statLabel: 'cobrados vía JABA',
+    hero: false
   },
   {
     icon: BarChart3,
@@ -117,15 +131,10 @@ const services = [
     description: 'Visualiza conversiones, ingresos y rendimiento de tu negocio en tiempo real desde tu dashboard.',
     iconColor: 'text-white',
     popular: false,
-    keyBenefit: 'Sabe exactamente qué funciona en tu negocio'
-  },
-  {
-    icon: Globe,
-    title: 'Páginas Web Profesionales',
-    description: 'Diseño y desarrollo de sitios web modernos para todo tipo de rubro. Presencia digital que convierte visitantes en clientes.',
-    iconColor: 'text-white',
-    popular: false,
-    keyBenefit: 'Tu negocio visible las 24 horas en internet'
+    keyBenefit: 'Sabe exactamente qué funciona en tu negocio',
+    stat: '3x',
+    statLabel: 'más conversiones',
+    hero: false
   }
 ];
 
@@ -516,89 +525,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ WEB DEVELOPMENT HIGHLIGHT ============ */}
-      <section className="py-24 bg-black">
-        <div className="container mx-auto px-6">
-          <motion.div
-            className="relative rounded-2xl overflow-hidden border border-white/6 bg-[#0f0f0f] p-8 md:p-14"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-          >
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <span className="green-badge mb-6 inline-flex">
-                  <Globe size={13} /> Servicio Adicional
-                </span>
-                <h2 className="text-3xl md:text-5xl font-black mb-6 leading-tight tracking-tight mt-4">
-                  Páginas Web
-                  <br />
-                  <span className="text-[#25D366]">que convierten.</span>
-                </h2>
-                <p className="text-white/45 text-lg mb-8 leading-relaxed">
-                  Diseñamos y desarrollamos sitios web modernos, rápidos y optimizados para convertir visitantes en clientes.
-                </p>
-                <ul className="space-y-3 mb-8">
-                  {[
-                    'Diseño responsive y moderno',
-                    'Optimización SEO incluida',
-                    'Panel de administración fácil',
-                    'Integración con WhatsApp y redes'
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-white/65">
-                      <CheckCircle size={16} className="text-[#25D366] flex-shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 btn-cta text-black font-bold"
-                >
-                  Solicitar Cotización <ArrowRight size={16} />
-                </a>
-              </div>
-              <div className="hidden md:flex items-center justify-center">
-                <div className="relative w-full max-w-[380px] aspect-square">
-                  <div className="absolute inset-0 bg-[#111] rounded-2xl border border-white/8 shadow-2xl overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-[#0a0a0a]">
-                      <div className="flex gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#25D366]/60" />
-                      </div>
-                      <div className="flex-1 mx-3 h-5 rounded-md bg-white/5 flex items-center px-3">
-                        <span className="text-[10px] text-white/25">www.tunegocio.com</span>
-                      </div>
-                    </div>
-                    <div className="p-5 space-y-3">
-                      <div className="h-5 w-3/4 bg-white/8 rounded" />
-                      <div className="h-3 w-full bg-white/4 rounded" />
-                      <div className="h-3 w-5/6 bg-white/4 rounded" />
-                      <div className="mt-5 grid grid-cols-2 gap-3">
-                        <div className="h-20 bg-white/4 rounded-lg border border-white/5" />
-                        <div className="h-20 bg-white/4 rounded-lg border border-white/5" />
-                      </div>
-                      <div className="h-9 w-1/2 bg-[#25D366]/15 rounded-lg mt-3 border border-[#25D366]/20" />
-                    </div>
-                  </div>
-                  <motion.div
-                    className="absolute -top-4 -right-4 w-14 h-14 bg-[#25D366] rounded-2xl flex items-center justify-center shadow-xl shadow-[#25D366]/30"
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <Globe className="text-black" size={24} />
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* ============ PRECIOS ============ */}
       <section id="precios" className="py-24 bg-[#0a0a0a]">
         <div className="container mx-auto px-6">
@@ -807,7 +733,7 @@ export default function LandingPage() {
               </div>
               <p className="text-white/30 text-sm leading-relaxed max-w-md">
                 Plataforma integral de automatización empresarial con IA. Chatbots inteligentes,
-                gestión de clientes, cobros automáticos y desarrollo web profesional.
+                gestión de clientes, cobros automáticos y reportes en tiempo real.
               </p>
             </div>
             <div>
@@ -816,7 +742,7 @@ export default function LandingPage() {
                 <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Chatbots IA</a></li>
                 <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Chat Empresarial</a></li>
                 <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Suscripciones</a></li>
-                <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Páginas Web</a></li>
+                <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Automatización</a></li>
               </ul>
             </div>
             <div>
@@ -1182,28 +1108,267 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-function ServiceCard({ icon: Icon, title, description, iconColor, popular, keyBenefit }: {
+/* ---- Mini Mockup Components ---- */
+
+function MiniChatMockup() {
+  return (
+    <div className="bg-[#0b141a] rounded-lg overflow-hidden h-full">
+      <div className="bg-[#1f2c33] px-3 py-2 flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full bg-[#25D366] flex items-center justify-center flex-shrink-0">
+          <Bot size={12} className="text-black" />
+        </div>
+        <div>
+          <p className="text-white text-[10px] font-semibold leading-none">JABA Bot</p>
+          <p className="text-[#25D366] text-[8px] flex items-center gap-0.5 mt-0.5">
+            <span className="w-1 h-1 rounded-full bg-[#25D366]" />
+            en línea
+          </p>
+        </div>
+      </div>
+      <div className="px-2 py-2 space-y-1.5 flex flex-col justify-end">
+        <div className="bg-[#1f2c33] text-white/70 rounded-lg rounded-tl-none px-2 py-1.5 text-[9px] max-w-[85%] self-start">
+          ¡Hola! ¿En qué te ayudo? 👋
+        </div>
+        <div className="bg-[#005c4b] text-white/80 rounded-lg rounded-tr-none px-2 py-1.5 text-[9px] max-w-[75%] self-end">
+          ¿Cuánto cuesta?
+        </div>
+        <div className="bg-[#1f2c33] text-white/70 rounded-lg rounded-tl-none px-2 py-1.5 text-[9px] max-w-[85%] self-start">
+          Empiezas con <span className="text-[#25D366] font-bold">500 gratis</span> 🎉
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniInboxMockup() {
+  const chats = [
+    { initials: 'CM', name: 'Carlos M.', msg: 'Necesito info del plan...', unread: 3, color: '#25D366' },
+    { initials: 'MG', name: 'María G.', msg: 'Perfecto, gracias!', unread: 0, color: '#3b82f6' },
+    { initials: 'DR', name: 'Diego R.', msg: '¿Cuánto cuesta el...', unread: 1, color: '#f59e0b' },
+  ];
+  return (
+    <div className="h-full flex flex-col">
+      <div className="bg-[#1a1a1a] px-3 py-2 border-b border-white/5">
+        <p className="text-[9px] text-white/40 font-semibold uppercase tracking-wider">Bandeja de entrada</p>
+      </div>
+      <div className="flex-1 divide-y divide-white/5">
+        {chats.map((c, i) => (
+          <div key={i} className="flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[8px] font-bold" style={{ background: `${c.color}20`, color: c.color }}>
+              {c.initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold text-white/70 truncate">{c.name}</p>
+              <p className="text-[9px] text-white/30 truncate">{c.msg}</p>
+            </div>
+            {c.unread > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[#25D366] text-black text-[8px] font-bold flex items-center justify-center flex-shrink-0">
+                {c.unread}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniSubscriptionMockup() {
+  return (
+    <div className="h-full p-3 flex flex-col gap-2">
+      <div className="flex-1 bg-[#1a1a1a] rounded-lg p-2.5 border border-white/5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[9px] font-bold text-white/70">Plan Pro</span>
+          <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-[#25D366]/15 text-[#25D366]">Activo</span>
+        </div>
+        <div className="w-full bg-white/5 rounded-full h-1.5 mb-1">
+          <div className="bg-[#25D366] h-1.5 rounded-full" style={{ width: '35%' }} />
+        </div>
+        <p className="text-[8px] text-white/25">350 / 1,000 conversaciones</p>
+      </div>
+      <div className="flex-1 bg-[#1a1a1a] rounded-lg p-2.5 border border-white/5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[9px] font-bold text-white/70">Plan Basic</span>
+          <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400">Vence 3d</span>
+        </div>
+        <div className="w-full bg-white/5 rounded-full h-1.5 mb-1">
+          <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: '90%' }} />
+        </div>
+        <p className="text-[8px] text-white/25">450 / 500 conversaciones</p>
+      </div>
+    </div>
+  );
+}
+
+function MiniFlowMockup() {
+  return (
+    <div className="h-full flex items-center justify-center px-4 py-3">
+      <div className="flex items-center gap-1 w-full">
+        {/* Node 1 */}
+        <div className="flex-1 bg-[#1a1a1a] border border-white/5 border-l-2 border-l-[#25D366] rounded-lg px-2 py-2 text-center">
+          <MessageSquare size={10} className="text-[#25D366] mx-auto mb-1" />
+          <p className="text-[8px] text-white/60 font-medium">Mensaje</p>
+        </div>
+        {/* Connector */}
+        <div className="flex items-center gap-0.5">
+          <div className="w-3 h-[1px] border-t border-dashed border-white/15" />
+          <ChevronRight size={8} className="text-white/15 -mx-1" />
+        </div>
+        {/* Node 2 */}
+        <div className="flex-1 bg-[#1a1a1a] border border-white/5 rounded-lg px-2 py-2 text-center">
+          <Clock size={10} className="text-amber-400 mx-auto mb-1" />
+          <p className="text-[8px] text-white/60 font-medium">Esperar 24h</p>
+        </div>
+        {/* Connector */}
+        <div className="flex items-center gap-0.5">
+          <div className="w-3 h-[1px] border-t border-dashed border-white/15" />
+          <ChevronRight size={8} className="text-white/15 -mx-1" />
+        </div>
+        {/* Node 3 */}
+        <div className="flex-1 bg-[#1a1a1a] border border-white/5 rounded-lg px-2 py-2 text-center">
+          <Zap size={10} className="text-[#25D366] mx-auto mb-1" />
+          <p className="text-[8px] text-white/60 font-medium">Seguimiento</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniCatalogMockup() {
+  return (
+    <div className="h-full p-3 flex gap-2">
+      <div className="flex-1 bg-[#1a1a1a] rounded-lg border border-white/5 p-2.5 flex flex-col">
+        <div className="w-full flex-1 bg-white/[0.03] rounded-md flex items-center justify-center mb-2">
+          <ShoppingBag size={14} className="text-white/10" />
+        </div>
+        <p className="text-[9px] font-semibold text-white/60">Plan Premium</p>
+        <p className="text-[10px] font-bold text-[#25D366]">$35.99</p>
+      </div>
+      <div className="flex-1 bg-[#1a1a1a] rounded-lg border border-white/5 p-2.5 flex flex-col">
+        <div className="w-full flex-1 bg-white/[0.03] rounded-md flex items-center justify-center mb-2">
+          <ShoppingBag size={14} className="text-white/10" />
+        </div>
+        <p className="text-[9px] font-semibold text-white/60">Pack 5000</p>
+        <p className="text-[10px] font-bold text-[#25D366]">$84.99</p>
+      </div>
+    </div>
+  );
+}
+
+function MiniChartMockup() {
+  const bars = [
+    { h: '35%', label: 'L' },
+    { h: '55%', label: 'M' },
+    { h: '45%', label: 'M' },
+    { h: '80%', label: 'J' },
+    { h: '100%', label: 'V' },
+    { h: '65%', label: 'S' },
+  ];
+  return (
+    <div className="h-full p-3 flex flex-col">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[9px] text-white/40 font-semibold">Conversiones</p>
+        <p className="text-[10px] font-bold text-[#25D366]">+24%</p>
+      </div>
+      <div className="flex-1 flex items-end gap-1.5 pb-4 relative">
+        <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-white/5" />
+        {bars.map((bar, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div
+              className="w-full rounded-sm bg-[#25D366]"
+              style={{ height: bar.h, opacity: 0.2 + (i * 0.15), minHeight: 4 }}
+            />
+            <span className="text-[7px] text-white/25">{bar.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getServiceMockup(title: string) {
+  switch (title) {
+    case 'Chat Empresarial': return <MiniInboxMockup />;
+    case 'Gestión de Suscripciones': return <MiniSubscriptionMockup />;
+    case 'Automatización de Mensajes': return <MiniFlowMockup />;
+    case 'Catálogo y Cobros': return <MiniCatalogMockup />;
+    case 'Reportes y Métricas': return <MiniChartMockup />;
+    default: return null;
+  }
+}
+
+function ServiceCard({ icon: Icon, title, description, iconColor, popular, keyBenefit, stat, statLabel, hero }: {
   icon: React.ElementType;
   title: string;
   description: string;
   iconColor: string;
   popular: boolean;
   keyBenefit: string;
+  stat: string;
+  statLabel: string;
+  hero: boolean;
 }) {
+  if (hero) {
+    return (
+      <motion.div
+        variants={fadeUp}
+        className="group md:col-span-2 rounded-2xl bg-[#111] border border-white/5 hover:border-[#25D366]/20 transition-all duration-300 relative overflow-hidden"
+      >
+        {popular && <span className="popular-badge">Más popular</span>}
+        <div className="flex flex-col md:flex-row">
+          {/* Left — text */}
+          <div className="flex-1 p-7 md:p-8 flex flex-col justify-center">
+            <div className="w-12 h-12 rounded-xl bg-[#25D366]/10 flex items-center justify-center mb-5">
+              <Icon size={24} className="text-[#25D366]" />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white mb-1">{title}</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl font-black text-[#25D366]">{stat}</span>
+              <span className="text-xs text-white/40">{statLabel}</span>
+            </div>
+            <p className="text-white/45 leading-relaxed text-sm mb-5">{description}</p>
+            <div className="flex items-start gap-2 pt-4 border-t border-white/5">
+              <CheckCircle size={14} className="text-[#25D366] mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-[#25D366] font-medium leading-snug">{keyBenefit}</span>
+            </div>
+          </div>
+          {/* Right — mockup */}
+          <div className="md:w-[45%] bg-[#0a0a0a] border-t md:border-t-0 md:border-l border-white/5 min-h-[200px] md:min-h-0">
+            <MiniChatMockup />
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       variants={fadeUp}
-      className="group p-7 rounded-2xl bg-[#111] border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden"
+      className="group rounded-2xl bg-[#111] border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden flex flex-col"
     >
-      {popular && <span className="popular-badge">Más popular</span>}
-      <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center mb-5 group-hover:bg-white/8 transition-colors">
-        <Icon size={21} className={iconColor} />
+      {/* Mockup area */}
+      <div className="h-36 bg-[#0a0a0a] border-b border-white/5 overflow-hidden">
+        {getServiceMockup(title)}
       </div>
-      <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-      <p className="text-white/40 leading-relaxed text-sm mb-5">{description}</p>
-      <div className="flex items-start gap-2 pt-4 border-t border-white/5">
-        <CheckCircle size={14} className="text-[#25D366] mt-0.5 flex-shrink-0" />
-        <span className="text-xs text-[#25D366]/65 font-medium leading-snug">{keyBenefit}</span>
+      {/* Content */}
+      <div className="p-6 flex flex-col flex-1">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
+            <Icon size={18} className={iconColor} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white leading-tight">{title}</h3>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-sm font-bold text-[#25D366]">{stat}</span>
+              <span className="text-[10px] text-white/30">{statLabel}</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-white/40 leading-relaxed text-sm mb-4 flex-1">{description}</p>
+        <div className="flex items-start gap-2 pt-3 border-t border-white/5">
+          <CheckCircle size={14} className="text-[#25D366] mt-0.5 flex-shrink-0" />
+          <span className="text-xs text-[#25D366] font-medium leading-snug">{keyBenefit}</span>
+        </div>
       </div>
     </motion.div>
   );
