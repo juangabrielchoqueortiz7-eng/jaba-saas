@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+﻿import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { Trophy, Star, MessageSquare, Mic, Users } from 'lucide-react'
 
@@ -74,7 +74,7 @@ export default async function AchievementsPage() {
                     const completed = progress >= 100
                     return (
                         <div key={a.id} style={{
-                            background: '#13152a',
+                            background: '#111111',
                             border: `1px solid ${completed ? a.border : 'rgba(255,255,255,0.06)'}`,
                             borderRadius: 22,
                             padding: '28px 24px',

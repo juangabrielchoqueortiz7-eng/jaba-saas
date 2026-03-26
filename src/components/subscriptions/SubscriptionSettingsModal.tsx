@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
@@ -76,11 +76,11 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[#0a0a0a]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header with Gradient */}
-                <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 flex justify-between items-center text-white shrink-0">
+                <div className="bg-gradient-to-r from-[#25D366] to-[#1fad52] p-6 flex justify-between items-center text-white shrink-0">
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
                             <MessageSquare className="text-indigo-100" size={24} />
@@ -119,9 +119,9 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <label className="block text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 ⏳ Recordatorio Preventivo
                             </label>
-                            <p className="text-xs text-slate-500 mb-3">Se envía cuando faltan 3 días o menos.</p>
+                            <p className="text-xs text-white/35 mb-3">Se envía cuando faltan 3 días o menos.</p>
                             <textarea
-                                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
+                                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
                                 value={messages.reminder_msg}
                                 onChange={e => setMessages(prev => ({ ...prev, reminder_msg: e.target.value }))}
                                 placeholder={DEFAULT_MESSAGES.reminder}
@@ -136,9 +136,9 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <label className="block text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 ⚠️ Vencido con Acceso
                             </label>
-                            <p className="text-xs text-slate-500 mb-3">Se envía cuando la fecha pasó pero sigue marcado como ACTIVO.</p>
+                            <p className="text-xs text-white/35 mb-3">Se envía cuando la fecha pasó pero sigue marcado como ACTIVO.</p>
                             <textarea
-                                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
+                                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
                                 value={messages.expired_grace_msg}
                                 onChange={e => setMessages(prev => ({ ...prev, expired_grace_msg: e.target.value }))}
                                 placeholder={DEFAULT_MESSAGES.expired_grace}
@@ -153,9 +153,9 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <label className="block text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 🔒 Acceso Cortado
                             </label>
-                            <p className="text-xs text-slate-500 mb-3">Se envía cuando el estado es INACTIVO.</p>
+                            <p className="text-xs text-white/35 mb-3">Se envía cuando el estado es INACTIVO.</p>
                             <textarea
-                                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
+                                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
                                 value={messages.expired_removed_msg}
                                 onChange={e => setMessages(prev => ({ ...prev, expired_removed_msg: e.target.value }))}
                                 placeholder={DEFAULT_MESSAGES.expired_removed}
@@ -166,7 +166,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                     {/* Variables Guide */}
                     <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
                         <h4 className="text-sm font-bold text-indigo-800 mb-2">📌 Variables disponibles</h4>
-                        <p className="text-xs text-indigo-600 mb-2">Usa estas variables en tus mensajes y serán reemplazadas automáticamente:</p>
+                        <p className="text-xs text-[#25D366] mb-2">Usa estas variables en tus mensajes y serán reemplazadas automáticamente:</p>
                         <div className="grid grid-cols-2 gap-1 text-xs">
                             <span className="text-slate-600"><code className="bg-white px-1 py-0.5 rounded text-indigo-700 font-mono">{'{correo}'}</code> → Email del cliente</span>
                             <span className="text-slate-600"><code className="bg-white px-1 py-0.5 rounded text-indigo-700 font-mono">{'{vencimiento}'}</code> → Fecha de vencimiento</span>
@@ -186,7 +186,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                     <Button
                         onClick={handleSave}
                         disabled={loading}
-                        className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white gap-2 px-6 font-medium shadow-md shadow-indigo-200"
+                        className="bg-gradient-to-r from-[#25D366] to-[#1fad52] hover:from-indigo-700 hover:to-violet-700 text-white gap-2 px-6 font-medium shadow-md shadow-indigo-200"
                     >
                         {loading ? 'Guardando...' : <><Save size={18} /> Guardar Mensajes</>}
                     </Button>

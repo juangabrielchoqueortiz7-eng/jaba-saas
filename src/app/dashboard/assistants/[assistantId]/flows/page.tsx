@@ -189,7 +189,7 @@ export default function FlowsPage() {
 
                                     <Link href={`/dashboard/assistants/${assistantId}/flows/${flow.id}`}>
                                         <Button
-                                            style={{ borderRadius: 10, padding: '8px 16px', color: '#818cf8', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', background: 'transparent' }}>
+                                            style={{ borderRadius: 10, padding: '8px 16px', color: '#25D366', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', background: 'transparent' }}>
                                             Editar <ArrowRight size={14} />
                                         </Button>
                                     </Link>

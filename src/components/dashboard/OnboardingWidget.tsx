@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -58,9 +58,9 @@ export function OnboardingWidget() {
 
             setSteps([
                 { id: 'assistant', done: hasAssistant, title: 'Conecta tu WhatsApp', href: '/dashboard/settings', icon: Bot, color: '#10b981', rgb: '16,185,129' },
-                { id: 'training', done: hasTraining, title: 'Entrena tu asistente IA', href: hasAssistant ? `/dashboard/assistants/${assistantId}/training` : '/dashboard/assistants', icon: BookOpen, color: '#8b5cf6', rgb: '139,92,246' },
+                { id: 'training', done: hasTraining, title: 'Entrena tu asistente IA', href: hasAssistant ? `/dashboard/assistants/${assistantId}/training` : '/dashboard/assistants', icon: BookOpen, color: '#25D366', rgb: '139,92,246' },
                 { id: 'products', done: (products?.length ?? 0) > 0, title: 'Agrega tu catálogo', href: '/dashboard/products', icon: ShoppingBag, color: '#f97316', rgb: '249,115,22' },
-                { id: 'subscriptions', done: (subsCount ?? 0) > 0, title: 'Agrega suscriptores', href: '/dashboard/subscriptions', icon: Users, color: '#6366f1', rgb: '99,102,241' },
+                { id: 'subscriptions', done: (subsCount ?? 0) > 0, title: 'Agrega suscriptores', href: '/dashboard/subscriptions', icon: Users, color: '#25D366', rgb: '99,102,241' },
                 { id: 'flows', done: (flows?.length ?? 0) > 0, title: 'Crea tu primer flujo', href: hasAssistant ? `/dashboard/assistants/${assistantId}/flows` : '/dashboard/assistants', icon: Zap, color: '#06b6d4', rgb: '6,182,212' },
                 { id: 'chats', done: (chatsCount ?? 0) > 0, title: 'Recibe tu primer mensaje', href: '/dashboard/chats', icon: MessageSquare, color: '#f59e0b', rgb: '245,158,11' },
             ])
@@ -93,12 +93,12 @@ export function OnboardingWidget() {
                         style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.06))' }}>
                         <div>
                             <h3 className="text-sm font-bold text-[#eef0ff] flex items-center gap-2">
-                                <Sparkles size={14} className="text-[#818cf8]" />
+                                <Sparkles size={14} className="text-[#4ade80]" />
                                 Configuración inicial
                             </h3>
-                            <p className="text-xs text-slate-400 mt-0.5">{completedCount} de {totalCount} completados</p>
+                            <p className="text-xs text-white/40 mt-0.5">{completedCount} de {totalCount} completados</p>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="text-slate-500 hover:text-slate-300 p-1 transition-colors">
+                        <button onClick={() => setIsOpen(false)} className="text-white/35 hover:text-white/65 p-1 transition-colors">
                             <ChevronDown size={16} />
                         </button>
                     </div>
@@ -107,9 +107,9 @@ export function OnboardingWidget() {
                         <div className="flex items-center gap-3">
                             <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                                 <div className="h-full rounded-full transition-all duration-500"
-                                    style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #6366f1, #8b5cf6)' }} />
+                                    style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #25D366, #25D366)' }} />
                             </div>
-                            <span className="text-xs font-bold text-[#818cf8]">{pct}%</span>
+                            <span className="text-xs font-bold text-[#4ade80]">{pct}%</span>
                         </div>
                     </div>
 
@@ -139,7 +139,7 @@ export function OnboardingWidget() {
                     </div>
 
                     <div className="px-4 py-3 border-t border-white/[0.04]">
-                        <button onClick={handleDismiss} className="w-full text-[11px] text-slate-500 hover:text-slate-400 transition-colors">
+                        <button onClick={handleDismiss} className="w-full text-[11px] text-white/35 hover:text-white/40 transition-colors">
                             Ocultar esta guía
                         </button>
                     </div>
@@ -149,7 +149,7 @@ export function OnboardingWidget() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold shadow-lg transition-all active:scale-95 hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 4px 24px rgba(99,102,241,0.45)', color: '#fff' }}
+                style={{ background: 'linear-gradient(135deg, #25D366, #25D366)', boxShadow: '0 4px 24px rgba(99,102,241,0.45)', color: '#fff' }}
             >
                 <Sparkles size={15} />
                 Setup {pct}%

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { MessageSquare, Wrench, Power } from 'lucide-react'
 import Link from 'next/link'
@@ -28,7 +28,7 @@ export function AssistantActions({ asst }: { asst: any }) {
     }
 
     return (
-        <div className="flex items-center gap-1 text-slate-400">
+        <div className="flex items-center gap-1 text-white/40">
             <Link
                 href="/dashboard/chats"
                 onClick={() => handleSelectAssistant(asst.id)}

@@ -22,22 +22,23 @@ interface NavItemProps {
     accentColor?: string
 }
 
-function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accentColor = '#6366f1' }: NavItemProps) {
+function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accentColor = '#25D366' }: NavItemProps) {
     if (disabled) {
         return (
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium opacity-25 cursor-not-allowed select-none"
-                style={{ color: 'rgba(238,240,255,0.5)' }}>
+            <div
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium opacity-20 cursor-not-allowed select-none"
+                style={{ color: 'rgba(255,255,255,0.4)' }}
+            >
                 {icon}
                 <span className="flex-1">{label}</span>
             </div>
         )
     }
 
-    // Convert hex to rgba for active bg
     const hexToRgb = (hex: string) => {
-        const r = parseInt(hex.slice(1,3), 16)
-        const g = parseInt(hex.slice(3,5), 16)
-        const b = parseInt(hex.slice(5,7), 16)
+        const r = parseInt(hex.slice(1, 3), 16)
+        const g = parseInt(hex.slice(3, 5), 16)
+        const b = parseInt(hex.slice(5, 7), 16)
         return `${r},${g},${b}`
     }
     const rgb = hexToRgb(accentColor)
@@ -48,35 +49,39 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
             onClick={onNavigate}
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group relative"
             style={active ? {
-                background: `rgba(${rgb},0.1)`,
+                background: `rgba(${rgb},0.10)`,
                 color: accentColor,
                 borderLeft: `3px solid ${accentColor}`,
                 paddingLeft: 13,
             } : {
-                color: 'rgba(238,240,255,0.55)',
+                color: 'rgba(255,255,255,0.45)',
                 borderLeft: '3px solid transparent',
             }}
             onMouseEnter={e => {
                 if (!active) {
                     (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'
-                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(238,240,255,0.9)'
+                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.85)'
                 }
             }}
             onMouseLeave={e => {
                 if (!active) {
                     (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
-                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(238,240,255,0.55)'
+                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.45)'
                 }
             }}
         >
-            <span className="transition-transform duration-150 group-hover:scale-110 flex-shrink-0"
-                style={{ color: active ? accentColor : 'inherit' }}>
+            <span
+                className="transition-transform duration-150 group-hover:scale-110 flex-shrink-0"
+                style={{ color: active ? accentColor : 'inherit' }}
+            >
                 {icon}
             </span>
             <span className="flex-1 truncate">{label}</span>
             {badge !== undefined && badge > 0 && (
-                <span className="min-w-5 h-5 px-1.5 text-white text-[10px] font-bold rounded-full flex items-center justify-center badge-pulse"
-                    style={{ background: '#f59e0b', boxShadow: '0 0 8px rgba(245,158,11,0.5)' }}>
+                <span
+                    className="min-w-5 h-5 px-1.5 text-black text-[10px] font-bold rounded-full flex items-center justify-center"
+                    style={{ background: '#25D366', boxShadow: '0 0 8px rgba(37,211,102,0.4)' }}
+                >
                     {badge > 99 ? '99+' : badge}
                 </span>
             )}
@@ -88,8 +93,10 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
 function SectionLabel({ label }: { label: string }) {
     return (
         <div className="px-4 pt-5 pb-1">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em]"
-                style={{ color: 'rgba(99,102,241,0.45)' }}>
+            <p
+                className="text-[9px] font-bold uppercase tracking-[0.2em]"
+                style={{ color: 'rgba(37,211,102,0.40)' }}
+            >
                 {label}
             </p>
         </div>
@@ -163,24 +170,25 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const includes = (path: string) => pathname.includes(path)
 
     return (
-        <nav className="flex-1 overflow-y-auto py-2 space-y-0.5"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(99,102,241,0.2) transparent' }}>
-
+        <nav
+            className="flex-1 overflow-y-auto py-2 space-y-0.5"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(37,211,102,0.2) transparent' }}
+        >
             {/* ── GENERAL ── */}
             <div className="px-3">
                 <NavItem href="/dashboard/home"
                     icon={<Home size={17} />} label="Inicio"
                     active={is('/dashboard/home')} onNavigate={nav}
-                    accentColor="#6366f1" />
+                    accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}` : '/dashboard'}
                     icon={<LayoutDashboard size={17} />} label="Dashboard"
                     active={is('/dashboard') || is(`/dashboard/assistants/${activeId}`)}
-                    onNavigate={nav} accentColor="#3b82f6" />
+                    onNavigate={nav} accentColor="#25D366" />
                 <NavItem href="/dashboard/assistants"
                     icon={<Bot size={17} />} label="Asistentes"
                     active={is('/dashboard/assistants') || is('/dashboard/assistants/new')}
-                    onNavigate={nav} accentColor="#8b5cf6" />
+                    onNavigate={nav} accentColor="#25D366" />
             </div>
 
             {/* ── COMUNICACIÓN ── */}
@@ -189,15 +197,15 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 <NavItem href="/dashboard/chats"
                     icon={<MessageSquare size={17} />} label="Conversaciones"
                     active={startsWith('/dashboard/chats')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#10b981" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem href="/dashboard/orders"
                     icon={<ShoppingCart size={17} />} label="Pedidos"
                     active={startsWith('/dashboard/orders')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#f59e0b" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem href="/dashboard/products"
                     icon={<Package size={17} />} label="Catálogo"
                     active={startsWith('/dashboard/products')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#f97316" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
             </div>
 
             {/* ── AUTOMATIZACIÓN ── */}
@@ -207,22 +215,22 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/training` : '#'}
                     icon={<BrainCircuit size={17} />} label="Entrenamiento IA"
                     active={includes('/training')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#8b5cf6" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/flows` : '#'}
                     icon={<GitBranch size={17} />} label="Flujos"
                     active={includes('/flows')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#06b6d4" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/triggers` : '#'}
                     icon={<Zap size={17} />} label="Disparadores"
                     active={includes('/triggers')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#eab308" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/templates` : '#'}
                     icon={<FileText size={17} />} label="Plantillas"
                     active={includes('/templates')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#06b6d4" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
             </div>
 
             {/* ── GESTIÓN (admin) ── */}
@@ -232,19 +240,19 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     <NavItem href="/dashboard/subscriptions"
                         icon={<Users size={17} />} label="Suscripciones"
                         active={is('/dashboard/subscriptions')} onNavigate={nav}
-                        accentColor="#3b82f6" />
+                        accentColor="#25D366" />
                     <NavItem href="/dashboard/renewals"
                         icon={<RefreshCcw size={17} />} label="Renovaciones"
                         active={is('/dashboard/renewals')} badge={pendingRenewals}
-                        onNavigate={nav} accentColor="#10b981" />
+                        onNavigate={nav} accentColor="#25D366" />
                     <NavItem href="/dashboard/notifications"
                         icon={<Bell size={17} />} label="Notificaciones"
                         active={is('/dashboard/notifications')} onNavigate={nav}
-                        accentColor="#6366f1" />
+                        accentColor="#25D366" />
                     <NavItem href="/dashboard/admin-accounts"
                         icon={<Building2 size={17} />} label="Cuentas"
                         active={startsWith('/dashboard/admin-accounts')} onNavigate={nav}
-                        accentColor="#f43f5e" />
+                        accentColor="#25D366" />
                 </div>
             )}
 
@@ -255,11 +263,11 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     <NavItem href="/dashboard/recharges"
                         icon={<CreditCard size={17} />} label="Recargas"
                         active={includes('/recharges')} onNavigate={nav}
-                        accentColor="#6366f1" />
+                        accentColor="#25D366" />
                     <NavItem href="/dashboard/achievements"
                         icon={<Trophy size={17} />} label="Logros"
                         active={includes('/achievements')} onNavigate={nav}
-                        accentColor="#fbbf24" />
+                        accentColor="#25D366" />
                 </div>
             )}
 
@@ -268,31 +276,43 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 <NavItem href="/dashboard/settings"
                     icon={<Settings size={17} />} label="Configuración"
                     active={startsWith('/dashboard/settings')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#94a3b8" />
+                    disabled={!hasAssistant} accentColor="#25D366" />
             </div>
 
             {/* ── Asistente activo ── */}
             {hasAssistant && assistantName && (
-                <div className="mx-3 mt-4 p-3 rounded-xl" style={{
-                    background: 'rgba(99,102,241,0.07)',
-                    border: '1px solid rgba(99,102,241,0.15)',
-                }}>
-                    <p className="text-[9px] font-bold uppercase tracking-widest mb-2"
-                        style={{ color: 'rgba(99,102,241,0.55)' }}>
+                <div
+                    className="mx-3 mt-4 p-3 rounded-xl"
+                    style={{
+                        background: 'rgba(37,211,102,0.06)',
+                        border: '1px solid rgba(37,211,102,0.15)',
+                    }}
+                >
+                    <p
+                        className="text-[9px] font-bold uppercase tracking-widest mb-2"
+                        style={{ color: 'rgba(37,211,102,0.50)' }}
+                    >
                         Asistente activo
                     </p>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0 pulse-green"
-                            style={{ background: '#10b981' }} />
-                        <p className="text-sm font-semibold truncate"
-                            style={{ color: 'rgba(238,240,255,0.85)' }}>{assistantName}</p>
+                        <div
+                            className="w-2 h-2 rounded-full flex-shrink-0 pulse-green"
+                            style={{ background: '#25D366' }}
+                        />
+                        <p
+                            className="text-sm font-semibold truncate"
+                            style={{ color: 'rgba(255,255,255,0.85)' }}
+                        >
+                            {assistantName}
+                        </p>
                     </div>
                     {activeId && (
-                        <Link href="/dashboard/assistants"
+                        <Link
+                            href="/dashboard/assistants"
                             className="flex items-center gap-1 mt-2 text-[11px] font-medium transition-colors"
-                            style={{ color: 'rgba(99,102,241,0.45)' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#818cf8')}
-                            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(99,102,241,0.45)')}
+                            style={{ color: 'rgba(37,211,102,0.45)' }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#25D366')}
+                            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(37,211,102,0.45)')}
                         >
                             Cambiar asistente <ChevronRight size={10} />
                         </Link>

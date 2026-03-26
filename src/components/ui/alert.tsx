@@ -1,4 +1,4 @@
-
+﻿
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
@@ -13,7 +13,7 @@ const Alert = React.forwardRef<
             "relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
             variant === "destructive"
                 ? "border-red-500/50 text-red-500 dark:border-red-500 [&>svg]:text-red-500"
-                : "bg-slate-900 text-slate-50",
+                : "bg-[#0a0a0a] text-slate-50",
             className
         )}
         {...props}

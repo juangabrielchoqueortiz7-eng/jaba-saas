@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -88,9 +88,9 @@ export default function RechargesPage() {
                 </div>
 
                 {/* Visual Wallet Card */}
-                <div className="bg-[#13152a] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-6 shadow-lg min-w-[280px]">
+                <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-6 shadow-lg min-w-[280px]">
                     <div className="space-y-1 flex-1">
-                        <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Tu Saldo Actual</p>
+                        <p className="text-xs text-white/35 uppercase tracking-wider font-semibold">Tu Saldo Actual</p>
                         <div className="flex items-baseline gap-1">
                             <span className="text-2xl font-bold text-white">
                                 {activeTab === 'conversations'
@@ -98,7 +98,7 @@ export default function RechargesPage() {
                                     : balance.balance_audio_minutes
                                 }
                             </span>
-                            <span className="text-sm text-slate-400">
+                            <span className="text-sm text-white/40">
                                 {activeTab === 'conversations' ? 'conversaciones' : 'minutos'}
                             </span>
                         </div>
@@ -116,14 +116,14 @@ export default function RechargesPage() {
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* Tabs */}
-                    <div className="bg-[#13152a] p-1 rounded-xl flex gap-1 border border-white/[0.06] backdrop-blur-sm">
+                    <div className="bg-[#111111] p-1 rounded-xl flex gap-1 border border-white/[0.06] backdrop-blur-sm">
                         <button
                             onClick={() => setActiveTab('conversations')}
                             className={cn(
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'conversations'
                                     ? "bg-[rgba(16,185,129,0.1)] text-[#10b981] shadow-sm ring-1 ring-[rgba(16,185,129,0.25)]"
-                                    : "text-slate-400 hover:text-white hover:bg-white/[0.05]"
+                                    : "text-white/40 hover:text-white hover:bg-white/[0.05]"
                             )}
                         >
                             <MessageSquare size={16} />
@@ -135,7 +135,7 @@ export default function RechargesPage() {
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'audios'
                                     ? "bg-[rgba(249,115,22,0.1)] text-[#F97316] shadow-sm ring-1 ring-[rgba(249,115,22,0.25)]"
-                                    : "text-slate-400 hover:text-white hover:bg-white/[0.05]"
+                                    : "text-white/40 hover:text-white hover:bg-white/[0.05]"
                             )}
                         >
                             <Mic size={16} />
@@ -155,7 +155,7 @@ export default function RechargesPage() {
                                         "relative border rounded-2xl p-5 cursor-pointer transition-all duration-200 group hover:shadow-lg",
                                         isSelected
                                             ? "bg-[rgba(249,115,22,0.08)] border-[rgba(249,115,22,0.4)] ring-1 ring-[rgba(249,115,22,0.3)]"
-                                            : "bg-[#13152a] border-white/[0.06] hover:border-white/[0.12]"
+                                            : "bg-[#111111] border-white/[0.06] hover:border-white/[0.12]"
                                     )}
                                 >
                                     {/* Popular Badge */}
@@ -179,7 +179,7 @@ export default function RechargesPage() {
                                     {/* Content */}
                                     <div className="space-y-4">
                                         <div>
-                                            <p className="text-slate-400 text-sm font-medium mb-1">
+                                            <p className="text-white/40 text-sm font-medium mb-1">
                                                 {activeTab === 'conversations' ? 'Paquete de' : 'Recarga de'}
                                             </p>
                                             <p className="text-2xl font-bold text-white">
@@ -187,7 +187,7 @@ export default function RechargesPage() {
                                             </p>
                                         </div>
 
-                                        <div className="flex items-end justify-between border-t border-slate-800/50 pt-4 mt-2">
+                                        <div className="flex items-end justify-between border-t border-white/6/50 pt-4 mt-2">
                                             <div>
                                                 {pkg.save > 0 && (
                                                     <p className="text-green-400 text-xs font-medium mb-0.5">
@@ -195,10 +195,10 @@ export default function RechargesPage() {
                                                     </p>
                                                 )}
                                                 <p className="text-2xl font-bold text-white">
-                                                    ${Math.floor(pkg.price)}<span className="text-base text-slate-400">.{(pkg.price % 1).toFixed(2).substring(2)}</span>
+                                                    ${Math.floor(pkg.price)}<span className="text-base text-white/40">.{(pkg.price % 1).toFixed(2).substring(2)}</span>
                                                 </p>
                                             </div>
-                                            <div className="text-slate-500 text-xs font-mono">USD</div>
+                                            <div className="text-white/35 text-xs font-mono">USD</div>
                                         </div>
                                     </div>
                                 </div>
@@ -209,20 +209,20 @@ export default function RechargesPage() {
 
                 {/* Right Column: Checkout Summary */}
                 <div className="space-y-6">
-                    <Card className="bg-[#13152a] border-white/[0.06] sticky top-6 shadow-xl overflow-hidden">
-                        <div className="h-2 bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#f59e0b]" />
+                    <Card className="bg-[#111111] border-white/[0.06] sticky top-6 shadow-xl overflow-hidden">
+                        <div className="h-2 bg-gradient-to-r from-[#25D366] via-[#25D366] to-[#f59e0b]" />
                         <CardContent className="p-6 space-y-6">
                             <div>
                                 <h3 className="text-lg font-semibold text-white mb-4">Resumen de compra</h3>
 
                                 <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between text-slate-400">
+                                    <div className="flex justify-between text-white/40">
                                         <span>Producto</span>
                                         <span className="text-slate-200 font-medium">
                                             {selectedPackage?.count} {activeTab === 'conversations' ? 'Conversaciones' : 'Minutos'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between text-slate-400">
+                                    <div className="flex justify-between text-white/40">
                                         <span>Precio</span>
                                         <span className="text-slate-200 font-medium">${selectedPackage?.price}</span>
                                     </div>
@@ -252,7 +252,7 @@ export default function RechargesPage() {
                             </Button>
 
                             <div className="text-center space-y-2">
-                                <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
+                                <p className="text-xs text-white/35 flex items-center justify-center gap-1">
                                     <AlertCircle size={12} />
                                     Pago seguro y encriptado
                                 </p>
@@ -261,9 +261,9 @@ export default function RechargesPage() {
                     </Card>
 
                     {/* Frequently Asked Questions Mini */}
-                    <div className="bg-[#13152a] rounded-xl p-5 border border-white/[0.06]">
-                        <h4 className="text-sm font-semibold text-slate-300 mb-3">¿Cómo funciona?</h4>
-                        <ul className="text-xs text-slate-500 space-y-2 list-disc pl-4">
+                    <div className="bg-[#111111] rounded-xl p-5 border border-white/[0.06]">
+                        <h4 className="text-sm font-semibold text-white/65 mb-3">¿Cómo funciona?</h4>
+                        <ul className="text-xs text-white/35 space-y-2 list-disc pl-4">
                             <li>El saldo se acredita inmediatamente.</li>
                             <li>Las conversaciones no caducan.</li>
                             <li>Soporte prioritario incluido.</li>

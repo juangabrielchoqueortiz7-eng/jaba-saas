@@ -345,7 +345,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
 
                         <div className="grid grid-cols-3 gap-3">
                             {[
-                                { label: 'Total', val: result.total, color: '#818cf8' },
+                                { label: 'Total', val: result.total, color: '#25D366' },
                                 { label: 'Enviados', val: result.sent, color: '#10b981' },
                                 { label: 'Fallidos', val: result.failed, color: result.failed > 0 ? '#f87171' : '#475569' },
                             ].map((s, i) => (

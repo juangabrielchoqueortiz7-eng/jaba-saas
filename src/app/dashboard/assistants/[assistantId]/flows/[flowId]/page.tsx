@@ -44,7 +44,7 @@ const nodeColors: Record<string, { bg: string; border: string; icon: string }> =
     condition: { bg: 'rgba(249,115,22,0.15)', border: '#f97316', icon: '🔀' },
     ai_response: { bg: 'rgba(34,197,94,0.15)', border: '#22c55e', icon: '🤖' },
     action: { bg: 'rgba(239,68,68,0.15)', border: '#ef4444', icon: '⚙️' },
-    wait_input: { bg: 'rgba(129,140,248,0.15)', border: '#818cf8', icon: '⏳' },
+    wait_input: { bg: 'rgba(74,222,128,0.15)', border: '#25D366', icon: '⏳' },
     delay: { bg: 'rgba(100,116,139,0.15)', border: '#64748b', icon: '⏱️' },
 }
 
@@ -62,7 +62,7 @@ function FlowNode({ data, selected }: { data: any; selected: boolean }) {
             minWidth: 180,
             maxWidth: 260,
             backdropFilter: 'blur(8px)',
-            boxShadow: selected ? '0 0 20px rgba(129,140,248,0.3)' : '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: selected ? '0 0 20px rgba(74,222,128,0.3)' : '0 4px 12px rgba(0,0,0,0.3)',
             position: 'relative' as const,
         }}>
             {/* Target Handle (top) — all nodes except trigger */}
@@ -300,7 +300,7 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                         ))}
                         {(config.buttons || []).length < 3 && (
                             <Button onClick={() => updateConfig('buttons', [...(config.buttons || []), { id: '', title: '' }])}
-                                style={{ color: '#818cf8', fontSize: '0.8rem', background: 'transparent' }}>
+                                style={{ color: '#25D366', fontSize: '0.8rem', background: 'transparent' }}>
                                 + Agregar botón
                             </Button>
                         )}
@@ -565,8 +565,8 @@ export default function FlowEditorPage() {
             sourceHandle: e.source_handle,
             label: e.label,
             animated: true,
-            style: { stroke: '#818cf8' },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
+            style: { stroke: '#25D366' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#25D366' },
         }))
 
         setNodes(rfNodes)
@@ -600,8 +600,8 @@ export default function FlowEditorPage() {
         (connection) => setEdges((eds) => addEdge({
             ...connection,
             animated: true,
-            style: { stroke: '#818cf8' },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
+            style: { stroke: '#25D366' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#25D366' },
         }, eds)),
         []
     )
@@ -767,10 +767,10 @@ export default function FlowEditorPage() {
                                 borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
                                 color: '#e2e8f0',
                             }}
-                            onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(129,140,248,0.1)' }}
+                            onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(74,222,128,0.1)' }}
                             onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(30,30,50,0.5)' }}
                         >
-                            <Icon size={16} style={{ color: nodeColors[item.type]?.border || '#818cf8', flexShrink: 0 }} />
+                            <Icon size={16} style={{ color: nodeColors[item.type]?.border || '#25D366', flexShrink: 0 }} />
                             <div>
                                 <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{item.label}</div>
                                 <div style={{ fontSize: '0.68rem', color: '#4b5563', lineHeight: 1.2, marginTop: 2 }}>{item.desc}</div>
@@ -797,8 +797,8 @@ export default function FlowEditorPage() {
                     colorMode="dark"
                     defaultEdgeOptions={{
                         animated: true,
-                        style: { stroke: '#818cf8' },
-                        markerEnd: { type: MarkerType.ArrowClosed, color: '#818cf8' },
+                        style: { stroke: '#25D366' },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: '#25D366' },
                     }}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255,255,255,0.05)" />
@@ -827,7 +827,7 @@ export default function FlowEditorPage() {
                                 onClick={handleSave}
                                 disabled={isSaving}
                                 style={{
-                                    background: 'linear-gradient(135deg, #818cf8, #6366f1)', color: '#fff',
+                                    background: 'linear-gradient(135deg, #25D366, #25D366)', color: '#fff',
                                     border: 'none', borderRadius: 10, padding: '8px 20px',
                                     display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.85rem'
                                 }}
@@ -865,10 +865,10 @@ export default function FlowEditorPage() {
                                 borderRadius: 8, cursor: 'pointer', width: '100%', textAlign: 'left',
                                 fontSize: '0.85rem', fontWeight: 500,
                             }}
-                            onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(129,140,248,0.15)' }}
+                            onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(74,222,128,0.15)' }}
                             onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
                         >
-                            <Copy size={15} style={{ color: '#818cf8' }} />
+                            <Copy size={15} style={{ color: '#25D366' }} />
                             Duplicar nodo
                         </button>
                         <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 8px' }} />

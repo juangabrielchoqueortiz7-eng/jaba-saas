@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect } from 'react'
 import Link from 'next/link'
@@ -12,12 +12,12 @@ export function AssistantNotFound() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 animate-in fade-in zoom-in-95 duration-500">
-            <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-6 text-slate-500">
+            <div className="w-24 h-24 bg-[#111]/50 rounded-full flex items-center justify-center mb-6 text-white/35">
                 <FileQuestion size={48} />
             </div>
 
             <h2 className="text-2xl font-bold text-white mb-2">Asistente no encontrado</h2>
-            <p className="text-slate-400 max-w-md mb-8">
+            <p className="text-white/40 max-w-md mb-8">
                 El asistente que buscas no existe o no tienes permisos para verlo.
                 Hemos actualizado tu navegación.
             </p>

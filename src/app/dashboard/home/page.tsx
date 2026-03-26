@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+﻿import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { CheckCircle, CheckCircle2, Bot, BookOpen, Zap, ShoppingBag, MessageSquare, Sparkles, TrendingUp, ArrowRight, Bell, AlertTriangle, Calendar, Users, Activity, Send, FileText, Rocket } from 'lucide-react'
 import Link from 'next/link'
@@ -89,9 +89,9 @@ export default async function HomePage() {
     // ── Pasos de onboarding ──────────────────────────────────────
     const steps = [
         { done: hasAssistant,     title: 'Conecta tu WhatsApp',     description: 'Vincula tu número Business.',                  icon: Bot,         href: '/dashboard/settings',                                                                          cta: 'Configurar', color: '#10b981', rgb: '16,185,129'  },
-        { done: hasTraining,      title: 'Entrena tu asistente IA', description: 'Cuéntale a tu bot sobre tu negocio.',           icon: BookOpen,    href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/training` : '/dashboard/assistants',  cta: 'Entrenar',   color: '#8b5cf6', rgb: '139,92,246' },
+        { done: hasTraining,      title: 'Entrena tu asistente IA', description: 'Cuéntale a tu bot sobre tu negocio.',           icon: BookOpen,    href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/training` : '/dashboard/assistants',  cta: 'Entrenar',   color: '#25D366', rgb: '139,92,246' },
         { done: hasProducts,      title: 'Agrega tu catálogo',      description: 'Define productos con precios.',                 icon: ShoppingBag, href: '/dashboard/products',                                                                          cta: 'Agregar',    color: '#f97316', rgb: '249,115,22' },
-        { done: hasSubscriptions, title: 'Agrega suscriptores',     description: 'Importa o crea tu primera suscripción.',        icon: Users,       href: '/dashboard/subscriptions',                                                                     cta: 'Agregar',    color: '#6366f1', rgb: '99,102,241' },
+        { done: hasSubscriptions, title: 'Agrega suscriptores',     description: 'Importa o crea tu primera suscripción.',        icon: Users,       href: '/dashboard/subscriptions',                                                                     cta: 'Agregar',    color: '#25D366', rgb: '99,102,241' },
         { done: hasFlows,         title: 'Crea tu primer flujo',    description: 'Diseña el árbol de conversación.',              icon: Zap,         href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/flows` : '/dashboard/assistants',    cta: 'Crear',      color: '#06b6d4', rgb: '6,182,212'  },
         { done: hasChats,         title: 'Recibe tu primer mensaje', description: 'Cuando un cliente escriba, aparecerá aquí.',  icon: MessageSquare, href: '/dashboard/chats',                                                                           cta: 'Ver Chats',  color: '#a855f7', rgb: '168,85,247' },
     ]
@@ -113,7 +113,7 @@ export default async function HomePage() {
 
             {/* ── HERO ── */}
             <div style={{
-                background: '#13152a',
+                background: '#111111',
                 border: '1px solid rgba(99,102,241,0.18)',
                 borderRadius: 16, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
                 borderTop: '2px solid rgba(99,102,241,0.5)',
@@ -124,7 +124,7 @@ export default async function HomePage() {
                             ● EN LÍNEA
                         </div>
                         {allDone && (
-                            <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', fontSize: 11, fontWeight: 700, color: '#818cf8' }}>
+                            <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', fontSize: 11, fontWeight: 700, color: '#4ade80' }}>
                                 ✅ Todo configurado
                             </div>
                         )}
@@ -135,7 +135,7 @@ export default async function HomePage() {
                         )}
                     </div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#eef0ff', marginBottom: 10, lineHeight: 1.2 }}>
-                        Hola, <span style={{ color: '#818cf8' }}>{userName}</span>
+                        Hola, <span style={{ color: '#4ade80' }}>{userName}</span>
                     </h1>
                     <p style={{ color: 'rgba(238,240,255,0.6)', fontSize: '1rem', maxWidth: 520, lineHeight: 1.6 }}>
                         {allDone
@@ -145,9 +145,9 @@ export default async function HomePage() {
                     {!allDone && (
                         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
                             <div style={{ flex: 1, maxWidth: 280, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${progressPct}%`, background: '#6366f1', borderRadius: 3 }} />
+                                <div style={{ height: '100%', width: `${progressPct}%`, background: '#25D366', borderRadius: 3 }} />
                             </div>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#818cf8' }}>{progressPct}% listo</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>{progressPct}% listo</span>
                         </div>
                     )}
                 </div>
@@ -157,14 +157,14 @@ export default async function HomePage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 28 }}>
                 {[
                     { Icon: MessageSquare, label: 'Chats hoy', value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`, color: '#10b981', rgb: '16,185,129' },
-                    { Icon: Users, label: 'Suscripciones activas', value: totalActivas, sub: `${vencidas.length} vencidas sin renovar`, color: '#8b5cf6', rgb: '139,92,246' },
+                    { Icon: Users, label: 'Suscripciones activas', value: totalActivas, sub: `${vencidas.length} vencidas sin renovar`, color: '#25D366', rgb: '139,92,246' },
                     { Icon: AlertTriangle, label: 'Vencen esta semana', value: vencen7d.length, sub: `${vencenHoy.length} vencen hoy`, color: vencen7d.length > 0 ? '#f59e0b' : '#6b7280', rgb: vencen7d.length > 0 ? '245,158,11' : '107,114,128' },
                     { Icon: Zap, label: 'Disparadores activos', value: activeTriggers ?? 0, sub: 'en ejecución automática', color: '#06b6d4', rgb: '6,182,212' },
-                    { Icon: Send, label: 'Notificaciones (7d)', value: notifsEnviadas, sub: `${notifsFallidas} fallidas`, color: '#6366f1', rgb: '99,102,241' },
+                    { Icon: Send, label: 'Notificaciones (7d)', value: notifsEnviadas, sub: `${notifsFallidas} fallidas`, color: '#25D366', rgb: '99,102,241' },
                     { Icon: Bot, label: 'Asistente IA', value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? '#10b981' : '#6b7280', rgb: hasTraining ? '16,185,129' : '107,114,128' },
                 ].map((stat, i) => (
                     <div key={i} style={{
-                        padding: '16px 18px', borderRadius: 12, background: '#13152a',
+                        padding: '16px 18px', borderRadius: 12, background: '#111111',
                         border: `1px solid rgba(255,255,255,0.06)`,
                         borderTop: `2px solid ${stat.color}`,
                         position: 'relative', overflow: 'hidden',
@@ -186,9 +186,9 @@ export default async function HomePage() {
                     {totalActivas > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Users size={16} style={{ color: '#818cf8' }} />
+                                <Users size={16} style={{ color: '#4ade80' }} />
                                 <span style={{ color: '#eef0ff' }}>Suscripciones por servicio</span>
-                                <Link href="/dashboard/subscriptions" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#818cf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Link href="/dashboard/subscriptions" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#4ade80', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                                     Ver todas <ArrowRight size={12} />
                                 </Link>
                             </h2>
@@ -196,7 +196,7 @@ export default async function HomePage() {
                                 {Object.entries(porServicio).map(([svc, data]) => {
                                     const c = SVC_COLOR[svc] || { color: '#94a3b8', rgb: '148,163,184', bg: 'rgba(148,163,184,0.1)' }
                                     return (
-                                        <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#13152a', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${c.color}`, position: 'relative', overflow: 'hidden' }}>
+                                        <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${c.color}`, position: 'relative', overflow: 'hidden' }}>
                                             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: c.color, letterSpacing: '0.08em', marginBottom: 8 }}>{svc}</div>
                                             <div style={{ fontSize: '2rem', fontWeight: 800, color: '#eef0ff', lineHeight: 1 }}>{data.total}</div>
                                             <div style={{ fontSize: '0.7rem', color: 'rgba(238,240,255,0.45)', marginTop: 4 }}>activas</div>
@@ -230,7 +230,7 @@ export default async function HomePage() {
                                     return (
                                         <div key={sub.id} style={{
                                             display: 'flex', alignItems: 'center', gap: 12,
-                                            padding: '10px 14px', borderRadius: 12, background: '#13152a',
+                                            padding: '10px 14px', borderRadius: 12, background: '#111111',
                                             border: urgent ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.06)',
                                         }}>
                                             <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: c.bg, color: c.color }}>
@@ -246,7 +246,7 @@ export default async function HomePage() {
                                     )
                                 })}
                                 {vencen7d.length > 8 && (
-                                    <Link href="/dashboard/subscriptions" style={{ textAlign: 'center', padding: '8px', fontSize: '0.75rem', color: '#818cf8', textDecoration: 'none' }}>
+                                    <Link href="/dashboard/subscriptions" style={{ textAlign: 'center', padding: '8px', fontSize: '0.75rem', color: '#4ade80', textDecoration: 'none' }}>
                                         Ver {vencen7d.length - 8} más →
                                     </Link>
                                 )}
@@ -257,7 +257,7 @@ export default async function HomePage() {
                     {/* Pasos de configuración — siempre visible */}
                     <div>
                         <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Sparkles size={16} style={{ color: '#818cf8' }} />
+                            <Sparkles size={16} style={{ color: '#4ade80' }} />
                             <span style={{ color: '#eef0ff' }}>{allDone ? '¡Configuración completa! 🎉' : `Primeros pasos — ${completedSteps}/${steps.length}`}</span>
                         </h2>
                         {allDone ? (
@@ -328,7 +328,7 @@ export default async function HomePage() {
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Activity size={16} style={{ color: '#10b981' }} />
                                 <span style={{ color: '#eef0ff' }}>Actividad reciente</span>
-                                <Link href="/dashboard/chats" style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#818cf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <Link href="/dashboard/chats" style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#4ade80', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
                                     Ver chats <ArrowRight size={11} />
                                 </Link>
                             </h2>
@@ -340,7 +340,7 @@ export default async function HomePage() {
                                     return (
                                         <Link key={i} href="/dashboard/chats" style={{
                                             display: 'flex', alignItems: 'flex-start', gap: 10,
-                                            padding: '10px 12px', borderRadius: 12, background: '#13152a',
+                                            padding: '10px 12px', borderRadius: 12, background: '#111111',
                                             border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none',
                                         }}>
                                             <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -366,10 +366,10 @@ export default async function HomePage() {
                     {(recentNotifs?.length ?? 0) > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Bell size={16} style={{ color: '#6366f1' }} />
+                                <Bell size={16} style={{ color: '#25D366' }} />
                                 <span style={{ color: '#eef0ff' }}>Notificaciones enviadas (7d)</span>
                             </h2>
-                            <div style={{ padding: '14px 16px', borderRadius: 16, background: '#13152a', border: '1px solid rgba(99,102,241,0.2)' }}>
+                            <div style={{ padding: '14px 16px', borderRadius: 16, background: '#111111', border: '1px solid rgba(99,102,241,0.2)' }}>
                                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                                     {[
                                         { label: 'Enviadas', val: notifsEnviadas, color: '#10b981' },
@@ -407,19 +407,19 @@ export default async function HomePage() {
                     {/* Accesos rápidos */}
                     <div>
                         <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <TrendingUp size={16} style={{ color: '#818cf8' }} />
+                            <TrendingUp size={16} style={{ color: '#4ade80' }} />
                             <span style={{ color: '#eef0ff' }}>Accesos rápidos</span>
                         </h2>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             {[
                                 { Icon: MessageSquare, label: 'Chats', href: '/dashboard/chats', color: '#10b981', rgb: '16,185,129' },
-                                { Icon: Users, label: 'Suscripciones', href: '/dashboard/subscriptions', color: '#8b5cf6', rgb: '139,92,246' },
+                                { Icon: Users, label: 'Suscripciones', href: '/dashboard/subscriptions', color: '#25D366', rgb: '139,92,246' },
                                 { Icon: Zap, label: 'Disparadores', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants', color: '#f59e0b', rgb: '245,158,11' },
                                 { Icon: FileText, label: 'Plantillas Meta', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants', color: '#06b6d4', rgb: '6,182,212' },
                             ].map((item, i) => (
                                 <Link key={i} href={item.href} style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
-                                    padding: '11px 14px', borderRadius: 10, background: '#13152a',
+                                    padding: '11px 14px', borderRadius: 10, background: '#111111',
                                     border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none',
                                     fontSize: '0.82rem', fontWeight: 600, color: 'rgba(238,240,255,0.8)',
                                 }}>

@@ -127,7 +127,7 @@ export default function TriggersPage() {
             <Card className="bg-[#13152a] border-white/[0.06] overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-[#0f1120] text-[rgba(99,102,241,0.55)] uppercase font-semibold text-xs tracking-wider">
+                        <thead className="bg-[#0f1120] text-[rgba(37,211,102,0.55)] uppercase font-semibold text-xs tracking-wider">
                             <tr>
                                 <th className="p-4 w-12 text-center">#</th>
                                 <th className="p-4">Nombre</th>

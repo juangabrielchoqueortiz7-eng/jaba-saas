@@ -49,9 +49,9 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
     // Stat cards con colores únicos por tipo
     const stats = [
         { label: 'Conversaciones', value: totalChats || 0, limit: LIMIT_CHATS, Icon: MessageSquare, color: '#10b981', rgb: '16,185,129', pct: Math.min(((totalChats || 0) / LIMIT_CHATS) * 100, 100) },
-        { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, Icon: Mic, color: '#8b5cf6', rgb: '139,92,246', pct: Math.min(((totalAudios || 0) / LIMIT_AUDIOS) * 100, 100) },
+        { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, Icon: Mic, color: '#25D366', rgb: '139,92,246', pct: Math.min(((totalAudios || 0) / LIMIT_AUDIOS) * 100, 100) },
         { label: 'Hoy', value: chartData[6].count, Icon: Calendar, color: '#f59e0b', rgb: '245,158,11', pct: null },
-        { label: 'Esta semana', value: chartData.reduce((a, b) => a + b.count, 0), Icon: BarChart2, color: '#6366f1', rgb: '99,102,241', pct: null },
+        { label: 'Esta semana', value: chartData.reduce((a, b) => a + b.count, 0), Icon: BarChart2, color: '#25D366', rgb: '99,102,241', pct: null },
     ]
 
     return (
@@ -130,7 +130,7 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#eef0ff' }}>Conversaciones — últimos 7 días</h3>
                             <p style={{ fontSize: '0.75rem', color: 'rgba(238,240,255,0.45)', marginTop: 2 }}>Nuevos chats iniciados por día</p>
                         </div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#818cf8', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.22)', padding: '4px 10px', borderRadius: 6 }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#25D366', background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.22)', padding: '4px 10px', borderRadius: 6 }}>
                             {chartData.reduce((a, b) => a + b.count, 0)} total
                         </div>
                     </div>
@@ -138,17 +138,17 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 180, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12 }}>
                         {chartData.map((d, i) => (
                             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
-                                <span style={{ fontSize: '0.65rem', color: d.count > 0 ? (d.isToday ? '#818cf8' : 'rgba(238,240,255,0.4)') : 'transparent' }}>{d.count}</span>
+                                <span style={{ fontSize: '0.65rem', color: d.count > 0 ? (d.isToday ? '#25D366' : 'rgba(238,240,255,0.4)') : 'transparent' }}>{d.count}</span>
                                 <div style={{
                                     width: '100%', maxWidth: 32, borderRadius: '4px 4px 0 0',
                                     height: `${Math.max((d.count / maxVal) * 140, d.count > 0 ? 4 : 2)}px`,
                                     background: d.isToday
-                                        ? 'linear-gradient(180deg, #818cf8, #6366f1)'
-                                        : 'rgba(99,102,241,0.2)',
-                                    boxShadow: d.isToday ? '0 0 14px rgba(99,102,241,0.5)' : 'none',
+                                        ? 'linear-gradient(180deg, #25D366, #25D366)'
+                                        : 'rgba(37,211,102,0.2)',
+                                    boxShadow: d.isToday ? '0 0 14px rgba(37,211,102,0.5)' : 'none',
                                     transition: 'all 0.3s ease',
                                 }} />
-                                <span style={{ fontSize: '0.68rem', color: d.isToday ? '#818cf8' : 'rgba(238,240,255,0.35)', fontWeight: d.isToday ? 700 : 400, textTransform: 'capitalize' }}>{d.day}</span>
+                                <span style={{ fontSize: '0.68rem', color: d.isToday ? '#25D366' : 'rgba(238,240,255,0.35)', fontWeight: d.isToday ? 700 : 400, textTransform: 'capitalize' }}>{d.day}</span>
                             </div>
                         ))}
                     </div>
@@ -192,7 +192,7 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             {[
                                 { label: 'Conversaciones', value: totalChats || 0, limit: LIMIT_CHATS, color: '#10b981', rgb: '16,185,129' },
-                                { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, color: '#8b5cf6', rgb: '139,92,246' },
+                                { label: 'Audios IA', value: totalAudios || 0, limit: LIMIT_AUDIOS, color: '#25D366', rgb: '139,92,246' },
                             ].map((q, i) => (
                                 <div key={i}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -212,14 +212,14 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                     {/* Hoy */}
                     <div style={{
                         background: '#13152a',
-                        border: '1px solid rgba(99,102,241,0.2)',
-                        borderTop: '2px solid #6366f1',
+                        border: '1px solid rgba(37,211,102,0.2)',
+                        borderTop: '2px solid #25D366',
                         borderRadius: 12, padding: '18px 20px',
                         display: 'flex', alignItems: 'center', gap: 14,
                     }}>
-                        <MessageSquare size={24} style={{ color: '#6366f1', flexShrink: 0 }} />
+                        <MessageSquare size={24} style={{ color: '#25D366', flexShrink: 0 }} />
                         <div>
-                            <p style={{ fontSize: '2rem', fontWeight: 800, color: '#818cf8', lineHeight: 1 }}>{chartData[6].count}</p>
+                            <p style={{ fontSize: '2rem', fontWeight: 800, color: '#25D366', lineHeight: 1 }}>{chartData[6].count}</p>
                             <p style={{ fontSize: '0.75rem', color: 'rgba(238,240,255,0.5)', marginTop: 2 }}>Conversaciones hoy</p>
                         </div>
                     </div>

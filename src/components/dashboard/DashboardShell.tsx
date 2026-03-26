@@ -28,22 +28,24 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
 
     return (
         <ChatProvider>
-            <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+            <div className="flex h-screen overflow-hidden" style={{ background: '#000' }}>
 
                 {/* ── Mobile top bar ── */}
-                <div className="fixed top-0 left-0 right-0 z-40 md:hidden flex items-center h-14 px-4"
+                <div
+                    className="fixed top-0 left-0 right-0 z-40 md:hidden flex items-center h-14 px-4"
                     style={{
-                        background: 'rgba(11,13,23,0.96)',
+                        background: 'rgba(0,0,0,0.95)',
                         backdropFilter: 'blur(16px)',
-                        borderBottom: '1px solid rgba(255,255,255,0.07)',
-                    }}>
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                >
                     <button
                         onClick={() => setSidebarOpen(true)}
                         className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
                         style={{
-                            background: 'rgba(255,255,255,0.05)',
-                            color: 'rgba(238,240,255,0.7)',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            background: 'rgba(255,255,255,0.04)',
+                            color: 'rgba(255,255,255,0.6)',
+                            border: '1px solid rgba(255,255,255,0.07)',
                         }}
                         aria-label="Abrir menú"
                     >
@@ -59,33 +61,40 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                 {sidebarOpen && (
                     <div
                         className="fixed inset-0 z-50 md:hidden"
-                        style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+                        style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(6px)' }}
                         onClick={() => setSidebarOpen(false)}
                     />
                 )}
 
                 {/* ── Sidebar ── */}
-                <aside className={`
-                    fixed inset-y-0 left-0 z-50 flex flex-col
-                    transform transition-transform duration-300 ease-in-out
-                    md:relative md:translate-x-0
-                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-                `} style={{
-                    width: 256,
-                    background: '#090c1a',
-                    borderRight: '1px solid rgba(255,255,255,0.07)',
-                    boxShadow: '1px 0 0 rgba(255,255,255,0.04)',
-                }}>
-
+                <aside
+                    className={`
+                        fixed inset-y-0 left-0 z-50 flex flex-col
+                        transform transition-transform duration-300 ease-in-out
+                        md:relative md:translate-x-0
+                        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                    `}
+                    style={{
+                        width: 256,
+                        background: '#000',
+                        borderRight: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                >
                     {/* Logo header */}
-                    <div className="flex items-center justify-between px-5 py-4"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 68 }}>
+                    <div
+                        className="flex items-center justify-between px-5 py-4"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 68 }}
+                    >
                         <div className="flex items-center gap-3">
                             <img src="/logo.png" alt="JABA" className="h-9 w-auto" />
                             <div>
-                                <p className="text-xs font-bold tracking-widest uppercase"
-                                    style={{ color: '#818cf8', letterSpacing: '0.15em' }}>JABA</p>
-                                <p className="text-[10px]" style={{ color: 'rgba(129,140,248,0.45)' }}>
+                                <p
+                                    className="text-xs font-bold tracking-widest uppercase"
+                                    style={{ color: '#25D366', letterSpacing: '0.15em' }}
+                                >
+                                    JABA
+                                </p>
+                                <p className="text-[10px]" style={{ color: 'rgba(37,211,102,0.4)' }}>
                                     Marketing Digital
                                 </p>
                             </div>
@@ -93,7 +102,7 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                         <button
                             onClick={() => setSidebarOpen(false)}
                             className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center"
-                            style={{ color: 'rgba(129,140,248,0.6)', background: 'rgba(99,102,241,0.1)' }}
+                            style={{ color: 'rgba(37,211,102,0.6)', background: 'rgba(37,211,102,0.08)' }}
                         >
                             <X size={16} />
                         </button>
@@ -104,31 +113,39 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
 
                     {/* User footer */}
                     <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                        <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-xl"
-                            style={{ background: 'rgba(255,255,255,0.03)' }}>
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+                        <div
+                            className="flex items-center gap-3 px-3 py-2 mb-2 rounded-xl"
+                            style={{ background: 'rgba(255,255,255,0.03)' }}
+                        >
+                            <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
                                 style={{
-                                    background: 'rgba(99,102,241,0.2)',
-                                    color: '#818cf8',
-                                    border: '1px solid rgba(99,102,241,0.25)',
-                                }}>
+                                    background: 'rgba(37,211,102,0.15)',
+                                    color: '#25D366',
+                                    border: '1px solid rgba(37,211,102,0.2)',
+                                }}
+                            >
                                 {userEmail?.charAt(0).toUpperCase()}
                             </div>
                             <div className="overflow-hidden flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate"
-                                    style={{ color: 'rgba(238,240,255,0.6)' }}>{userEmail}</p>
+                                <p
+                                    className="text-xs font-medium truncate"
+                                    style={{ color: 'rgba(255,255,255,0.5)' }}
+                                >
+                                    {userEmail}
+                                </p>
                             </div>
                         </div>
                         <form action={signOutAction}>
                             <button
                                 className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all"
-                                style={{ color: 'rgba(238,240,255,0.35)' }}
+                                style={{ color: 'rgba(255,255,255,0.3)' }}
                                 onMouseEnter={e => {
                                     (e.currentTarget as HTMLButtonElement).style.color = '#fb7185'
                                     ;(e.currentTarget as HTMLButtonElement).style.background = 'rgba(244,63,94,0.08)'
                                 }}
                                 onMouseLeave={e => {
-                                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(238,240,255,0.35)'
+                                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.3)'
                                     ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
                                 }}
                             >
@@ -140,8 +157,7 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                 </aside>
 
                 {/* ── Main content ── */}
-                <main className="flex-1 overflow-y-auto pt-14 md:pt-0"
-                    style={{ position: 'relative', zIndex: 1 }}>
+                <main className="flex-1 overflow-y-auto pt-14 md:pt-0" style={{ position: 'relative', zIndex: 1 }}>
                     {children}
                 </main>
 

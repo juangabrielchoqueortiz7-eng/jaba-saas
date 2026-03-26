@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -101,7 +101,7 @@ export default function NewAssistantPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <Link href="/dashboard/assistants" className="text-slate-400 hover:text-white transition-colors">
+                    <Link href="/dashboard/assistants" className="text-white/40 hover:text-white transition-colors">
                         <ArrowLeft size={24} />
                     </Link>
                     <h1 className="text-3xl font-bold text-white">Nuevo asistente</h1>
@@ -128,12 +128,12 @@ export default function NewAssistantPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-800 mb-8">
+            <div className="flex border-b border-white/6 mb-8">
                 <button
                     onClick={() => setActiveTab('general')}
                     className={`flex items-center gap-2 px-8 py-3 font-medium transition-colors border-b-2 ${activeTab === 'general'
-                        ? 'border-indigo-500 text-indigo-400'
-                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                        ? 'border-[#25D366] text-[#4ade80]'
+                        : 'border-transparent text-white/40 hover:text-slate-200'
                         }`}
                 >
                     <Settings size={18} />
@@ -142,8 +142,8 @@ export default function NewAssistantPage() {
                 <button
                     onClick={() => setActiveTab('ia')}
                     className={`flex items-center gap-2 px-8 py-3 font-medium transition-colors border-b-2 ${activeTab === 'ia'
-                        ? 'border-indigo-500 text-indigo-400'
-                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                        ? 'border-[#25D366] text-[#4ade80]'
+                        : 'border-transparent text-white/40 hover:text-slate-200'
                         }`}
                 >
                     <Bot size={18} />
@@ -152,8 +152,8 @@ export default function NewAssistantPage() {
                 <button
                     onClick={() => setActiveTab('chat')}
                     className={`flex items-center gap-2 px-8 py-3 font-medium transition-colors border-b-2 ${activeTab === 'chat'
-                        ? 'border-indigo-500 text-indigo-400'
-                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                        ? 'border-[#25D366] text-[#4ade80]'
+                        : 'border-transparent text-white/40 hover:text-slate-200'
                         }`}
                 >
                     <MessageSquare size={18} />
@@ -177,9 +177,9 @@ export default function NewAssistantPage() {
                                     value={formData.bot_name}
                                     onChange={(e) => handleChange('bot_name', e.target.value)}
                                     placeholder="Ej: JabaBot"
-                                    className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500"
+                                    className="bg-slate-50 border-slate-200 focus-visible:ring-[#25D366]"
                                 />
-                                <p className="text-sm text-slate-500 leading-relaxed">
+                                <p className="text-sm text-white/35 leading-relaxed">
                                     Este parámetro permite personalizar el nombre al asistente y brindarle una identificación única.
                                 </p>
                             </div>
@@ -218,10 +218,10 @@ export default function NewAssistantPage() {
                                         value={phoneBody}
                                         onChange={(e) => setPhoneBody(e.target.value)}
                                         placeholder="Ej: 693..."
-                                        className="bg-slate-50 border-slate-200 flex-1 focus-visible:ring-indigo-500"
+                                        className="bg-slate-50 border-slate-200 flex-1 focus-visible:ring-[#25D366]"
                                     />
                                 </div>
-                                <p className="text-sm text-slate-500 leading-relaxed">
+                                <p className="text-sm text-white/35 leading-relaxed">
                                     Permite ingresar información de contacto o identificación telefónica al asistente.
                                 </p>
                             </div>
@@ -241,13 +241,13 @@ export default function NewAssistantPage() {
                                         value={formData.welcome_message}
                                         onChange={(e) => handleChange('welcome_message', e.target.value)}
                                         placeholder="Hola, ¿en qué puedo ayudarte?"
-                                        className="bg-slate-50 border-slate-200 flex-1 focus-visible:ring-indigo-500"
+                                        className="bg-slate-50 border-slate-200 flex-1 focus-visible:ring-[#25D366]"
                                     />
-                                    <button className="px-3 border border-slate-200 bg-slate-100 rounded-md text-slate-500 hover:bg-slate-200 transition-colors">
+                                    <button className="px-3 border border-slate-200 bg-slate-100 rounded-md text-white/35 hover:bg-slate-200 transition-colors">
                                         <Layers size={18} />
                                     </button>
                                 </div>
-                                <p className="text-sm text-slate-500 leading-relaxed">
+                                <p className="text-sm text-white/35 leading-relaxed">
                                     Permite personalizar el mensaje inicial que se muestra a los usuarios al iniciar una conversación.
                                 </p>
                             </div>
@@ -265,7 +265,7 @@ export default function NewAssistantPage() {
                                     onClick={() => setActiveAiTab(tab.toLowerCase())}
                                     className={`px-4 py-2 text-sm font-medium transition-colors rounded-md text-left ${activeAiTab === tab.toLowerCase()
                                         ? "bg-green-50 text-green-600"
-                                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                                        : "text-white/35 hover:bg-slate-50 hover:text-slate-800"
                                         }`}
                                 >
                                     {tab}
@@ -284,13 +284,13 @@ export default function NewAssistantPage() {
                                             <select
                                                 value={formData.ai_status}
                                                 onChange={(e) => handleChange('ai_status', e.target.value)}
-                                                className="w-full h-10 rounded-md border border-slate-200 bg-white text-slate-800 px-3 py-2 text-sm focus-visible:ring-indigo-500"
+                                                className="w-full h-10 rounded-md border border-slate-200 bg-white text-slate-800 px-3 py-2 text-sm focus-visible:ring-[#25D366]"
                                             >
                                                 <option value="active">Activar</option>
                                                 <option value="sleep">Dormir</option>
                                             </select>
                                         </div>
-                                        <p className="text-sm text-slate-500 leading-relaxed pt-1">
+                                        <p className="text-sm text-white/35 leading-relaxed pt-1">
                                             Establece el estado del asistente, si está activo el asistente responderá todos los mensajes automáticamente.
                                         </p>
                                     </div>
@@ -342,7 +342,7 @@ export default function NewAssistantPage() {
                                             <select
                                                 value={formData.message_delivery_mode}
                                                 onChange={(e) => handleChange('message_delivery_mode', e.target.value)}
-                                                className="w-full h-10 rounded-md border border-slate-200 bg-white text-slate-800 px-3 py-2 text-sm focus-visible:ring-indigo-500"
+                                                className="w-full h-10 rounded-md border border-slate-200 bg-white text-slate-800 px-3 py-2 text-sm focus-visible:ring-[#25D366]"
                                             >
                                                 <option value="complete">Completo</option>
                                                 <option value="parts">Por partes</option>
@@ -361,7 +361,7 @@ export default function NewAssistantPage() {
                                             <select
                                                 value={formData.audio_voice_id}
                                                 onChange={(e) => handleChange('audio_voice_id', e.target.value)}
-                                                className="w-full h-10 rounded-md border border-slate-200 bg-white text-slate-800 px-3 py-2 text-sm focus-visible:ring-indigo-500"
+                                                className="w-full h-10 rounded-md border border-slate-200 bg-white text-slate-800 px-3 py-2 text-sm focus-visible:ring-[#25D366]"
                                             >
                                                 <option value="">No seleccionado aún</option>
                                                 <option value="es-US-Journey-D">Journey D (Hombre - Google)</option>
@@ -404,11 +404,11 @@ export default function NewAssistantPage() {
                                         placeholder="Ej: 10046..."
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-500 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-slate-500 leading-relaxed text-justify">
+                                <p className="text-xs text-white/35 leading-relaxed text-justify">
                                     Valor único asignado a cada número de teléfono registrado en la plataforma de WhatsApp Business API Cloud.
                                 </p>
                             </div>
@@ -424,11 +424,11 @@ export default function NewAssistantPage() {
                                         placeholder=""
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-500 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-slate-500 leading-relaxed text-justify">
+                                <p className="text-xs text-white/35 leading-relaxed text-justify">
                                     Identificador de la cuenta de WhatsApp Business.
                                 </p>
                             </div>
@@ -444,11 +444,11 @@ export default function NewAssistantPage() {
                                         placeholder=""
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-500 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-slate-500 leading-relaxed text-justify">
+                                <p className="text-xs text-white/35 leading-relaxed text-justify">
                                     Identificador de la aplicación de Meta.
                                 </p>
                             </div>
@@ -465,11 +465,11 @@ export default function NewAssistantPage() {
                                         placeholder="EAAG..."
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-500 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-slate-500 leading-relaxed text-justify">
+                                <p className="text-xs text-white/35 leading-relaxed text-justify">
                                     Token permanente de acceso.
                                 </p>
                             </div>

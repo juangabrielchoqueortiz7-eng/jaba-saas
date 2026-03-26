@@ -1,4 +1,4 @@
-
+﻿
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -38,7 +38,7 @@ export default function SettingsPage() {
             checkStatus()
         }, [])
 
-        if (loading) return <div className="p-4 bg-slate-900 border border-slate-800 rounded-lg text-slate-400">Verificando conexión...</div>
+        if (loading) return <div className="p-4 bg-[#0a0a0a] border border-white/6 rounded-lg text-white/40">Verificando conexión...</div>
         if (error) return (
             <div className="p-4 bg-red-900/10 border border-red-800/50 rounded-lg flex items-center gap-3 text-red-400">
                 <AlertCircle size={20} />
@@ -53,21 +53,21 @@ export default function SettingsPage() {
         if (!status) return null
 
         return (
-            <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-                <div className="bg-slate-950 p-4 border-b border-slate-800 flex items-center justify-between">
+            <div className="bg-[#0a0a0a] border border-white/6 rounded-lg overflow-hidden">
+                <div className="bg-black p-4 border-b border-white/6 flex items-center justify-between">
                     <h3 className="text-white font-medium flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                         Conexión Establecida
                     </h3>
-                    <Button onClick={checkStatus} className="h-8 px-3 text-sm bg-transparent text-slate-400 hover:text-white hover:bg-slate-800">
+                    <Button onClick={checkStatus} className="h-8 px-3 text-sm bg-transparent text-white/40 hover:text-white hover:bg-[#111]">
                         <Settings2 size={14} className="mr-2" /> Actualizar
                     </Button>
                 </div>
 
                 {/* Mimic the user's screenshot table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-slate-950/50 text-slate-500 uppercase font-semibold text-xs">
+                    <table className="w-full text-left text-sm text-white/40">
+                        <thead className="bg-black/50 text-white/35 uppercase font-semibold text-xs">
                             <tr>
                                 <th className="p-4">Número de teléfono</th>
                                 <th className="p-4">Nombre</th>
@@ -84,25 +84,25 @@ export default function SettingsPage() {
                                         </div>
                                         <div>
                                             <p className="text-white font-medium">{status.display_phone_number}</p>
-                                            <p className="text-xs text-slate-500">{status.status}</p>
+                                            <p className="text-xs text-white/35">{status.status}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-4 p-4 font-medium text-slate-300">
+                                <td className="p-4 p-4 font-medium text-white/65">
                                     <div className="flex flex-col">
                                         <span>{status.verified_name || 'No verificado'}</span>
                                         {status.name_status && (
-                                            <span className="text-[10px] uppercase text-slate-500">{status.name_status}</span>
+                                            <span className="text-[10px] uppercase text-white/35">{status.name_status}</span>
                                         )}
                                     </div>
                                 </td>
                                 <td className="p-4">
                                     <div className="flex flex-col gap-1">
-                                        <span className="bg-slate-800 px-3 py-1 rounded-full text-xs font-medium text-slate-300 border border-slate-700 w-fit">
+                                        <span className="bg-[#111] px-3 py-1 rounded-full text-xs font-medium text-white/65 border border-white/8 w-fit">
                                             {status.status === 'VERIFIED' ? 'Conectado' : 'Pendiente'}
                                         </span>
                                         {status.health_status && (
-                                            <span className="text-[10px] text-slate-500 uppercase">{status.health_status}</span>
+                                            <span className="text-[10px] text-white/35 uppercase">{status.health_status}</span>
                                         )}
                                     </div>
                                 </td>
@@ -123,8 +123,8 @@ export default function SettingsPage() {
 
                 {/* Registration Action if not connected */}
                 {(status.status !== 'VERIFIED' || status.requires_registration) && (
-                    <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
-                        <div className="text-sm text-slate-400">
+                    <div className="p-4 bg-[#0a0a0a] border-t border-white/6 flex items-center justify-between">
+                        <div className="text-sm text-white/40">
                             ¿Tu número está "Pendiente" o bloqueado? Necesitas completar el registro.
                         </div>
                         <RegistrationModal phoneNumberId={phoneNumberId} accessToken={accessToken} onSuccess={checkStatus} />
@@ -186,7 +186,7 @@ export default function SettingsPage() {
         }
 
         if (!open) return (
-            <Button onClick={() => setOpen(true)} className="gap-2 bg-slate-800 hover:bg-slate-700 text-white">
+            <Button onClick={() => setOpen(true)} className="gap-2 bg-[#111] hover:bg-slate-700 text-white">
                 <Smartphone size={16} />
                 Completar Registro
             </Button>
@@ -194,17 +194,17 @@ export default function SettingsPage() {
 
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-lg shadow-lg w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-[#0a0a0a] border border-white/6 rounded-lg shadow-lg w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
                     <button
                         onClick={() => setOpen(false)}
-                        className="absolute right-4 top-4 text-slate-400 hover:text-white"
+                        className="absolute right-4 top-4 text-white/40 hover:text-white"
                     >
                         <X size={20} />
                     </button>
 
-                    <div className="p-6 border-b border-slate-800">
+                    <div className="p-6 border-b border-white/6">
                         <h2 className="text-lg font-semibold text-white">Registro de WhatsApp API</h2>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/40 mt-1">
                             {step === 'register' ? 'Paso Final: Activar Número' : 'Para activar tu número, Meta requiere verificarlo mediante un código SMS.'}
                         </p>
                     </div>
@@ -219,7 +219,7 @@ export default function SettingsPage() {
 
                         {step === 'request' && (
                             <div className="space-y-4">
-                                <p className="text-sm text-slate-300">
+                                <p className="text-sm text-white/65">
                                     Al continuar, Meta enviará un SMS con un código de 6 dígitos a tu número. Asegúrate de tener señal.
                                 </p>
                                 <Button onClick={handleRequestCode} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white">
@@ -237,7 +237,7 @@ export default function SettingsPage() {
                                         value={code}
                                         onChange={e => setCode(e.target.value)}
                                         placeholder="123456"
-                                        className="bg-slate-950 border-slate-800 text-center text-lg tracking-widest text-white"
+                                        className="bg-black border-white/6 text-center text-lg tracking-widest text-white"
                                         maxLength={6}
                                     />
                                 </div>
@@ -245,7 +245,7 @@ export default function SettingsPage() {
                                     {loading ? <RefreshCw className="animate-spin mr-2 h-4 w-4" /> : null}
                                     Verificar Código
                                 </Button>
-                                <Button onClick={() => setStep('request')} className="w-full text-slate-400 hover:text-white bg-transparent hover:bg-slate-800">
+                                <Button onClick={() => setStep('request')} className="w-full text-white/40 hover:text-white bg-transparent hover:bg-[#111]">
                                     Volver / Reenviar SMS
                                 </Button>
                             </div>
@@ -255,14 +255,14 @@ export default function SettingsPage() {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label className="text-white">PIN de Registro (2FA)</Label>
-                                    <p className="text-xs text-slate-400 mb-2">
+                                    <p className="text-xs text-white/40 mb-2">
                                         Ingresa un PIN de 6 dígitos para proteger tu línea. Hemos prellenado el código SMS por defecto.
                                     </p>
                                     <Input
                                         value={pin}
                                         onChange={e => setPin(e.target.value)}
                                         placeholder="123456"
-                                        className="bg-slate-950 border-slate-800 text-center text-lg tracking-widest text-white"
+                                        className="bg-black border-white/6 text-center text-lg tracking-widest text-white"
                                         maxLength={6}
                                     />
                                 </div>
@@ -483,7 +483,7 @@ export default function SettingsPage() {
             setTimeout(() => setCopied(false), 2000)
         }
         return (
-            <Button onClick={handleCopy} className="h-9 w-9 border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-400 flex items-center justify-center p-0">
+            <Button onClick={handleCopy} className="h-9 w-9 border border-white/8 bg-[#0a0a0a] hover:bg-[#111] text-white/40 flex items-center justify-center p-0">
                 {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
         )
@@ -495,8 +495,8 @@ export default function SettingsPage() {
             className={cn(
                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors border-b-2",
                 activeTab === id
-                    ? "border-[#6366f1] text-[#6366f1] bg-[rgba(99,102,241,0.1)]"
-                    : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                    ? "border-[#25D366] text-[#25D366] bg-[rgba(99,102,241,0.1)]"
+                    : "border-transparent text-white/40 hover:text-slate-200 hover:bg-[#111]"
             )}
         >
             <Icon className="w-4 h-4" />
@@ -510,8 +510,8 @@ export default function SettingsPage() {
             className={cn(
                 "px-4 py-2 text-sm font-medium transition-colors border-l-2 first:border-l-0 md:border-l-0 md:border-b-2",
                 activeAiTab === id
-                    ? "border-[#6366f1] text-[#6366f1] bg-[rgba(99,102,241,0.1)]"
-                    : "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                    ? "border-[#25D366] text-[#25D366] bg-[rgba(99,102,241,0.1)]"
+                    : "border-transparent text-white/40 hover:text-slate-200 hover:bg-[#111]"
             )}
         >
             {label}
@@ -523,7 +523,7 @@ export default function SettingsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1 md:w-1/2">
                     <Label className="text-base font-semibold text-slate-200">{label}</Label>
-                    <p className="text-xs text-slate-400 leading-relaxed text-justify">
+                    <p className="text-xs text-white/40 leading-relaxed text-justify">
                         {description}
                     </p>
                 </div>
@@ -536,7 +536,7 @@ export default function SettingsPage() {
 
     const CustomSwitch = ({ checked, onCheckedChange, label }: { checked: boolean, onCheckedChange: (c: boolean) => void, label: string }) => (
         <label className="flex items-center cursor-pointer gap-3">
-            <span className="text-sm text-slate-300 font-medium">{label}</span>
+            <span className="text-sm text-white/65 font-medium">{label}</span>
             <div className="relative">
                 <input type="checkbox" className="sr-only" checked={checked} onChange={e => onCheckedChange(e.target.checked)} />
                 <div className={cn("w-10 h-6 rounded-full shadow-inner transition-colors", checked ? "bg-green-600" : "bg-slate-700")}></div>
@@ -549,10 +549,10 @@ export default function SettingsPage() {
         <div className="container mx-auto p-6 max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold flex items-center gap-3 text-[#eef0ff]">
-                    <Settings2 className="w-8 h-8 text-[#6366f1]" />
+                    <Settings2 className="w-8 h-8 text-[#25D366]" />
                     Panel de Administración
                 </h1>
-                <Button onClick={handleSave} disabled={loading} className="bg-[#6366f1] hover:bg-[#4f46e5] text-white gap-2">
+                <Button onClick={handleSave} disabled={loading} className="bg-[#25D366] hover:bg-[#4f46e5] text-white gap-2">
                     <Save className="w-4 h-4" />
                     {loading ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
@@ -570,14 +570,14 @@ export default function SettingsPage() {
             )}
 
             {/* Tabs Header */}
-            <div className="bg-[#13152a] border border-white/[0.06] rounded-t-lg flex overflow-x-auto">
+            <div className="bg-[#111111] border border-white/[0.06] rounded-t-lg flex overflow-x-auto">
                 <TabButton id="general" label="General" icon={Bot} />
                 <TabButton id="ai" label="Inteligencia Artificial (IA)" icon={BrainCircuit} />
                 <TabButton id="chat" label="Conexión (Chat)" icon={MessageSquare} />
             </div>
 
             {/* Tabs Content */}
-            <div className="bg-[#13152a] border border-white/[0.06] border-t-0 rounded-b-lg p-6 min-h-[400px]">
+            <div className="bg-[#111111] border border-white/[0.06] border-t-0 rounded-b-lg p-6 min-h-[400px]">
 
                 {/* --- GENERAL TAB --- */}
                 {activeTab === 'general' && (
@@ -592,9 +592,9 @@ export default function SettingsPage() {
                                         value={botName}
                                         onChange={e => setBotName(e.target.value)}
                                         placeholder="Ej: JabaBot"
-                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-slate-500 focus-visible:ring-[#6366f1]"
+                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-white/35 focus-visible:ring-[#25D366]"
                                     />
-                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                    <p className="text-sm text-white/40 leading-relaxed">
                                         Este parámetro permite personalizar el nombre al asistente y brindarle una identificación única ante tus clientes.
                                     </p>
                                 </div>
@@ -609,9 +609,9 @@ export default function SettingsPage() {
                                         value={phoneDisplay}
                                         onChange={e => setPhoneDisplay(e.target.value)}
                                         placeholder="+591 00000000"
-                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-slate-500 focus-visible:ring-[#6366f1]"
+                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-white/35 focus-visible:ring-[#25D366]"
                                     />
-                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                    <p className="text-sm text-white/40 leading-relaxed">
                                         Permite ingresar información de contacto o identificación telefónica visual del asistente.
                                     </p>
                                 </div>
@@ -626,9 +626,9 @@ export default function SettingsPage() {
                                         value={welcomeMessage}
                                         onChange={e => setWelcomeMessage(e.target.value)}
                                         placeholder="Hola, ¿en qué puedo ayudarte hoy?"
-                                        className="min-h-[100px] w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                        className="min-h-[100px] w-full rounded-md border border-white/8 bg-[#0a0a0a] px-3 py-2 text-sm shadow-sm text-white placeholder:text-white/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
                                     />
-                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                    <p className="text-sm text-white/40 leading-relaxed">
                                         Permite personalizar el mensaje inicial que se muestra a los usuarios al iniciar una conversación (si aplica).
                                     </p>
                                 </div>
@@ -643,9 +643,9 @@ export default function SettingsPage() {
                                         value={serviceName}
                                         onChange={e => setServiceName(e.target.value)}
                                         placeholder="Ej: Canva Pro, Gym Premium, Academia Virtual"
-                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-slate-500 focus-visible:ring-[#6366f1]"
+                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-white/35 focus-visible:ring-[#25D366]"
                                     />
-                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                    <p className="text-sm text-white/40 leading-relaxed">
                                         El nombre del servicio que vendes. Se usará en los mensajes del bot y recordatorios. Ej: "Canva Pro", "Netflix Premium".
                                     </p>
                                 </div>
@@ -660,9 +660,9 @@ export default function SettingsPage() {
                                         value={serviceDescription}
                                         onChange={e => setServiceDescription(e.target.value)}
                                         placeholder="Ej: acceso ilimitado a diseño profesional con plantillas premium, IA para diseños y más"
-                                        className="min-h-[80px] w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                        className="min-h-[80px] w-full rounded-md border border-white/8 bg-[#0a0a0a] px-3 py-2 text-sm shadow-sm text-white placeholder:text-white/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
                                     />
-                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                    <p className="text-sm text-white/40 leading-relaxed">
                                         Descripción breve de lo que ofreces. Se usará en el saludo del bot cuando un nuevo cliente escribe.
                                     </p>
                                 </div>
@@ -680,12 +680,12 @@ export default function SettingsPage() {
                                                     <img
                                                         src={promoLocalPreview || promoImageUrl}
                                                         alt="Imagen de precios"
-                                                        className="max-h-56 w-full rounded-xl border border-slate-700 object-contain bg-slate-900"
+                                                        className="max-h-56 w-full rounded-xl border border-white/8 object-contain bg-[#0a0a0a]"
                                                     />
                                                     {promoUploading && (
                                                         <div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center gap-2">
                                                             <RefreshCw className="w-6 h-6 text-green-400 animate-spin" />
-                                                            <span className="text-xs text-slate-300">Guardando imagen...</span>
+                                                            <span className="text-xs text-white/65">Guardando imagen...</span>
                                                         </div>
                                                     )}
                                                     {!promoUploading && (
@@ -711,7 +711,7 @@ export default function SettingsPage() {
                                                 htmlFor="promoImageFile"
                                                 className={`flex flex-col items-center justify-center gap-3 p-10 border-2 border-dashed rounded-xl cursor-pointer transition-all ${promoDragging
                                                     ? 'border-green-500 bg-green-500/10 scale-[1.01]'
-                                                    : 'border-slate-700 hover:border-green-600/50 hover:bg-slate-900 bg-slate-950'
+                                                    : 'border-white/8 hover:border-green-600/50 hover:bg-[#0a0a0a] bg-black'
                                                     }`}
                                                 onDragOver={e => { e.preventDefault(); setPromoDragging(true) }}
                                                 onDragLeave={() => setPromoDragging(false)}
@@ -735,33 +735,33 @@ export default function SettingsPage() {
                                                         e.target.value = ''
                                                     }}
                                                 />
-                                                <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl">
+                                                <div className="w-14 h-14 rounded-full bg-[#111] border border-white/8 flex items-center justify-center text-3xl">
                                                     🖼️
                                                 </div>
                                                 <div className="text-center">
                                                     <p className="text-sm font-semibold text-slate-200">Arrastra tu imagen aquí</p>
-                                                    <p className="text-xs text-slate-500 mt-1">o haz clic para seleccionar</p>
+                                                    <p className="text-xs text-white/35 mt-1">o haz clic para seleccionar</p>
                                                     <p className="text-xs text-slate-600 mt-2">JPG · PNG · WEBP</p>
                                                 </div>
                                             </label>
                                         )}
                                     </div>
-                                    <p className="text-sm text-slate-400 leading-relaxed">
+                                    <p className="text-sm text-white/40 leading-relaxed">
                                         Imagen con tus precios que se envía automáticamente al cliente cuando solicita información. Usa JPG o PNG de buena calidad. Puedes eliminarla y cambiarla cuando quieras.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Reference (Disabled) */}
-                            <div className="grid gap-3 p-4 border border-slate-800 rounded-lg bg-slate-950/30 opacity-60">
-                                <Label className="text-base font-semibold text-slate-500">Usar referencia (Opcional)</Label>
+                            <div className="grid gap-3 p-4 border border-white/6 rounded-lg bg-black/30 opacity-60">
+                                <Label className="text-base font-semibold text-white/35">Usar referencia (Opcional)</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-center">
                                     <Input
                                         disabled
                                         placeholder="No seleccionado aún"
-                                        className="bg-slate-900 border-slate-800 text-slate-500"
+                                        className="bg-[#0a0a0a] border-white/6 text-white/35"
                                     />
-                                    <p className="text-sm text-slate-500 leading-relaxed">
+                                    <p className="text-sm text-white/35 leading-relaxed">
                                         Función en desarrollo: Clona configuraciones de otros bots.
                                     </p>
                                 </div>
@@ -775,7 +775,7 @@ export default function SettingsPage() {
                     <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-200">
                         {/* Sub-tabs Sidebar */}
                         <div className="flex flex-col md:flex-row gap-6">
-                            <div className="w-full md:w-48 flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-slate-800 shrink-0">
+                            <div className="w-full md:w-48 flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-white/6 shrink-0">
                                 <SubTabButton id="general" label="General" />
                                 <SubTabButton id="text" label="Texto" />
                                 <SubTabButton id="audio" label="Audio" />
@@ -789,7 +789,7 @@ export default function SettingsPage() {
                                             <select
                                                 value={aiStatus}
                                                 onChange={e => setAiStatus(e.target.value)}
-                                                className="h-10 rounded-md border border-slate-700 bg-slate-900 text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
+                                                className="h-10 rounded-md border border-white/8 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
                                             >
                                                 <option value="active">Activar</option>
                                                 <option value="sleep">Dormir</option>
@@ -806,7 +806,7 @@ export default function SettingsPage() {
 
                                         <SettingRow label="Respuesta del asistente" description="Establece la probabilidad de respuestas en audio vs texto. Más a la derecha = más audios.">
                                             <div className="w-full md:w-64 space-y-2">
-                                                <div className="flex justify-between text-xs text-slate-400">
+                                                <div className="flex justify-between text-xs text-white/40">
                                                     <span>Texto</span>
                                                     <span>Audio</span>
                                                 </div>
@@ -833,7 +833,7 @@ export default function SettingsPage() {
                                             <select
                                                 value={messageDeliveryMode}
                                                 onChange={e => setMessageDeliveryMode(e.target.value)}
-                                                className="h-10 rounded-md border border-slate-700 bg-slate-900 text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
+                                                className="h-10 rounded-md border border-white/8 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
                                             >
                                                 <option value="complete">Completo</option>
                                                 <option value="parts">Por partes</option>
@@ -857,7 +857,7 @@ export default function SettingsPage() {
                                             <select
                                                 value={audioVoiceId}
                                                 onChange={e => setAudioVoiceId(e.target.value)}
-                                                className="h-10 rounded-md border border-slate-700 bg-slate-900 text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
+                                                className="h-10 rounded-md border border-white/8 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
                                             >
                                                 <option value="">No seleccionado aún</option>
                                                 <option value="es-US-Journey-D">Journey D (Hombre - Google)</option>
@@ -908,9 +908,9 @@ export default function SettingsPage() {
                                         placeholder="Ej: 100468324..."
                                         value={phoneNumberId}
                                         onChange={(e) => setPhoneNumberId(e.target.value)}
-                                        className="font-mono bg-slate-900 border-slate-700 text-white"
+                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
                                     />
-                                    <p className="text-sm text-slate-400 leading-relaxed text-justify">
+                                    <p className="text-sm text-white/40 leading-relaxed text-justify">
                                         Valor único asignado a cada número de teléfono registrado en la plataforma de WhatsApp Business API Cloud.
                                     </p>
                                 </div>
@@ -929,7 +929,7 @@ export default function SettingsPage() {
                                         placeholder="Ej: 139568..."
                                         value={wabaId}
                                         onChange={(e) => setWabaId(e.target.value)}
-                                        className="font-mono bg-slate-900 border-slate-700 text-white"
+                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
                                     />
                                 </div>
                             </div>
@@ -947,7 +947,7 @@ export default function SettingsPage() {
                                         placeholder="Ej: 64532..."
                                         value={appId}
                                         onChange={(e) => setAppId(e.target.value)}
-                                        className="font-mono bg-slate-900 border-slate-700 text-white"
+                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
                                     />
                                 </div>
                             </div>
@@ -966,7 +966,7 @@ export default function SettingsPage() {
                                         placeholder="EAAG..."
                                         value={accessToken}
                                         onChange={(e) => setAccessToken(e.target.value)}
-                                        className="font-mono bg-slate-900 border-slate-700 text-white"
+                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
                                     />
                                 </div>
                             </div>
@@ -986,7 +986,7 @@ export default function SettingsPage() {
                                         setWebhookTestLoading(false)
                                     }}
                                     disabled={webhookTestLoading || webhookToken === 'Cargando...'}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 transition-colors disabled:opacity-40"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#25D366]/10 border border-[#25D366]/30 text-[#4ade80] hover:bg-[#25D366]/20 transition-colors disabled:opacity-40"
                                 >
                                     {webhookTestLoading
                                         ? <RefreshCw size={13} className="animate-spin" />
@@ -1009,25 +1009,25 @@ export default function SettingsPage() {
 
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">URL del Webhook</p>
+                                    <p className="text-xs text-white/35 font-medium uppercase tracking-wider">URL del Webhook</p>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
+                                        <div className="flex-1 bg-[#0a0a0a] border border-white/8 rounded-md px-3 py-2 text-sm text-white/65 truncate font-mono">
                                             {webhookUrl}
                                         </div>
                                         <CopyButton text={webhookUrl} />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Token de verificación</p>
+                                    <p className="text-xs text-white/35 font-medium uppercase tracking-wider">Token de verificación</p>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300 truncate font-mono">
+                                        <div className="flex-1 bg-[#0a0a0a] border border-white/8 rounded-md px-3 py-2 text-sm text-white/65 truncate font-mono">
                                             {webhookToken}
                                         </div>
                                         <CopyButton text={webhookToken} />
                                     </div>
                                 </div>
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-white/35 mt-1">
                                 Copia estos valores en el Panel de Desarrolladores de Meta → WhatsApp → Configuración → Webhooks.
                             </p>
                         </div>
@@ -1038,7 +1038,7 @@ export default function SettingsPage() {
                                 <FlaskConical size={16} className="text-amber-400" />
                                 <Label className="text-base font-semibold text-slate-200">Enviar mensaje de prueba</Label>
                             </div>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-white/40">
                                 Verifica que tu token y número estén funcionando enviando un WhatsApp de prueba.
                             </p>
                             <div className="flex gap-3 items-start">
@@ -1047,9 +1047,9 @@ export default function SettingsPage() {
                                         placeholder="Ej: 59170000000"
                                         value={testPhone}
                                         onChange={e => setTestPhone(e.target.value)}
-                                        className="font-mono bg-slate-900 border-slate-700 text-white placeholder:text-slate-600"
+                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white placeholder:text-slate-600"
                                     />
-                                    <p className="text-xs text-slate-500 mt-1">Número con código de país (sin + ni espacios)</p>
+                                    <p className="text-xs text-white/35 mt-1">Número con código de país (sin + ni espacios)</p>
                                 </div>
                                 <Button
                                     type="button"

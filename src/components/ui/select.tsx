@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
@@ -64,7 +64,7 @@ export const SelectTrigger = React.forwardRef<
             type="button"
             onClick={() => context.setOpen(!context.open)}
             className={cn(
-                "flex h-10 w-full items-center justify-between rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm ring-offset-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50",
+                "flex h-10 w-full items-center justify-between rounded-md border border-white/6 bg-black px-3 py-2 text-sm ring-offset-slate-950 placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50",
                 className
             )}
             {...props}
@@ -130,7 +130,7 @@ export const SelectContent = React.forwardRef<
         <div
             ref={ref}
             className={cn(
-                "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-slate-800 bg-slate-950 text-slate-50 shadow-md animate-in fade-in-80 w-full mt-1",
+                "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-white/6 bg-black text-slate-50 shadow-md animate-in fade-in-80 w-full mt-1",
                 className
             )}
             {...props}
@@ -154,7 +154,7 @@ export const SelectItem = React.forwardRef<
         <div
             ref={ref}
             className={cn(
-                "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-slate-800 focus:text-slate-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-slate-800 cursor-pointer",
+                "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-[#111] focus:text-slate-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-[#111] cursor-pointer",
                 className
             )}
             onClick={() => context.onValueChange(value)}

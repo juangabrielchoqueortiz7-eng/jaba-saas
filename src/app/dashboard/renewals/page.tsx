@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -145,7 +145,7 @@ export default function RenewalsPage() {
             case 'approved': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
             case 'pending_review': return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
             case 'rejected': return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-            default: return 'bg-slate-500/10 text-slate-400'
+            default: return 'bg-slate-500/10 text-white/40'
         }
     }
 
@@ -179,7 +179,7 @@ export default function RenewalsPage() {
                 </div>
                 <button
                     onClick={() => { setLoading(true); fetchRenewals(); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#13152a] border border-white/[0.06] rounded-xl text-sm font-medium hover:bg-white/[0.05] text-slate-300 transition-all active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-white/[0.06] rounded-xl text-sm font-medium hover:bg-white/[0.05] text-white/65 transition-all active:scale-95"
                 >
                     <RefreshCcw size={16} className={cn(loading && "animate-spin text-[#10b981]")} />
                     Actualizar
@@ -188,33 +188,33 @@ export default function RenewalsPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
-                    <p className="text-slate-400 text-sm font-medium mb-1">Total</p>
+                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
+                    <p className="text-white/40 text-sm font-medium mb-1">Total</p>
                     <p className="text-2xl font-bold text-[#eef0ff]">{totalRenewals}</p>
                 </div>
-                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
                     <p className="text-[#FBBF24] text-sm font-medium mb-1">Pendientes</p>
                     <p className="text-2xl font-bold text-[#eef0ff]">{pendingCount}</p>
                 </div>
-                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
                     <p className="text-[#10b981] text-sm font-medium mb-1">Aprobadas</p>
                     <p className="text-2xl font-bold text-[#eef0ff]">{approvedCount}</p>
                 </div>
-                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
                         <DollarSign size={14} className="text-[#F97316]" />
                         <p className="text-[#F97316] text-sm font-medium">Ingresos Mes</p>
                     </div>
                     <p className="text-2xl font-bold text-[#eef0ff] mt-1">Bs {monthlyRevenue}</p>
                 </div>
-                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
                         <TrendingUp size={14} className="text-[#10b981]" />
                         <p className="text-[#10b981] text-sm font-medium">Conversión</p>
                     </div>
                     <p className="text-2xl font-bold text-[#eef0ff] mt-1">{conversionRate}%</p>
                 </div>
-                <div className="bg-[#13152a] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
                         <BarChart3 size={14} className="text-[#F97316]" />
                         <p className="text-[#F97316] text-sm font-medium">1er vs 2do Msg</p>
@@ -224,21 +224,21 @@ export default function RenewalsPage() {
             </div>
 
             {/* Filters */}
-            <div className="bg-[#13152a] border border-white/[0.06] p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-[#111111] border border-white/[0.06] p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" size={18} />
                     <input
                         type="text"
                         placeholder="Buscar por email, teléfono o plan..."
-                        className="w-full bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/50 transition-all"
+                        className="w-full bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 pl-10 pr-4 text-sm text-white/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Filter size={18} className="text-slate-500" />
+                    <Filter size={18} className="text-white/35" />
                     <select
-                        className="bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 px-4 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/50 cursor-pointer"
+                        className="bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 px-4 text-sm text-white/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50 cursor-pointer"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
@@ -251,7 +251,7 @@ export default function RenewalsPage() {
             </div>
 
             {/* Table */}
-            <div className="bg-[#13152a] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl">
+            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
@@ -266,14 +266,14 @@ export default function RenewalsPage() {
                         </thead>
                         <tbody className="divide-y divide-white/[0.03]">
                             {filteredRenewals.length > 0 ? filteredRenewals.map((renewal) => (
-                                <tr key={renewal.id} className="hover:bg-slate-800/30 transition-colors group">
+                                <tr key={renewal.id} className="hover:bg-[#111]/30 transition-colors group">
                                     <td className="px-6 py-5">
                                         <div className="flex flex-col">
-                                            <div className="flex items-center gap-1.5 text-sm text-slate-300">
-                                                <Mail size={14} className="text-indigo-500" />
+                                            <div className="flex items-center gap-1.5 text-sm text-white/65">
+                                                <Mail size={14} className="text-[#25D366]" />
                                                 <span>{renewal.customer_email || 'N/A'}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
+                                            <div className="flex items-center gap-1.5 text-xs text-white/40 mt-1">
                                                 <Phone size={12} />
                                                 <span>{renewal.phone_number}</span>
                                             </div>
@@ -298,7 +298,7 @@ export default function RenewalsPage() {
                                     <td className="px-6 py-5">
                                         <span className={cn(
                                             "px-2 py-1 rounded text-[10px] font-bold uppercase",
-                                            renewal.triggered_by === 'reminder' ? 'bg-blue-500/10 text-blue-400' : 'bg-violet-500/10 text-violet-400'
+                                            renewal.triggered_by === 'reminder' ? 'bg-blue-500/10 text-blue-400' : 'bg-[#25D366]/8 text-[#4ade80]'
                                         )}>
                                             {renewal.triggered_by === 'reminder' ? '1er Msg' : '2do Msg'}
                                         </span>
@@ -345,7 +345,7 @@ export default function RenewalsPage() {
                                             {renewal.chat_id && (
                                                 <button
                                                     onClick={() => router.push(`/dashboard/chats?chatId=${renewal.chat_id}`)}
-                                                    className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors border border-transparent hover:border-indigo-500/20"
+                                                    className="p-1.5 text-[#4ade80] hover:text-indigo-300 hover:bg-[#25D366]/10 rounded-lg transition-colors border border-transparent hover:border-[#25D366]/20"
                                                     title="Ir al chat"
                                                 >
                                                     <MessageSquare size={16} />
@@ -359,7 +359,7 @@ export default function RenewalsPage() {
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <RefreshCcw size={48} className="text-slate-800" />
-                                            <p className="text-slate-500 font-medium">No se encontraron renovaciones.</p>
+                                            <p className="text-white/35 font-medium">No se encontraron renovaciones.</p>
                                             <p className="text-slate-600 text-sm">Las renovaciones aparecerán aquí cuando los clientes renueven sus suscripciones.</p>
                                         </div>
                                     </td>
@@ -373,10 +373,10 @@ export default function RenewalsPage() {
             {/* Receipt Modal */}
             {receiptModal && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setReceiptModal(null)}>
-                    <div className="max-w-lg w-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-700" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 border-b border-slate-700 flex justify-between items-center">
+                    <div className="max-w-lg w-full bg-[#0a0a0a] rounded-2xl overflow-hidden border border-white/8" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b border-white/8 flex justify-between items-center">
                             <h3 className="text-white font-bold">Comprobante de Pago</h3>
-                            <button onClick={() => setReceiptModal(null)} className="text-slate-400 hover:text-white">✕</button>
+                            <button onClick={() => setReceiptModal(null)} className="text-white/40 hover:text-white">✕</button>
                         </div>
                         <div className="p-4">
                             <img src={receiptModal} alt="Comprobante" className="w-full rounded-lg" />

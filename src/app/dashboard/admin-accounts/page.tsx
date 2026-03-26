@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@/utils/supabase/server'
+﻿import { createClient as createServerClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { Building2, Bot, Phone, Calendar, Zap, ZapOff, ShieldCheck, Users, User } from 'lucide-react'
@@ -52,7 +52,7 @@ export default async function AdminAccountsPage() {
                     { label: 'Sin bot aún', value: usersWithoutBot.length, Icon: User, color: '#94a3b8' },
                     { label: 'Admins', value: accounts.filter(a => a.is_platform_admin).length, Icon: ShieldCheck, color: '#f43f5e' },
                 ].map((s, i) => (
-                    <div key={i} style={{ background: '#13152a', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${s.color}`, borderRadius: 12, padding: '18px 20px' }}>
+                    <div key={i} style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${s.color}`, borderRadius: 12, padding: '18px 20px' }}>
                         <s.Icon size={16} style={{ color: s.color, marginBottom: 8 }} />
                         <div style={{ fontSize: '1.7rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
                         <div style={{ fontSize: '0.75rem', color: 'rgba(148,163,184,0.5)', marginTop: 4 }}>{s.label}</div>
@@ -61,7 +61,7 @@ export default async function AdminAccountsPage() {
             </div>
 
             {/* Tabla principal */}
-            <div style={{ background: '#13152a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden', marginBottom: 24 }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Users size={16} style={{ color: '#10b981' }} />
                     <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#eef0ff', margin: 0 }}>Cuentas con asistente</h2>
@@ -84,7 +84,7 @@ export default async function AdminAccountsPage() {
                                 <tr key={acc.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.15s' }}>
                                     <td style={{ padding: '12px 16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#818cf8', flexShrink: 0 }}>
+                                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#4ade80', flexShrink: 0 }}>
                                                 {acc.email?.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
@@ -131,7 +131,7 @@ export default async function AdminAccountsPage() {
 
             {/* Sin bot */}
             {usersWithoutBot.length > 0 && (
-                <div style={{ background: '#13152a', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden' }}>
+                <div style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, overflow: 'hidden' }}>
                     <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                         <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#eef0ff', margin: 0 }}>
                             Registrados sin asistente <span style={{ color: 'rgba(148,163,184,0.4)', fontWeight: 400 }}>({usersWithoutBot.length})</span>

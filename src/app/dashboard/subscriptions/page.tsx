@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
@@ -147,21 +147,21 @@ export default function SubscriptionsPage() {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <Card className="bg-[#13152a] border-white/[0.06]">
+                <Card className="bg-[#111111] border-white/[0.06]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-300">
+                        <CardTitle className="text-sm font-medium text-white/65">
                             Total Suscripciones
                         </CardTitle>
-                        <Users className="h-4 w-4 text-slate-500" />
+                        <Users className="h-4 w-4 text-white/35" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-[#eef0ff]">{subscriptions.length}</div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-white/35">
                             Total de registros
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#13152a] border-white/[0.06]">
+                <Card className="bg-[#111111] border-white/[0.06]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-[#10b981]">
                             Activos
@@ -170,12 +170,12 @@ export default function SubscriptionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-[#10b981]">{activeCount}</div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-white/35">
                             Suscripciones vigentes
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#13152a] border-white/[0.06]">
+                <Card className="bg-[#111111] border-white/[0.06]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-red-400">
                             Inactivos
@@ -184,12 +184,12 @@ export default function SubscriptionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-400">{inactiveCount}</div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-white/35">
                             Suscripciones finalizadas
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#13152a] border-[rgba(251,191,36,0.2)]">
+                <Card className="bg-[#111111] border-[rgba(251,191,36,0.2)]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-[#FBBF24]">
                             ⏳ Por Vencer
@@ -198,7 +198,7 @@ export default function SubscriptionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-[#FBBF24]">{pendingCount}</div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-white/35">
                             Pendientes de recordatorio
                         </p>
                     </CardContent>
