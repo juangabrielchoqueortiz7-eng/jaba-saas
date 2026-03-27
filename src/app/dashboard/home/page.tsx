@@ -1,4 +1,4 @@
-﻿import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { CheckCircle, CheckCircle2, Bot, BookOpen, Zap, ShoppingBag, MessageSquare, Sparkles, TrendingUp, ArrowRight, Bell, AlertTriangle, Calendar, Users, Activity, Send, FileText, Rocket } from 'lucide-react'
 import Link from 'next/link'
@@ -87,24 +87,23 @@ export default async function HomePage() {
     const notifsFallidas = recentNotifs?.filter(n => n.status === 'failed').length ?? 0
 
     // ── Pasos de onboarding ──────────────────────────────────────
+    const GREEN = '#25D366'
+    const GREEN_RGB = '37,211,102'
+
     const steps = [
-        { done: hasAssistant,     title: 'Conecta tu WhatsApp',     description: 'Vincula tu número Business.',                  icon: Bot,         href: '/dashboard/settings',                                                                          cta: 'Configurar', color: '#10b981', rgb: '16,185,129'  },
-        { done: hasTraining,      title: 'Entrena tu asistente IA', description: 'Cuéntale a tu bot sobre tu negocio.',           icon: BookOpen,    href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/training` : '/dashboard/assistants',  cta: 'Entrenar',   color: '#25D366', rgb: '139,92,246' },
-        { done: hasProducts,      title: 'Agrega tu catálogo',      description: 'Define productos con precios.',                 icon: ShoppingBag, href: '/dashboard/products',                                                                          cta: 'Agregar',    color: '#f97316', rgb: '249,115,22' },
-        { done: hasSubscriptions, title: 'Agrega suscriptores',     description: 'Importa o crea tu primera suscripción.',        icon: Users,       href: '/dashboard/subscriptions',                                                                     cta: 'Agregar',    color: '#25D366', rgb: '99,102,241' },
-        { done: hasFlows,         title: 'Crea tu primer flujo',    description: 'Diseña el árbol de conversación.',              icon: Zap,         href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/flows` : '/dashboard/assistants',    cta: 'Crear',      color: '#06b6d4', rgb: '6,182,212'  },
-        { done: hasChats,         title: 'Recibe tu primer mensaje', description: 'Cuando un cliente escriba, aparecerá aquí.',  icon: MessageSquare, href: '/dashboard/chats',                                                                           cta: 'Ver Chats',  color: '#a855f7', rgb: '168,85,247' },
+        { done: hasAssistant,     title: 'Conecta tu WhatsApp',      description: 'Vincula tu número Business.',                  icon: Bot,           href: '/dashboard/settings',                                                                          cta: 'Configurar', color: GREEN, rgb: GREEN_RGB },
+        { done: hasTraining,      title: 'Entrena tu asistente IA',  description: 'Cuéntale a tu bot sobre tu negocio.',           icon: BookOpen,      href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/training` : '/dashboard/assistants',  cta: 'Entrenar',   color: GREEN, rgb: GREEN_RGB },
+        { done: hasProducts,      title: 'Agrega tu catálogo',       description: 'Define productos con precios.',                 icon: ShoppingBag,   href: '/dashboard/products',                                                                          cta: 'Agregar',    color: GREEN, rgb: GREEN_RGB },
+        { done: hasSubscriptions, title: 'Agrega suscriptores',      description: 'Importa o crea tu primera suscripción.',        icon: Users,         href: '/dashboard/subscriptions',                                                                     cta: 'Agregar',    color: GREEN, rgb: GREEN_RGB },
+        { done: hasFlows,         title: 'Crea tu primer flujo',     description: 'Diseña el árbol de conversación.',              icon: Zap,           href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/flows` : '/dashboard/assistants',    cta: 'Crear',      color: GREEN, rgb: GREEN_RGB },
+        { done: hasChats,         title: 'Recibe tu primer mensaje', description: 'Cuando un cliente escriba, aparecerá aquí.',    icon: MessageSquare, href: '/dashboard/chats',                                                                             cta: 'Ver Chats',  color: GREEN, rgb: GREEN_RGB },
     ]
 
     const completedSteps = steps.filter(s => s.done).length
     const allDone = completedSteps === steps.length
     const progressPct = Math.round((completedSteps / steps.length) * 100)
 
-    const SVC_COLOR: Record<string, { color: string; rgb: string; bg: string }> = {
-        CANVA:   { color: '#a78bfa', rgb: '167,139,250', bg: 'rgba(139,92,246,0.12)' },
-        CHATGPT: { color: '#34d399', rgb: '52,211,153',  bg: 'rgba(16,185,129,0.12)' },
-        GEMINI:  { color: '#60a5fa', rgb: '96,165,250',  bg: 'rgba(59,130,246,0.12)' },
-    }
+    const SVC_COLOR = { color: GREEN, rgb: GREEN_RGB, bg: 'rgba(37,211,102,0.10)' }
 
     const NOTIF_LABEL: Record<string, string> = { reminder: 'Recordatorio', followup: 'Remarketing', urgency: 'Último aviso' }
 
@@ -114,30 +113,30 @@ export default async function HomePage() {
             {/* ── HERO ── */}
             <div style={{
                 background: '#111111',
-                border: '1px solid rgba(99,102,241,0.18)',
+                border: '1px solid rgba(37,211,102,0.15)',
                 borderRadius: 16, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
-                borderTop: '2px solid rgba(99,102,241,0.5)',
+                borderTop: '2px solid rgba(37,211,102,0.45)',
             }}>
                 <div style={{ position: 'relative', zIndex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                        <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: '0.05em' }}>
+                        <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.25)', fontSize: 11, fontWeight: 700, color: GREEN, letterSpacing: '0.05em' }}>
                             ● EN LÍNEA
                         </div>
                         {allDone && (
-                            <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', fontSize: 11, fontWeight: 700, color: '#4ade80' }}>
+                            <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(37,211,102,0.12)', border: '1px solid rgba(37,211,102,0.25)', fontSize: 11, fontWeight: 700, color: GREEN }}>
                                 ✅ Todo configurado
                             </div>
                         )}
                         {vencenHoy.length > 0 && (
-                            <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: 11, fontWeight: 700, color: '#f87171' }}>
+                            <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', fontSize: 11, fontWeight: 700, color: '#f87171' }}>
                                 ⚠️ {vencenHoy.length} suscripción{vencenHoy.length > 1 ? 'es vencen' : ' vence'} hoy
                             </div>
                         )}
                     </div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#eef0ff', marginBottom: 10, lineHeight: 1.2 }}>
-                        Hola, <span style={{ color: '#4ade80' }}>{userName}</span>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#ffffff', marginBottom: 10, lineHeight: 1.2 }}>
+                        Hola, <span style={{ color: GREEN }}>{userName}</span>
                     </h1>
-                    <p style={{ color: 'rgba(238,240,255,0.6)', fontSize: '1rem', maxWidth: 520, lineHeight: 1.6 }}>
+                    <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '1rem', maxWidth: 520, lineHeight: 1.6 }}>
                         {allDone
                             ? '¡Tu asistente está listo! Tus clientes están siendo atendidos automáticamente.'
                             : `Completa ${steps.length - completedSteps} paso${steps.length - completedSteps > 1 ? 's' : ''} más para tener tu bot completamente operativo.`}
@@ -145,9 +144,9 @@ export default async function HomePage() {
                     {!allDone && (
                         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
                             <div style={{ flex: 1, maxWidth: 280, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${progressPct}%`, background: '#25D366', borderRadius: 3 }} />
+                                <div style={{ height: '100%', width: `${progressPct}%`, background: GREEN, borderRadius: 3 }} />
                             </div>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#4ade80' }}>{progressPct}% listo</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>{progressPct}% listo</span>
                         </div>
                     )}
                 </div>
@@ -156,23 +155,23 @@ export default async function HomePage() {
             {/* ── KPI CARDS ROW ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 28 }}>
                 {[
-                    { Icon: MessageSquare, label: 'Chats hoy', value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`, color: '#10b981', rgb: '16,185,129' },
-                    { Icon: Users, label: 'Suscripciones activas', value: totalActivas, sub: `${vencidas.length} vencidas sin renovar`, color: '#25D366', rgb: '139,92,246' },
-                    { Icon: AlertTriangle, label: 'Vencen esta semana', value: vencen7d.length, sub: `${vencenHoy.length} vencen hoy`, color: vencen7d.length > 0 ? '#f59e0b' : '#6b7280', rgb: vencen7d.length > 0 ? '245,158,11' : '107,114,128' },
-                    { Icon: Zap, label: 'Disparadores activos', value: activeTriggers ?? 0, sub: 'en ejecución automática', color: '#06b6d4', rgb: '6,182,212' },
-                    { Icon: Send, label: 'Notificaciones (7d)', value: notifsEnviadas, sub: `${notifsFallidas} fallidas`, color: '#25D366', rgb: '99,102,241' },
-                    { Icon: Bot, label: 'Asistente IA', value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? '#10b981' : '#6b7280', rgb: hasTraining ? '16,185,129' : '107,114,128' },
+                    { Icon: MessageSquare, label: 'Chats hoy',            value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`,           color: GREEN },
+                    { Icon: Users,         label: 'Suscripciones activas', value: totalActivas,          sub: `${vencidas.length} vencidas sin renovar`,  color: GREEN },
+                    { Icon: AlertTriangle, label: 'Vencen esta semana',    value: vencen7d.length,       sub: `${vencenHoy.length} vencen hoy`,           color: vencen7d.length > 0 ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.3)' },
+                    { Icon: Zap,           label: 'Disparadores activos',  value: activeTriggers ?? 0,   sub: 'en ejecución automática',                  color: GREEN },
+                    { Icon: Send,          label: 'Notificaciones (7d)',   value: notifsEnviadas,        sub: `${notifsFallidas} fallidas`,               color: GREEN },
+                    { Icon: Bot,           label: 'Asistente IA',          value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? GREEN : 'rgba(255,255,255,0.3)' },
                 ].map((stat, i) => (
                     <div key={i} style={{
                         padding: '16px 18px', borderRadius: 12, background: '#111111',
-                        border: `1px solid rgba(255,255,255,0.06)`,
+                        border: '1px solid rgba(255,255,255,0.06)',
                         borderTop: `2px solid ${stat.color}`,
                         position: 'relative', overflow: 'hidden',
                     }}>
                         <stat.Icon size={18} style={{ color: stat.color, marginBottom: 8 }} />
                         <div style={{ fontSize: '1.7rem', fontWeight: 800, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(238,240,255,0.7)', marginTop: 5 }}>{stat.label}</div>
-                        <div style={{ fontSize: '0.65rem', color: 'rgba(238,240,255,0.35)', marginTop: 3 }}>{stat.sub}</div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.65)', marginTop: 5 }}>{stat.label}</div>
+                        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.30)', marginTop: 3 }}>{stat.sub}</div>
                     </div>
                 ))}
             </div>
@@ -186,22 +185,21 @@ export default async function HomePage() {
                     {totalActivas > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Users size={16} style={{ color: '#4ade80' }} />
-                                <span style={{ color: '#eef0ff' }}>Suscripciones por servicio</span>
-                                <Link href="/dashboard/subscriptions" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#4ade80', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Users size={16} style={{ color: GREEN }} />
+                                <span style={{ color: '#ffffff' }}>Suscripciones por servicio</span>
+                                <Link href="/dashboard/subscriptions" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: GREEN, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                                     Ver todas <ArrowRight size={12} />
                                 </Link>
                             </h2>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                                 {Object.entries(porServicio).map(([svc, data]) => {
-                                    const c = SVC_COLOR[svc] || { color: '#94a3b8', rgb: '148,163,184', bg: 'rgba(148,163,184,0.1)' }
                                     return (
-                                        <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${c.color}`, position: 'relative', overflow: 'hidden' }}>
-                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: c.color, letterSpacing: '0.08em', marginBottom: 8 }}>{svc}</div>
-                                            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#eef0ff', lineHeight: 1 }}>{data.total}</div>
-                                            <div style={{ fontSize: '0.7rem', color: 'rgba(238,240,255,0.45)', marginTop: 4 }}>activas</div>
+                                        <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${GREEN}`, position: 'relative', overflow: 'hidden' }}>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: GREEN, letterSpacing: '0.08em', marginBottom: 8 }}>{svc}</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', lineHeight: 1 }}>{data.total}</div>
+                                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.40)', marginTop: 4 }}>activas</div>
                                             {data.vencen7 > 0 && (
-                                                <div style={{ marginTop: 10, padding: '4px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', fontSize: '0.65rem', fontWeight: 700, color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                <div style={{ marginTop: 10, padding: '4px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.65)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                                     ⚠️ {data.vencen7} vencen pronto
                                                 </div>
                                             )}
@@ -216,16 +214,15 @@ export default async function HomePage() {
                     {vencen7d.length > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Calendar size={16} style={{ color: '#f59e0b' }} />
-                                <span style={{ color: '#eef0ff' }}>Vencimientos próximos</span>
-                                <span style={{ marginLeft: 8, fontSize: '0.7rem', padding: '2px 8px', borderRadius: 10, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', fontWeight: 700 }}>
+                                <Calendar size={16} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                                <span style={{ color: '#ffffff' }}>Vencimientos próximos</span>
+                                <span style={{ marginLeft: 8, fontSize: '0.7rem', padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', fontWeight: 700 }}>
                                     {vencen7d.length} esta semana
                                 </span>
                             </h2>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {vencen7d.slice(0, 8).map((sub, i) => {
                                     const days = diffDays(sub.vencimiento)
-                                    const c = SVC_COLOR[sub.servicio || 'CANVA'] || SVC_COLOR['CANVA']
                                     const urgent = days <= 1
                                     return (
                                         <div key={sub.id} style={{
@@ -233,20 +230,20 @@ export default async function HomePage() {
                                             padding: '10px 14px', borderRadius: 12, background: '#111111',
                                             border: urgent ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.06)',
                                         }}>
-                                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: c.bg, color: c.color }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: SVC_COLOR.bg, color: SVC_COLOR.color }}>
                                                 {sub.servicio || 'CANVA'}
                                             </span>
-                                            <span style={{ fontSize: '0.8rem', color: '#eef0ff', flex: 1, fontFamily: 'monospace' }}>
+                                            <span style={{ fontSize: '0.8rem', color: '#ffffff', flex: 1, fontFamily: 'monospace' }}>
                                                 {sub.correo || sub.numero}
                                             </span>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: urgent ? '#f87171' : '#f59e0b', whiteSpace: 'nowrap' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: urgent ? '#f87171' : 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>
                                                 {days === 0 ? '¡Hoy!' : days === 1 ? 'Mañana' : `${days}d · ${formatDate(sub.vencimiento)}`}
                                             </span>
                                         </div>
                                     )
                                 })}
                                 {vencen7d.length > 8 && (
-                                    <Link href="/dashboard/subscriptions" style={{ textAlign: 'center', padding: '8px', fontSize: '0.75rem', color: '#4ade80', textDecoration: 'none' }}>
+                                    <Link href="/dashboard/subscriptions" style={{ textAlign: 'center', padding: '8px', fontSize: '0.75rem', color: GREEN, textDecoration: 'none' }}>
                                         Ver {vencen7d.length - 8} más →
                                     </Link>
                                 )}
@@ -257,18 +254,18 @@ export default async function HomePage() {
                     {/* Pasos de configuración — siempre visible */}
                     <div>
                         <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Sparkles size={16} style={{ color: '#4ade80' }} />
-                            <span style={{ color: '#eef0ff' }}>{allDone ? '¡Configuración completa! 🎉' : `Primeros pasos — ${completedSteps}/${steps.length}`}</span>
+                            <Sparkles size={16} style={{ color: GREEN }} />
+                            <span style={{ color: '#ffffff' }}>{allDone ? '¡Configuración completa! 🎉' : `Primeros pasos — ${completedSteps}/${steps.length}`}</span>
                         </h2>
                         {allDone ? (
                             <div style={{
-                                padding: '20px 24px', borderRadius: 16, background: 'rgba(16,185,129,0.06)',
-                                border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', gap: 16,
+                                padding: '20px 24px', borderRadius: 16, background: 'rgba(37,211,102,0.06)',
+                                border: '1px solid rgba(37,211,102,0.20)', display: 'flex', alignItems: 'center', gap: 16,
                             }}>
-                                <Rocket size={32} style={{ color: '#10b981', flexShrink: 0 }} />
+                                <Rocket size={32} style={{ color: GREEN, flexShrink: 0 }} />
                                 <div>
-                                    <p style={{ fontWeight: 700, color: '#10b981', fontSize: '0.95rem' }}>¡Tu asistente está completamente operativo!</p>
-                                    <p style={{ fontSize: '0.78rem', color: 'rgba(238,240,255,0.5)', marginTop: 4 }}>
+                                    <p style={{ fontWeight: 700, color: GREEN, fontSize: '0.95rem' }}>¡Tu asistente está completamente operativo!</p>
+                                    <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
                                         Tus clientes están siendo atendidos automáticamente. Revisa las métricas de arriba para monitorear tu desempeño.
                                     </p>
                                 </div>
@@ -278,35 +275,35 @@ export default async function HomePage() {
                                 {steps.map((step, i) => (
                                     <div key={i} style={{
                                         display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 14,
-                                        border: step.done ? '1px solid rgba(16,185,129,0.12)' : `1px solid rgba(${step.rgb},0.18)`,
-                                        background: step.done ? 'rgba(16,185,129,0.04)' : `rgba(${step.rgb},0.04)`,
+                                        border: step.done ? '1px solid rgba(37,211,102,0.15)' : '1px solid rgba(37,211,102,0.10)',
+                                        background: step.done ? 'rgba(37,211,102,0.04)' : 'rgba(37,211,102,0.02)',
                                         opacity: step.done ? 0.6 : 1,
                                         transition: 'opacity 0.2s',
                                     }}>
                                         <div style={{
                                             width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                                            background: step.done ? 'rgba(16,185,129,0.15)' : `rgba(${step.rgb},0.12)`,
-                                            border: `2px solid ${step.done ? 'rgba(16,185,129,0.35)' : `rgba(${step.rgb},0.25)`}`,
+                                            background: step.done ? 'rgba(37,211,102,0.12)' : 'rgba(37,211,102,0.08)',
+                                            border: `2px solid ${step.done ? 'rgba(37,211,102,0.30)' : 'rgba(37,211,102,0.18)'}`,
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         }}>
                                             {step.done
-                                                ? <CheckCircle2 size={15} style={{ color: '#10b981' }} />
-                                                : <step.icon size={15} style={{ color: step.color }} />
+                                                ? <CheckCircle2 size={15} style={{ color: GREEN }} />
+                                                : <step.icon size={15} style={{ color: GREEN }} />
                                             }
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#eef0ff', textDecoration: step.done ? 'line-through' : 'none', textDecorationColor: 'rgba(16,185,129,0.4)' }}>
+                                            <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#ffffff', textDecoration: step.done ? 'line-through' : 'none', textDecorationColor: 'rgba(37,211,102,0.4)' }}>
                                                 {step.title}
                                             </p>
-                                            <p style={{ fontSize: '0.72rem', color: 'rgba(238,240,255,0.45)', marginTop: 1 }}>{step.description}</p>
+                                            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.40)', marginTop: 1 }}>{step.description}</p>
                                         </div>
                                         {step.done ? (
-                                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', whiteSpace: 'nowrap' }}>✓ Listo</span>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: GREEN, whiteSpace: 'nowrap' }}>✓ Listo</span>
                                         ) : (
                                             <Link href={step.href} style={{
                                                 flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
-                                                fontSize: '0.73rem', fontWeight: 700, color: step.color, padding: '5px 11px',
-                                                borderRadius: 8, background: `rgba(${step.rgb},0.1)`, border: `1px solid rgba(${step.rgb},0.25)`,
+                                                fontSize: '0.73rem', fontWeight: 700, color: GREEN, padding: '5px 11px',
+                                                borderRadius: 8, background: 'rgba(37,211,102,0.10)', border: '1px solid rgba(37,211,102,0.25)',
                                                 textDecoration: 'none', whiteSpace: 'nowrap',
                                             }}>
                                                 {step.cta} <ArrowRight size={10} />
@@ -326,9 +323,9 @@ export default async function HomePage() {
                     {(recentMessages?.length ?? 0) > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Activity size={16} style={{ color: '#10b981' }} />
-                                <span style={{ color: '#eef0ff' }}>Actividad reciente</span>
-                                <Link href="/dashboard/chats" style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#4ade80', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <Activity size={16} style={{ color: GREEN }} />
+                                <span style={{ color: '#ffffff' }}>Actividad reciente</span>
+                                <Link href="/dashboard/chats" style={{ marginLeft: 'auto', fontSize: '0.72rem', color: GREEN, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
                                     Ver chats <ArrowRight size={11} />
                                 </Link>
                             </h2>
@@ -343,18 +340,18 @@ export default async function HomePage() {
                                             padding: '10px 12px', borderRadius: 12, background: '#111111',
                                             border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none',
                                         }}>
-                                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <MessageSquare size={15} style={{ color: '#10b981' }} />
+                                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(37,211,102,0.10)', border: '1px solid rgba(37,211,102,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <MessageSquare size={15} style={{ color: GREEN }} />
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
-                                                <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#eef0ff', marginBottom: 2 }}>
+                                                <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', marginBottom: 2 }}>
                                                     {chat.contact_name || chat.phone_number}
                                                 </p>
-                                                <p style={{ fontSize: '0.7rem', color: 'rgba(238,240,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {chat.last_message || '—'}
                                                 </p>
                                             </div>
-                                            <span style={{ fontSize: '0.65rem', color: 'rgba(238,240,255,0.3)', flexShrink: 0 }}>{time}</span>
+                                            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{time}</span>
                                         </Link>
                                     )
                                 })}
@@ -366,18 +363,18 @@ export default async function HomePage() {
                     {(recentNotifs?.length ?? 0) > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Bell size={16} style={{ color: '#25D366' }} />
-                                <span style={{ color: '#eef0ff' }}>Notificaciones enviadas (7d)</span>
+                                <Bell size={16} style={{ color: GREEN }} />
+                                <span style={{ color: '#ffffff' }}>Notificaciones enviadas (7d)</span>
                             </h2>
-                            <div style={{ padding: '14px 16px', borderRadius: 16, background: '#111111', border: '1px solid rgba(99,102,241,0.2)' }}>
+                            <div style={{ padding: '14px 16px', borderRadius: 16, background: '#111111', border: '1px solid rgba(37,211,102,0.15)' }}>
                                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                                     {[
-                                        { label: 'Enviadas', val: notifsEnviadas, color: '#10b981' },
-                                        { label: 'Fallidas', val: notifsFallidas, color: '#ef4444' },
+                                        { label: 'Enviadas', val: notifsEnviadas, color: GREEN,     bg: 'rgba(37,211,102,0.08)' },
+                                        { label: 'Fallidas', val: notifsFallidas, color: '#f87171', bg: 'rgba(239,68,68,0.08)'  },
                                     ].map((s, i) => (
-                                        <div key={i} style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 10, background: `rgba(${s.color === '#10b981' ? '16,185,129' : '239,68,68'},0.08)` }}>
+                                        <div key={i} style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 10, background: s.bg }}>
                                             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: s.color }}>{s.val}</div>
-                                            <div style={{ fontSize: '0.65rem', color: 'rgba(238,240,255,0.4)', marginTop: 2 }}>{s.label}</div>
+                                            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{s.label}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -386,15 +383,15 @@ export default async function HomePage() {
                                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                                             <span style={{
                                                 fontSize: '0.6rem', fontWeight: 700, padding: '2px 6px', borderRadius: 5,
-                                                background: n.status === 'sent' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                                                color: n.status === 'sent' ? '#10b981' : '#f87171'
+                                                background: n.status === 'sent' ? 'rgba(37,211,102,0.10)' : 'rgba(239,68,68,0.10)',
+                                                color: n.status === 'sent' ? GREEN : '#f87171'
                                             }}>
                                                 {n.status === 'sent' ? '✓' : '✗'}
                                             </span>
-                                            <span style={{ fontSize: '0.72rem', color: 'rgba(238,240,255,0.55)', flex: 1 }}>
+                                            <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.50)', flex: 1 }}>
                                                 {NOTIF_LABEL[n.message_type] || n.message_type}
                                             </span>
-                                            <span style={{ fontSize: '0.65rem', color: 'rgba(238,240,255,0.3)', fontFamily: 'monospace' }}>
+                                            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', fontFamily: 'monospace' }}>
                                                 {n.phone_number?.slice(-8)}
                                             </span>
                                         </div>
@@ -407,23 +404,23 @@ export default async function HomePage() {
                     {/* Accesos rápidos */}
                     <div>
                         <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <TrendingUp size={16} style={{ color: '#4ade80' }} />
-                            <span style={{ color: '#eef0ff' }}>Accesos rápidos</span>
+                            <TrendingUp size={16} style={{ color: GREEN }} />
+                            <span style={{ color: '#ffffff' }}>Accesos rápidos</span>
                         </h2>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             {[
-                                { Icon: MessageSquare, label: 'Chats', href: '/dashboard/chats', color: '#10b981', rgb: '16,185,129' },
-                                { Icon: Users, label: 'Suscripciones', href: '/dashboard/subscriptions', color: '#25D366', rgb: '139,92,246' },
-                                { Icon: Zap, label: 'Disparadores', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants', color: '#f59e0b', rgb: '245,158,11' },
-                                { Icon: FileText, label: 'Plantillas Meta', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants', color: '#06b6d4', rgb: '6,182,212' },
+                                { Icon: MessageSquare, label: 'Chats',          href: '/dashboard/chats' },
+                                { Icon: Users,         label: 'Suscripciones',  href: '/dashboard/subscriptions' },
+                                { Icon: Zap,           label: 'Disparadores',   href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants' },
+                                { Icon: FileText,      label: 'Plantillas Meta', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants' },
                             ].map((item, i) => (
                                 <Link key={i} href={item.href} style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
                                     padding: '11px 14px', borderRadius: 10, background: '#111111',
                                     border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none',
-                                    fontSize: '0.82rem', fontWeight: 600, color: 'rgba(238,240,255,0.8)',
+                                    fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.75)',
                                 }}>
-                                    <item.Icon size={16} style={{ color: item.color, flexShrink: 0 }} />
+                                    <item.Icon size={16} style={{ color: GREEN, flexShrink: 0 }} />
                                     {item.label}
                                 </Link>
                             ))}

@@ -57,12 +57,12 @@ export function OnboardingWidget() {
             const assistantId = assistants?.[0]?.id
 
             setSteps([
-                { id: 'assistant', done: hasAssistant, title: 'Conecta tu WhatsApp', href: '/dashboard/settings', icon: Bot, color: '#10b981', rgb: '16,185,129' },
-                { id: 'training', done: hasTraining, title: 'Entrena tu asistente IA', href: hasAssistant ? `/dashboard/assistants/${assistantId}/training` : '/dashboard/assistants', icon: BookOpen, color: '#25D366', rgb: '139,92,246' },
-                { id: 'products', done: (products?.length ?? 0) > 0, title: 'Agrega tu catálogo', href: '/dashboard/products', icon: ShoppingBag, color: '#f97316', rgb: '249,115,22' },
-                { id: 'subscriptions', done: (subsCount ?? 0) > 0, title: 'Agrega suscriptores', href: '/dashboard/subscriptions', icon: Users, color: '#25D366', rgb: '99,102,241' },
-                { id: 'flows', done: (flows?.length ?? 0) > 0, title: 'Crea tu primer flujo', href: hasAssistant ? `/dashboard/assistants/${assistantId}/flows` : '/dashboard/assistants', icon: Zap, color: '#06b6d4', rgb: '6,182,212' },
-                { id: 'chats', done: (chatsCount ?? 0) > 0, title: 'Recibe tu primer mensaje', href: '/dashboard/chats', icon: MessageSquare, color: '#f59e0b', rgb: '245,158,11' },
+                { id: 'assistant',     done: hasAssistant,              title: 'Conecta tu WhatsApp',     href: '/dashboard/settings',                                                                       icon: Bot,           color: '#25D366', rgb: '37,211,102' },
+                { id: 'training',      done: hasTraining,               title: 'Entrena tu asistente IA', href: hasAssistant ? `/dashboard/assistants/${assistantId}/training` : '/dashboard/assistants',   icon: BookOpen,      color: '#25D366', rgb: '37,211,102' },
+                { id: 'products',      done: (products?.length ?? 0) > 0, title: 'Agrega tu catálogo',   href: '/dashboard/products',                                                                       icon: ShoppingBag,   color: '#25D366', rgb: '37,211,102' },
+                { id: 'subscriptions', done: (subsCount ?? 0) > 0,      title: 'Agrega suscriptores',    href: '/dashboard/subscriptions',                                                                  icon: Users,         color: '#25D366', rgb: '37,211,102' },
+                { id: 'flows',         done: (flows?.length ?? 0) > 0,  title: 'Crea tu primer flujo',   href: hasAssistant ? `/dashboard/assistants/${assistantId}/flows` : '/dashboard/assistants',      icon: Zap,           color: '#25D366', rgb: '37,211,102' },
+                { id: 'chats',         done: (chatsCount ?? 0) > 0,     title: 'Recibe tu primer mensaje', href: '/dashboard/chats',                                                                        icon: MessageSquare, color: '#25D366', rgb: '37,211,102' },
             ])
             setLoading(false)
         }
@@ -86,14 +86,14 @@ export function OnboardingWidget() {
         <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-2">
             {isOpen && (
                 <div
-                    className="bg-[#0f1120] border border-white/[0.08] rounded-2xl shadow-2xl w-72 overflow-hidden"
-                    style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.15)', animation: 'slideUpFade 0.2s ease-out' }}
+                    className="bg-[#111111] border border-white/[0.08] rounded-2xl shadow-2xl w-72 overflow-hidden"
+                    style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(37,211,102,0.15)', animation: 'slideUpFade 0.2s ease-out' }}
                 >
                     <div className="p-4 border-b border-white/[0.06] flex items-center justify-between"
-                        style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.06))' }}>
+                        style={{ background: 'rgba(37,211,102,0.04)' }}>
                         <div>
-                            <h3 className="text-sm font-bold text-[#eef0ff] flex items-center gap-2">
-                                <Sparkles size={14} className="text-[#4ade80]" />
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <Sparkles size={14} style={{ color: '#25D366' }} />
                                 Configuración inicial
                             </h3>
                             <p className="text-xs text-white/40 mt-0.5">{completedCount} de {totalCount} completados</p>
@@ -109,7 +109,7 @@ export function OnboardingWidget() {
                                 <div className="h-full rounded-full transition-all duration-500"
                                     style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #25D366, #25D366)' }} />
                             </div>
-                            <span className="text-xs font-bold text-[#4ade80]">{pct}%</span>
+                            <span className="text-xs font-bold" style={{ color: '#25D366' }}>{pct}%</span>
                         </div>
                     </div>
 
@@ -117,13 +117,13 @@ export function OnboardingWidget() {
                         {steps.map((step) => (
                             <div key={step.id} className={cn("flex items-center gap-3 p-2.5 rounded-xl transition-opacity", step.done ? "opacity-45" : "")}>
                                 <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                                    style={{ background: step.done ? 'rgba(16,185,129,0.15)' : `rgba(${step.rgb},0.15)`, border: `1.5px solid ${step.done ? 'rgba(16,185,129,0.3)' : `rgba(${step.rgb},0.25)`}` }}>
+                                    style={{ background: 'rgba(37,211,102,0.10)', border: '1.5px solid rgba(37,211,102,0.25)' }}>
                                     {step.done
-                                        ? <CheckCircle2 size={14} className="text-[#10b981]" />
-                                        : <step.icon size={14} style={{ color: step.color }} />
+                                        ? <CheckCircle2 size={14} style={{ color: '#25D366' }} />
+                                        : <step.icon size={14} style={{ color: '#25D366' }} />
                                     }
                                 </div>
-                                <p className="flex-1 text-xs font-medium text-[#eef0ff] truncate">{step.title}</p>
+                                <p className="flex-1 text-xs font-medium text-white truncate">{step.title}</p>
                                 {!step.done && (
                                     <Link
                                         href={step.href}
@@ -149,7 +149,7 @@ export function OnboardingWidget() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold shadow-lg transition-all active:scale-95 hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #25D366, #25D366)', boxShadow: '0 4px 24px rgba(99,102,241,0.45)', color: '#fff' }}
+                style={{ background: '#25D366', boxShadow: '0 4px 24px rgba(37,211,102,0.35)', color: '#000' }}
             >
                 <Sparkles size={15} />
                 Setup {pct}%
