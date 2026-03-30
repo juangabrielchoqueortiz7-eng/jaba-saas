@@ -12,6 +12,7 @@ interface MessageBubbleProps {
     mediaType?: string | null
     onImageClick?: (url: string) => void
     onDelete?: () => void
+    searchHighlight?: string
 }
 
 // Detectar si el mensaje es una lista de planes enviada via WhatsApp interactivo
@@ -19,7 +20,6 @@ function isPlanListMessage(content: string) {
     return content?.startsWith('📋 *Planes Enviados:*') || content?.startsWith('📋 *Lista de Planes')
 }
 
-// Parsear los planes de un mensaje de lista
 function parsePlanLines(content: string): string[] {
     return content
         .split('\n')
@@ -27,12 +27,25 @@ function parsePlanLines(content: string): string[] {
         .map(line => line.replace('• ', '').trim())
 }
 
-// Detectar si el mensaje es un recordatorio de template (aviso de renovación enviado por Meta)
 function isReminderTemplateMessage(content: string) {
     return content?.includes('[Template: recordatorio_renovacion_v1')
 }
 
-export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType, onImageClick, onDelete }: MessageBubbleProps) {
+function highlightText(text: string, highlight: string) {
+    if (!highlight) return <>{text}</>
+    const parts = text.split(new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
+    return (
+        <>
+            {parts.map((part, i) =>
+                part.toLowerCase() === highlight.toLowerCase()
+                    ? <mark key={i} className="bg-[#25D366]/30 text-white rounded-sm px-0.5">{part}</mark>
+                    : part
+            )}
+        </>
+    )
+}
+
+export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType, onImageClick, onDelete, searchHighlight }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false)
     const [imageLoaded, setImageLoaded] = useState(false)
     const [showMenu, setShowMenu] = useState(false)
@@ -41,42 +54,43 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
     const detectedType = mediaType || (mediaUrl ? detectMediaType(mediaUrl, content) : null)
 
-    // === PLAN LIST CARD (interactive WhatsApp list rendered as visual card) ===
+    // === PLAN LIST CARD ===
     if (isPlanListMessage(content)) {
         const plans = parsePlanLines(content)
         return (
             <div className={cn('flex w-full mb-2 group relative', isMine ? 'justify-end' : 'justify-start')}>
                 <div className={cn(
-                    'rounded-xl overflow-hidden shadow-md',
-                    isMine ? 'bg-[#005c4b] rounded-tr-none' : 'bg-[#202c33] rounded-tl-none'
+                    'rounded-xl overflow-hidden border',
+                    isMine
+                        ? 'bg-[#1a1a1a] border-l-2 border-l-[#25D366] border-white/[0.06]'
+                        : 'bg-[#111111] border-white/[0.06]'
                 )} style={{ minWidth: 220, maxWidth: '65%' }}>
                     <div className="px-3 pt-2.5 pb-1">
                         <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-[#00a884] text-xs font-bold uppercase tracking-wide">📋 Lista de Planes Enviada</span>
+                            <span className="text-[#25D366] text-xs font-bold uppercase tracking-wide">📋 Lista de Planes Enviada</span>
                         </div>
                         <div className="space-y-1">
                             {plans.map((plan, i) => {
                                 const [namePart, pricePart] = plan.split(' — ')
                                 return (
-                                    <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-2 py-1.5">
-                                        <span className="text-[#e9edef] text-xs font-medium truncate flex-1">{namePart}</span>
-                                        {pricePart && <span className="text-[#00a884] text-xs font-bold ml-2 shrink-0">{pricePart.split(' ·')[0]}</span>}
+                                    <div key={i} className="flex items-center justify-between bg-white/[0.04] rounded-lg px-2 py-1.5">
+                                        <span className="text-white text-xs font-medium truncate flex-1">{namePart}</span>
+                                        {pricePart && <span className="text-[#25D366] text-xs font-bold ml-2 shrink-0">{pricePart.split(' ·')[0]}</span>}
                                     </div>
                                 )
                             })}
                         </div>
-                        <p className="text-[10px] text-[#8696a0] mt-2">👆 El cliente lo recibió como botones interactivos</p>
+                        <p className="text-[10px] text-white/30 mt-2">👆 El cliente lo recibió como botones interactivos</p>
                     </div>
                     <div className="px-2 pb-1 flex justify-end">
-                        <span className="text-[10px] text-[#ffffff80]">{timestamp}</span>
+                        <span className="text-[10px] text-white/30">{timestamp}</span>
                     </div>
                 </div>
             </div>
         )
     }
 
-
-        const toggleAudio = () => {
+    const toggleAudio = () => {
         if (!audioRef.current) return
         if (audioRef.current.paused) {
             audioRef.current.play()
@@ -92,11 +106,11 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
             className={cn("flex w-full mb-0.5 group relative", isMine ? "justify-end" : "justify-start")}
             onMouseLeave={() => setShowMenu(false)}
         >
-            {/* Context menu (delete) - only for own messages */}
+            {/* Context menu (delete) */}
             {isMine && onDelete && showMenu && (
                 <button
                     onClick={() => { onDelete(); setShowMenu(false); }}
-                    className="absolute right-[calc(65%+8px)] top-1 z-10 bg-[#182229] text-[#8696a0] hover:text-red-400 border border-[#2a3942] rounded-lg px-2 py-1 text-xs flex items-center gap-1 shadow-lg transition-colors"
+                    className="absolute right-[calc(65%+8px)] top-1 z-10 bg-[#0a0a0a] text-white/55 hover:text-red-400 border border-white/[0.06] rounded-lg px-2 py-1 text-xs flex items-center gap-1 shadow-lg transition-colors"
                 >
                     <Trash2 size={12} />
                     Eliminar
@@ -105,11 +119,11 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
             <div
                 className={cn(
-                    "max-w-[65%] rounded-lg shadow-md overflow-hidden relative",
+                    "max-w-[65%] rounded-xl shadow-sm overflow-hidden relative border",
                     isMine
-                        ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none"
-                        : "bg-[#202c33] text-[#e9edef] rounded-tl-none",
-                    mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-1.5"
+                        ? "bg-[#1a1a1a] border-l-2 border-l-[#25D366] border-white/[0.06]"
+                        : "bg-[#111111] border-white/[0.06]",
+                    mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-2"
                 )}
                 onMouseEnter={() => isMine && setShowMenu(true)}
             >
@@ -117,8 +131,8 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                 {mediaUrl && detectedType === 'image' && !imageError && (
                     <div className="relative">
                         {!imageLoaded && (
-                            <div className="flex items-center justify-center w-full h-48 bg-[#111b21]">
-                                <ImageIcon size={32} className="text-[#8696a0] animate-pulse" />
+                            <div className="flex items-center justify-center w-full h-48 bg-black">
+                                <ImageIcon size={32} className="text-white/30 animate-pulse" />
                             </div>
                         )}
                         <img
@@ -137,7 +151,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
                 {/* === IMAGE FALLBACK === */}
                 {mediaUrl && detectedType === 'image' && imageError && (
-                    <div className="flex items-center gap-2 px-3 py-3 text-[#8696a0]">
+                    <div className="flex items-center gap-2 px-3 py-3 text-white/30">
                         <ImageIcon size={18} />
                         <span className="text-xs">Imagen no disponible</span>
                     </div>
@@ -150,16 +164,16 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                             onClick={toggleAudio}
                             className={cn(
                                 "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                                isMine ? "bg-[#00a884] hover:bg-[#06cf9c]" : "bg-[#3b4a54] hover:bg-[#4a5c68]"
+                                isMine ? "bg-[#25D366] hover:bg-[#1fad52]" : "bg-white/[0.10] hover:bg-white/[0.15]"
                             )}
                         >
                             {isPlaying ? (
                                 <span className="flex gap-0.5">
-                                    <span className="w-1 h-4 bg-white rounded-sm" />
-                                    <span className="w-1 h-4 bg-white rounded-sm" />
+                                    <span className="w-1 h-4 bg-black rounded-sm" />
+                                    <span className="w-1 h-4 bg-black rounded-sm" />
                                 </span>
                             ) : (
-                                <Play size={16} className="ml-0.5 text-white" />
+                                <Play size={16} className={cn("ml-0.5", isMine ? "text-black" : "text-white")} />
                             )}
                         </button>
                         <div className="flex-1 min-w-0">
@@ -169,21 +183,17 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                                 onEnded={() => setIsPlaying(false)}
                                 className="hidden"
                             />
-                            {/* Waveform visual placeholder */}
                             <div className="flex items-center gap-0.5 h-6">
                                 {Array.from({ length: 30 }).map((_, i) => (
                                     <div
                                         key={i}
-                                        className={cn(
-                                            "rounded-full w-0.5",
-                                            isMine ? "bg-[#ffffff60]" : "bg-[#aebac160]"
-                                        )}
+                                        className={cn("rounded-full w-0.5", isMine ? "bg-white/40" : "bg-white/20")}
                                         style={{ height: `${6 + Math.sin(i * 0.7) * 6 + Math.cos(i * 1.3) * 3}px` }}
                                     />
                                 ))}
                             </div>
                         </div>
-                        <Mic size={12} className="flex-shrink-0 text-[#8696a0]" />
+                        <Mic size={12} className="flex-shrink-0 text-white/30" />
                     </div>
                 )}
 
@@ -193,7 +203,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                         <video
                             src={mediaUrl}
                             controls
-                            className="max-w-full max-h-[400px] rounded-lg"
+                            className="max-w-full max-h-[400px] rounded-xl"
                             preload="metadata"
                         />
                     </div>
@@ -205,42 +215,41 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                         href={mediaUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-colors"
                     >
                         <div className={cn(
                             "w-10 h-10 rounded-lg flex items-center justify-center",
-                            isMine ? "bg-[#00a884]" : "bg-[#3b4a54]"
+                            isMine ? "bg-[#25D366]" : "bg-white/[0.10]"
                         )}>
-                            <FileText size={20} className="text-white" />
+                            <FileText size={20} className={isMine ? "text-black" : "text-white"} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{content || 'Documento'}</p>
-                            <p className="text-[10px] text-[#8696a0]">Toca para abrir</p>
+                            <p className="text-sm font-medium truncate text-white">{content || 'Documento'}</p>
+                            <p className="text-[10px] text-white/30">Toca para abrir</p>
                         </div>
                     </a>
                 )}
 
                 {/* Text content */}
                 {content && detectedType !== 'document' && (
-                    <div className={cn(mediaUrl && detectedType !== 'audio' ? "px-3 py-1.5" : "")}>
-                        <p className="whitespace-pre-wrap break-words text-[14.2px] leading-[19px]">{content}</p>
+                    <div className={cn(mediaUrl && detectedType !== 'audio' ? "px-3 py-2" : "")}>
+                        <p className="whitespace-pre-wrap break-words text-[14px] leading-[19px] text-white">
+                            {searchHighlight ? highlightText(content, searchHighlight) : content}
+                        </p>
                     </div>
                 )}
 
                 {/* Timestamp & status */}
-                <div className={cn(
-                    "text-[11px] flex items-center justify-end gap-1 px-2 pb-1",
-                    "text-[#ffffff99]"
-                )}>
+                <div className="text-[11px] flex items-center justify-end gap-1 px-2 pb-1 text-white/30">
                     <span>{timestamp}</span>
                     {isMine && (
                         <span className="flex items-center ml-0.5">
                             {status === 'read' ? (
-                                <CheckCheck size={16} className="text-[#53bdeb]" />
+                                <CheckCheck size={16} className="text-[#25D366]" />
                             ) : status === 'delivered' ? (
-                                <CheckCheck size={16} className="text-[#ffffff99]" />
+                                <CheckCheck size={16} className="text-white/30" />
                             ) : (
-                                <Check size={16} className="text-[#ffffff99]" />
+                                <Check size={16} className="text-white/30" />
                             )}
                         </span>
                     )}

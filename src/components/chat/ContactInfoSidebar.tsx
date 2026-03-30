@@ -1,0 +1,213 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { X, Phone, Mail, Calendar, Package, ShoppingBag, User, Users } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
+import { cn } from '@/lib/utils'
+import { CRM_TAGS } from './ConversationList'
+
+interface Subscription {
+    id: string
+    correo: string
+    numero: string
+    vencimiento: string
+    estado: string
+    servicio: string
+    equipo?: string
+}
+
+interface Order {
+    id: string
+    created_at: string
+    plan_name: string
+    amount: number
+    customer_email?: string
+    status: string
+}
+
+interface ContactInfoSidebarProps {
+    phoneNumber: string
+    chatId: string
+    contactName: string
+    tags?: string[]
+    onClose: () => void
+}
+
+const ORDER_STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+    pending_email: { label: 'Pendiente email', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    pending_payment: { label: 'Pago pendiente', color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    pending_delivery: { label: 'Por entregar', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    delivered: { label: 'Entregado', color: 'text-[#25D366]', bg: 'bg-[#25D366]/10' },
+    cancelled: { label: 'Cancelado', color: 'text-red-400', bg: 'bg-red-500/10' },
+}
+
+const SUB_STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+    activo: { label: 'Activo', color: 'text-[#25D366]', bg: 'bg-[#25D366]/10' },
+    vencido: { label: 'Vencido', color: 'text-red-400', bg: 'bg-red-500/10' },
+    suspendido: { label: 'Suspendido', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+}
+
+function formatDate(dateStr: string) {
+    if (!dateStr) return '—'
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onClose }: ContactInfoSidebarProps) {
+    const [supabase] = useState(() => createClient())
+    const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+    const [orders, setOrders] = useState<Order[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true)
+            const [subsRes, ordersRes] = await Promise.all([
+                supabase
+                    .from('subscriptions')
+                    .select('id, correo, numero, vencimiento, estado, servicio, equipo')
+                    .eq('numero', phoneNumber),
+                supabase
+                    .from('orders')
+                    .select('id, created_at, plan_name, amount, customer_email, status')
+                    .eq('chat_id', chatId)
+                    .order('created_at', { ascending: false })
+                    .limit(10)
+            ])
+            if (subsRes.data) setSubscriptions(subsRes.data)
+            if (ordersRes.data) setOrders(ordersRes.data)
+            setLoading(false)
+        }
+        fetchData()
+    }, [phoneNumber, chatId, supabase])
+
+    return (
+        <div className="w-72 border-l border-white/[0.06] bg-[#0a0a0a] flex flex-col h-full overflow-y-auto shrink-0">
+            {/* Header */}
+            <div className="p-4 border-b border-white/[0.06] bg-[#111111] flex items-center justify-between shrink-0">
+                <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+                    <User size={14} className="text-[#25D366]" />
+                    Info del contacto
+                </h3>
+                <button onClick={onClose} className="text-white/30 hover:text-white transition-colors">
+                    <X size={16} />
+                </button>
+            </div>
+
+            {/* Contact header */}
+            <div className="p-4 border-b border-white/[0.06]">
+                <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="w-16 h-16 rounded-full bg-[#25D366] flex items-center justify-center text-black font-bold text-2xl">
+                        {contactName ? contactName.charAt(0).toUpperCase() : '#'}
+                    </div>
+                    <div>
+                        <p className="text-white font-semibold text-base">{contactName}</p>
+                        <p className="text-white/30 text-xs flex items-center justify-center gap-1 mt-0.5">
+                            <Phone size={11} /> {phoneNumber}
+                        </p>
+                    </div>
+                    {tags && tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-center">
+                            {tags.map(tag => {
+                                const tc = CRM_TAGS[tag]
+                                if (!tc) return null
+                                return (
+                                    <span key={tag} className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", tc.bg, tc.color)}>
+                                        {tc.icon} {tc.label}
+                                    </span>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-[#25D366] border-t-transparent rounded-full animate-spin" />
+                </div>
+            ) : (
+                <div className="flex-1 p-3 space-y-3">
+                    {/* Suscripciones */}
+                    <div>
+                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <Package size={10} /> Suscripciones ({subscriptions.length})
+                        </p>
+                        {subscriptions.length === 0 ? (
+                            <p className="text-white/20 text-xs text-center py-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                                Sin suscripciones
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {subscriptions.map(sub => {
+                                    const statusInfo = SUB_STATUS_LABELS[sub.estado?.toLowerCase()] || { label: sub.estado, color: 'text-white/55', bg: 'bg-white/[0.06]' }
+                                    return (
+                                        <div key={sub.id} className="bg-[#111111] border border-white/[0.06] rounded-xl p-3 space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-white font-semibold text-xs truncate flex-1">{sub.servicio || '—'}</p>
+                                                <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium ml-2", statusInfo.bg, statusInfo.color)}>
+                                                    {statusInfo.label}
+                                                </span>
+                                            </div>
+                                            {sub.vencimiento && (
+                                                <p className="text-white/30 text-[11px] flex items-center gap-1">
+                                                    <Calendar size={10} /> Vence: {formatDate(sub.vencimiento)}
+                                                </p>
+                                            )}
+                                            {sub.correo && (
+                                                <p className="text-white/30 text-[11px] flex items-center gap-1 truncate">
+                                                    <Mail size={10} /> {sub.correo}
+                                                </p>
+                                            )}
+                                            {sub.equipo && (
+                                                <p className="text-white/30 text-[11px] flex items-center gap-1">
+                                                    <Users size={10} /> {sub.equipo}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Pedidos */}
+                    <div>
+                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <ShoppingBag size={10} /> Pedidos ({orders.length})
+                        </p>
+                        {orders.length === 0 ? (
+                            <p className="text-white/20 text-xs text-center py-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                                Sin pedidos
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {orders.map(order => {
+                                    const statusInfo = ORDER_STATUS_LABELS[order.status] || { label: order.status, color: 'text-white/55', bg: 'bg-white/[0.06]' }
+                                    return (
+                                        <div key={order.id} className="bg-[#111111] border border-white/[0.06] rounded-xl p-3 space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-white font-semibold text-xs truncate flex-1">{order.plan_name || '—'}</p>
+                                                {order.amount != null && (
+                                                    <span className="text-[#25D366] text-xs font-bold ml-2 shrink-0">
+                                                        Bs {order.amount}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium inline-block", statusInfo.bg, statusInfo.color)}>
+                                                {statusInfo.label}
+                                            </span>
+                                            <p className="text-white/30 text-[11px] flex items-center gap-1">
+                                                <Calendar size={10} /> {formatDate(order.created_at)}
+                                            </p>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}

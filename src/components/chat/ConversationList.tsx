@@ -69,19 +69,25 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
 
         fetchChats()
 
-        const pollInterval = setInterval(fetchChats, 3000)
-
+        // Solo Realtime — sin polling de 3s
         const channel = supabase
             .channel('chats_realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => {
-                fetchChats()
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    setChats(prev => [payload.new as Chat, ...prev])
+                } else if (payload.eventType === 'UPDATE') {
+                    setChats(prev =>
+                        prev
+                            .map(c => c.id === (payload.new as Chat).id ? { ...c, ...payload.new } : c)
+                            .sort((a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime())
+                    )
+                } else if (payload.eventType === 'DELETE') {
+                    setChats(prev => prev.filter(c => c.id !== (payload.old as any).id))
+                }
             })
             .subscribe()
 
-        return () => {
-            clearInterval(pollInterval)
-            supabase.removeChannel(channel)
-        }
+        return () => { supabase.removeChannel(channel) }
     }, [supabase])
 
     const handleSelectChat = (chatId: string) => {
@@ -102,56 +108,54 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
         const matchesSearch =
             (chat.contact_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (chat.phone_number || '').includes(searchTerm)
-
-        const matchesTag = !activeTagFilter ||
-            (chat.tags && chat.tags.includes(activeTagFilter))
-
+        const matchesTag = !activeTagFilter || (chat.tags && chat.tags.includes(activeTagFilter))
         const matchesArchive = showArchived ? chat.archived === true : !chat.archived
-
         return matchesSearch && matchesTag && matchesArchive
     })
 
     const getStatusIcon = (status?: string) => {
         switch (status) {
-            case 'read':
-                return <CheckCheck size={16} className="text-blue-400 flex-shrink-0" />
-            case 'delivered':
-                return <CheckCheck size={16} className="text-slate-400 flex-shrink-0" />
-            default:
-                return <Check size={16} className="text-slate-400 flex-shrink-0" />
+            case 'read': return <CheckCheck size={16} className="text-[#25D366] flex-shrink-0" />
+            case 'delivered': return <CheckCheck size={16} className="text-white/30 flex-shrink-0" />
+            default: return <Check size={16} className="text-white/30 flex-shrink-0" />
         }
     }
 
-    // Count chats per tag for filter menu
     const tagCounts = Object.keys(CRM_TAGS).reduce((acc, tag) => {
         acc[tag] = chats.filter(c => c.tags?.includes(tag)).length
         return acc
     }, {} as Record<string, number>)
 
     return (
-        <div className="w-80 border-r border-[#2a3942] bg-[#111b21] flex flex-col h-full">
+        <div className="w-full border-r border-white/[0.06] bg-black flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b border-[#2a3942] bg-[#202c33]">
+            <div className="p-4 border-b border-white/[0.06] bg-[#111111]">
                 <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-bold text-[#e9edef]">Chats</h2>
-                    <button className="bg-[#00a884] hover:bg-[#06cf9c] text-white p-2 rounded-lg transition-colors">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5">
+                    <h2 className="text-lg font-bold text-white">Chats</h2>
+                    <button className="bg-[#25D366] hover:bg-[#1fad52] text-black p-2 rounded-full transition-colors">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                     </button>
                 </div>
 
                 {/* Tabs: Chats / Archivados */}
-                <div className="flex gap-1 mb-3">
+                <div className="flex gap-1 mb-3 bg-white/[0.04] rounded-xl p-1">
                     <button
                         onClick={() => setShowArchived(false)}
-                        className={cn("flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors", !showArchived ? "bg-[#00a884] text-white" : "text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]")}
+                        className={cn(
+                            "flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors",
+                            !showArchived ? "bg-[#25D366] text-black" : "text-white/55 hover:text-white"
+                        )}
                     >
                         Chats
                     </button>
                     <button
                         onClick={() => setShowArchived(true)}
-                        className={cn("flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors flex items-center justify-center gap-1", showArchived ? "bg-[#00a884] text-white" : "text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]")}
+                        className={cn(
+                            "flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors flex items-center justify-center gap-1",
+                            showArchived ? "bg-[#25D366] text-black" : "text-white/55 hover:text-white"
+                        )}
                     >
                         <Archive size={12} /> Archivados
                     </button>
@@ -159,12 +163,12 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
 
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8696a0]" size={16} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={15} />
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-[#2a3942] border-none rounded-lg py-2 pl-10 pr-4 text-sm text-[#e9edef] focus:outline-none focus:ring-1 focus:ring-[#00a884] transition-all placeholder:text-[#8696a0]"
+                            className="w-full bg-white/[0.06] border border-white/[0.06] rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#25D366] transition-all placeholder:text-white/30"
                             placeholder="Buscar chats..."
                         />
                     </div>
@@ -172,36 +176,35 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                         <button
                             onClick={() => setShowFilterMenu(!showFilterMenu)}
                             className={cn(
-                                "p-2 rounded-lg transition-colors",
+                                "p-2 rounded-xl transition-colors border",
                                 activeTagFilter
-                                    ? "bg-[#00a884] text-white"
-                                    : "bg-[#2a3942] hover:bg-[#3b4a54] text-[#aebac1]"
+                                    ? "bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20"
+                                    : "bg-white/[0.06] hover:bg-white/[0.10] text-white/55 border-white/[0.06]"
                             )}
                         >
-                            <Filter size={18} />
+                            <Filter size={16} />
                         </button>
 
-                        {/* Filter dropdown */}
                         {showFilterMenu && (
-                            <div className="absolute right-0 top-full mt-2 w-52 bg-[#233138] border border-[#2a3942] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
+                            <div className="absolute right-0 top-full mt-2 w-52 bg-[#141414] border border-white/[0.06] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
                                 <button
                                     onClick={() => { setActiveTagFilter(null); setShowFilterMenu(false) }}
                                     className={cn(
-                                        "w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-[#2a3942] transition-colors",
-                                        !activeTagFilter ? "text-[#00a884] font-medium" : "text-[#e9edef]"
+                                        "w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-white/[0.06] transition-colors",
+                                        !activeTagFilter ? "text-[#25D366] font-medium" : "text-white"
                                     )}
                                 >
                                     <Tag size={14} />
                                     Todos ({chats.length})
                                 </button>
-                                <div className="border-t border-[#2a3942] my-1" />
+                                <div className="border-t border-white/[0.06] my-1" />
                                 {Object.entries(CRM_TAGS).map(([key, tag]) => (
                                     <button
                                         key={key}
                                         onClick={() => { setActiveTagFilter(key); setShowFilterMenu(false) }}
                                         className={cn(
-                                            "w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-[#2a3942] transition-colors",
-                                            activeTagFilter === key ? `${tag.color} font-medium` : "text-[#e9edef]"
+                                            "w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-white/[0.06] transition-colors",
+                                            activeTagFilter === key ? `${tag.color} font-medium` : "text-white"
                                         )}
                                     >
                                         <span className="flex items-center gap-2">
@@ -220,7 +223,6 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                     </div>
                 </div>
 
-                {/* Active filter indicator */}
                 {activeTagFilter && CRM_TAGS[activeTagFilter] && (
                     <div className="mt-2 flex items-center gap-2">
                         <span className={cn("text-xs px-2 py-1 rounded-full flex items-center gap-1", CRM_TAGS[activeTagFilter].bg, CRM_TAGS[activeTagFilter].color)}>
@@ -229,7 +231,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                                 <X size={12} />
                             </button>
                         </span>
-                        <span className="text-xs text-[#8696a0]">{filteredChats.length} chats</span>
+                        <span className="text-xs text-white/30">{filteredChats.length} chats</span>
                     </div>
                 )}
             </div>
@@ -239,16 +241,16 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
                     <div
-                        className="fixed z-50 bg-[#233138] border border-[#2a3942] rounded-xl shadow-xl py-1 w-44"
+                        className="fixed z-50 bg-[#141414] border border-white/[0.06] rounded-xl shadow-xl py-1 w-44"
                         style={{ left: contextMenu.x, top: contextMenu.y }}
                     >
                         <button
                             onClick={() => handleArchive(contextMenu.chatId, !contextMenu.archived)}
-                            className="w-full px-4 py-2.5 text-left text-sm text-[#e9edef] hover:bg-[#2a3942] flex items-center gap-2 transition-colors"
+                            className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/[0.06] flex items-center gap-2 transition-colors"
                         >
                             {contextMenu.archived
-                                ? <><ArchiveRestore size={14} className="text-[#00a884]" /> Desarchivar</>
-                                : <><Archive size={14} className="text-[#8696a0]" /> Archivar</>
+                                ? <><ArchiveRestore size={14} className="text-[#25D366]" /> Desarchivar</>
+                                : <><Archive size={14} className="text-white/55" /> Archivar</>
                             }
                         </button>
                     </div>
@@ -258,14 +260,14 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
             {/* Chat List */}
             <div className="flex-1 overflow-y-auto">
                 {errorMsg && (
-                    <div className="p-4 bg-red-900/50 text-red-200 text-xs m-2 rounded border border-red-800">
+                    <div className="p-4 bg-red-900/20 text-red-300 text-xs m-2 rounded-xl border border-red-500/20">
                         <p><strong>Error:</strong> {errorMsg}</p>
                     </div>
                 )}
-                {loading && <p className="text-center text-[#8696a0] mt-4">Cargando...</p>}
+                {loading && <p className="text-center text-white/30 mt-6 text-sm">Cargando...</p>}
 
                 {!loading && chats.length === 0 && (
-                    <p className="text-center text-[#8696a0] mt-4 px-4 text-sm">
+                    <p className="text-center text-white/30 mt-6 px-4 text-sm">
                         No hay chats aún. Envía un mensaje a tu número de WhatsApp para empezar.
                     </p>
                 )}
@@ -279,38 +281,37 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                             setContextMenu({ chatId: chat.id, x: e.clientX, y: e.clientY, archived: !!chat.archived })
                         }}
                         className={cn(
-                            "px-3 py-3 cursor-pointer border-b border-[#222d34] transition-colors hover:bg-[#2a3942]",
-                            activeChatId === chat.id && "bg-[#2a3942]"
+                            "px-4 py-3 cursor-pointer border-b border-white/[0.04] transition-colors hover:bg-white/[0.04]",
+                            activeChatId === chat.id && "bg-white/[0.06]"
                         )}
                     >
                         <div className="flex gap-3">
                             {/* Avatar */}
-                            <div className="w-12 h-12 rounded-full bg-[#6b7b8d] flex items-center justify-center text-white font-bold shrink-0 text-lg">
+                            <div className="w-11 h-11 rounded-full bg-[#25D366] flex items-center justify-center text-black font-bold shrink-0 text-base">
                                 {chat.contact_name ? chat.contact_name.charAt(0).toUpperCase() : '#'}
                             </div>
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start mb-0.5">
-                                    <h3 className="font-medium text-[#e9edef] truncate text-[15px]">
+                                    <h3 className="font-semibold text-white truncate text-[14px]">
                                         {chat.contact_name || chat.phone_number}
                                     </h3>
                                     <span className={cn(
-                                        "text-xs whitespace-nowrap ml-2",
-                                        chat.unread_count > 0 ? "text-[#00a884]" : "text-[#8696a0]"
+                                        "text-[11px] whitespace-nowrap ml-2",
+                                        chat.unread_count > 0 ? "text-[#25D366]" : "text-white/30"
                                     )}>
                                         {formatChatListTime(chat.last_message_time)}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    {/* Delivery status checkmarks */}
                                     {getStatusIcon(chat.last_message_status)}
-                                    <p className="text-sm text-[#8696a0] truncate">{chat.last_message}</p>
+                                    <p className="text-[13px] text-white/55 truncate">{chat.last_message}</p>
                                 </div>
 
                                 {/* CRM Tags */}
                                 {chat.tags && chat.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-1">
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
                                         {chat.tags.slice(0, 3).map(tag => {
                                             const tagConfig = CRM_TAGS[tag]
                                             if (!tagConfig) return null
@@ -328,7 +329,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                                             )
                                         })}
                                         {chat.tags.length > 3 && (
-                                            <span className="text-[10px] text-[#8696a0]">+{chat.tags.length - 3}</span>
+                                            <span className="text-[10px] text-white/30">+{chat.tags.length - 3}</span>
                                         )}
                                     </div>
                                 )}
@@ -337,7 +338,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                             {/* Unread badge */}
                             {chat.unread_count > 0 && (
                                 <div className="flex flex-col justify-center">
-                                    <div className="w-5 h-5 bg-[#00a884] rounded-full flex items-center justify-center text-xs font-bold text-white">
+                                    <div className="min-w-5 h-5 px-1 bg-[#25D366] rounded-full flex items-center justify-center text-[11px] font-bold text-black">
                                         {chat.unread_count}
                                     </div>
                                 </div>
