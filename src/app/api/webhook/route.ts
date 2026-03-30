@@ -560,7 +560,7 @@ export async function POST(request: Request) {
 
                             // ===== BUSCAR SUSCRIPCIÓN ANTES DE CALCULAR FECHA =====
                             // Necesitamos saber el vencimiento actual para extender desde ahí si sigue vigente
-                            console.log(`[AUTO-RENEWAL] orderEmail=${orderEmail}, userId=${tenantUserId}, phone=${phoneNumber}`);
+                            console.log(`[AUTO-RENEWAL] orderEmail=${redactEmail(orderEmail)}, userId=${tenantUserId}, phone=${redactPhone(phoneNumber)}`);
 
                             let targetSub: { id: string; vencimiento: string; correo: string } | null = null;
 
@@ -575,9 +575,9 @@ export async function POST(request: Request) {
                                     .maybeSingle();
                                 if (subByEmail) {
                                     targetSub = subByEmail;
-                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción encontrada por email exacto: id=${subByEmail.id}, correo=${subByEmail.correo}`);
+                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción encontrada por email exacto: id=${subByEmail.id}, correo=${redactEmail(subByEmail.correo)}`);
                                 } else {
-                                    console.log(`[AUTO-RENEWAL] ⚠️ No encontrada por email ${orderEmail}, intentando por teléfono`);
+                                    console.log(`[AUTO-RENEWAL] ⚠️ No encontrada por email ${redactEmail(orderEmail)}, intentando por teléfono`);
                                 }
                             }
 
@@ -594,9 +594,9 @@ export async function POST(request: Request) {
                                     .maybeSingle();
                                 if (subByPhone) {
                                     targetSub = subByPhone;
-                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción encontrada por teléfono: id=${subByPhone.id}, correo=${subByPhone.correo}`);
+                                    console.log(`[AUTO-RENEWAL] ✅ Suscripción encontrada por teléfono: id=${subByPhone.id}, correo=${redactEmail(subByPhone.correo)}`);
                                 } else {
-                                    console.error(`[AUTO-RENEWAL] ❌ No se encontró suscripción para phone=${phoneNumber}, email=${orderEmail}`);
+                                    console.error(`[AUTO-RENEWAL] ❌ No se encontró suscripción para phone=${redactPhone(phoneNumber)}, email=${redactEmail(orderEmail)}`);
                                 }
                             }
 
@@ -953,7 +953,7 @@ export async function POST(request: Request) {
                         return new NextResponse('EVENT_RECEIVED', { status: 200 });
                     }
 
-                    console.log(`[Renewal] Orden creada: ${product.name} (Bs ${product.price}) para ${customerEmail || phoneNumber} (inactivo: ${isInactiveClient})`);
+                    console.log(`[Renewal] Orden creada: ${product.name} (Bs ${product.price}) para ${customerEmail ? redactEmail(customerEmail) : redactPhone(phoneNumber)} (inactivo: ${isInactiveClient})`);
 
                     // Solo enviar QR directamente si el cliente está ACTIVO (o es nuevo sin correo)
                     // Para inactivos ya se envió el mensaje de confirmación arriba
@@ -998,7 +998,7 @@ export async function POST(request: Request) {
 
                 // --- PROCESAR COMPROBANTE DE PAGO ---
                 if (isReceipt && chatId) {
-                    console.log(`[Sales] Posible comprobante detectado de ${phoneNumber}`);
+                    console.log(`[Sales] Posible comprobante detectado de ${redactPhone(phoneNumber)}`);
 
                     // Buscar pedido activo con status pending_payment
                     const { data: activeOrder } = await supabaseAdmin
@@ -1099,7 +1099,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                         // --- RENOVACIÓN: REVISIÓN MANUAL (ya no auto-renueva) ---
                         if (activeOrder.product === 'renewal') {
-                            console.log(`[Renewal] Comprobante recibido para revisión manual de ${phoneNumber}`);
+                            console.log(`[Renewal] Comprobante recibido para revisión manual de ${redactPhone(phoneNumber)}`);
 
                             // PASO 1: Buscar suscripción del cliente primero (necesitamos el vencimiento actual)
                             const cleanPhone = phoneNumber.replace(/^591/, '');
@@ -1163,7 +1163,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // ============================================================
                             // Guard 1: Si el pedido ya fue procesado antes, rechazar comprobante duplicado
                             if (activeOrder.status === 'completed') {
-                                console.log(`[Renewal] ⚠️ Orden ${activeOrder.id} ya completada. Comprobante duplicado de ${phoneNumber}`);
+                                console.log(`[Renewal] ⚠️ Orden ${activeOrder.id} ya completada. Comprobante duplicado de ${redactPhone(phoneNumber)}`);
                                 const dupMsg = `ℹ️ Tu renovación para el plan *${activeOrder.plan_name}* ya fue procesada anteriormente. Si tienes dudas, comunícate con nosotros.`;
                                 await sendWhatsAppMessage(phoneNumber, dupMsg, tenantToken, phoneId);
                                 await supabaseAdmin.from('messages').insert({ chat_id: chatId, is_from_me: true, content: dupMsg, status: 'delivered' });
@@ -1188,7 +1188,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // ============================================================
                             // PASO 3: RENOVACIÓN AUTOMÁTICA INMEDIATA
                             // ============================================================
-                            console.log(`[Renewal] ✅ Procesando renovación automática para ${phoneNumber} → ${newExpStr}`);
+                            console.log(`[Renewal] ✅ Procesando renovación automática para ${redactPhone(phoneNumber)} → ${newExpStr}`);
 
                             // Obtener nombre del negocio para el mensaje
                             const { data: bizCreds } = await supabaseAdmin
@@ -1220,7 +1220,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                     console.error(`[Renewal] ❌ Error actualizando suscripción:`, updateErr);
                                 }
                             } else {
-                                console.warn(`[Renewal] ⚠️ No se encontró suscripción para ${phoneNumber}. Se registra para supervisión admin.`);
+                                console.warn(`[Renewal] ⚠️ No se encontró suscripción para ${redactPhone(phoneNumber)}. Se registra para supervisión admin.`);
                             }
 
                             // Actualizar orden a COMPLETED
@@ -1287,7 +1287,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // CRM: Auto-tag payment
                             if (chatId) {
                                 await updateChatTags(chatId, ['pago'], ['renovacion_pendiente', 'vencido', 'nuevo', 'cliente_potencial']);
-                                console.log(`[CRM] 🏷️ Auto-tagged pago: ${phoneNumber}`);
+                                console.log(`[CRM] 🏷️ Auto-tagged pago: ${redactPhone(phoneNumber)}`);
                             }
 
                             return new NextResponse('EVENT_RECEIVED', { status: 200 });
@@ -1396,7 +1396,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                 // Promisify the AI process to still return a NextResponse *after* processing or backgrounding
                 // In serverless, background processes might be killed, so we must `await` the timeout to ensure execution.
-                console.log(`[Buffer] Mensaje de ${phoneNumber} pausado por 6s para juntar más texto... (Actual: "${currentBuffer.text.replace(/\n/g, ' ')}")`)
+                console.log(`[Buffer] Mensaje de ${redactPhone(phoneNumber)} pausado por 6s para juntar más texto... (Actual: "${currentBuffer.text.replace(/\n/g, ' ')}")`)
 
                 await new Promise(resolve => {
                     const timer = setTimeout(async () => {
@@ -1410,7 +1410,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                         }
 
                         const finalMessageText = finalBuffer.text;
-                        console.log(`[Buffer] Ejecutando IA para ${phoneNumber} con texto consolidado: "${finalMessageText.replace(/\n/g, ' ')}"`)
+                        console.log(`[Buffer] Ejecutando IA para ${redactPhone(phoneNumber)} con texto consolidado: "${finalMessageText.replace(/\n/g, ' ')}"`)
 
                         try {
                             // D. Generar Respuesta con Gemini (con Function Calling para ventas)
@@ -1461,7 +1461,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                             // ====== DETECTAR TODAS LAS SUSCRIPCIONES DEL CLIENTE ======
                             const cleanPhoneForLookup = phoneNumber.replace(/^591/, '');
-                            console.log(`[AI] Buscando suscripciones: phone=${phoneNumber}, clean=${cleanPhoneForLookup}, userId=${tenantUserId}`);
+                            console.log(`[AI] Buscando suscripciones: phone=${redactPhone(phoneNumber)}, clean=${redactPhone(cleanPhoneForLookup)}, userId=${tenantUserId}`);
 
                             // Buscar TODAS las suscripciones activas del número (solo con correo válido)
                             const { data: allExistingActiveSubs } = await supabaseAdmin
@@ -1529,7 +1529,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             if (existingSub) {
                                 const activeCnt = allExistingActiveSubs?.length || 0;
                                 const totalCnt = allSubs.length;
-                                console.log(`[AI] Cliente detectado: ${phoneNumber} → ${totalCnt} suscripciones (${activeCnt} activas)`);
+                                console.log(`[AI] Cliente detectado: ${redactPhone(phoneNumber)} → ${totalCnt} suscripciones (${activeCnt} activas)`);
 
                                 // Construir lista de TODAS las cuentas para el contexto con DÍAS PRECALCULADOS
                                 const nowBol = new Date(Date.now() - 4 * 60 * 60 * 1000);
@@ -1904,7 +1904,7 @@ ${customTrainingSection}`
                                     }
 
                                     if (name === 'show_account_selection') {
-                                        console.log(`[AI] Ejecutando show_account_selection para el número: ${phoneNumber}`);
+                                        console.log(`[AI] Ejecutando show_account_selection para el número: ${redactPhone(phoneNumber)}`);
 
                                         // Obtener todas las suscripciones del cliente
                                         const cleanPhoneForLookup = phoneNumber.replace(/^591/, '');
@@ -2056,7 +2056,7 @@ ${customTrainingSection}`
                                                     updated_at: new Date().toISOString()
                                                 }).eq('id', pendingOrder.id)
 
-                                                console.log(`[SALES] Email registrado: ${email} para pedido ${pendingOrder.id}`)
+                                                console.log(`[SALES] Email registrado: ${redactEmail(email)} para pedido ${pendingOrder.id}`)
                                                 // DEBUG: Marcar éxito en chat
                                                 await supabaseAdmin.from('chats').update({
                                                     last_message: `✅ Email vinculado: ${email}`
@@ -2226,7 +2226,7 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                                 }).eq('id', chatId)
                             }
 
-                            console.log(`[AI] Respondió a ${phoneNumber}: "${aiResponseText.substring(0, 50)}..."`)
+                            console.log(`[AI] Respondió a ${redactPhone(phoneNumber)}: "${aiResponseText.substring(0, 50)}..."`)
 
                         } catch (aiError) {
                             console.error('[AI] Error procesando consolidado:', aiError);

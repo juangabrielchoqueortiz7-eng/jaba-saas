@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
     serverActions: {
-      allowedOrigins: ["jaba-test-client.loca.lt", "localhost:3000"]
+      allowedOrigins: ["localhost:3000"]
     }
   }
 };

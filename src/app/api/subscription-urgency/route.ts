@@ -2,6 +2,13 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
 
+// Helpers para ocultar datos sensibles en logs
+function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
+function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
+function timingSafeCompare(a: string, b: string): boolean {
+    try { const bA = Buffer.from(a), bB = Buffer.from(b); if (bA.length !== bB.length) return false; const { timingSafeEqual } = require('crypto'); return timingSafeEqual(bA, bB) } catch { return false }
+}
+
 const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!serviceRoleKey) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
 
@@ -78,7 +85,7 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret || !timingSafeCompare(authHeader ?? '', `Bearer ${cronSecret}`)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -131,7 +138,7 @@ async function processUrgency() {
         if (expDate) {
             const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
             if (diffDays > 7) {
-                console.log(`[Urgency] ⏭️ Skip ${sub.correo}: vence ${sub.vencimiento} (${diffDays} días) — fecha lejana`)
+                console.log(`[Urgency] ⏭️ Skip ${redactEmail(sub.correo)}: vence ${sub.vencimiento} (${diffDays} días) — fecha lejana`)
                 return false
             }
         }
@@ -319,7 +326,7 @@ Ref: ${sub.equipo || ''}`
                     })
 
                     results.sent++
-                    console.log(`[Urgency] ✅ Sent to ${fullPhone} (${sub.correo})`)
+                    console.log(`[Urgency] ✅ Sent to ${redactPhone(fullPhone)} (${redactEmail(sub.correo)})`)
                 } else {
                     await supabaseAdmin.from('subscription_notification_logs').insert({
                         user_id: userId,
@@ -330,7 +337,7 @@ Ref: ${sub.equipo || ''}`
                         error_message: 'sendWhatsAppTemplate returned null'
                     })
                     results.failed++
-                    console.log(`[Urgency] ❌ Failed for ${fullPhone}`)
+                    console.log(`[Urgency] ❌ Failed for ${redactPhone(fullPhone)}`)
                 }
 
                 await delay(2000)

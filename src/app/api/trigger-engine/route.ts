@@ -3,6 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from '@/lib/whatsapp'
 import dayjs from 'dayjs'
 
+// Helpers para ocultar datos sensibles en logs
+function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
+function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
+function timingSafeCompare(a: string, b: string): boolean {
+    try { const bA = Buffer.from(a), bB = Buffer.from(b); if (bA.length !== bB.length) return false; const { timingSafeEqual } = require('crypto'); return timingSafeEqual(bA, bB) } catch { return false }
+}
+
 const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!serviceRoleKey) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
 
@@ -21,7 +28,7 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret || !timingSafeCompare(authHeader ?? '', `Bearer ${cronSecret}`)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -305,7 +312,7 @@ async function executeAction(action: any, ctx: any, creds: any) {
                     creds.access_token,
                     creds.phone_number_id
                 )
-                console.log(`[Trigger Engine] Template "${templateName}" sent to ${phone_number}`)
+                console.log(`[Trigger Engine] Template "${templateName}" sent to ${redactPhone(phone_number)}`)
                 break
             }
 
@@ -328,7 +335,7 @@ async function executeAction(action: any, ctx: any, creds: any) {
             }
 
             case 'notify_admin':
-                console.log(`[Trigger Engine] 🔔 ${action.payload?.title || ''}: ${action.payload?.message || ''} (${phone_number})`)
+                console.log(`[Trigger Engine] 🔔 ${action.payload?.title || ''}: ${action.payload?.message || ''} (${redactPhone(phone_number)})`)
                 break
 
             case 'toggle_bot':
