@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createUserClient } from '@/utils/supabase/server'
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,8 +9,15 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
     try {
+        const userClient = await createUserClient()
+        const { data: { user }, error: authError } = await userClient.auth.getUser()
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
         const { userId } = await req.json()
         if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
+        if (userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
         // =====================
         // 1. FLUJO DE VENTAS - SERVICIOS DIGITALES

@@ -79,8 +79,8 @@ export async function GET(request: Request) {
 async function verifyMetaSignature(request: Request, rawBody: string): Promise<boolean> {
     const appSecret = process.env.META_APP_SECRET
     if (!appSecret) {
-        console.warn('[Webhook] META_APP_SECRET no configurado — omitiendo verificación de firma')
-        return true // Si no está configurado aún, no bloqueamos pero advertimos
+        console.error('[Webhook] META_APP_SECRET no configurado — rechazando request')
+        return false
     }
     const signature = request.headers.get('x-hub-signature-256')
     if (!signature) return false
