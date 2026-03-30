@@ -343,6 +343,7 @@ export async function POST(request: Request) {
                         user_id: tenantUserId,
                         contact_name: contactName,
                         last_message: messageText,
+                        last_message_time: new Date().toISOString(),
                         unread_count: 1,
                         tags: ['nuevo']  // CRM: auto-tag new client
                     }
@@ -356,8 +357,32 @@ export async function POST(request: Request) {
                     console.log(`[CRM] 🏷️ Auto-tagged nuevo: ${contactName}`);
                 }
 
-                // 2. Guardar el MENSAJE (Del Usuario)
-                // Descargar CUALQUIER media de WhatsApp (imagen, audio, video, documento)
+                // 2. Guardar el MENSAJE inmediatamente (antes de descargar media)
+                // Esto garantiza que el mensaje quede registrado aunque la descarga de media falle o la función haga timeout
+                let savedMsgId: string | null = null
+                if (chatId) {
+                    const baseMsg: any = {
+                        chat_id: chatId,
+                        is_from_me: false,
+                        content: messageText,
+                        status: 'delivered'
+                    }
+                    if (whatsappMessageId) baseMsg.whatsapp_message_id = whatsappMessageId
+                    const { data: msgRow, error: msgErr } = await supabaseAdmin.from('messages').insert(baseMsg).select('id').single()
+                    if (msgErr) {
+                        console.warn('[Webhook] Error guardando mensaje base:', msgErr.message)
+                        // Retry sin whatsapp_message_id por si la columna no existe
+                        const { data: retryRow } = await supabaseAdmin.from('messages').insert({
+                            chat_id: chatId, is_from_me: false, content: messageText, status: 'delivered'
+                        }).select('id').single()
+                        savedMsgId = retryRow?.id || null
+                    } else {
+                        savedMsgId = msgRow?.id || null
+                    }
+                }
+
+                // 2b. Descargar CUALQUIER media de WhatsApp (imagen, audio, video, documento)
+                // Se hace DESPUÉS de guardar el mensaje para no bloquear el registro en caso de timeout
                 let savedMediaUrl: string | null = null
                 let savedMediaType: string | null = null
 
@@ -420,31 +445,11 @@ export async function POST(request: Request) {
                     }
                 }
 
-                if (chatId) {
-                    const msgPayload: any = {
-                        chat_id: chatId,
-                        is_from_me: false,
-                        content: messageText,
-                        status: 'delivered'
-                    }
-                    if (savedMediaUrl) msgPayload.media_url = savedMediaUrl
-                    if (savedMediaType) msgPayload.media_type = savedMediaType
-                    if (whatsappMessageId) msgPayload.whatsapp_message_id = whatsappMessageId
-
-                    const { error: msgError } = await supabaseAdmin.from('messages').insert(msgPayload)
-                    if (msgError) {
-                        console.warn("Error saving msg, retrying with basic fields:", msgError.message)
-                        // Retry sin media_type por si la columna no existe aún
-                        const fallbackPayload: any = {
-                            chat_id: chatId,
-                            is_from_me: false,
-                            content: messageText,
-                            status: 'delivered'
-                        }
-                        if (savedMediaUrl) fallbackPayload.media_url = savedMediaUrl
-                        if (whatsappMessageId) fallbackPayload.whatsapp_message_id = whatsappMessageId
-                        await supabaseAdmin.from('messages').insert(fallbackPayload)
-                    }
+                // Si se descargó media, actualizamos el mensaje ya guardado con la URL
+                if (savedMsgId && savedMediaUrl) {
+                    const mediaUpdate: any = { media_url: savedMediaUrl }
+                    if (savedMediaType) mediaUpdate.media_type = savedMediaType
+                    await supabaseAdmin.from('messages').update(mediaUpdate).eq('id', savedMsgId)
                 }
 
                 // =================================================================================
@@ -2230,7 +2235,7 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                         // Siempre resolver la promesa para que Vercel termine
                         resolve(true);
 
-                    }, 6000); // <-- 6s DELAY AGREGATION
+                    }, 0); // Buffer eliminado — no persiste en serverless, solo retrasaba la respuesta
                 });
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 })
