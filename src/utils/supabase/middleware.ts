@@ -63,8 +63,13 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Redirect logged in users away from login page
-    if (request.nextUrl.pathname === '/login' && user) {
+    // /welcome requires auth
+    if (request.nextUrl.pathname.startsWith('/welcome') && !user) {
+        return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // Redirect logged-in users away from auth pages
+    if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && user) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 

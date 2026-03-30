@@ -1,10 +1,9 @@
-import { headers } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Bot, Lock, Mail, ArrowRight } from 'lucide-react'
 
-export default function Login({
+export default async function Login({
     searchParams,
 }: {
     searchParams: { message: string }
@@ -17,21 +16,6 @@ export default function Login({
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) return redirect('/login?message=Error de autenticación: Credenciales inválidas')
         return redirect('/dashboard')
-    }
-
-    const signUp = async (formData: FormData) => {
-        'use server'
-        const origin = (await headers()).get('origin')
-        const email = formData.get('email') as string
-        const password = formData.get('password') as string
-        const supabase = await createClient()
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { emailRedirectTo: `${origin}/auth/callback` },
-        })
-        if (error) return redirect('/login?message=Error creando cuenta. Intenta nuevamente.')
-        return redirect('/login?message=¡Cuenta creada! Revisa tu correo para confirmar.')
     }
 
     return (
@@ -241,16 +225,17 @@ export default function Login({
                             letterSpacing: '0.05em',
                             whiteSpace: 'nowrap',
                         }}>
-                            O SI NO TIENES CUENTA
+                            ¿NO TIENES CUENTA?
                         </span>
                         <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
                     </div>
 
-                    {/* Register */}
-                    <button
-                        formAction={signUp}
+                    <Link
+                        href="/register"
                         style={{
                             width: '100%',
+                            display: 'block',
+                            textAlign: 'center',
                             background: 'transparent',
                             color: 'rgba(255,255,255,0.55)',
                             border: '1px solid rgba(255,255,255,0.10)',
@@ -258,11 +243,11 @@ export default function Login({
                             padding: '0.75rem 1.5rem',
                             fontWeight: 600,
                             fontSize: '0.875rem',
-                            cursor: 'pointer',
+                            textDecoration: 'none',
                         }}
                     >
-                        Registrarse como nuevo cliente
-                    </button>
+                        Crear una cuenta gratis
+                    </Link>
 
                     {/* Error message */}
                     {searchParams?.message && (
