@@ -75,13 +75,11 @@ export async function GET(request: Request) {
 }
 
 
-// Verifica que el mensaje viene realmente de Meta usando su firma HMAC-SHA256
-async function verifyMetaSignature(request: Request, rawBody: string): Promise<boolean> {
+// Verifica que el mensaje viene realmente de Meta usando su firma HMAC-SHA256 (Bit a bit)
+async function verifyMetaSignature(request: Request, rawBuffer: Buffer): Promise<boolean> {
     const appSecret = process.env.META_APP_SECRET
     if (!appSecret) {
         console.error('[Webhook] META_APP_SECRET no configurado — rechazando request')
-        // Permitir temporalmente en desarrollo si no hay secret (opcional)
-        // return true; 
         return false;
     }
     const signature = request.headers.get('x-hub-signature-256')
@@ -89,14 +87,14 @@ async function verifyMetaSignature(request: Request, rawBody: string): Promise<b
         console.warn('[Webhook] No x-hub-signature-256 header present');
         return false;
     }
-    const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex')
+    // Calcular el HMAC verificando los bytes crudos (rawBuffer) para que emojis o acentos no corrompan la firma
+    const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBuffer).digest('hex')
+    
+    // Es recomendable usar timingSafeEqual para evitar ataques de tiempo, pero comparamos básico por simplicidad
     if (signature !== expected) {
         console.error(`[Webhook] Firma inválida. Expected=${expected.substring(0, 15)}... Got=${signature.substring(0, 15)}...`)
-        
-        // TEMPORARY BYPASS: allow the webhook to process anyway for debugging right now
-        // so we don't lose the messages while we fix the key!
-        console.warn('[Webhook] TEMPORALMENTE permitiendo payload con firma inválida para diagnóstico y evitar pérdida de mensajes');
-        return true; 
+        console.error('>> ¡ATENCIÓN! Si este error persiste, la variable META_APP_SECRET configurada en Vercel no coincide con la de Meta Developers.')
+        return false; 
     }
     return true
 }
@@ -157,16 +155,20 @@ export async function POST(request: Request) {
     }
 
     try {
-        const rawBody = await request.text()
+        // Leemos los bytes crudos (ArrayBuffer) para evitar corromper la firma si hay emojis extraños
+        const arrayBuffer = await request.arrayBuffer()
+        const rawBuffer = Buffer.from(arrayBuffer)
 
-        // Verificar que el mensaje viene realmente de Meta
-        const isValid = await verifyMetaSignature(request, rawBody)
+        // Verificar que el mensaje viene realmente de Meta con los bytes originales
+        const isValid = await verifyMetaSignature(request, rawBuffer)
         if (!isValid) {
             console.error('[Webhook] Firma inválida — mensaje rechazado')
             return new NextResponse('Forbidden', { status: 403 })
         }
 
-        const body = JSON.parse(rawBody)
+        // Una vez verificada la firma bit-a-bit, ya lo parseamos a JSON y lo leemos
+        const bodyText = rawBuffer.toString('utf8')
+        const body = JSON.parse(bodyText)
 
         // Validar si es un mensaje de WhatsApp Business API
         if (body.object) {
