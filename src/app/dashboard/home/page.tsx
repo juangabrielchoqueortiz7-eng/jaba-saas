@@ -1,7 +1,9 @@
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { CheckCircle, CheckCircle2, Bot, BookOpen, Zap, ShoppingBag, MessageSquare, Sparkles, TrendingUp, ArrowRight, Bell, AlertTriangle, Calendar, Users, Activity, Send, FileText, Rocket } from 'lucide-react'
 import Link from 'next/link'
+import { isOverLimit, isNearLimit } from '@/lib/plans'
 
 // Parsear fecha DD/MM/YYYY o YYYY-MM-DD
 function parseDate(dateStr: string): Date | null {
@@ -33,6 +35,19 @@ export default async function HomePage() {
     if (!user) return redirect('/login')
 
     const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario'
+
+    // Fetch plan usage
+    const serviceKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+    const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey!)
+    const { data: planProfile } = await admin
+        .from('user_profiles')
+        .select('conversations_balance, conversations_total')
+        .eq('id', user.id)
+        .maybeSingle()
+    const convBalance = planProfile?.conversations_balance ?? null
+    const convTotal = planProfile?.conversations_total ?? 500
+    const planOverLimit = convBalance !== null && isOverLimit(convBalance)
+    const planNearLimit = convBalance !== null && !planOverLimit && isNearLimit(convBalance, convTotal)
 
     const now = new Date()
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
@@ -109,6 +124,56 @@ export default async function HomePage() {
 
     return (
         <div style={{ minHeight: '100vh', padding: '32px', maxWidth: 1400, margin: '0 auto' }}>
+
+            {/* ── PLAN USAGE BANNER ── */}
+            {planOverLimit && (
+                <div style={{
+                    background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.25)',
+                    borderRadius: 12, padding: '14px 20px', marginBottom: 20,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <AlertTriangle size={18} style={{ color: '#fb7185', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#fb7185' }}>
+                            Sin conversaciones — el bot no está respondiendo
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+                            Recarga tu saldo para reactivarlo.
+                        </p>
+                    </div>
+                    <Link href="/dashboard/upgrade" style={{
+                        background: '#fb7185', color: '#fff', borderRadius: '9999px',
+                        padding: '0.5rem 1.25rem', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                    }}>
+                        Recargar ahora →
+                    </Link>
+                </div>
+            )}
+            {planNearLimit && (
+                <div style={{
+                    background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)',
+                    borderRadius: 12, padding: '14px 20px', marginBottom: 20,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Zap size={16} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                        <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#fbbf24' }}>
+                            Te quedan {convBalance} conversaciones
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+                            Recarga pronto para no interrumpir el servicio.
+                        </p>
+                    </div>
+                    <Link href="/dashboard/upgrade" style={{
+                        background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)',
+                        borderRadius: '9999px', padding: '0.5rem 1.25rem', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                    }}>
+                        Ver planes →
+                    </Link>
+                </div>
+            )}
 
             {/* ── HERO ── */}
             <div style={{
