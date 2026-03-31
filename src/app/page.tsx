@@ -23,9 +23,13 @@ import {
   Mail,
   Instagram,
   Facebook,
-  Star
+  Star,
+  ShoppingCart,
+  Check
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { CartDrawer, type CartItem } from './_components/CartDrawer';
+import { CheckoutModal } from './_components/CheckoutModal';
 
 const WHATSAPP_URL = 'https://wa.me/59169344192?text=Hola%2C%20me%20interesa%20conocer%20más%20sobre%20sus%20servicios';
 const WHATSAPP_NUMBER = '+591 69344192';
@@ -235,13 +239,13 @@ const clientLogos = [
 ];
 
 const pricingPacks = [
-  { conversations: '500', price: 'GRATIS', priceNote: 'primer pack sin costo', badge: null, featured: false, cta: 'Empezar gratis' },
-  { conversations: '1,000', price: '$18.39', priceNote: 'USD · ahorras $1.59', badge: null, featured: false, cta: 'Obtener pack' },
-  { conversations: '2,000', price: '$35.99', priceNote: 'USD · ahorras $3.97', badge: 'Más popular', featured: true, cta: 'Obtener pack' },
-  { conversations: '5,000', price: '$84.99', priceNote: 'USD · ahorras $14.91', badge: 'Mejor valor', featured: false, cta: 'Obtener pack' },
-  { conversations: '10,000', price: '$159.90', priceNote: 'USD · ahorras $39.90', badge: null, featured: false, cta: 'Obtener pack' },
-  { conversations: '20,000', price: '$299.90', priceNote: 'USD · ahorras $99.70', badge: null, featured: false, cta: 'Obtener pack' },
-  { conversations: '50,000', price: '$749.90', priceNote: 'USD · ahorras $249.10', badge: null, featured: false, cta: 'Obtener pack' }
+  { conversations: '500',    price: 'GRATIS',   priceValue: 0,      priceNote: 'primer pack sin costo',    badge: null,          featured: false, cta: 'Empezar gratis', free: true  },
+  { conversations: '1,000',  price: '$18.39',   priceValue: 18.39,  priceNote: 'USD · ahorras $1.59',      badge: null,          featured: false, cta: 'Agregar al carrito', free: false },
+  { conversations: '2,000',  price: '$35.99',   priceValue: 35.99,  priceNote: 'USD · ahorras $3.97',      badge: 'Más popular', featured: true,  cta: 'Agregar al carrito', free: false },
+  { conversations: '5,000',  price: '$84.99',   priceValue: 84.99,  priceNote: 'USD · ahorras $14.91',     badge: 'Mejor valor', featured: false, cta: 'Agregar al carrito', free: false },
+  { conversations: '10,000', price: '$159.90',  priceValue: 159.90, priceNote: 'USD · ahorras $39.90',     badge: null,          featured: false, cta: 'Agregar al carrito', free: false },
+  { conversations: '20,000', price: '$299.90',  priceValue: 299.90, priceNote: 'USD · ahorras $99.70',     badge: null,          featured: false, cta: 'Agregar al carrito', free: false },
+  { conversations: '50,000', price: '$749.90',  priceValue: 749.90, priceNote: 'USD · ahorras $249.10',    badge: null,          featured: false, cta: 'Agregar al carrito', free: false },
 ];
 
 // WhatsApp SVG reutilizable
@@ -258,12 +262,35 @@ function WhatsAppIcon({ className = 'w-5 h-5 fill-current' }: { className?: stri
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [showAllPacks, setShowAllPacks] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const addToCart = (pack: typeof pricingPacks[0]) => {
+    if (cart.find(i => i.conversations === pack.conversations)) {
+      setCartOpen(true);
+      return;
+    }
+    setCart(prev => [...prev, {
+      conversations: pack.conversations,
+      price: pack.price,
+      priceValue: pack.priceValue,
+      badge: pack.badge,
+    }]);
+    setCartOpen(true);
+  };
+
+  const removeFromCart = (conversations: string) => {
+    setCart(prev => prev.filter(i => i.conversations !== conversations));
+  };
+
+  const cartTotal = cart.reduce((sum, i) => sum + i.priceValue, 0);
 
   const visiblePacks = showAllPacks
     ? pricingPacks
@@ -289,6 +316,18 @@ export default function LandingPage() {
             <a href="#faq" className="text-sm text-white/50 hover:text-white transition-colors">FAQ</a>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCartOpen(true)}
+              className="relative w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/8 flex items-center justify-center transition-all"
+              aria-label="Ver carrito"
+            >
+              <ShoppingCart size={16} className="text-white/60" />
+              {cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#25D366] text-black text-[10px] font-black flex items-center justify-center">
+                  {cart.length}
+                </span>
+              )}
+            </button>
             <Link
               href="/login"
               className="px-4 py-2 rounded-full text-sm font-medium transition-all hover:bg-white/5 text-white/50 hover:text-white"
@@ -550,39 +589,56 @@ export default function LandingPage() {
             viewport={{ once: true, margin: '-50px' }}
             variants={stagger}
           >
-            {visiblePacks.map((pack) => (
-              <motion.div
-                key={pack.conversations}
-                variants={fadeUp}
-                className={`pricing-card flex flex-col ${pack.featured ? 'featured' : ''}`}
-              >
-                {pack.badge && (
-                  <span className="popular-badge">{pack.badge}</span>
-                )}
-                <p className="text-white/35 text-xs font-semibold uppercase tracking-wider mb-3">
-                  {pack.conversations} conversaciones
-                </p>
-                <p className={`font-black mb-1 leading-none tracking-tight ${
-                  pack.price === 'GRATIS' ? 'text-[#25D366] text-4xl' : 'text-white text-3xl'
-                }`}>
-                  {pack.price}
-                </p>
-                <p className="text-white/25 text-xs mb-6">{pack.priceNote}</p>
-                <div className="flex-1" />
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`w-full text-center py-2.5 rounded-full text-sm font-bold transition-all block ${
-                    pack.featured || pack.price === 'GRATIS'
-                      ? 'btn-cta text-black'
-                      : 'btn-outline'
-                  }`}
+            {visiblePacks.map((pack) => {
+              const inCart = cart.some(i => i.conversations === pack.conversations);
+              return (
+                <motion.div
+                  key={pack.conversations}
+                  variants={fadeUp}
+                  className={`pricing-card flex flex-col ${pack.featured ? 'featured' : ''}`}
                 >
-                  {pack.cta}
-                </a>
-              </motion.div>
-            ))}
+                  {pack.badge && (
+                    <span className="popular-badge">{pack.badge}</span>
+                  )}
+                  <p className="text-white/35 text-xs font-semibold uppercase tracking-wider mb-3">
+                    {pack.conversations} conversaciones
+                  </p>
+                  <p className={`font-black mb-1 leading-none tracking-tight ${
+                    pack.price === 'GRATIS' ? 'text-[#25D366] text-4xl' : 'text-white text-3xl'
+                  }`}>
+                    {pack.price}
+                  </p>
+                  <p className="text-white/25 text-xs mb-6">{pack.priceNote}</p>
+                  <div className="flex-1" />
+                  {pack.free ? (
+                    <a
+                      href={WHATSAPP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full text-center py-2.5 rounded-full text-sm font-bold transition-all block btn-cta text-black"
+                    >
+                      {pack.cta}
+                    </a>
+                  ) : inCart ? (
+                    <button
+                      onClick={() => setCartOpen(true)}
+                      className="w-full text-center py-2.5 rounded-full text-sm font-bold transition-all flex items-center justify-center gap-2 bg-[#25D366]/15 border border-[#25D366]/40 text-[#25D366]"
+                    >
+                      <Check size={14} /> En el carrito
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => addToCart(pack)}
+                      className={`w-full text-center py-2.5 rounded-full text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                        pack.featured ? 'btn-cta text-black' : 'btn-outline'
+                      }`}
+                    >
+                      <ShoppingCart size={14} /> {pack.cta}
+                    </button>
+                  )}
+                </motion.div>
+              );
+            })}
           </motion.div>
 
           <div className="text-center mt-8">
@@ -767,6 +823,24 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ============ CART DRAWER ============ */}
+      <CartDrawer
+        isOpen={cartOpen}
+        items={cart}
+        onClose={() => setCartOpen(false)}
+        onRemove={removeFromCart}
+        onCheckout={() => { setCartOpen(false); setCheckoutOpen(true); }}
+      />
+
+      {/* ============ CHECKOUT MODAL ============ */}
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        items={cart}
+        total={cartTotal}
+        onClose={() => setCheckoutOpen(false)}
+        onSuccess={() => setCart([])}
+      />
 
       {/* ============ FLOATING WHATSAPP BUTTON ============ */}
       <a
