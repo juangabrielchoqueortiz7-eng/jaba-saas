@@ -92,12 +92,7 @@ async function verifyMetaSignature(request: Request, rawBuffer: Buffer): Promise
     
     if (signature !== expected) {
         console.error(`[Webhook] Firma inválida. Expected=${expected.substring(0, 15)}... Got=${signature.substring(0, 15)}...`)
-        console.error(`[Webhook] INFO CLAVE VERCEL: La clave secreta configurada empieza con "${appSecret.substring(0, 3)}..." y tiene ${appSecret.length} caracteres. COMPROBAR EN META.`)
-        
-        // RE-BYPASS DE EMERGENCIA: Reactivamos el bypass porque al cliente de producción 
-        // le está fallando la clave de Vercel y está perdiendo mensajes
-        console.warn('[Webhook] BYPASS DE EMERGENCIA: Dejando pasar el mensaje aunque la firma falle.');
-        return true; 
+        return false; 
     }
     return true
 }
