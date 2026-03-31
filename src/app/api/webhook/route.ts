@@ -1950,9 +1950,9 @@ ${customTrainingSection}`
 
                                             const listMessage = {
                                                 type: 'list',
-                                                header: 'Selecciona la Cuenta',
-                                                body: '¿Cuál de tus cuentas quieres renovar ahora? 👇',
-                                                footer: 'Sistema de Renovación Jaba',
+                                                header: { type: 'text', text: 'Selecciona la Cuenta' },
+                                                body: { text: '¿Cuál de tus cuentas quieres renovar ahora? 👇' },
+                                                footer: { text: 'Sistema de Renovación Jaba' },
                                                 action: {
                                                     button: 'Ver Cuentas',
                                                     sections: [{ title: 'Tus Cuentas', rows }]
@@ -1971,7 +1971,7 @@ ${customTrainingSection}`
                                             });
 
                                             actionExecuted = true;
-                                            aiResponseText = '¡Claro que sí! Aquí tienes las cuentas disponibles para renovar. 👇';
+                                            aiResponseText = `¡Claro que sí! Aquí tienes las cuentas disponibles para renovar. 👇\n\n📋 *Cuentas disponibles:*\n${accountsTextList}`;
                                         } else {
                                             // Fallback si por alguna razón no se encontraron cuentas válidas
                                             aiResponseText = `Pude ver que quieres renovar, pero no logré encontrar cuentas registradas con tu número de teléfono actual. ¿Me pasas el correo electrónico de la cuenta que quieres recargar?`;
