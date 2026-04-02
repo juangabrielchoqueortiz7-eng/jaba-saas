@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
 import ConditionEvaluator, { EvaluationContext } from '@/lib/trigger-conditions'
+import { executeActions, ActionContext } from '@/lib/trigger-actions'
 
 // Token de verificación que configuraste en .env.local.
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN
@@ -730,7 +731,7 @@ export async function POST(request: Request) {
                             // Get chat metadata for context building
                             const { data: chatData } = await supabaseAdmin
                                 .from('chats')
-                                .select('id, created_at, tags, status, last_message_time')
+                                .select('id, created_at, tags, status, last_message_time, custom_fields')
                                 .eq('id', chatId)
                                 .single()
 
@@ -806,44 +807,53 @@ export async function POST(request: Request) {
 
                                 if (evaluationResult.matched) {
                                     console.log(`[Trigger] Activado: ${trigger.name}`, evaluationResult.reason);
-                                    const { sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppMessage } = await import('@/lib/whatsapp');
 
-                                    for (const action of trigger.trigger_actions || []) {
-                                        if (action.type === 'send_message') {
-                                            const msgContent = action.payload.message || '';
-                                            // Si el payload tiene botones, enviamos botones, si no, texto plano
-                                            if (action.payload.buttons) {
-                                                await sendWhatsAppButtons(phoneNumber, msgContent, action.payload.buttons, tenantToken, phoneId);
-                                                await supabaseAdmin.from('messages').insert({
-                                                    chat_id: chatId, is_from_me: true,
-                                                    content: msgContent + '\n[Botones enviados]', status: 'delivered'
-                                                });
-                                            } else if (action.payload.sections) {
-                                                await sendWhatsAppList(phoneNumber, msgContent, action.payload.buttonText || 'Ver opciones', action.payload.sections, tenantToken, phoneId);
-                                                await supabaseAdmin.from('messages').insert({
-                                                    chat_id: chatId, is_from_me: true,
-                                                    content: msgContent + '\n[Lista interactiva enviada]', status: 'delivered'
-                                                });
-                                            } else {
-                                                await sendWhatsAppMessage(phoneNumber, msgContent, tenantToken, phoneId);
-                                                await supabaseAdmin.from('messages').insert({
-                                                    chat_id: chatId, is_from_me: true,
-                                                    content: msgContent, status: 'delivered'
-                                                });
-                                            }
-                                        }
-                                        // Implementar más acciones: update_status, add_tag, etc.
+                                    // Build ActionContext
+                                    const actionContext: ActionContext = {
+                                        chatId,
+                                        phoneNumber,
+                                        tenantUserId,
+                                        contactName,
+                                        chatStatus: chatData?.status || 'lead',
+                                        chatTags: chatData?.tags || [],
+                                        chatCustomFields: chatData?.custom_fields || {},
+                                        tenantToken,
+                                        tenantPhoneId: phoneId,
+                                        tenantName: tenantBusinessName,
+                                        tenantServiceName,
+                                        subscriptionService: subscription?.servicio,
+                                        subscriptionEmail: subscription?.correo,
+                                        subscriptionExpiresAt: subscription?.vencimiento,
+                                        subscriptionStatus: subscription?.estado,
+                                        messageText,
+                                        messageTimestamp: messageObject.timestamp
+                                            ? new Date(parseInt(messageObject.timestamp) * 1000)
+                                            : new Date(),
                                     }
+
+                                    // Execute all actions via ActionFactory
+                                    const { results: actionResults, failedCount } = await executeActions(
+                                        trigger.trigger_actions || [],
+                                        actionContext,
+                                        { logResults: true }
+                                    )
 
                                     // Log execution
                                     try {
                                         await supabaseAdmin.from('trigger_executions').insert({
                                             trigger_id: trigger.id,
                                             chat_id: chatId,
-                                            status: 'success',
+                                            status: failedCount === 0 ? 'success' : 'failed',
                                             conditions_met: true,
                                             conditions_evaluated: groups.flat().length,
-                                            actions_executed: trigger.trigger_actions?.length || 0
+                                            actions_executed: actionResults.filter(r => r.success).length,
+                                            actions_failed: failedCount,
+                                            action_details: actionResults.map(r => ({
+                                                type: r.actionType,
+                                                success: r.success,
+                                                message: r.message,
+                                                error: r.error,
+                                            })),
                                         })
                                     } catch {
                                         // Silently fail if table doesn't exist yet

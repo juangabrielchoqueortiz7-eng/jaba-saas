@@ -1,63 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createUserClient } from '@/utils/supabase/server'
-import { sendWhatsAppMessage, sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { executeActions, ActionContext } from '@/lib/trigger-actions'
 import dayjs from 'dayjs'
 
 const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey)
-
-const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
-
-function resolveVars(text: string, ctx: Record<string, string>): string {
-    return (text || '')
-        .replace(/\{nombre\}/g, ctx.contact_name || '')
-        .replace(/\{numero\}/g, ctx.phone_number || '')
-        .replace(/\{telefono\}/g, ctx.phone_number || '')
-        .replace(/\{vencimiento\}/g, ctx.vencimiento || '')
-        .replace(/\{correo\}/g, ctx.correo || '')
-        .replace(/\{servicio\}/g, ctx.servicio || '')
-}
-
-async function executeAction(action: any, ctx: any, creds: any) {
-    const { phone_number, contact_name, tags, vencimiento, correo, servicio } = ctx
-    const resolve = (t: string) => resolveVars(t, { phone_number, contact_name, vencimiento, correo, servicio })
-
-    switch (action.type) {
-        case 'send_message': {
-            if (!action.payload?.message) break
-            const msg = resolve(action.payload.message)
-            await sendWhatsAppMessage(phone_number, msg, creds.access_token, creds.phone_number_id)
-            const { data: chat } = await supabaseAdmin
-                .from('chats').select('id').eq('phone_number', phone_number).maybeSingle()
-            if (chat) {
-                await supabaseAdmin.from('messages').insert({ chat_id: chat.id, is_from_me: true, content: msg, status: 'delivered' })
-                await supabaseAdmin.from('chats').update({ last_message: msg.substring(0, 100), last_message_time: new Date().toISOString() }).eq('id', chat.id)
-            }
-            break
-        }
-        case 'send_meta_template': {
-            const { templateName, language, variables } = action.payload || {}
-            if (!templateName) break
-            const resolvedVars = (variables || []).map((v: string) => resolve(v))
-            const components: any[] = resolvedVars.length > 0 ? [{
-                type: 'body',
-                parameters: resolvedVars.map((v: string) => ({ type: 'text', text: v || ' ' }))
-            }] : []
-            await sendWhatsAppTemplate(phone_number, templateName, language || 'es', components, creds.access_token, creds.phone_number_id)
-            break
-        }
-        case 'add_tag': {
-            if (!action.payload?.tag) break
-            const currentTags: string[] = tags || []
-            if (!currentTags.includes(action.payload.tag)) {
-                const { data: chat } = await supabaseAdmin.from('chats').select('id').eq('phone_number', phone_number).maybeSingle()
-                if (chat) await supabaseAdmin.from('chats').update({ tags: [...currentTags, action.payload.tag] }).eq('id', chat.id)
-            }
-            break
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/run-trigger
@@ -76,7 +24,7 @@ export async function POST(request: Request) {
     // Obtener trigger + acciones
     const { data: trigger, error: triggerError } = await supabaseAdmin
         .from('triggers')
-        .select('*, trigger_actions (*), trigger_conditions (*)')
+        .select('*, trigger_actions (*)')
         .eq('id', triggerId)
         .eq('user_id', user.id)
         .single()
@@ -87,7 +35,7 @@ export async function POST(request: Request) {
 
     const { data: creds } = await supabaseAdmin
         .from('whatsapp_credentials')
-        .select('access_token, phone_number_id')
+        .select('access_token, phone_number_id, bot_name, service_name')
         .eq('user_id', user.id)
         .single()
 
@@ -95,7 +43,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Configura tus credenciales de WhatsApp en Ajustes' }, { status: 400 })
     }
 
-    const results = { executed: 0, skipped: 0, errors: 0, messages: [] as string[] }
+    const results = { executed: 0, skipped: 0, errors: 0, messages: [] as string[], action_results: [] as any[] }
 
     if (trigger.type === 'time') {
         const waitMinutes = parseInt(trigger.description || '30') || 30
@@ -103,14 +51,14 @@ export async function POST(request: Request) {
 
         const { data: candidateChats } = await supabaseAdmin
             .from('chats')
-            .select('id, phone_number, contact_name, tags')
+            .select('id, phone_number, contact_name, tags, status, custom_fields')
             .eq('user_id', user.id)
             .lt('last_message_time', cutoffTime)
 
         for (const chat of (candidateChats || [])) {
             const { data: lastMsg } = await supabaseAdmin
                 .from('messages')
-                .select('is_from_me, created_at')
+                .select('is_from_me, created_at, content')
                 .eq('chat_id', chat.id)
                 .order('created_at', { ascending: false })
                 .limit(1)
@@ -120,12 +68,41 @@ export async function POST(request: Request) {
             const msgAge = Date.now() - new Date(lastMsg.created_at).getTime()
             if (msgAge > 24 * 60 * 60 * 1000) continue
 
-            for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
-                await executeAction(action, { ...chat }, creds)
-                await delay(600)
+            const { data: subscription } = await supabaseAdmin
+                .from('subscriptions')
+                .select('*')
+                .eq('numero', chat.phone_number)
+                .eq('user_id', user.id)
+                .maybeSingle()
+
+            const actionCtx: ActionContext = {
+                chatId: chat.id,
+                phoneNumber: chat.phone_number,
+                tenantUserId: user.id,
+                contactName: chat.contact_name || '',
+                chatStatus: chat.status || 'lead',
+                chatTags: chat.tags || [],
+                chatCustomFields: chat.custom_fields || {},
+                tenantToken: creds.access_token,
+                tenantPhoneId: creds.phone_number_id,
+                tenantName: creds.bot_name,
+                tenantServiceName: creds.service_name,
+                subscriptionService: subscription?.servicio,
+                subscriptionEmail: subscription?.correo,
+                subscriptionExpiresAt: subscription?.vencimiento,
+                subscriptionStatus: subscription?.estado,
+                messageText: lastMsg?.content || '',
             }
+
+            const { results: actionResults } = await executeActions(
+                trigger.trigger_actions || [],
+                actionCtx,
+                { logResults: true }
+            )
+
             results.executed++
             results.messages.push(chat.phone_number)
+            results.action_results.push({ phone: chat.phone_number, actions: actionResults })
         }
 
     } else if (trigger.type === 'scheduled') {
@@ -156,7 +133,11 @@ export async function POST(request: Request) {
             results.skipped++
         } else {
             const phones = subs.map(s => s.numero)
-            const { data: chats } = await supabaseAdmin.from('chats').select('phone_number, contact_name, tags').eq('user_id', user.id).in('phone_number', phones)
+            const { data: chats } = await supabaseAdmin
+                .from('chats')
+                .select('id, phone_number, contact_name, tags')
+                .eq('user_id', user.id)
+                .in('phone_number', phones)
             const chatByPhone = Object.fromEntries((chats || []).map(c => [c.phone_number, c]))
 
             const filteredSubs = audience_type === 'tag' && audience_value
@@ -165,19 +146,32 @@ export async function POST(request: Request) {
 
             for (const sub of filteredSubs) {
                 const chat = chatByPhone[sub.numero]
-                for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
-                    await executeAction(action, {
-                        phone_number: sub.numero,
-                        contact_name: chat?.contact_name || '',
-                        tags: chat?.tags || [],
-                        vencimiento: sub.vencimiento,
-                        correo: sub.correo,
-                        servicio: sub.servicio,
-                    }, creds)
-                    await delay(600)
+
+                const actionCtx: ActionContext = {
+                    chatId: chat?.id || '',
+                    phoneNumber: sub.numero,
+                    tenantUserId: user.id,
+                    contactName: chat?.contact_name || '',
+                    chatTags: chat?.tags || [],
+                    tenantToken: creds.access_token,
+                    tenantPhoneId: creds.phone_number_id,
+                    tenantName: creds.bot_name,
+                    tenantServiceName: creds.service_name,
+                    subscriptionService: sub.servicio,
+                    subscriptionEmail: sub.correo,
+                    subscriptionExpiresAt: sub.vencimiento,
+                    subscriptionStatus: sub.estado,
                 }
+
+                const { results: actionResults } = await executeActions(
+                    trigger.trigger_actions || [],
+                    actionCtx,
+                    { logResults: true }
+                )
+
                 results.executed++
                 results.messages.push(sub.numero)
+                results.action_results.push({ phone: sub.numero, actions: actionResults })
             }
         }
     } else {

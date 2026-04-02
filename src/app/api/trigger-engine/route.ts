@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendWhatsAppMessage, sendWhatsAppTemplate } from '@/lib/whatsapp'
 import ConditionEvaluator, { EvaluationContext } from '@/lib/trigger-conditions'
+import { executeActions, ActionContext } from '@/lib/trigger-actions'
 import dayjs from 'dayjs'
 
 // Helpers para ocultar datos sensibles en logs
@@ -19,7 +19,7 @@ const supabaseAdmin = createClient(
     serviceRoleKey
 )
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+// delay ya no es necesario aquí — executeActions en trigger-actions.ts maneja los delays internamente
 
 // ============================================================
 // TRIGGER ENGINE — Ejecuta triggers tipo "time" y "scheduled"
@@ -151,22 +151,45 @@ async function processTimeTriggers() {
                     if (!evaluationResult.matched) continue
                 }
 
+                // Build ActionContext for this chat
+                const actionCtx: ActionContext = {
+                    chatId: chat.id,
+                    phoneNumber: chat.phone_number,
+                    tenantUserId: trigger.user_id,
+                    contactName: chat.contact_name || '',
+                    chatStatus: chatData?.status || 'lead',
+                    chatTags: chat.tags || [],
+                    chatCustomFields: chatData?.custom_fields || {},
+                    tenantToken: creds.access_token,
+                    tenantPhoneId: creds.phone_number_id,
+                    tenantName: creds.bot_name,
+                    subscriptionService: subscription?.servicio,
+                    subscriptionEmail: subscription?.correo,
+                    subscriptionExpiresAt: subscription?.vencimiento,
+                    subscriptionStatus: subscription?.estado,
+                    messageText: lastMsg?.content || '',
+                    messageTimestamp: lastMsg?.created_at ? new Date(lastMsg.created_at) : new Date(),
+                }
+
                 // Execute actions
                 try {
-                    for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
-                        await executeAction(action, chat, creds)
-                        await delay(1000)
-                    }
+                    const { results: actionResults, failedCount } = await executeActions(
+                        trigger.trigger_actions || [],
+                        actionCtx,
+                        { logResults: true }
+                    )
 
                     // Log execution
                     try {
                         await supabaseAdmin.from('trigger_executions').insert({
                             trigger_id: trigger.id,
                             chat_id: chat.id,
-                            status: 'success',
+                            status: failedCount === 0 ? 'success' : 'failed',
                             conditions_met: true,
                             conditions_evaluated: groups.length,
-                            actions_executed: trigger.trigger_actions?.length || 0
+                            actions_executed: actionResults.filter(r => r.success).length,
+                            actions_failed: failedCount,
+                            action_details: actionResults.map(r => ({ type: r.actionType, success: r.success, error: r.error })),
                         })
                     } catch {
                         // Silently fail if table doesn't exist yet
@@ -236,7 +259,7 @@ async function processScheduledTriggers() {
             // Obtener credenciales WhatsApp del usuario
             const { data: creds } = await supabaseAdmin
                 .from('whatsapp_credentials')
-                .select('access_token, phone_number_id')
+                .select('access_token, phone_number_id, bot_name, service_name')
                 .eq('user_id', trigger.user_id)
                 .single()
 
@@ -293,28 +316,41 @@ async function processScheduledTriggers() {
                 const chat = chatByPhone[sub.numero]
                 const contactName = chat?.contact_name || ''
 
+                const actionCtx: ActionContext = {
+                    chatId: chat?.id || '',
+                    phoneNumber: sub.numero,
+                    tenantUserId: trigger.user_id,
+                    contactName,
+                    chatStatus: 'customer',
+                    chatTags: chat?.tags || [],
+                    tenantToken: creds.access_token,
+                    tenantPhoneId: creds.phone_number_id,
+                    tenantName: (creds as any).bot_name,
+                    tenantServiceName: (creds as any).service_name,
+                    subscriptionService: sub.servicio,
+                    subscriptionEmail: sub.correo,
+                    subscriptionExpiresAt: sub.vencimiento,
+                    subscriptionStatus: sub.estado,
+                }
+
                 try {
-                    for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
-                        await executeAction(action, {
-                            phone_number: sub.numero,
-                            contact_name: contactName,
-                            tags: chat?.tags || [],
-                            vencimiento: sub.vencimiento,
-                            correo: sub.correo,
-                            servicio: sub.servicio,
-                        }, creds)
-                        await delay(500)
-                    }
+                    const { results: actionResults, failedCount } = await executeActions(
+                        trigger.trigger_actions || [],
+                        actionCtx,
+                        { logResults: true }
+                    )
 
                     // Log execution
                     try {
                         await supabaseAdmin.from('trigger_executions').insert({
                             trigger_id: trigger.id,
                             chat_id: chat?.id,
-                            status: 'success',
+                            status: failedCount === 0 ? 'success' : 'failed',
                             conditions_met: true,
                             conditions_evaluated: 0,
-                            actions_executed: trigger.trigger_actions?.length || 0
+                            actions_executed: actionResults.filter(r => r.success).length,
+                            actions_failed: failedCount,
+                            action_details: actionResults.map(r => ({ type: r.actionType, success: r.success, error: r.error })),
                         })
                     } catch {
                         // Silently fail if table doesn't exist yet
@@ -345,103 +381,5 @@ async function processScheduledTriggers() {
     return results
 }
 
-// ─────────────────────────────────────────────────────────────
-// Ejecuta una acción individual
-// ─────────────────────────────────────────────────────────────
-async function executeAction(action: any, ctx: any, creds: any) {
-    const { phone_number, contact_name, tags, vencimiento, correo, servicio } = ctx
-
-    // Resolver variables de plantilla
-    function resolveVars(text: string): string {
-        return (text || '')
-            .replace(/\{nombre\}/g, contact_name || '')
-            .replace(/\{numero\}/g, phone_number || '')
-            .replace(/\{telefono\}/g, phone_number || '')
-            .replace(/\{vencimiento\}/g, vencimiento || '')
-            .replace(/\{correo\}/g, correo || '')
-            .replace(/\{servicio\}/g, servicio || '')
-    }
-
-    try {
-        switch (action.type) {
-            case 'send_message': {
-                if (!action.payload?.message) break
-                const msg = resolveVars(action.payload.message)
-                await sendWhatsAppMessage(phone_number, msg, creds.access_token, creds.phone_number_id)
-                // Save to messages if chat exists
-                const { data: chat } = await supabaseAdmin
-                    .from('chats')
-                    .select('id')
-                    .eq('phone_number', phone_number)
-                    .maybeSingle()
-                if (chat) {
-                    await supabaseAdmin.from('messages').insert({
-                        chat_id: chat.id,
-                        is_from_me: true,
-                        content: msg,
-                        status: 'delivered'
-                    })
-                    await supabaseAdmin.from('chats').update({
-                        last_message: msg.substring(0, 100),
-                        last_message_time: new Date().toISOString()
-                    }).eq('id', chat.id)
-                }
-                break
-            }
-
-            case 'send_meta_template': {
-                const { templateName, language, variables } = action.payload || {}
-                if (!templateName) break
-
-                // Construir componentes de Meta con las variables resueltas
-                const resolvedVars: string[] = (variables || []).map((v: string) => resolveVars(v))
-                const components: any[] = []
-                if (resolvedVars.length > 0) {
-                    components.push({
-                        type: 'body',
-                        parameters: resolvedVars.map((v: string) => ({ type: 'text', text: v }))
-                    })
-                }
-
-                await sendWhatsAppTemplate(
-                    phone_number,
-                    templateName,
-                    language || 'es',
-                    components,
-                    creds.access_token,
-                    creds.phone_number_id
-                )
-                console.log(`[Trigger Engine] Template "${templateName}" sent to ${redactPhone(phone_number)}`)
-                break
-            }
-
-            case 'add_tag': {
-                if (!action.payload?.tag) break
-                const currentTags: string[] = tags || []
-                if (!currentTags.includes(action.payload.tag)) {
-                    const { data: chat } = await supabaseAdmin
-                        .from('chats')
-                        .select('id')
-                        .eq('phone_number', phone_number)
-                        .maybeSingle()
-                    if (chat) {
-                        await supabaseAdmin.from('chats').update({
-                            tags: [...currentTags, action.payload.tag]
-                        }).eq('id', chat.id)
-                    }
-                }
-                break
-            }
-
-            case 'notify_admin':
-                console.log(`[Trigger Engine] 🔔 ${action.payload?.title || ''}: ${action.payload?.message || ''} (${redactPhone(phone_number)})`)
-                break
-
-            case 'toggle_bot':
-                // Reservado para implementación futura
-                break
-        }
-    } catch (err) {
-        console.error(`[Trigger Engine] executeAction(${action.type}) error:`, err)
-    }
-}
+// executeAction ha sido reemplazado por executeActions de @/lib/trigger-actions
+// que soporta 12+ tipos de acciones con patrón Factory
