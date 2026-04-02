@@ -26,8 +26,8 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
     if (disabled) {
         return (
             <div
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium opacity-20 cursor-not-allowed select-none"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium opacity-30 cursor-not-allowed select-none"
+                style={{ color: 'rgba(15,23,42,0.40)' }}
             >
                 {icon}
                 <span className="flex-1">{label}</span>
@@ -54,19 +54,19 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
                 borderLeft: `3px solid ${accentColor}`,
                 paddingLeft: 13,
             } : {
-                color: 'rgba(255,255,255,0.45)',
+                color: 'rgba(15,23,42,0.50)',
                 borderLeft: '3px solid transparent',
             }}
             onMouseEnter={e => {
                 if (!active) {
-                    (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'
-                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.85)'
+                    (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(37,211,102,0.07)'
+                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(15,23,42,0.85)'
                 }
             }}
             onMouseLeave={e => {
                 if (!active) {
                     (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
-                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.45)'
+                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(15,23,42,0.50)'
                 }
             }}
         >
@@ -95,7 +95,7 @@ function SectionLabel({ label }: { label: string }) {
         <div className="px-4 pt-5 pb-1">
             <p
                 className="text-[9px] font-bold uppercase tracking-[0.2em]"
-                style={{ color: 'rgba(37,211,102,0.40)' }}
+                style={{ color: 'rgba(37,211,102,0.65)' }}
             >
                 {label}
             </p>
@@ -301,7 +301,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                         />
                         <p
                             className="text-sm font-semibold truncate"
-                            style={{ color: 'rgba(255,255,255,0.85)' }}
+                            style={{ color: '#0F172A' }}
                         >
                             {assistantName}
                         </p>

@@ -137,7 +137,7 @@ export default async function HomePage() {
                         <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#fb7185' }}>
                             Sin conversaciones — el bot no está respondiendo
                         </p>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(15,23,42,0.40)' }}>
                             Recarga tu saldo para reactivarlo.
                         </p>
                     </div>
@@ -161,7 +161,7 @@ export default async function HomePage() {
                         <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#fbbf24' }}>
                             Te quedan {convBalance} conversaciones
                         </p>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(15,23,42,0.40)' }}>
                             Recarga pronto para no interrumpir el servicio.
                         </p>
                     </div>
@@ -177,8 +177,8 @@ export default async function HomePage() {
 
             {/* ── HERO ── */}
             <div style={{
-                background: '#111111',
-                border: '1px solid rgba(37,211,102,0.15)',
+                background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+                border: '1px solid rgba(37,211,102,0.20)',
                 borderRadius: 16, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden',
                 borderTop: '2px solid rgba(37,211,102,0.45)',
             }}>
@@ -198,17 +198,17 @@ export default async function HomePage() {
                             </div>
                         )}
                     </div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#ffffff', marginBottom: 10, lineHeight: 1.2 }}>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#0F172A', marginBottom: 10, lineHeight: 1.2 }}>
                         Hola, <span style={{ color: GREEN }}>{userName}</span>
                     </h1>
-                    <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '1rem', maxWidth: 520, lineHeight: 1.6 }}>
+                    <p style={{ color: 'rgba(15,23,42,0.55)', fontSize: '1rem', maxWidth: 520, lineHeight: 1.6 }}>
                         {allDone
                             ? '¡Tu asistente está listo! Tus clientes están siendo atendidos automáticamente.'
                             : `Completa ${steps.length - completedSteps} paso${steps.length - completedSteps > 1 ? 's' : ''} más para tener tu bot completamente operativo.`}
                     </p>
                     {!allDone && (
                         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{ flex: 1, maxWidth: 280, height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ flex: 1, maxWidth: 280, height: 5, background: 'rgba(0,0,0,0.07)', borderRadius: 3, overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${progressPct}%`, background: GREEN, borderRadius: 3 }} />
                             </div>
                             <span style={{ fontSize: 13, fontWeight: 700, color: GREEN }}>{progressPct}% listo</span>
@@ -222,21 +222,21 @@ export default async function HomePage() {
                 {[
                     { Icon: MessageSquare, label: 'Chats hoy',            value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`,           color: GREEN },
                     { Icon: Users,         label: 'Suscripciones activas', value: totalActivas,          sub: `${vencidas.length} vencidas sin renovar`,  color: GREEN },
-                    { Icon: AlertTriangle, label: 'Vencen esta semana',    value: vencen7d.length,       sub: `${vencenHoy.length} vencen hoy`,           color: vencen7d.length > 0 ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.3)' },
+                    { Icon: AlertTriangle, label: 'Vencen esta semana',    value: vencen7d.length,       sub: `${vencenHoy.length} vencen hoy`,           color: vencen7d.length > 0 ? '#d97706' : 'rgba(15,23,42,0.30)' },
                     { Icon: Zap,           label: 'Disparadores activos',  value: activeTriggers ?? 0,   sub: 'en ejecución automática',                  color: GREEN },
                     { Icon: Send,          label: 'Notificaciones (7d)',   value: notifsEnviadas,        sub: `${notifsFallidas} fallidas`,               color: GREEN },
-                    { Icon: Bot,           label: 'Asistente IA',          value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? GREEN : 'rgba(255,255,255,0.3)' },
+                    { Icon: Bot,           label: 'Asistente IA',          value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? GREEN : 'rgba(15,23,42,0.30)' },
                 ].map((stat, i) => (
                     <div key={i} style={{
-                        padding: '16px 18px', borderRadius: 12, background: '#111111',
-                        border: '1px solid rgba(255,255,255,0.06)',
+                        padding: '16px 18px', borderRadius: 12, background: '#ffffff',
+                        border: '1px solid rgba(0,0,0,0.07)',
                         borderTop: `2px solid ${stat.color}`,
                         position: 'relative', overflow: 'hidden',
                     }}>
                         <stat.Icon size={18} style={{ color: stat.color, marginBottom: 8 }} />
                         <div style={{ fontSize: '1.7rem', fontWeight: 800, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.65)', marginTop: 5 }}>{stat.label}</div>
-                        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.30)', marginTop: 3 }}>{stat.sub}</div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(15,23,42,0.65)', marginTop: 5 }}>{stat.label}</div>
+                        <div style={{ fontSize: '0.65rem', color: 'rgba(15,23,42,0.35)', marginTop: 3 }}>{stat.sub}</div>
                     </div>
                 ))}
             </div>
@@ -251,7 +251,7 @@ export default async function HomePage() {
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Users size={16} style={{ color: GREEN }} />
-                                <span style={{ color: '#ffffff' }}>Suscripciones por servicio</span>
+                                <span style={{ color: '#0F172A' }}>Suscripciones por servicio</span>
                                 <Link href="/dashboard/subscriptions" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: GREEN, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                                     Ver todas <ArrowRight size={12} />
                                 </Link>
@@ -259,12 +259,12 @@ export default async function HomePage() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                                 {Object.entries(porServicio).map(([svc, data]) => {
                                     return (
-                                        <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#111111', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${GREEN}`, position: 'relative', overflow: 'hidden' }}>
+                                        <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#ffffff', border: '1px solid rgba(0,0,0,0.07)', borderTop: `2px solid ${GREEN}`, position: 'relative', overflow: 'hidden' }}>
                                             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: GREEN, letterSpacing: '0.08em', marginBottom: 8 }}>{svc}</div>
-                                            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', lineHeight: 1 }}>{data.total}</div>
-                                            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.40)', marginTop: 4 }}>activas</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{data.total}</div>
+                                            <div style={{ fontSize: '0.7rem', color: 'rgba(15,23,42,0.40)', marginTop: 4 }}>activas</div>
                                             {data.vencen7 > 0 && (
-                                                <div style={{ marginTop: 10, padding: '4px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.65)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                <div style={{ marginTop: 10, padding: '4px 8px', borderRadius: 6, background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.10)', fontSize: '0.65rem', fontWeight: 700, color: 'rgba(15,23,42,0.65)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                                     ⚠️ {data.vencen7} vencen pronto
                                                 </div>
                                             )}
@@ -279,9 +279,9 @@ export default async function HomePage() {
                     {vencen7d.length > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Calendar size={16} style={{ color: 'rgba(255,255,255,0.6)' }} />
-                                <span style={{ color: '#ffffff' }}>Vencimientos próximos</span>
-                                <span style={{ marginLeft: 8, fontSize: '0.7rem', padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', fontWeight: 700 }}>
+                                <Calendar size={16} style={{ color: 'rgba(15,23,42,0.55)' }} />
+                                <span style={{ color: '#0F172A' }}>Vencimientos próximos</span>
+                                <span style={{ marginLeft: 8, fontSize: '0.7rem', padding: '2px 8px', borderRadius: 10, background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.10)', color: 'rgba(15,23,42,0.65)', fontWeight: 700 }}>
                                     {vencen7d.length} esta semana
                                 </span>
                             </h2>
@@ -292,16 +292,17 @@ export default async function HomePage() {
                                     return (
                                         <div key={sub.id} style={{
                                             display: 'flex', alignItems: 'center', gap: 12,
-                                            padding: '10px 14px', borderRadius: 12, background: '#111111',
-                                            border: urgent ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                                            padding: '10px 14px', borderRadius: 12,
+                                            background: urgent ? 'rgba(220,38,38,0.04)' : '#ffffff',
+                                            border: urgent ? '1px solid rgba(220,38,38,0.25)' : '1px solid rgba(0,0,0,0.07)',
                                         }}>
                                             <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: SVC_COLOR.bg, color: SVC_COLOR.color }}>
                                                 {sub.servicio || 'CANVA'}
                                             </span>
-                                            <span style={{ fontSize: '0.8rem', color: '#ffffff', flex: 1, fontFamily: 'monospace' }}>
+                                            <span style={{ fontSize: '0.8rem', color: '#0F172A', flex: 1, fontFamily: 'monospace' }}>
                                                 {sub.correo || sub.numero}
                                             </span>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: urgent ? '#f87171' : 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: urgent ? '#dc2626' : 'rgba(15,23,42,0.55)', whiteSpace: 'nowrap' }}>
                                                 {days === 0 ? '¡Hoy!' : days === 1 ? 'Mañana' : `${days}d · ${formatDate(sub.vencimiento)}`}
                                             </span>
                                         </div>
@@ -320,7 +321,7 @@ export default async function HomePage() {
                     <div>
                         <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Sparkles size={16} style={{ color: GREEN }} />
-                            <span style={{ color: '#ffffff' }}>{allDone ? '¡Configuración completa! 🎉' : `Primeros pasos — ${completedSteps}/${steps.length}`}</span>
+                            <span style={{ color: '#0F172A' }}>{allDone ? '¡Configuración completa! 🎉' : `Primeros pasos — ${completedSteps}/${steps.length}`}</span>
                         </h2>
                         {allDone ? (
                             <div style={{
@@ -329,8 +330,8 @@ export default async function HomePage() {
                             }}>
                                 <Rocket size={32} style={{ color: GREEN, flexShrink: 0 }} />
                                 <div>
-                                    <p style={{ fontWeight: 700, color: GREEN, fontSize: '0.95rem' }}>¡Tu asistente está completamente operativo!</p>
-                                    <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
+                                    <p style={{ fontWeight: 700, color: '#128C7E', fontSize: '0.95rem' }}>¡Tu asistente está completamente operativo!</p>
+                                    <p style={{ fontSize: '0.78rem', color: 'rgba(15,23,42,0.50)', marginTop: 4 }}>
                                         Tus clientes están siendo atendidos automáticamente. Revisa las métricas de arriba para monitorear tu desempeño.
                                     </p>
                                 </div>
@@ -357,10 +358,10 @@ export default async function HomePage() {
                                             }
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#ffffff', textDecoration: step.done ? 'line-through' : 'none', textDecorationColor: 'rgba(37,211,102,0.4)' }}>
+                                            <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0F172A', textDecoration: step.done ? 'line-through' : 'none', textDecorationColor: 'rgba(37,211,102,0.4)' }}>
                                                 {step.title}
                                             </p>
-                                            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.40)', marginTop: 1 }}>{step.description}</p>
+                                            <p style={{ fontSize: '0.72rem', color: 'rgba(15,23,42,0.45)', marginTop: 1 }}>{step.description}</p>
                                         </div>
                                         {step.done ? (
                                             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: GREEN, whiteSpace: 'nowrap' }}>✓ Listo</span>
@@ -389,7 +390,7 @@ export default async function HomePage() {
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Activity size={16} style={{ color: GREEN }} />
-                                <span style={{ color: '#ffffff' }}>Actividad reciente</span>
+                                <span style={{ color: '#0F172A' }}>Actividad reciente</span>
                                 <Link href="/dashboard/chats" style={{ marginLeft: 'auto', fontSize: '0.72rem', color: GREEN, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
                                     Ver chats <ArrowRight size={11} />
                                 </Link>
@@ -402,8 +403,8 @@ export default async function HomePage() {
                                     return (
                                         <Link key={i} href="/dashboard/chats" style={{
                                             display: 'flex', alignItems: 'flex-start', gap: 10,
-                                            padding: '10px 12px', borderRadius: 12, background: '#111111',
-                                            border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none',
+                                            padding: '10px 12px', borderRadius: 12, background: '#ffffff',
+                                            border: '1px solid rgba(0,0,0,0.07)', textDecoration: 'none',
                                         }}>
                                             <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(37,211,102,0.10)', border: '1px solid rgba(37,211,102,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                 <MessageSquare size={15} style={{ color: GREEN }} />
@@ -429,9 +430,9 @@ export default async function HomePage() {
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Bell size={16} style={{ color: GREEN }} />
-                                <span style={{ color: '#ffffff' }}>Notificaciones enviadas (7d)</span>
+                                <span style={{ color: '#0F172A' }}>Notificaciones enviadas (7d)</span>
                             </h2>
-                            <div style={{ padding: '14px 16px', borderRadius: 16, background: '#111111', border: '1px solid rgba(37,211,102,0.15)' }}>
+                            <div style={{ padding: '14px 16px', borderRadius: 16, background: '#ffffff', border: '1px solid rgba(37,211,102,0.15)' }}>
                                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                                     {[
                                         { label: 'Enviadas', val: notifsEnviadas, color: GREEN,     bg: 'rgba(37,211,102,0.08)' },
@@ -470,7 +471,7 @@ export default async function HomePage() {
                     <div>
                         <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <TrendingUp size={16} style={{ color: GREEN }} />
-                            <span style={{ color: '#ffffff' }}>Accesos rápidos</span>
+                            <span style={{ color: '#0F172A' }}>Accesos rápidos</span>
                         </h2>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             {[
@@ -481,7 +482,7 @@ export default async function HomePage() {
                             ].map((item, i) => (
                                 <Link key={i} href={item.href} style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
-                                    padding: '11px 14px', borderRadius: 10, background: '#111111',
+                                    padding: '11px 14px', borderRadius: 10, background: '#ffffff',
                                     border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none',
                                     fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.75)',
                                 }}>

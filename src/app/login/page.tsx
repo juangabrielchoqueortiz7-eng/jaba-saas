@@ -25,19 +25,29 @@ export default async function Login({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#000',
+            background: '#F7F8FA',
             position: 'relative',
             overflow: 'hidden',
             padding: '1.5rem',
         }}>
-            {/* Ambient verde */}
+            {/* Ambient verde superior */}
+            <div style={{
+                position: 'fixed',
+                top: '-10%',
+                right: '-5%',
+                width: 500,
+                height: 500,
+                background: 'radial-gradient(ellipse, rgba(37,211,102,0.10) 0%, transparent 70%)',
+                pointerEvents: 'none',
+                zIndex: 0,
+            }} />
             <div style={{
                 position: 'fixed',
                 bottom: '-10%',
                 left: '-5%',
-                width: 500,
-                height: 500,
-                background: 'radial-gradient(ellipse, rgba(37,211,102,0.06) 0%, transparent 70%)',
+                width: 400,
+                height: 400,
+                background: 'radial-gradient(ellipse, rgba(18,140,126,0.06) 0%, transparent 70%)',
                 pointerEvents: 'none',
                 zIndex: 0,
             }} />
@@ -47,37 +57,38 @@ export default async function Login({
                 width: '100%',
                 maxWidth: 400,
                 padding: '2.5rem 2rem',
-                background: '#111',
-                border: '1px solid rgba(255,255,255,0.07)',
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.08)',
                 borderRadius: '1.5rem',
                 position: 'relative',
                 zIndex: 10,
+                boxShadow: '0 8px 40px rgba(0,0,0,0.08)',
             }}>
                 {/* Branding */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
                     <div style={{
                         width: 56,
                         height: 56,
-                        background: '#25D366',
+                        background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
                         borderRadius: '1rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         marginBottom: '1rem',
-                        boxShadow: '0 4px 20px rgba(37,211,102,0.3)',
+                        boxShadow: '0 4px 20px rgba(37,211,102,0.30)',
                     }}>
-                        <Bot style={{ color: '#000', width: 30, height: 30 }} />
+                        <Bot style={{ color: '#fff', width: 30, height: 30 }} />
                     </div>
                     <h2 style={{
                         fontSize: '1.375rem',
                         fontWeight: 800,
-                        color: '#fff',
+                        color: '#0F172A',
                         letterSpacing: '-0.02em',
                         margin: 0,
                     }}>
                         JABA
                     </h2>
-                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginTop: '0.4rem', marginBottom: 0 }}>
+                    <p style={{ color: 'rgba(15,23,42,0.45)', fontSize: '0.85rem', marginTop: '0.4rem', marginBottom: 0 }}>
                         Tu asistente de ventas por WhatsApp
                     </p>
                 </div>
@@ -89,7 +100,7 @@ export default async function Login({
                             display: 'block',
                             fontSize: '0.7rem',
                             fontWeight: 700,
-                            color: 'rgba(255,255,255,0.35)',
+                            color: 'rgba(15,23,42,0.45)',
                             textTransform: 'uppercase',
                             letterSpacing: '0.1em',
                             marginBottom: '0.4rem',
@@ -103,7 +114,7 @@ export default async function Login({
                                 left: '0.875rem',
                                 top: '50%',
                                 transform: 'translateY(-50%)',
-                                color: 'rgba(255,255,255,0.25)',
+                                color: 'rgba(15,23,42,0.30)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 pointerEvents: 'none',
@@ -122,10 +133,10 @@ export default async function Login({
                                     paddingRight: '1rem',
                                     paddingTop: '0.75rem',
                                     paddingBottom: '0.75rem',
-                                    background: 'rgba(255,255,255,0.04)',
-                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    background: '#F7F8FA',
+                                    border: '1px solid rgba(0,0,0,0.10)',
                                     borderRadius: '0.75rem',
-                                    color: '#fff',
+                                    color: '#0F172A',
                                     fontSize: '0.9rem',
                                     outline: 'none',
                                     boxSizing: 'border-box',
@@ -140,7 +151,7 @@ export default async function Login({
                             display: 'block',
                             fontSize: '0.7rem',
                             fontWeight: 700,
-                            color: 'rgba(255,255,255,0.35)',
+                            color: 'rgba(15,23,42,0.45)',
                             textTransform: 'uppercase',
                             letterSpacing: '0.1em',
                             marginBottom: '0.4rem',
@@ -154,7 +165,7 @@ export default async function Login({
                                 left: '0.875rem',
                                 top: '50%',
                                 transform: 'translateY(-50%)',
-                                color: 'rgba(255,255,255,0.25)',
+                                color: 'rgba(15,23,42,0.30)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 pointerEvents: 'none',
@@ -173,10 +184,10 @@ export default async function Login({
                                     paddingRight: '1rem',
                                     paddingTop: '0.75rem',
                                     paddingBottom: '0.75rem',
-                                    background: 'rgba(255,255,255,0.04)',
-                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    background: '#F7F8FA',
+                                    border: '1px solid rgba(0,0,0,0.10)',
                                     borderRadius: '0.75rem',
-                                    color: '#fff',
+                                    color: '#0F172A',
                                     fontSize: '0.9rem',
                                     outline: 'none',
                                     boxSizing: 'border-box',
@@ -184,7 +195,7 @@ export default async function Login({
                             />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.4rem' }}>
-                            <Link href="#" style={{ fontSize: '0.75rem', color: '#25D366', textDecoration: 'none' }}>
+                            <Link href="#" style={{ fontSize: '0.75rem', color: '#128C7E', textDecoration: 'none', fontWeight: 600 }}>
                                 ¿Olvidaste tu contraseña?
                             </Link>
                         </div>
@@ -195,8 +206,8 @@ export default async function Login({
                         formAction={signIn}
                         style={{
                             width: '100%',
-                            background: '#25D366',
-                            color: '#000',
+                            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                            color: '#fff',
                             border: 'none',
                             borderRadius: '9999px',
                             padding: '0.875rem 1.5rem',
@@ -208,7 +219,7 @@ export default async function Login({
                             justifyContent: 'center',
                             gap: '0.5rem',
                             marginTop: '0.5rem',
-                            boxShadow: '0 4px 16px rgba(37,211,102,0.25)',
+                            boxShadow: '0 4px 16px rgba(37,211,102,0.30)',
                         }}
                     >
                         Iniciar Sesión
@@ -217,17 +228,17 @@ export default async function Login({
 
                     {/* Divider */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                        <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
                         <span style={{
                             fontSize: '0.65rem',
-                            color: 'rgba(255,255,255,0.25)',
+                            color: 'rgba(15,23,42,0.30)',
                             fontWeight: 600,
                             letterSpacing: '0.05em',
                             whiteSpace: 'nowrap',
                         }}>
                             ¿NO TIENES CUENTA?
                         </span>
-                        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                        <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
                     </div>
 
                     <Link
@@ -237,11 +248,11 @@ export default async function Login({
                             display: 'block',
                             textAlign: 'center',
                             background: 'transparent',
-                            color: 'rgba(255,255,255,0.55)',
-                            border: '1px solid rgba(255,255,255,0.10)',
+                            color: '#128C7E',
+                            border: '1.5px solid rgba(37,211,102,0.35)',
                             borderRadius: '9999px',
                             padding: '0.75rem 1.5rem',
-                            fontWeight: 600,
+                            fontWeight: 700,
                             fontSize: '0.875rem',
                             textDecoration: 'none',
                         }}
@@ -254,9 +265,11 @@ export default async function Login({
                         <div style={{
                             marginTop: '0.25rem',
                             padding: '0.75rem 1rem',
-                            background: 'rgba(244,63,94,0.08)',
-                            border: '1px solid rgba(244,63,94,0.2)',
-                            color: '#fb7185',
+                            background: searchParams.message.includes('creada')
+                                ? 'rgba(37,211,102,0.08)'
+                                : 'rgba(220,38,38,0.07)',
+                            border: `1px solid ${searchParams.message.includes('creada') ? 'rgba(37,211,102,0.25)' : 'rgba(220,38,38,0.20)'}`,
+                            color: searchParams.message.includes('creada') ? '#128C7E' : '#dc2626',
                             fontSize: '0.85rem',
                             borderRadius: '0.75rem',
                             textAlign: 'center',
@@ -271,7 +284,7 @@ export default async function Login({
             <div style={{
                 marginTop: '1.5rem',
                 textAlign: 'center',
-                color: 'rgba(255,255,255,0.2)',
+                color: 'rgba(15,23,42,0.30)',
                 fontSize: '0.8rem',
                 position: 'relative',
                 zIndex: 10,
@@ -280,11 +293,11 @@ export default async function Login({
                     &copy; {new Date().getFullYear()} JABA. Todos los derechos reservados.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                    <Link href="/terms" style={{ color: '#25D366', textDecoration: 'none', fontSize: '0.75rem' }}>
+                    <Link href="/terms" style={{ color: '#128C7E', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 600 }}>
                         Términos y Condiciones
                     </Link>
-                    <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
-                    <Link href="/privacy" style={{ color: '#25D366', textDecoration: 'none', fontSize: '0.75rem' }}>
+                    <span style={{ color: 'rgba(0,0,0,0.15)' }}>|</span>
+                    <Link href="/privacy" style={{ color: '#128C7E', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 600 }}>
                         Política de Privacidad
                     </Link>
                 </div>
@@ -292,10 +305,12 @@ export default async function Login({
 
             <style>{`
                 .login-input:focus {
-                    border-color: rgba(37,211,102,0.4) !important;
+                    border-color: rgba(37,211,102,0.50) !important;
+                    background: #fff !important;
+                    box-shadow: 0 0 0 3px rgba(37,211,102,0.10);
                 }
                 .login-input::placeholder {
-                    color: rgba(255,255,255,0.2);
+                    color: rgba(15,23,42,0.30);
                 }
             `}</style>
         </div>

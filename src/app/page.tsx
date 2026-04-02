@@ -297,40 +297,40 @@ export default function LandingPage() {
     : pricingPacks.filter((_, i) => [0, 2, 3, 4].includes(i));
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-[#25D366] selection:text-black overflow-x-hidden">
+    <div className="min-h-screen bg-white text-[#0F172A] selection:bg-[#25D366] selection:text-white overflow-x-hidden">
 
       {/* ============ NAVBAR ============ */}
       <nav className={`fixed top-0 w-full z-50 border-b transition-all duration-300 ${
-        scrolled ? 'border-white/8 bg-black/90 backdrop-blur-xl' : 'border-transparent bg-transparent'
+        scrolled ? 'border-black/8 bg-white/95 backdrop-blur-xl shadow-sm' : 'border-transparent bg-transparent'
       }`}>
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image src="/logo.png" alt="Jaba" width={36} height={36} className="rounded-lg" />
-            <span className="font-bold text-xl tracking-tight">JABA</span>
+            <span className="font-bold text-xl tracking-tight text-[#0F172A]">JABA</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#servicios" className="text-sm text-white/50 hover:text-white transition-colors">Servicios</a>
-            <a href="#demo" className="text-sm text-white/50 hover:text-white transition-colors">Demo</a>
-            <a href="#precios" className="text-sm text-white/50 hover:text-white transition-colors">Precios</a>
-            <a href="#testimonios" className="text-sm text-white/50 hover:text-white transition-colors">Testimonios</a>
-            <a href="#faq" className="text-sm text-white/50 hover:text-white transition-colors">FAQ</a>
+            <a href="#servicios" className="text-sm text-[#0F172A]/50 hover:text-[#0F172A] transition-colors font-medium">Servicios</a>
+            <a href="#demo" className="text-sm text-[#0F172A]/50 hover:text-[#0F172A] transition-colors font-medium">Demo</a>
+            <a href="#precios" className="text-sm text-[#0F172A]/50 hover:text-[#0F172A] transition-colors font-medium">Precios</a>
+            <a href="#testimonios" className="text-sm text-[#0F172A]/50 hover:text-[#0F172A] transition-colors font-medium">Testimonios</a>
+            <a href="#faq" className="text-sm text-[#0F172A]/50 hover:text-[#0F172A] transition-colors font-medium">FAQ</a>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setCartOpen(true)}
-              className="relative w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/8 flex items-center justify-center transition-all"
+              className="relative w-9 h-9 rounded-full bg-black/4 hover:bg-black/8 border border-black/8 flex items-center justify-center transition-all"
               aria-label="Ver carrito"
             >
-              <ShoppingCart size={16} className="text-white/60" />
+              <ShoppingCart size={16} className="text-[#0F172A]/60" />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#25D366] text-black text-[10px] font-black flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#25D366] text-white text-[10px] font-black flex items-center justify-center">
                   {cart.length}
                 </span>
               )}
             </button>
             <Link
               href="/login"
-              className="px-4 py-2 rounded-full text-sm font-medium transition-all hover:bg-white/5 text-white/50 hover:text-white"
+              className="px-4 py-2 rounded-full text-sm font-medium transition-all hover:bg-black/5 text-[#0F172A]/55 hover:text-[#0F172A]"
             >
               Iniciar Sesión
             </Link>
@@ -338,7 +338,7 @@ export default function LandingPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden md:flex items-center gap-2 px-5 py-2 btn-cta text-sm font-bold text-black"
+              className="hidden md:flex items-center gap-2 px-5 py-2 btn-cta text-sm font-bold"
             >
               Contáctanos <ArrowRight size={15} />
             </a>
@@ -347,9 +347,10 @@ export default function LandingPage() {
       </nav>
 
       {/* ============ HERO — SPLIT LAYOUT ============ */}
-      <section className="relative pt-28 pb-16 md:pt-36 md:pb-24 bg-black overflow-hidden">
-        {/* Ambient verde muy sutil */}
-        <div className="absolute bottom-0 left-0 w-[500px] h-[400px] bg-[#25D366]/5 blur-[180px] rounded-full pointer-events-none" />
+      <section className="relative pt-28 pb-16 md:pt-36 md:pb-24 bg-white overflow-hidden">
+        {/* Ambient verde sutil */}
+        <div className="absolute top-0 right-0 w-[600px] h-[500px] bg-[#25D366]/8 blur-[200px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[300px] bg-[#128C7E]/5 blur-[150px] rounded-full pointer-events-none" />
 
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid md:grid-cols-[54fr_46fr] gap-12 lg:gap-20 items-center">
@@ -359,10 +360,10 @@ export default function LandingPage() {
 
               <motion.div variants={fadeUp} className="mb-8 flex items-center gap-3 flex-wrap">
                 <span className="green-badge">
-                  <WhatsAppIcon className="w-3.5 h-3.5 fill-[#4ade80]" />
+                  <WhatsAppIcon className="w-3.5 h-3.5 fill-[#25D366]" />
                   WhatsApp Business API Oficial
                 </span>
-                <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-white/5 border border-white/8 text-white/40 text-xs font-semibold tracking-wide uppercase">
+                <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-black/4 border border-black/8 text-[#0F172A]/45 text-xs font-semibold tracking-wide uppercase">
                   <Sparkles size={12} /> IA Gemini
                 </span>
               </motion.div>
@@ -371,19 +372,19 @@ export default function LandingPage() {
                 variants={fadeUp}
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight leading-[0.92] mb-8"
               >
-                <span className="text-white">Tu WhatsApp.</span>
+                <span className="text-[#0F172A]">Tu WhatsApp.</span>
                 <br />
-                <span className="text-white">Tus clientes.</span>
+                <span className="text-[#0F172A]">Tus clientes.</span>
                 <br />
                 <span className="text-[#25D366]">Automatizado.</span>
               </motion.h1>
 
               <motion.p
                 variants={fadeUp}
-                className="text-lg text-white/50 max-w-xl mb-10 leading-relaxed"
+                className="text-lg text-[#0F172A]/50 max-w-xl mb-10 leading-relaxed"
               >
                 Cada hora sin automatización son ventas perdidas. JABA te da chatbots con IA, cobros automáticos y gestión de clientes —{' '}
-                <span className="text-white font-semibold">activo en menos de 24 horas.</span>
+                <span className="text-[#0F172A] font-semibold">activo en menos de 24 horas.</span>
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-start gap-4 mb-8">
@@ -391,9 +392,9 @@ export default function LandingPage() {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2.5 px-8 py-4 btn-cta text-black font-bold text-base"
+                  className="group inline-flex items-center gap-2.5 px-8 py-4 btn-cta font-bold text-base"
                 >
-                  <WhatsAppIcon className="w-5 h-5 fill-black" />
+                  <WhatsAppIcon className="w-5 h-5 fill-white" />
                   Agenda tu Demo Gratis
                   <ArrowRight size={17} className="group-hover:translate-x-1 transition-transform" />
                 </a>
@@ -409,8 +410,8 @@ export default function LandingPage() {
                 <span className="trust-badge">Sin permanencia</span>
                 <span className="trust-badge">Soporte incluido</span>
                 <span className="trust-badge">Activo en 24h</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/8 border border-red-500/15 text-red-400/80 text-xs font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/8 border border-red-500/15 text-red-600/70 text-xs font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                   Quedan 3 plazas esta semana
                 </span>
               </motion.div>
@@ -430,15 +431,15 @@ export default function LandingPage() {
       </section>
 
       {/* ============ CLIENT LOGOS MARQUEE ============ */}
-      <section className="py-10 border-y border-white/5 overflow-hidden bg-[#0a0a0a]">
+      <section className="py-10 border-y border-black/6 overflow-hidden bg-[#F7F8FA]">
         <div className="container mx-auto px-6 mb-5">
-          <p className="text-center text-xs text-white/35 uppercase tracking-widest font-semibold">Empresas que confían en nosotros</p>
+          <p className="text-center text-xs text-[#0F172A]/35 uppercase tracking-widest font-semibold">Empresas que confían en nosotros</p>
         </div>
         <div className="relative">
           <div className="flex animate-marquee whitespace-nowrap items-center">
             {[...clientLogos, ...clientLogos, ...clientLogos].map((client, i) => (
-              <div key={i} className="mx-8 flex items-center gap-3 text-white/25 hover:text-white/60 transition-colors duration-300">
-                <div className="w-12 h-12 rounded-lg bg-white/4 border border-white/6 flex items-center justify-center overflow-hidden p-2">
+              <div key={i} className="mx-8 flex items-center gap-3 text-[#0F172A]/30 hover:text-[#0F172A]/70 transition-colors duration-300">
+                <div className="w-12 h-12 rounded-lg bg-white border border-black/8 flex items-center justify-center overflow-hidden p-2 shadow-sm">
                   <Image src={client.logo} alt={client.name} width={40} height={40} className="w-full h-full object-contain" />
                 </div>
                 <span className="text-sm font-semibold tracking-wide">{client.name}</span>
@@ -449,7 +450,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ STATS ============ */}
-      <section className="py-20 bg-black">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center"
@@ -467,7 +468,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SERVICIOS ============ */}
-      <section id="servicios" className="py-24 bg-[#0a0a0a]">
+      <section id="servicios" className="py-24 bg-[#F7F8FA]">
         <div className="container mx-auto px-6">
           <motion.div
             className="mb-16"
@@ -480,7 +481,7 @@ export default function LandingPage() {
             <h2 className="text-4xl md:text-6xl font-black mt-4 tracking-tight leading-[1.05]">
               Todo lo que tu negocio
               <br />
-              <span className="text-white/30">necesita en un solo lugar.</span>
+              <span className="text-[#0F172A]/30">necesita en un solo lugar.</span>
             </h2>
           </motion.div>
 
@@ -499,8 +500,8 @@ export default function LandingPage() {
       </section>
 
       {/* ============ DEMO ============ */}
-      <section id="demo" className="py-24 bg-black relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[#25D366]/4 blur-[150px] rounded-full pointer-events-none" />
+      <section id="demo" className="py-24 bg-white relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[#25D366]/8 blur-[150px] rounded-full pointer-events-none" />
 
         <div className="container mx-auto px-6 relative z-10">
           <motion.div
@@ -511,10 +512,10 @@ export default function LandingPage() {
             variants={fadeUp}
           >
             <span className="green-badge mb-6 inline-flex">Demo en Vivo</span>
-            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight">
+            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight text-[#0F172A]">
               Mira JABA en acción.
             </h2>
-            <p className="text-white/40 max-w-xl mx-auto text-lg">
+            <p className="text-[#0F172A]/45 max-w-xl mx-auto text-lg">
               Observa cómo el asistente IA gestiona clientes en tiempo real.
             </p>
           </motion.div>
@@ -532,7 +533,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ CÓMO FUNCIONA ============ */}
-      <section id="como-funciona" className="py-24 bg-[#0a0a0a]">
+      <section id="como-funciona" className="py-24 bg-[#F7F8FA]">
         <div className="container mx-auto px-6">
           <motion.div
             className="text-center mb-16"
@@ -542,10 +543,10 @@ export default function LandingPage() {
             variants={fadeUp}
           >
             <span className="green-badge mb-6 inline-flex">Cómo Funciona</span>
-            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight">
+            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight text-[#0F172A]">
               3 pasos para automatizar.
             </h2>
-            <p className="text-white/40 max-w-xl mx-auto text-lg">
+            <p className="text-[#0F172A]/45 max-w-xl mx-auto text-lg">
               Empieza a transformar tu negocio en minutos, no en meses.
             </p>
           </motion.div>
@@ -565,7 +566,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ PRECIOS ============ */}
-      <section id="precios" className="py-24 bg-[#0a0a0a]">
+      <section id="precios" className="py-24 bg-white">
         <div className="container mx-auto px-6">
           <motion.div
             className="text-center mb-16"
@@ -575,11 +576,11 @@ export default function LandingPage() {
             variants={fadeUp}
           >
             <span className="green-badge mb-6 inline-flex">Precios</span>
-            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight">
+            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight text-[#0F172A]">
               Paga solo por lo que usas.
             </h2>
-            <p className="text-white/40 text-lg mb-2">Sin suscripciones forzadas. Sin contratos. Sin sorpresas.</p>
-            <p className="text-white/25 text-sm">Recarga base: 500 conversaciones = $9.99 USD</p>
+            <p className="text-[#0F172A]/45 text-lg mb-2">Sin suscripciones forzadas. Sin contratos. Sin sorpresas.</p>
+            <p className="text-[#0F172A]/30 text-sm">Recarga base: 500 conversaciones = $9.99 USD</p>
           </motion.div>
 
           <motion.div
@@ -600,15 +601,15 @@ export default function LandingPage() {
                   {pack.badge && (
                     <span className="popular-badge">{pack.badge}</span>
                   )}
-                  <p className="text-white/35 text-xs font-semibold uppercase tracking-wider mb-3">
+                  <p className="text-[#0F172A]/40 text-xs font-semibold uppercase tracking-wider mb-3">
                     {pack.conversations} conversaciones
                   </p>
                   <p className={`font-black mb-1 leading-none tracking-tight ${
-                    pack.price === 'GRATIS' ? 'text-[#25D366] text-4xl' : 'text-white text-3xl'
+                    pack.price === 'GRATIS' ? 'text-[#25D366] text-4xl' : 'text-[#0F172A] text-3xl'
                   }`}>
                     {pack.price}
                   </p>
-                  <p className="text-white/25 text-xs mb-6">{pack.priceNote}</p>
+                  <p className="text-[#0F172A]/30 text-xs mb-6">{pack.priceNote}</p>
                   <div className="flex-1" />
                   {pack.free ? (
                     <a
@@ -644,7 +645,7 @@ export default function LandingPage() {
           <div className="text-center mt-8">
             <button
               onClick={() => setShowAllPacks(!showAllPacks)}
-              className="inline-flex items-center gap-2 text-white/35 hover:text-white/65 text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-2 text-[#0F172A]/40 hover:text-[#0F172A]/70 text-sm font-medium transition-colors"
             >
               <ChevronDown
                 size={17}
@@ -657,7 +658,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ TESTIMONIOS ============ */}
-      <section id="testimonios" className="py-24 bg-black">
+      <section id="testimonios" className="py-24 bg-[#F7F8FA]">
         <div className="container mx-auto px-6">
           <motion.div
             className="text-center mb-16"
@@ -667,10 +668,10 @@ export default function LandingPage() {
             variants={fadeUp}
           >
             <span className="green-badge mb-6 inline-flex">Testimonios</span>
-            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-6 tracking-tight">
+            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-6 tracking-tight text-[#0F172A]">
               Lo que dicen nuestros
               <br />
-              <span className="text-white/30">clientes.</span>
+              <span className="text-[#0F172A]/30">clientes.</span>
             </h2>
           </motion.div>
 
@@ -679,7 +680,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ FAQ ============ */}
-      <section id="faq" className="py-24 bg-[#0a0a0a]">
+      <section id="faq" className="py-24 bg-white">
         <div className="container mx-auto px-6">
           <motion.div
             className="text-center mb-16"
@@ -689,10 +690,10 @@ export default function LandingPage() {
             variants={fadeUp}
           >
             <span className="green-badge mb-6 inline-flex">Preguntas Frecuentes</span>
-            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight">
+            <h2 className="text-4xl md:text-6xl font-black mt-4 mb-4 tracking-tight text-[#0F172A]">
               ¿Tienes dudas?
             </h2>
-            <p className="text-white/40 max-w-xl mx-auto text-lg">
+            <p className="text-[#0F172A]/45 max-w-xl mx-auto text-lg">
               Aquí están las respuestas a las preguntas más comunes.
             </p>
           </motion.div>
@@ -712,16 +713,17 @@ export default function LandingPage() {
       </section>
 
       {/* ============ FINAL CTA ============ */}
-      <section id="contacto" className="py-24 bg-black">
+      <section id="contacto" className="py-24 bg-[#F7F8FA]">
         <div className="container mx-auto px-6">
           <motion.div
-            className="relative rounded-2xl border border-[#25D366]/12 bg-[#0f0f0f] p-10 md:p-16 text-center max-w-4xl mx-auto overflow-hidden"
+            className="relative rounded-2xl border border-[#25D366]/20 p-10 md:p-16 text-center max-w-4xl mx-auto overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)' }}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={stagger}
           >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-[#25D366]/4 blur-[150px] rounded-full pointer-events-none" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-[#25D366]/10 blur-[150px] rounded-full pointer-events-none" />
 
             <div className="relative z-10">
               <motion.span variants={fadeUp} className="green-badge mb-8 inline-flex">
@@ -729,7 +731,7 @@ export default function LandingPage() {
               </motion.span>
               <motion.h2
                 variants={fadeUp}
-                className="text-4xl md:text-6xl font-black mb-4 tracking-tight mt-2"
+                className="text-4xl md:text-6xl font-black mb-4 tracking-tight mt-2 text-[#0F172A]"
               >
                 ¿Listo para automatizar
                 <br />
@@ -737,11 +739,11 @@ export default function LandingPage() {
               </motion.h2>
               <motion.p
                 variants={fadeUp}
-                className="text-white/45 text-lg mb-4 max-w-xl mx-auto"
+                className="text-[#0F172A]/50 text-lg mb-4 max-w-xl mx-auto"
               >
                 Agenda una demo gratuita y te mostramos cómo JABA puede transformar tu negocio en menos de 24 horas.
               </motion.p>
-              <motion.p variants={fadeUp} className="text-[#25D366] text-sm font-semibold mb-10 flex items-center justify-center gap-2">
+              <motion.p variants={fadeUp} className="text-[#128C7E] text-sm font-semibold mb-10 flex items-center justify-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" />
                 Respondemos en menos de 2 horas
               </motion.p>
@@ -753,9 +755,9 @@ export default function LandingPage() {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-3 px-8 py-4 btn-cta text-black font-bold text-lg"
+                  className="group inline-flex items-center gap-3 px-8 py-4 btn-cta font-bold text-lg"
                 >
-                  <WhatsAppIcon className="w-6 h-6 fill-black" />
+                  <WhatsAppIcon className="w-6 h-6 fill-white" />
                   Agenda una Demo Gratuita
                 </a>
                 <a
@@ -770,7 +772,7 @@ export default function LandingPage() {
                 <span className="trust-badge">Garantía de satisfacción</span>
                 <span className="trust-badge">Soporte directo incluido</span>
               </motion.div>
-              <motion.p variants={fadeUp} className="text-white/20 text-sm">
+              <motion.p variants={fadeUp} className="text-[#0F172A]/30 text-sm">
                 {WHATSAPP_NUMBER} · La Paz, Bolivia
               </motion.p>
             </div>
@@ -779,22 +781,22 @@ export default function LandingPage() {
       </section>
 
       {/* ============ FOOTER ============ */}
-      <footer className="py-12 border-t border-white/5 bg-black">
+      <footer className="py-12 border-t border-black/6 bg-[#0F172A]">
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
                 <Image src="/logo.png" alt="Jaba" width={32} height={32} className="rounded-lg" />
-                <span className="font-bold text-lg">JABA</span>
+                <span className="font-bold text-lg text-white">JABA</span>
               </div>
-              <p className="text-white/30 text-sm leading-relaxed max-w-md">
+              <p className="text-white/35 text-sm leading-relaxed max-w-md">
                 Plataforma integral de automatización empresarial con IA. Chatbots inteligentes,
                 gestión de clientes, cobros automáticos y reportes en tiempo real.
               </p>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4 text-sm">Servicios</h4>
-              <ul className="space-y-2 text-sm text-white/35">
+              <ul className="space-y-2 text-sm text-white/40">
                 <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Chatbots IA</a></li>
                 <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Chat Empresarial</a></li>
                 <li><a href="#servicios" className="hover:text-[#25D366] transition-colors">Suscripciones</a></li>
@@ -803,20 +805,20 @@ export default function LandingPage() {
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4 text-sm">Legal</h4>
-              <ul className="space-y-2 text-sm text-white/35">
+              <ul className="space-y-2 text-sm text-white/40">
                 <li><Link href="/terms" className="hover:text-[#25D366] transition-colors">Términos de Servicio</Link></li>
                 <li><Link href="/privacy" className="hover:text-[#25D366] transition-colors">Política de Privacidad</Link></li>
                 <li><a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#25D366] transition-colors">Contacto</a></li>
               </ul>
             </div>
           </div>
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-white/20 text-sm">© {new Date().getFullYear()} JABA. Todos los derechos reservados.</p>
+          <div className="pt-8 border-t border-white/8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-white/25 text-sm">© {new Date().getFullYear()} JABA. Todos los derechos reservados.</p>
             <div className="flex gap-4">
-              <a href="#" className="w-9 h-9 rounded-full bg-white/4 border border-white/6 flex items-center justify-center text-white/35 hover:text-[#25D366] hover:border-[#25D366]/25 transition-all">
+              <a href="#" className="w-9 h-9 rounded-full bg-white/5 border border-white/8 flex items-center justify-center text-white/35 hover:text-[#25D366] hover:border-[#25D366]/25 transition-all">
                 <Facebook size={15} />
               </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-white/4 border border-white/6 flex items-center justify-center text-white/35 hover:text-[#25D366] hover:border-[#25D366]/25 transition-all">
+              <a href="#" className="w-9 h-9 rounded-full bg-white/5 border border-white/8 flex items-center justify-center text-white/35 hover:text-[#25D366] hover:border-[#25D366]/25 transition-all">
                 <Instagram size={15} />
               </a>
             </div>
@@ -944,12 +946,12 @@ function HeroChatMockup() {
 
         {/* Floating stat — tiempo de respuesta */}
         <motion.div
-          className="absolute -bottom-2 -left-6 bg-[#111] border border-white/10 rounded-xl px-3 py-2 shadow-xl"
+          className="absolute -bottom-2 -left-6 bg-white border border-black/10 rounded-xl px-3 py-2 shadow-xl"
           animate={{ y: [0, 5, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
         >
-          <p className="text-[9px] text-white/35 uppercase tracking-wider">Respuesta</p>
-          <p className="text-white font-black text-sm">&lt; 1 segundo</p>
+          <p className="text-[9px] text-[#0F172A]/40 uppercase tracking-wider">Respuesta</p>
+          <p className="text-[#0F172A] font-black text-sm">&lt; 1 segundo</p>
         </motion.div>
       </div>
     </div>
@@ -1089,8 +1091,8 @@ function TestimonialCarousel() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="relative overflow-hidden rounded-2xl bg-[#0f0f0f] border border-white/5 p-8 md:p-12 min-h-[280px]">
-        <div className="absolute top-6 right-8 text-7xl text-[#25D366]/6 font-serif pointer-events-none select-none">"</div>
+      <div className="relative overflow-hidden rounded-2xl bg-white border border-black/8 p-8 md:p-12 min-h-[280px] shadow-md">
+        <div className="absolute top-6 right-8 text-7xl text-[#25D366]/15 font-serif pointer-events-none select-none">"</div>
         <AnimatePresence mode="wait">
           <motion.div
             key={active}
@@ -1104,7 +1106,7 @@ function TestimonialCarousel() {
                 <Star key={i} size={20} className="fill-amber-400 text-amber-400" />
               ))}
             </div>
-            <p className="text-lg md:text-xl text-white/65 leading-relaxed mb-8 italic">
+            <p className="text-lg md:text-xl text-[#0F172A]/65 leading-relaxed mb-8 italic">
               &ldquo;{t.textParts ? (
                 <>
                   {t.textParts.before}
@@ -1114,17 +1116,17 @@ function TestimonialCarousel() {
               ) : t.text}&rdquo;
             </p>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-[#1a1a1a] border border-white/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-black text-sm">{t.initials}</span>
+              <div className="w-12 h-12 rounded-full bg-[#F0FDF4] border border-[#25D366]/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-[#128C7E] font-black text-sm">{t.initials}</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-bold text-white">{t.name}</p>
+                  <p className="font-bold text-[#0F172A]">{t.name}</p>
                   <span className="verified-pill">
                     <CheckCircle size={11} /> Verificado
                   </span>
                 </div>
-                <p className="text-sm text-white/35">{t.role}</p>
+                <p className="text-sm text-[#0F172A]/40">{t.role}</p>
               </div>
             </div>
           </motion.div>
@@ -1137,7 +1139,7 @@ function TestimonialCarousel() {
             key={i}
             onClick={() => setActive(i)}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === active ? 'w-8 bg-[#25D366]' : 'w-1.5 bg-white/18 hover:bg-white/35'
+              i === active ? 'w-8 bg-[#25D366]' : 'w-1.5 bg-black/15 hover:bg-black/30'
             }`}
           />
         ))}
@@ -1152,13 +1154,13 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   return (
     <motion.div
       variants={fadeUp}
-      className="border border-white/5 rounded-xl overflow-hidden bg-white/[0.015] hover:border-[#25D366]/20 transition-colors"
+      className="border border-black/8 rounded-xl overflow-hidden bg-white hover:border-[#25D366]/30 transition-colors shadow-sm"
     >
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-5 md:p-6 text-left"
       >
-        <span className="text-white font-semibold text-sm md:text-base pr-4">{question}</span>
+        <span className="text-[#0F172A] font-semibold text-sm md:text-base pr-4">{question}</span>
         <ChevronDown
           size={20}
           className={`text-[#25D366] flex-shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
@@ -1172,7 +1174,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
-            <div className="px-5 md:px-6 pb-5 md:pb-6 text-white/40 text-sm leading-relaxed border-t border-white/5 pt-4">
+            <div className="px-5 md:px-6 pb-5 md:pb-6 text-[#0F172A]/50 text-sm leading-relaxed border-t border-black/6 pt-4">
               {answer}
             </div>
           </motion.div>
@@ -1386,7 +1388,7 @@ function ServiceCard({ icon: Icon, title, description, iconColor, popular, keyBe
     return (
       <motion.div
         variants={fadeUp}
-        className="group md:col-span-2 rounded-2xl bg-[#111] border border-white/5 hover:border-[#25D366]/20 transition-all duration-300 relative overflow-hidden"
+        className="group md:col-span-2 rounded-2xl bg-white border border-black/8 hover:border-[#25D366]/30 transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md"
       >
         {popular && <span className="popular-badge">Más popular</span>}
         <div className="flex flex-col md:flex-row">
@@ -1395,19 +1397,19 @@ function ServiceCard({ icon: Icon, title, description, iconColor, popular, keyBe
             <div className="w-12 h-12 rounded-xl bg-[#25D366]/10 flex items-center justify-center mb-5">
               <Icon size={24} className="text-[#25D366]" />
             </div>
-            <h3 className="text-xl md:text-2xl font-black text-white mb-1">{title}</h3>
+            <h3 className="text-xl md:text-2xl font-black text-[#0F172A] mb-1">{title}</h3>
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl font-black text-[#25D366]">{stat}</span>
-              <span className="text-xs text-white/40">{statLabel}</span>
+              <span className="text-xs text-[#0F172A]/40">{statLabel}</span>
             </div>
-            <p className="text-white/45 leading-relaxed text-sm mb-5">{description}</p>
-            <div className="flex items-start gap-2 pt-4 border-t border-white/5">
+            <p className="text-[#0F172A]/50 leading-relaxed text-sm mb-5">{description}</p>
+            <div className="flex items-start gap-2 pt-4 border-t border-black/6">
               <CheckCircle size={14} className="text-[#25D366] mt-0.5 flex-shrink-0" />
-              <span className="text-xs text-[#25D366] font-medium leading-snug">{keyBenefit}</span>
+              <span className="text-xs text-[#128C7E] font-medium leading-snug">{keyBenefit}</span>
             </div>
           </div>
-          {/* Right — mockup */}
-          <div className="md:w-[45%] bg-[#0a0a0a] border-t md:border-t-0 md:border-l border-white/5 min-h-[200px] md:min-h-0">
+          {/* Right — mockup (WhatsApp dark theme preserved) */}
+          <div className="md:w-[45%] bg-[#0a0a0a] border-t md:border-t-0 md:border-l border-black/8 min-h-[200px] md:min-h-0">
             <MiniChatMockup />
           </div>
         </div>
@@ -1418,30 +1420,30 @@ function ServiceCard({ icon: Icon, title, description, iconColor, popular, keyBe
   return (
     <motion.div
       variants={fadeUp}
-      className="group rounded-2xl bg-[#111] border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden flex flex-col"
+      className="group rounded-2xl bg-white border border-black/8 hover:border-[#25D366]/30 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden flex flex-col shadow-sm hover:shadow-md"
     >
-      {/* Mockup area */}
-      <div className="h-36 bg-[#0a0a0a] border-b border-white/5 overflow-hidden">
+      {/* Mockup area (WhatsApp dark theme preserved) */}
+      <div className="h-36 bg-[#0a0a0a] border-b border-black/8 overflow-hidden">
         {getServiceMockup(title)}
       </div>
       {/* Content */}
       <div className="p-6 flex flex-col flex-1">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
-            <Icon size={18} className={iconColor} />
+          <div className="w-9 h-9 rounded-lg bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
+            <Icon size={18} className="text-[#25D366]" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white leading-tight">{title}</h3>
+            <h3 className="text-base font-bold text-[#0F172A] leading-tight">{title}</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-sm font-bold text-[#25D366]">{stat}</span>
-              <span className="text-[10px] text-white/30">{statLabel}</span>
+              <span className="text-[10px] text-[#0F172A]/35">{statLabel}</span>
             </div>
           </div>
         </div>
-        <p className="text-white/40 leading-relaxed text-sm mb-4 flex-1">{description}</p>
-        <div className="flex items-start gap-2 pt-3 border-t border-white/5">
+        <p className="text-[#0F172A]/45 leading-relaxed text-sm mb-4 flex-1">{description}</p>
+        <div className="flex items-start gap-2 pt-3 border-t border-black/6">
           <CheckCircle size={14} className="text-[#25D366] mt-0.5 flex-shrink-0" />
-          <span className="text-xs text-[#25D366] font-medium leading-snug">{keyBenefit}</span>
+          <span className="text-xs text-[#128C7E] font-medium leading-snug">{keyBenefit}</span>
         </div>
       </div>
     </motion.div>
@@ -1457,17 +1459,17 @@ function StepCard({ number, title, description, icon: Icon, isLast }: {
 }) {
   return (
     <motion.div variants={fadeUp} className="relative text-center">
-      <span className="text-[#25D366]/8 text-8xl font-black absolute -top-6 left-1/2 -translate-x-1/2 pointer-events-none select-none z-0">
+      <span className="text-[#25D366]/10 text-8xl font-black absolute -top-6 left-1/2 -translate-x-1/2 pointer-events-none select-none z-0">
         {number}
       </span>
-      <div className="w-14 h-14 rounded-2xl bg-[#25D366] flex items-center justify-center mx-auto mb-6 relative z-10 shadow-lg shadow-[#25D366]/20">
-        <Icon size={24} className="text-black" />
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center mx-auto mb-6 relative z-10 shadow-lg shadow-[#25D366]/25">
+        <Icon size={24} className="text-white" />
       </div>
-      <h3 className="text-xl font-bold text-white mb-3 relative z-10">{title}</h3>
-      <p className="text-white/40 leading-relaxed text-sm relative z-10">{description}</p>
+      <h3 className="text-xl font-bold text-[#0F172A] mb-3 relative z-10">{title}</h3>
+      <p className="text-[#0F172A]/45 leading-relaxed text-sm relative z-10">{description}</p>
       {!isLast && (
         <div className="hidden md:block absolute top-7 -right-4 z-20">
-          <ChevronRight size={24} className="text-white/12" />
+          <ChevronRight size={24} className="text-[#0F172A]/15" />
         </div>
       )}
     </motion.div>
@@ -1494,11 +1496,11 @@ function AnimatedStatCard({ icon, end, suffix, label }: {
 
   return (
     <motion.div ref={ref} variants={fadeUp} className="flex flex-col items-center gap-2">
-      <div className="w-12 h-12 rounded-xl bg-white/4 border border-white/6 flex items-center justify-center mb-1">
+      <div className="w-12 h-12 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 flex items-center justify-center mb-1">
         {icon}
       </div>
       <span className="stat-number-white">{count}{suffix}</span>
-      <span className="text-sm text-white/35">{label}</span>
+      <span className="text-sm text-[#0F172A]/40">{label}</span>
     </motion.div>
   );
 }
