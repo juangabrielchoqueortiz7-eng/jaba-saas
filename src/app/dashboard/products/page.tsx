@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
     Plus, Search, Trash2, Edit, Package, ToggleLeft, ToggleRight, X,
     Image as ImageIcon, Upload, Clock, Layers, Briefcase, ShoppingBag,
-    Wrench, Grid3X3, Star
+    Wrench, Grid3X3, Star, RefreshCw, CheckCircle2
 } from 'lucide-react'
 import { getProducts, createProduct, deleteProduct, toggleProduct, updateProduct, type Product } from './actions'
 import { createClient } from '@/utils/supabase/client'
@@ -102,6 +102,13 @@ export default function ProductsPage() {
     const imageInputRef = useRef<HTMLInputElement>(null)
     const supabase = createClient()
 
+    // Promo image (lista de precios general del catálogo)
+    const [promoImageUrl, setPromoImageUrl] = useState('')
+    const [promoLocalPreview, setPromoLocalPreview] = useState('')
+    const [promoUploading, setPromoUploading] = useState(false)
+    const [promoDragging, setPromoDragging] = useState(false)
+    const [promoSaved, setPromoSaved] = useState(false)
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -119,7 +126,24 @@ export default function ProductsPage() {
         includes: '',
     })
 
-    useEffect(() => { loadProducts() }, [])
+    useEffect(() => {
+        loadProducts()
+        // Load promo image from whatsapp_credentials
+        const loadPromoImage = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            const { data } = await supabase
+                .from('whatsapp_credentials')
+                .select('promo_image_url')
+                .eq('user_id', user.id)
+                .single()
+            if (data?.promo_image_url) {
+                setPromoImageUrl(data.promo_image_url)
+                setPromoLocalPreview(data.promo_image_url)
+            }
+        }
+        loadPromoImage()
+    }, [])
 
     const loadProducts = async () => {
         const data = await getProducts()
@@ -153,6 +177,43 @@ export default function ProductsPage() {
             console.error('Error uploading product image:', e)
         } finally {
             setImageUploading(false)
+        }
+    }
+
+    // ── Promo image (lista de precios general) ───────────────────────────────
+    const handlePromoUpload = async (file: File) => {
+        const localUrl = URL.createObjectURL(file)
+        setPromoLocalPreview(localUrl)
+        setPromoUploading(true)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('No autenticado')
+            const ext = file.name.split('.').pop()
+            const path = `promo/${user.id}_${Date.now()}.${ext}`
+            const { error: upErr } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
+            if (upErr) throw upErr
+            const { data: pub } = supabase.storage.from('assets').getPublicUrl(path)
+            const url = pub.publicUrl
+            setPromoImageUrl(url)
+            setPromoLocalPreview(url)
+            URL.revokeObjectURL(localUrl)
+            // Auto-save to DB
+            await supabase.from('whatsapp_credentials').update({ promo_image_url: url }).eq('user_id', user.id)
+            setPromoSaved(true)
+            setTimeout(() => setPromoSaved(false), 3000)
+        } catch (err: any) {
+            alert(`No se pudo subir la imagen: ${err.message}`)
+        } finally {
+            setPromoUploading(false)
+        }
+    }
+
+    const handlePromoDelete = async () => {
+        setPromoImageUrl('')
+        setPromoLocalPreview('')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            await supabase.from('whatsapp_credentials').update({ promo_image_url: null }).eq('user_id', user.id)
         }
     }
 
@@ -284,6 +345,133 @@ export default function ProductsPage() {
                         Agregar Producto
                     </Button>
                 )}
+            </div>
+
+            {/* ── Imagen de precios del catálogo ── */}
+            <div className="mb-6 rounded-2xl border border-black/[0.08] bg-white overflow-hidden shadow-sm">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-black/[0.06] bg-[#F7F8FA]">
+                    <div className="w-9 h-9 rounded-xl bg-[#25D366]/10 flex items-center justify-center text-xl">🖼️</div>
+                    <div>
+                        <p className="font-bold text-[#0F172A] text-sm">Imagen de tu catálogo</p>
+                        <p className="text-xs text-[#0F172A]/45 mt-0.5">Sube una imagen con tus precios o servicios. El bot la enviará automáticamente cuando un cliente pida información.</p>
+                    </div>
+                </div>
+                <div className="p-6">
+                    <div className="grid md:grid-cols-[1fr_280px] gap-6 items-start">
+                        <div className="space-y-3">
+                            {(promoImageUrl || promoLocalPreview) ? (
+                                <div className="space-y-2">
+                                    <div className="relative inline-block">
+                                        <img
+                                            src={promoLocalPreview || promoImageUrl}
+                                            alt="Imagen de catálogo"
+                                            className="max-h-64 w-full rounded-xl border border-black/[0.08] object-contain bg-[#F7F8FA]"
+                                        />
+                                        {promoUploading && (
+                                            <div className="absolute inset-0 bg-black/50 rounded-xl flex flex-col items-center justify-center gap-2">
+                                                <RefreshCw className="w-6 h-6 text-white animate-spin" />
+                                                <span className="text-xs text-white">Subiendo imagen...</span>
+                                            </div>
+                                        )}
+                                        {!promoUploading && (
+                                            <button
+                                                type="button"
+                                                onClick={handlePromoDelete}
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-colors z-10"
+                                                title="Eliminar imagen"
+                                            >✕</button>
+                                        )}
+                                    </div>
+                                    {promoSaved && (
+                                        <p className="text-xs text-green-600 flex items-center gap-1">
+                                            <CheckCircle2 className="w-3 h-3" /> Imagen guardada correctamente
+                                        </p>
+                                    )}
+                                    {promoImageUrl && !promoSaved && (
+                                        <p className="text-xs text-[#0F172A]/35 flex items-center gap-1">
+                                            <CheckCircle2 className="w-3 h-3 text-green-500" /> Imagen activa en el catálogo
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                <label
+                                    htmlFor="promoCatFile"
+                                    className={`flex flex-col items-center justify-center gap-3 p-10 border-2 border-dashed rounded-xl cursor-pointer transition-all ${promoDragging
+                                        ? 'border-[#25D366] bg-[#25D366]/5 scale-[1.01]'
+                                        : 'border-black/[0.08] hover:border-[#25D366]/50 hover:bg-[#F0FDF4] bg-[#F7F8FA]'
+                                    }`}
+                                    onDragOver={e => { e.preventDefault(); setPromoDragging(true) }}
+                                    onDragLeave={() => setPromoDragging(false)}
+                                    onDrop={async e => {
+                                        e.preventDefault()
+                                        setPromoDragging(false)
+                                        const file = e.dataTransfer.files?.[0]
+                                        if (!file || !file.type.startsWith('image/')) return
+                                        await handlePromoUpload(file)
+                                    }}
+                                >
+                                    <input
+                                        id="promoCatFile"
+                                        type="file"
+                                        accept="image/*"
+                                        className="sr-only"
+                                        onChange={async e => {
+                                            const file = e.target.files?.[0]
+                                            if (!file) return
+                                            await handlePromoUpload(file)
+                                            e.target.value = ''
+                                        }}
+                                    />
+                                    <div className="w-14 h-14 rounded-full bg-white border border-black/[0.08] flex items-center justify-center text-3xl shadow-sm">🖼️</div>
+                                    <div className="text-center">
+                                        <p className="text-sm font-semibold text-[#0F172A]">Arrastra tu imagen aquí</p>
+                                        <p className="text-xs text-[#0F172A]/35 mt-1">o haz clic para seleccionar</p>
+                                        <p className="text-xs text-[#0F172A]/40 mt-2">JPG · PNG · WEBP</p>
+                                    </div>
+                                </label>
+                            )}
+                        </div>
+                        <div className="space-y-3 text-sm text-[#0F172A]/50 leading-relaxed">
+                            <p>📋 <strong className="text-[#0F172A]/70">¿Qué imagen subir?</strong> Una foto de tu lista de precios, un flyer con tus servicios o cualquier imagen que muestre lo que ofreces.</p>
+                            <p>🤖 <strong className="text-[#0F172A]/70">¿Cuándo la usa el bot?</strong> Cuando un cliente escribe "precios", "¿cuánto cuesta?" o similar, el bot envía esta imagen automáticamente.</p>
+                            <p>✏️ Puedes cambiarla cuando quieras subiendo una nueva.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── ¿Cómo funciona el remarketing automático? ── */}
+            <div className="mb-8 rounded-2xl border border-[#25D366]/20 bg-[rgba(37,211,102,0.03)] overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-[#25D366]/15">
+                    <div className="w-8 h-8 rounded-full bg-[#25D366]/10 flex items-center justify-center text-base">🔄</div>
+                    <div>
+                        <p className="font-bold text-[#0F172A] text-sm">¿Cómo funciona el remarketing automático?</p>
+                        <p className="text-xs text-[#0F172A]/45 mt-0.5">Tu bot envía mensajes de renovación en 3 pasos sin que hagas nada</p>
+                    </div>
+                </div>
+                <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                        { step: '1', time: '13:00 UTC (9am BOT)', icon: '📤', color: 'bg-blue-50 border-blue-200', textColor: 'text-blue-700', title: 'Plantilla Meta enviada', desc: 'Se envía la plantilla de WhatsApp a clientes que vencen en 7 días. Abre una ventana de 24h para mensajes normales.' },
+                        { step: '2', time: '22:00 UTC (6pm BOT)', icon: '💬', color: 'bg-emerald-50 border-emerald-200', textColor: 'text-emerald-700', title: 'Seguimiento gratuito', desc: 'Si aún no renovó, se envía un mensaje normal (sin costo Meta) dentro de la ventana de 24h.' },
+                        { step: '3', time: '13:00 UTC día siguiente', icon: '⚡', color: 'bg-amber-50 border-amber-200', textColor: 'text-amber-700', title: 'Último aviso urgente', desc: 'Para quienes vencen HOY se envía un último recordatorio con urgencia.' },
+                    ].map((item) => (
+                        <div key={item.step} className={`rounded-xl border p-4 ${item.color}`}>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">{item.icon}</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${item.textColor}`}>Paso {item.step}</span>
+                            </div>
+                            <p className={`font-semibold text-sm mb-1 ${item.textColor}`}>{item.title}</p>
+                            <p className="text-xs text-[#0F172A]/55 leading-relaxed mb-2">{item.desc}</p>
+                            <p className={`text-[10px] font-mono ${item.textColor} opacity-70`}>{item.time}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="px-6 pb-5">
+                    <div className="bg-white border border-black/[0.07] rounded-xl px-4 py-3 text-xs text-[#0F172A]/60 leading-relaxed">
+                        <strong>💡 Personaliza el contenido:</strong> Ve a <strong>Plantillas</strong> para editar los mensajes de cada paso.
+                        Los mensajes de seguimiento (paso 2 y 3) se configuran desde la sección de <strong>Plantillas Meta → Configuración de Servicios</strong>.
+                    </div>
+                </div>
             </div>
 
             {/* Create/Edit Form */}

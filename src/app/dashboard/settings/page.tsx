@@ -691,90 +691,6 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
-                            {/* Promo Image - Drag & Drop Upload */}
-                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
-                                <Label className="text-base font-semibold text-[#0F172A]">Imagen de precios</Label>
-                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
-                                    <div className="space-y-3">
-                                        {(promoImageUrl || promoLocalPreview) ? (
-                                            /* Vista previa con botón eliminar */
-                                            <div className="space-y-2">
-                                                <div className="relative inline-block">
-                                                    <img
-                                                        src={promoLocalPreview || promoImageUrl}
-                                                        alt="Imagen de precios"
-                                                        className="max-h-56 w-full rounded-xl border border-black/[0.08] object-contain bg-[#F7F8FA]"
-                                                    />
-                                                    {promoUploading && (
-                                                        <div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center gap-2">
-                                                            <RefreshCw className="w-6 h-6 text-green-400 animate-spin" />
-                                                            <span className="text-xs text-[#0F172A]/65">Guardando imagen...</span>
-                                                        </div>
-                                                    )}
-                                                    {!promoUploading && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => { setPromoImageUrl(''); setPromoLocalPreview('') }}
-                                                            className="absolute -top-2 -right-2 w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-xl transition-colors z-10"
-                                                            title="Eliminar imagen"
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                {promoImageUrl && (
-                                                    <p className="text-xs text-green-500 flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3" /> Imagen guardada correctamente
-                                                    </p>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            /* Zona drag & drop */
-                                            <label
-                                                htmlFor="promoImageFile"
-                                                className={`flex flex-col items-center justify-center gap-3 p-10 border-2 border-dashed rounded-xl cursor-pointer transition-all ${promoDragging
-                                                    ? 'border-green-500 bg-green-500/10 scale-[1.01]'
-                                                    : 'border-black/[0.08] hover:border-green-600/50 hover:bg-[#F0FDF4] bg-white'
-                                                    }`}
-                                                onDragOver={e => { e.preventDefault(); setPromoDragging(true) }}
-                                                onDragLeave={() => setPromoDragging(false)}
-                                                onDrop={async e => {
-                                                    e.preventDefault()
-                                                    setPromoDragging(false)
-                                                    const file = e.dataTransfer.files?.[0]
-                                                    if (!file || !file.type.startsWith('image/')) return
-                                                    await handlePromoUpload(file)
-                                                }}
-                                            >
-                                                <input
-                                                    id="promoImageFile"
-                                                    type="file"
-                                                    accept="image/*"
-                                                    className="sr-only"
-                                                    onChange={async e => {
-                                                        const file = e.target.files?.[0]
-                                                        if (!file) return
-                                                        await handlePromoUpload(file)
-                                                        e.target.value = ''
-                                                    }}
-                                                />
-                                                <div className="w-14 h-14 rounded-full bg-[#F7F8FA] border border-black/[0.08] flex items-center justify-center text-3xl">
-                                                    🖼️
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm font-semibold text-[#0F172A]">Arrastra tu imagen aquí</p>
-                                                    <p className="text-xs text-[#0F172A]/35 mt-1">o haz clic para seleccionar</p>
-                                                    <p className="text-xs text-slate-600 mt-2">JPG · PNG · WEBP</p>
-                                                </div>
-                                            </label>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
-                                        Imagen con tus precios que se envía automáticamente al cliente cuando solicita información. Usa JPG o PNG de buena calidad. Puedes eliminarla y cambiarla cuando quieras.
-                                    </p>
-                                </div>
-                            </div>
-
                             {/* Reference (Disabled) */}
                             <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg bg-[#F7F8FA] opacity-60">
                                 <Label className="text-base font-semibold text-[#0F172A]/35">Usar referencia (Opcional)</Label>
@@ -791,41 +707,6 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
-                        {/* Remarketing automático */}
-                        <div className="mt-8 rounded-2xl border border-[#25D366]/20 bg-[rgba(37,211,102,0.03)] overflow-hidden">
-                            <div className="flex items-center gap-3 px-6 py-4 border-b border-[#25D366]/15">
-                                <div className="w-8 h-8 rounded-full bg-[#25D366]/10 flex items-center justify-center">
-                                    <span className="text-base">🔄</span>
-                                </div>
-                                <div>
-                                    <p className="font-bold text-[#0F172A] text-sm">¿Cómo funciona el remarketing automático?</p>
-                                    <p className="text-xs text-[#0F172A]/45 mt-0.5">Tu bot envía mensajes de renovación en 3 pasos sin que hagas nada</p>
-                                </div>
-                            </div>
-                            <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {[
-                                    { step: '1', time: '13:00 UTC (9am BOT)', icon: '📤', color: 'bg-blue-50 border-blue-200', textColor: 'text-blue-700', title: 'Plantilla Meta enviada', desc: 'Se envía la plantilla de WhatsApp a clientes que vencen en 7 días. Abre una ventana de 24h para mensajes normales.' },
-                                    { step: '2', time: '22:00 UTC (6pm BOT)', icon: '💬', color: 'bg-emerald-50 border-emerald-200', textColor: 'text-emerald-700', title: 'Seguimiento gratuito', desc: 'Si aún no renovó, se envía un mensaje normal (sin costo Meta) dentro de la ventana de 24h.' },
-                                    { step: '3', time: '13:00 UTC día siguiente', icon: '⚡', color: 'bg-amber-50 border-amber-200', textColor: 'text-amber-700', title: 'Último aviso urgente', desc: 'Para quienes vencen HOY se envía un último recordatorio con urgencia.' },
-                                ].map((item) => (
-                                    <div key={item.step} className={`rounded-xl border p-4 ${item.color}`}>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-lg">{item.icon}</span>
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${item.textColor}`}>Paso {item.step}</span>
-                                        </div>
-                                        <p className={`font-semibold text-sm mb-1 ${item.textColor}`}>{item.title}</p>
-                                        <p className="text-xs text-[#0F172A]/55 leading-relaxed mb-2">{item.desc}</p>
-                                        <p className={`text-[10px] font-mono ${item.textColor} opacity-70`}>{item.time}</p>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="px-6 pb-5">
-                                <div className="bg-white border border-black/[0.07] rounded-xl px-4 py-3 text-xs text-[#0F172A]/60 leading-relaxed">
-                                    <strong>💡 Personaliza el contenido:</strong> Ve a <strong>Plantillas</strong> para editar los mensajes de cada paso.
-                                    Los mensajes de seguimiento (paso 2 y 3) se configuran desde la sección de <strong>Plantillas Meta → Configuración de Servicios</strong>.
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 )}
 
