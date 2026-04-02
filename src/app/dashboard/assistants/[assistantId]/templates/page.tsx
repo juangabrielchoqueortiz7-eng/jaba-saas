@@ -27,11 +27,11 @@ type MetaTemplate = {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-    APPROVED: { label: 'Aprobada', className: 'bg-emerald-900/40 text-emerald-400 border-emerald-800/60', icon: <CheckCircle2 size={12} /> },
-    PENDING: { label: 'Pendiente', className: 'bg-amber-900/40 text-amber-400 border-amber-800/60', icon: <Clock size={12} /> },
-    REJECTED: { label: 'Rechazada', className: 'bg-red-900/40 text-red-400 border-red-800/60', icon: <XCircle size={12} /> },
-    PAUSED: { label: 'Pausada', className: 'bg-slate-800 text-slate-400 border-slate-700', icon: <AlertCircle size={12} /> },
-    DISABLED: { label: 'Desactivada', className: 'bg-slate-800 text-slate-500 border-slate-700', icon: <XCircle size={12} /> },
+    APPROVED: { label: 'Aprobada', className: 'bg-emerald-50 text-emerald-600 border-emerald-200', icon: <CheckCircle2 size={12} /> },
+    PENDING: { label: 'Pendiente', className: 'bg-amber-50 text-amber-600 border-amber-200', icon: <Clock size={12} /> },
+    REJECTED: { label: 'Rechazada', className: 'bg-red-50 text-red-600 border-red-200', icon: <XCircle size={12} /> },
+    PAUSED: { label: 'Pausada', className: 'bg-slate-100 text-slate-500 border-slate-200', icon: <AlertCircle size={12} /> },
+    DISABLED: { label: 'Desactivada', className: 'bg-slate-100 text-slate-500 border-slate-200', icon: <XCircle size={12} /> },
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -232,11 +232,11 @@ export default function TemplatesPage() {
 
 
     return (
-        <div className="p-8 max-w-7xl mx-auto text-slate-200">
+        <div className="p-8 max-w-7xl mx-auto text-[#0F172A]">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Plantillas de Respuesta</h1>
-                    <p className="text-slate-400">Crea respuestas rápidas para usar en tus conversaciones.</p>
+                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Plantillas de Respuesta</h1>
+                    <p className="text-slate-500">Crea respuestas rápidas para usar en tus conversaciones.</p>
                 </div>
                 {!builderOpen && (
                     <div className="flex items-center gap-2">
@@ -266,27 +266,27 @@ export default function TemplatesPage() {
             )}
 
             {settings && (
-                <Card className="mb-8 border-slate-800 bg-slate-900/40 opacity-90 overflow-hidden">
-                    <div className="bg-slate-900/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800/60 gap-4">
+                <Card className="mb-8 border-slate-200 bg-white opacity-90 overflow-hidden">
+                    <div className="bg-white/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 gap-4">
                         <div className="flex items-center gap-3">
-                            <div className={`p-2.5 rounded-lg ${settings.enable_auto_notifications ? 'bg-green-500/10 text-green-400' : 'bg-slate-800 text-slate-500'}`}>
+                            <div className={`p-2.5 rounded-lg ${settings.enable_auto_notifications ? 'bg-green-500/10 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
                                 {settings.enable_auto_notifications ? <Bell size={22} /> : <BellOff size={22} />}
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-white">Notificaciones Automáticas (Meta)</h3>
-                                <p className="text-sm text-slate-400">Controla el envío automático de Recordatorios y Remarketing.</p>
+                                <h3 className="text-lg font-semibold text-[#0F172A]">Notificaciones Automáticas (Meta)</h3>
+                                <p className="text-sm text-slate-500">Controla el envío automático de Recordatorios y Remarketing.</p>
                             </div>
                         </div>
                         <label className="flex items-center cursor-pointer gap-3 min-w-[120px] justify-end">
-                            <span className="text-sm text-slate-300 font-medium">{settings.enable_auto_notifications ? 'Activado' : 'Desactivado'}</span>
+                            <span className="text-sm text-slate-600 font-medium">{settings.enable_auto_notifications ? 'Activado' : 'Desactivado'}</span>
                             <div className="relative">
                                 <input type="checkbox" className="sr-only" checked={settings.enable_auto_notifications} onChange={e => toggleNotifications(e.target.checked)} disabled={isSavingSettings} />
-                                <div className={`w-10 h-6 rounded-full shadow-inner transition-colors ${settings.enable_auto_notifications ? 'bg-green-600' : 'bg-slate-700'}`}></div>
+                                <div className={`w-10 h-6 rounded-full shadow-inner transition-colors ${settings.enable_auto_notifications ? 'bg-green-600' : 'bg-slate-300'}`}></div>
                                 <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.enable_auto_notifications ? 'translate-x-4' : ''}`}></div>
                             </div>
                         </label>
                     </div>
-                    <div className="p-4 bg-slate-900/20 text-xs text-slate-500 flex flex-col gap-2">
+                    <div className="p-4 bg-slate-50 text-xs text-slate-500 flex flex-col gap-2">
                         <p>ℹ️ Las plantillas de Meta se ejecutan automáticamente los días de vencimiento. Los horarios de envío generales están administrados por Vercel. Envían automáticamente los planes de compra como botones interactivos en WhatsApp.</p>
                     </div>
                 </Card>
@@ -294,15 +294,15 @@ export default function TemplatesPage() {
 
             {/* ── Configuración de plantillas por servicio ── */}
             {settings && (
-                <Card className="mb-8 border-slate-800 bg-slate-900/40 overflow-hidden">
-                    <div className="bg-slate-900/80 p-5 flex items-center justify-between border-b border-slate-800/60">
+                <Card className="mb-8 border-slate-200 bg-white overflow-hidden">
+                    <div className="bg-white/80 p-5 flex items-center justify-between border-b border-slate-200">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+                            <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-500">
                                 <Settings2 size={20} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-white">Plantillas por Servicio</h3>
-                                <p className="text-sm text-slate-400">Elige qué plantilla Meta enviar a cada tipo de suscripción en cada fase del recordatorio.</p>
+                                <h3 className="text-lg font-semibold text-[#0F172A]">Plantillas por Servicio</h3>
+                                <p className="text-sm text-slate-500">Elige qué plantilla Meta enviar a cada tipo de suscripción en cada fase del recordatorio.</p>
                             </div>
                         </div>
                         <Button
@@ -316,7 +316,7 @@ export default function TemplatesPage() {
                     </div>
                     <div className="p-5 space-y-6">
                         {/* Column headers */}
-                        <div className="grid grid-cols-4 gap-3 text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
+                        <div className="grid grid-cols-4 gap-3 text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
                             <div>Servicio</div>
                             <div>📅 Recordatorio</div>
                             <div>🔔 Remarketing</div>
@@ -326,9 +326,9 @@ export default function TemplatesPage() {
                             <div key={service} className="grid grid-cols-4 gap-3 items-center">
                                 <div className="flex items-center gap-2">
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                        service === 'CANVA' ? 'bg-violet-900/40 text-violet-300' :
-                                        service === 'CHATGPT' ? 'bg-emerald-900/40 text-emerald-300' :
-                                        'bg-blue-900/40 text-blue-300'
+                                        service === 'CANVA' ? 'bg-violet-50 text-violet-600' :
+                                        service === 'CHATGPT' ? 'bg-emerald-50 text-emerald-600' :
+                                        'bg-blue-50 text-blue-600'
                                     }`}>{service}</span>
                                 </div>
                                 {(['reminder', 'followup', 'urgency'] as (keyof PhaseConfig)[]).map(phase => (
@@ -337,7 +337,7 @@ export default function TemplatesPage() {
                                         value={templateConfig[service][phase] || '_none'}
                                         onValueChange={v => setServiceTemplate(service, phase, v === '_none' ? '' : v)}
                                     >
-                                        <SelectTrigger className="bg-slate-950 border-slate-800 text-white text-xs h-9">
+                                        <SelectTrigger className="bg-[#F7F8FA] border-slate-200 text-[#0F172A] text-xs h-9">
                                             <SelectValue placeholder="Sin plantilla" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -369,35 +369,35 @@ export default function TemplatesPage() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar plantillas..."
-                    className="pl-10 bg-slate-900/50 border-slate-800 text-white w-full max-w-md"
+                    className="pl-10 bg-[#F7F8FA] border-slate-200 text-[#0F172A] w-full max-w-md"
                 />
             </div>
 
             <div className="space-y-4">
                 {filteredTemplates.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                    <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                         <FileText size={48} className="mx-auto mb-4 opacity-20" />
                         <p>No tienes plantillas creadas aún.</p>
                     </div>
                 ) : (
                     filteredTemplates.map(template => (
-                        <div key={template.id} className="rounded-xl bg-slate-900/50 border border-slate-800 hover:border-indigo-500/30 transition-colors group">
+                        <div key={template.id} className="rounded-xl bg-white border border-slate-200 hover:border-indigo-400/50 transition-colors group shadow-sm">
                             {editingId === template.id ? (
                                 <div className="p-4 space-y-3">
                                     <Input
                                         value={editTemplate.name}
                                         onChange={e => setEditTemplate(prev => ({ ...prev, name: e.target.value }))}
                                         placeholder="Nombre de la plantilla..."
-                                        className="bg-slate-950 border-slate-700 text-white"
+                                        className="bg-[#F7F8FA] border-slate-200 text-[#0F172A]"
                                     />
                                     <Textarea
                                         value={editTemplate.content}
                                         onChange={e => setEditTemplate(prev => ({ ...prev, content: e.target.value }))}
                                         placeholder="Escribe el mensaje aquí..."
-                                        className="bg-slate-950 border-slate-700 text-white h-28"
+                                        className="bg-[#F7F8FA] border-slate-200 text-[#0F172A] h-28"
                                     />
                                     <div className="flex justify-end gap-2">
-                                        <Button onClick={() => setEditingId(null)} className="bg-transparent hover:bg-slate-800 text-slate-400">
+                                        <Button onClick={() => setEditingId(null)} className="bg-transparent hover:bg-slate-100 text-slate-500">
                                             Cancelar
                                         </Button>
                                         <Button onClick={handleSaveEdit} disabled={isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
@@ -412,20 +412,20 @@ export default function TemplatesPage() {
                                             <FileText size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="font-medium text-white text-lg">{template.name}</h3>
-                                            <p className="text-slate-400 text-sm line-clamp-1 max-w-2xl">{template.content}</p>
+                                            <h3 className="font-medium text-[#0F172A] text-lg">{template.name}</h3>
+                                            <p className="text-slate-500 text-sm line-clamp-1 max-w-2xl">{template.content}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Button
                                             onClick={() => handleStartEdit(template)}
-                                            className="h-8 w-8 p-0 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
+                                            className="h-8 w-8 p-0 bg-transparent hover:bg-slate-100 text-slate-400 hover:text-slate-700"
                                             title="Editar plantilla"
                                         >
                                             <Edit size={18} />
                                         </Button>
                                         <Button
-                                            className="h-8 w-8 p-0 bg-transparent text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                            className="h-8 w-8 p-0 bg-transparent text-red-400 hover:text-red-600 hover:bg-red-50"
                                             onClick={() => handleDelete(template.id)}
                                             title="Eliminar plantilla"
                                         >
@@ -443,13 +443,13 @@ export default function TemplatesPage() {
             <div className="mt-12">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h2 className="text-2xl font-bold text-white">Plantillas de Meta</h2>
-                        <p className="text-slate-400 text-sm mt-1">Plantillas aprobadas en tu cuenta de WhatsApp Business.</p>
+                        <h2 className="text-2xl font-bold text-[#0F172A]">Plantillas de Meta</h2>
+                        <p className="text-slate-500 text-sm mt-1">Plantillas aprobadas en tu cuenta de WhatsApp Business.</p>
                     </div>
                     <button
                         onClick={loadMetaTemplates}
                         disabled={metaLoading}
-                        className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600 transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 border border-slate-200 text-slate-600 hover:text-[#0F172A] hover:border-slate-400 transition-colors disabled:opacity-50"
                     >
                         <RefreshCw size={14} className={metaLoading ? 'animate-spin' : ''} />
                         Actualizar
@@ -457,7 +457,7 @@ export default function TemplatesPage() {
                 </div>
 
                 {metaError ? (
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-red-900/20 border border-red-800/40 text-red-400 text-sm">
+                    <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
                         <AlertCircle size={18} className="shrink-0" />
                         {metaError}
                     </div>
@@ -467,7 +467,7 @@ export default function TemplatesPage() {
                         <p>Cargando plantillas desde Meta...</p>
                     </div>
                 ) : metaTemplates.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                    <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                         <FileText size={48} className="mx-auto mb-4 opacity-20" />
                         <p>No se encontraron plantillas en tu cuenta de Meta.</p>
                     </div>
@@ -485,7 +485,7 @@ export default function TemplatesPage() {
                                     </span>
                                 )
                             })}
-                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border border-slate-700 text-slate-400">
+                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border border-slate-200 text-slate-500">
                                 Total: {metaTemplates.length}
                             </span>
                         </div>
@@ -497,7 +497,7 @@ export default function TemplatesPage() {
                                 value={metaSearch}
                                 onChange={e => setMetaSearch(e.target.value)}
                                 placeholder="Buscar plantilla de Meta..."
-                                className="pl-9 pr-4 py-2 text-sm w-full max-w-sm rounded-lg bg-slate-900/50 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                                className="pl-9 pr-4 py-2 text-sm w-full max-w-sm rounded-lg bg-[#F7F8FA] border border-slate-200 text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-indigo-500"
                             />
                         </div>
 
@@ -514,7 +514,7 @@ export default function TemplatesPage() {
                                     const buttons = getButtons(template.components)
 
                                     return (
-                                        <div key={template.id} className="rounded-xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-colors overflow-hidden">
+                                        <div key={template.id} className="rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-colors overflow-hidden shadow-sm">
                                             {/* Header row */}
                                             <div
                                                 className="flex items-center justify-between p-4 cursor-pointer"
@@ -526,14 +526,14 @@ export default function TemplatesPage() {
                                                     </div>
                                                     <div className="min-w-0">
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <span className="font-mono text-white font-medium text-sm">{template.name}</span>
+                                                            <span className="font-mono text-[#0F172A] font-medium text-sm">{template.name}</span>
                                                             <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.className}`}>
                                                                 {cfg.icon} {cfg.label}
                                                             </span>
-                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-700 text-slate-400">
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-200 text-slate-500">
                                                                 {CATEGORY_LABELS[template.category] || template.category}
                                                             </span>
-                                                            <span className="px-2 py-0.5 rounded-full text-[10px] border border-slate-700 text-slate-500">
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] border border-slate-200 text-slate-500">
                                                                 {template.language}
                                                             </span>
                                                         </div>
@@ -549,17 +549,17 @@ export default function TemplatesPage() {
 
                                             {/* Expanded content */}
                                             {isExpanded && (
-                                                <div className="border-t border-slate-800 p-4 space-y-3 bg-slate-950/30">
+                                                <div className="border-t border-slate-200 p-4 space-y-3 bg-slate-50">
                                                     {headerText && (
                                                         <div>
                                                             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Encabezado</span>
-                                                            <p className="text-slate-300 text-sm mt-1 font-medium">{headerText}</p>
+                                                            <p className="text-slate-700 text-sm mt-1 font-medium">{headerText}</p>
                                                         </div>
                                                     )}
                                                     {bodyText && (
                                                         <div>
                                                             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Cuerpo</span>
-                                                            <p className="text-slate-300 text-sm mt-1 whitespace-pre-wrap">{bodyText}</p>
+                                                            <p className="text-slate-700 text-sm mt-1 whitespace-pre-wrap">{bodyText}</p>
                                                         </div>
                                                     )}
                                                     {footerText && (
@@ -573,7 +573,7 @@ export default function TemplatesPage() {
                                                             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Botones</span>
                                                             <div className="flex flex-wrap gap-2 mt-2">
                                                                 {buttons.map((btn, i) => (
-                                                                    <span key={i} className="px-3 py-1 text-xs rounded-lg border border-indigo-800/50 bg-indigo-900/20 text-indigo-300">
+                                                                    <span key={i} className="px-3 py-1 text-xs rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600">
                                                                         {btn.text}
                                                                     </span>
                                                                 ))}

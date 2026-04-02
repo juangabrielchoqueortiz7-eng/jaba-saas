@@ -170,12 +170,12 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-[#0a0a0a]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#0a0a0a] border border-white/6 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white border border-black/[0.08] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
 
-                <div className="p-6 border-b border-white/6 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-white">Nueva Suscripción</h2>
-                    <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+                <div className="p-6 border-b border-black/[0.06] flex justify-between items-center">
+                    <h2 className="text-xl font-semibold text-[#0F172A]">Nueva Suscripción</h2>
+                    <button onClick={onClose} className="text-[#0F172A]/40 hover:text-[#0F172A] transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 18 18" /></svg>
                     </button>
                 </div>
@@ -186,7 +186,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                 >
                     {/* Paste / Drop / Click Area */}
                     <div
-                        className="border-2 border-dashed border-white/8 rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors hover:border-[#25D366]/50 hover:bg-[#111]/50 group cursor-pointer"
+                        className="border-2 border-dashed border-black/[0.08] rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors hover:border-[#25D366]/50 hover:bg-[#F7F8FA]/50 group cursor-pointer"
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         onClick={() => document.getElementById('imageUploadInput')?.click()}
@@ -201,13 +201,13 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                         />
 
                         {isProcessingImage ? (
-                            <div className="flex flex-col items-center gap-2 text-[#4ade80]">
+                            <div className="flex flex-col items-center gap-2 text-[#25D366]">
                                 <Loader2 className="animate-spin w-8 h-8" />
                                 <span className="text-sm font-medium">Leyendo comprobante...</span>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-2 text-white/35 group-hover:text-[#4ade80]">
-                                <div className="p-3 rounded-full bg-[#111] group-hover:bg-[#25D366]/900/20 transition-colors">
+                            <div className="flex flex-col items-center gap-2 text-[#0F172A]/35 group-hover:text-[#25D366]">
+                                <div className="p-3 rounded-full bg-[#F7F8FA] group-hover:bg-[#25D366]/900/20 transition-colors">
                                     <Sparkles className="w-6 h-6" />
                                 </div>
                                 <div className="space-y-1">
@@ -220,15 +220,15 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="servicio" className="text-white/65">Servicio</Label>
+                            <Label htmlFor="servicio" className="text-[#0F172A]/65">Servicio</Label>
                             <Select
                                 value={formData.servicio}
                                 onValueChange={(val) => handleChange('servicio', val)}
                             >
-                                <SelectTrigger className="bg-[#111] border-white/8 text-slate-100">
+                                <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                     <SelectValue placeholder="Servicio" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-[#111] border-white/8 text-slate-100">
+                                <SelectContent className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                     <SelectItem value="CANVA">🎨 Canva</SelectItem>
                                     <SelectItem value="CHATGPT">🤖 ChatGPT</SelectItem>
                                     <SelectItem value="GEMINI">✨ Gemini</SelectItem>
@@ -237,18 +237,18 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="numero" className="text-white/65">WhatsApp (Número)</Label>
+                            <Label htmlFor="numero" className="text-[#0F172A]/65">WhatsApp (Número)</Label>
                             <Input
                                 id="numero"
                                 value={formData.numero}
                                 onChange={(e) => handleChange('numero', e.target.value)}
                                 placeholder="Ej: 59170000000"
-                                className="bg-[#111] border-white/8 text-slate-100 focus:ring-[#25D366]"
+                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] focus:ring-[#25D366]"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="correo" className="text-white/65">
+                            <Label htmlFor="correo" className="text-[#0F172A]/65">
                                 {formData.servicio === 'CANVA' ? 'Correo del Cliente' : 'Correo de la Cuenta'} <span className="text-red-400">*</span>
                             </Label>
                             <Input
@@ -258,13 +258,13 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                                 value={formData.correo}
                                 onChange={(e) => handleChange('correo', e.target.value)}
                                 placeholder={formData.servicio === 'CANVA' ? 'cliente@ejemplo.com' : 'cuenta@tudominio.com'}
-                                className="bg-[#111] border-white/8 text-slate-100 focus:ring-[#25D366]"
+                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] focus:ring-[#25D366]"
                             />
                         </div>
 
                         {formData.servicio !== 'CANVA' && (
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-white/65">Contraseña de la Cuenta</Label>
+                                <Label htmlFor="password" className="text-[#0F172A]/65">Contraseña de la Cuenta</Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
@@ -272,12 +272,12 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                                         value={formData.password}
                                         onChange={(e) => handleChange('password', e.target.value)}
                                         placeholder="Contraseña de tu cuenta compartida"
-                                        className="bg-[#111] border-white/8 text-slate-100 focus:ring-[#25D366] pr-10"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] focus:ring-[#25D366] pr-10"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(p => !p)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-slate-200"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0F172A]/40 hover:text-[#0F172A]"
                                     >
                                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
@@ -286,7 +286,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                         )}
 
                         <div className="space-y-2">
-                            <Label htmlFor="vencimiento" className="text-white/65">Fecha de Vencimiento</Label>
+                            <Label htmlFor="vencimiento" className="text-[#0F172A]/65">Fecha de Vencimiento</Label>
                             <div className="flex flex-wrap gap-2 mb-2">
                                 {[
                                     { label: '+1 Mes', months: 1 },
@@ -311,21 +311,21 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                                 required
                                 value={formData.vencimiento}
                                 onChange={(e) => handleChange('vencimiento', e.target.value)}
-                                className="bg-[#111] border-white/8 text-slate-100 focus:ring-[#25D366] block w-full"
+                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] focus:ring-[#25D366] block w-full"
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="estado" className="text-white/65">Estado</Label>
+                                <Label htmlFor="estado" className="text-[#0F172A]/65">Estado</Label>
                                 <Select
                                     value={formData.estado}
                                     onValueChange={(val) => handleChange('estado', val)}
                                 >
-                                    <SelectTrigger className="bg-[#111] border-white/8 text-slate-100">
+                                    <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                         <SelectValue placeholder="Estado" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#111] border-white/8 text-slate-100">
+                                    <SelectContent className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                         <SelectItem value="ACTIVO">ACTIVO</SelectItem>
                                         <SelectItem value="INACTIVO">INACTIVO</SelectItem>
                                     </SelectContent>
@@ -333,22 +333,22 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="equipo" className="text-white/65">Equipo</Label>
+                                <Label htmlFor="equipo" className="text-[#0F172A]/65">Equipo</Label>
                                 <Input
                                     id="equipo"
                                     value={formData.equipo}
                                     onChange={(e) => handleChange('equipo', e.target.value)}
                                     placeholder="Opcional"
-                                    className="bg-[#111] border-white/8 text-slate-100 focus:ring-[#25D366]"
+                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] focus:ring-[#25D366]"
                                 />
                             </div>
                         </div>
 
                         <div className="pt-4 flex justify-end gap-3">
-                            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-white/40 hover:text-white hover:bg-[#111]">
+                            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-[#0F172A]/40 hover:text-[#0F172A] hover:bg-[#F7F8FA]">
                                 Cancelar
                             </button>
-                            <Button type="submit" disabled={isLoading} className="bg-[#25D366] hover:bg-[#25D366]/700 text-white">
+                            <Button type="submit" disabled={isLoading} className="bg-[#25D366] hover:bg-[#128C7E] text-white">
                                 {isLoading ? 'Guardando...' : 'Guardar Suscripción'}
                             </Button>
                         </div>

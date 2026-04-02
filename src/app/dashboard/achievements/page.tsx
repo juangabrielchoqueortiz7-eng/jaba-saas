@@ -59,8 +59,8 @@ export default async function AchievementsPage() {
                         <Trophy size={22} style={{ color: '#FBBF24' }} />
                     </div>
                     <div>
-                        <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#eef0ff', margin: 0 }}>Logros y Recompensas</h1>
-                        <p style={{ fontSize: '0.82rem', color: 'rgba(238,240,255,0.45)', margin: 0 }}>
+                        <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Logros y Recompensas</h1>
+                        <p style={{ fontSize: '0.82rem', color: 'rgba(15,23,42,0.45)', margin: 0 }}>
                             {totalCompleted} de {ACHIEVEMENTS.length} logros completados
                         </p>
                     </div>
@@ -74,8 +74,8 @@ export default async function AchievementsPage() {
                     const completed = progress >= 100
                     return (
                         <div key={a.id} style={{
-                            background: '#111111',
-                            border: `1px solid ${completed ? a.border : 'rgba(255,255,255,0.06)'}`,
+                            background: '#ffffff',
+                            border: `1px solid ${completed ? a.border : 'rgba(0,0,0,0.08)'}`,
                             borderRadius: 22,
                             padding: '28px 24px',
                             position: 'relative', overflow: 'hidden',
@@ -103,7 +103,7 @@ export default async function AchievementsPage() {
                                     </div>
                                 </div>
 
-                                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#eef0ff', marginBottom: 6 }}>{a.title}</h2>
+                                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>{a.title}</h2>
                                 <p style={{ fontSize: '0.8rem', color: 'rgba(148,163,184,0.6)', lineHeight: 1.5, marginBottom: 22 }}>{a.description}</p>
 
                                 {/* Progress */}
@@ -114,7 +114,7 @@ export default async function AchievementsPage() {
                                             {a.current.toLocaleString()} / {a.target.toLocaleString()}
                                         </span>
                                     </div>
-                                    <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                                    <div style={{ height: 6, background: 'rgba(0,0,0,0.06)', borderRadius: 3, overflow: 'hidden' }}>
                                         <div style={{ height: '100%', width: `${progress}%`, background: a.gradient, borderRadius: 3, boxShadow: `0 0 8px ${a.glow}`, transition: 'width 1s ease' }} />
                                     </div>
                                 </div>

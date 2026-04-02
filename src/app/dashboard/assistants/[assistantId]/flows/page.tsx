@@ -62,10 +62,10 @@ export default function FlowsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#eef0ff' }}>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#0F172A' }}>
                         Flujos Conversacionales
                     </h1>
-                    <p style={{ color: 'rgba(238,240,255,0.45)', marginTop: 4 }}>
+                    <p style={{ color: 'rgba(15,23,42,0.45)', marginTop: 4 }}>
                         Crea y gestiona flujos de conversación visuales para tu bot
                     </p>
                 </div>
@@ -98,31 +98,31 @@ export default function FlowsPage() {
                     placeholder="Buscar flujos..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    style={{ paddingLeft: 40, background: 'rgba(30,30,40,0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#e2e8f0' }}
+                    style={{ paddingLeft: 40, background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, color: '#0F172A' }}
                 />
             </div>
 
             {/* Create Form */}
             {isCreating && (
-                <Card style={{ background: '#13152a', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 16 }}>
+                <Card style={{ background: '#ffffff', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 16 }}>
                     <CardContent style={{ padding: 24 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <Input
                                 placeholder="Nombre del flujo (ej: Bienvenida, Renovación)"
                                 value={newFlowName}
                                 onChange={e => setNewFlowName(e.target.value)}
-                                style={{ background: 'rgba(15,15,25,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#e2e8f0' }}
+                                style={{ background: '#F7F8FA', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10, color: '#0F172A' }}
                             />
                             <Input
                                 placeholder="Descripción (opcional)"
                                 value={newFlowDesc}
                                 onChange={e => setNewFlowDesc(e.target.value)}
-                                style={{ background: 'rgba(15,15,25,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#e2e8f0' }}
+                                style={{ background: '#F7F8FA', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10, color: '#0F172A' }}
                             />
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                     <Button
                                         onClick={() => setIsCreating(false)}
-                                        style={{ borderRadius: 10, borderColor: 'rgba(255,255,255,0.1)', color: '#94a3b8', background: 'transparent' }}>
+                                        style={{ borderRadius: 10, borderColor: 'rgba(0,0,0,0.08)', color: '#94a3b8', background: 'transparent' }}>
                                     Cancelar
                                 </Button>
                                 <Button onClick={handleCreate} disabled={isPending || !newFlowName.trim()}
@@ -137,7 +137,7 @@ export default function FlowsPage() {
 
             {/* Flows List */}
             {filtered.length === 0 ? (
-                <Card style={{ background: 'rgba(15,26,20,0.5)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, textAlign: 'center', padding: '48px 24px' }}>
+                <Card style={{ background: '#F7F8FA', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, textAlign: 'center', padding: '48px 24px' }}>
                     <GitBranch size={48} style={{ color: '#4b5563', margin: '0 auto 16px' }} />
                     <p style={{ color: '#64748b', fontSize: '1.1rem' }}>No hay flujos creados</p>
                     <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: 4 }}>Crea tu primer flujo conversacional para automatizar las respuestas de tu bot</p>
@@ -146,8 +146,8 @@ export default function FlowsPage() {
                 <div style={{ display: 'grid', gap: 16 }}>
                     {filtered.map(flow => (
                         <Card key={flow.id} style={{
-                            background: 'rgba(15,26,20,0.6)',
-                            border: flow.is_active ? '1px solid rgba(37,211,102,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                            background: '#ffffff',
+                            border: flow.is_active ? '1px solid rgba(37,211,102,0.4)' : '1px solid rgba(0,0,0,0.08)',
                             borderRadius: 16,
                             transition: 'all 0.2s',
                             cursor: 'default'
@@ -158,19 +158,19 @@ export default function FlowsPage() {
                                         width: 48, height: 48, borderRadius: 12,
                                         background: flow.is_active ? 'rgba(6,182,212,0.12)' : 'rgba(100,116,139,0.15)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        border: flow.is_active ? '1px solid rgba(6,182,212,0.3)' : '1px solid rgba(255,255,255,0.05)'
+                                        border: flow.is_active ? '1px solid rgba(6,182,212,0.3)' : '1px solid rgba(0,0,0,0.08)'
                                     }}>
                                         <GitBranch size={22} style={{ color: flow.is_active ? '#22c55e' : '#64748b' }} />
                                     </div>
                                     <div>
-                                        <h3 style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '1.05rem' }}>{flow.name}</h3>
+                                        <h3 style={{ fontWeight: 600, color: '#0F172A', fontSize: '1.05rem' }}>{flow.name}</h3>
                                         {flow.description && <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: 2 }}>{flow.description}</p>}
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
                                             <span style={{
                                                 fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
                                                 background: flow.is_active ? 'rgba(6,182,212,0.12)' : 'rgba(100,116,139,0.15)',
                                                 color: flow.is_active ? '#22c55e' : '#64748b',
-                                                border: flow.is_active ? '1px solid rgba(6,182,212,0.2)' : '1px solid rgba(255,255,255,0.05)'
+                                                border: flow.is_active ? '1px solid rgba(6,182,212,0.2)' : '1px solid rgba(0,0,0,0.08)'
                                             }}>
                                                 {flow.is_active ? '● Activo' : '○ Inactivo'}
                                             </span>

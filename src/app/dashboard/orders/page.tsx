@@ -149,9 +149,9 @@ export default function OrdersPage() {
             case 'delivered': return { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', label: 'Entregado', icon: <CheckCircle2 size={12} /> }
             case 'pending_delivery': return { color: 'bg-amber-500/10 text-amber-400 border-amber-500/20', label: 'Pendiente Envío', icon: <Clock size={12} /> }
             case 'pending_payment': return { color: 'bg-[#25D366]/10 text-[#4ade80] border-[#25D366]/20', label: 'Esperando Pago', icon: <Clock size={12} /> }
-            case 'pending_email': return { color: 'bg-slate-500/10 text-white/40 border-slate-500/20', label: 'Sin Email', icon: <AlertCircle size={12} /> }
+            case 'pending_email': return { color: 'bg-slate-500/10 text-[#0F172A]/40 border-slate-500/20', label: 'Sin Email', icon: <AlertCircle size={12} /> }
             case 'cancelled': return { color: 'bg-rose-500/10 text-rose-400 border-rose-500/20', label: '❌ Revertido', icon: <Undo2 size={12} /> }
-            default: return { color: 'bg-slate-500/10 text-white/40', label: status, icon: null }
+            default: return { color: 'bg-slate-500/10 text-[#0F172A]/40', label: status, icon: null }
         }
     }
 
@@ -176,34 +176,34 @@ export default function OrdersPage() {
             {/* Header */}
             <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#eef0ff] flex items-center gap-3">
-                        <ShoppingBag className="text-[#F97316]" />
+                    <h1 className="text-2xl font-bold text-[#0F172A] flex items-center gap-3">
+                        <ShoppingBag className="text-[#128C7E]" />
                         Auditoría de Pedidos
                     </h1>
-                    <p className="text-[rgba(238,240,255,0.45)] text-sm mt-1">Las renovaciones se procesan automáticamente. Aquí verificas los comprobantes.</p>
+                    <p className="text-[rgba(15,23,42,0.45)] text-sm mt-1">Las renovaciones se procesan automáticamente. Aquí verificas los comprobantes.</p>
                 </div>
                 <button
                     onClick={() => { setLoading(true); fetchOrders() }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-white/[0.06] rounded-xl text-sm font-medium text-white/65 hover:bg-white/[0.05] transition-all active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-black/[0.08] rounded-xl text-sm font-medium text-[#0F172A]/65 hover:bg-black/[0.04] transition-all active:scale-95"
                 >
-                    <RefreshCcw size={16} className={cn(loading && "animate-spin text-[#F97316]")} />
+                    <RefreshCcw size={16} className={cn(loading && "animate-spin text-[#128C7E]")} />
                     Actualizar
                 </button>
             </header>
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                <div className="bg-[#111111] border border-white/[0.06] p-4 rounded-xl">
-                    <p className="text-white/40 text-xs font-medium">Total</p>
-                    <p className="text-xl font-bold text-[#eef0ff]">{stats.total}</p>
+                <div className="bg-white border border-black/[0.08] p-4 rounded-xl">
+                    <p className="text-[#0F172A]/40 text-xs font-medium">Total</p>
+                    <p className="text-xl font-bold text-[#0F172A]">{stats.total}</p>
                 </div>
                 <div className="bg-[rgba(37,211,102,0.05)] border border-[rgba(16,185,129,0.2)] p-4 rounded-xl">
                     <p className="text-[#10b981] text-xs font-medium">✅ Auto-Aprobados</p>
                     <p className="text-xl font-bold text-[#10b981]">{stats.autoApproved}</p>
                 </div>
                 <div className="bg-[rgba(249,115,22,0.05)] border border-[rgba(249,115,22,0.2)] p-4 rounded-xl">
-                    <p className="text-[#F97316] text-xs font-medium">⏳ Esperando Pago</p>
-                    <p className="text-xl font-bold text-[#F97316]">{stats.pendingPayment}</p>
+                    <p className="text-[#128C7E] text-xs font-medium">⏳ Esperando Pago</p>
+                    <p className="text-xl font-bold text-[#128C7E]">{stats.pendingPayment}</p>
                 </div>
                 <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-xl">
                     <p className="text-rose-400 text-xs font-medium">❌ Revertidos</p>
@@ -212,19 +212,19 @@ export default function OrdersPage() {
             </div>
 
             {/* Search & Filter */}
-            <div className="bg-[#111111] border border-white/[0.06] p-3 rounded-xl mb-4 flex gap-3">
+            <div className="bg-white border border-black/[0.08] p-3 rounded-xl mb-4 flex gap-3">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" size={16} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0F172A]/35" size={16} />
                     <input
                         type="text"
                         placeholder="Buscar por nombre, teléfono o email..."
-                        className="w-full bg-[#0f1120] border border-white/[0.06] rounded-lg py-2 pl-9 pr-4 text-sm text-white/65 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50"
+                        className="w-full bg-[#F7F8FA] border border-black/[0.08] rounded-lg py-2 pl-9 pr-4 text-sm text-[#0F172A]/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <select
-                    className="bg-[#0f1120] border border-white/[0.06] rounded-lg py-2 px-3 text-sm text-white/65 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 cursor-pointer"
+                    className="bg-[#F7F8FA] border border-black/[0.08] rounded-lg py-2 px-3 text-sm text-[#0F172A]/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50 cursor-pointer"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                 >
@@ -240,7 +240,7 @@ export default function OrdersPage() {
             {/* Main Layout: List + Detail Panel */}
             <div className="flex gap-4" style={{ height: 'calc(100vh - 350px)', minHeight: '500px' }}>
                 {/* Left: Orders List */}
-                <div className="flex-1 bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden flex flex-col">
+                <div className="flex-1 bg-white border border-black/[0.08] rounded-xl overflow-hidden flex flex-col">
                     <div className="overflow-y-auto flex-1">
                         {filteredOrders.length > 0 ? filteredOrders.map((order) => {
                             const sc = getStatusConfig(order.status)
@@ -250,12 +250,12 @@ export default function OrdersPage() {
                                     key={order.id}
                                     onClick={() => setSelectedOrder(order)}
                                     className={cn(
-                                        "flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] cursor-pointer transition-colors hover:bg-white/[0.03]",
-                                        isSelected && "bg-[rgba(249,115,22,0.08)] border-l-2 border-l-[#F97316]"
+                                        "flex items-center gap-3 px-4 py-3 border-b border-black/[0.05] cursor-pointer transition-colors hover:bg-black/[0.03]",
+                                        isSelected && "bg-[rgba(37,211,102,0.08)] border-l-2 border-l-[#25D366]"
                                     )}
                                 >
                                     {/* Payment proof thumbnail */}
-                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#111] flex-shrink-0 border border-white/8">
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#F7F8FA] flex-shrink-0 border border-black/[0.08]">
                                         {order.payment_proof_url ? (
                                             <img
                                                 src={order.payment_proof_url}
@@ -273,24 +273,24 @@ export default function OrdersPage() {
                                     {/* Order info */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-semibold text-white truncate">{order.contact_name || 'Sin nombre'}</span>
+                                            <span className="text-sm font-semibold text-[#0F172A] truncate">{order.contact_name || 'Sin nombre'}</span>
                                             <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border", sc.color)}>
                                                 {sc.icon} {sc.label}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-xs text-white/40 mt-0.5">
-                                            <span className="font-medium text-[#F97316]">{order.plan_name} — Bs {order.amount}</span>
+                                        <div className="flex items-center gap-3 text-xs text-[#0F172A]/40 mt-0.5">
+                                            <span className="font-medium text-[#128C7E]">{order.plan_name} — Bs {order.amount}</span>
                                             <span>·</span>
                                             <span>{dayjs(order.created_at).format("D MMM, HH:mm")}</span>
                                         </div>
                                         {order.customer_email && (
-                                            <div className="text-[11px] text-white/35 truncate mt-0.5">📧 {order.customer_email}</div>
+                                            <div className="text-[11px] text-[#0F172A]/35 truncate mt-0.5">📧 {order.customer_email}</div>
                                         )}
                                     </div>
                                 </div>
                             )
                         }) : (
-                            <div className="flex flex-col items-center justify-center py-20 text-white/35">
+                            <div className="flex flex-col items-center justify-center py-20 text-[#0F172A]/35">
                                 <ShoppingBag size={40} className="text-slate-700 mb-3" />
                                 <p className="text-sm">No se encontraron pedidos.</p>
                             </div>
@@ -299,18 +299,18 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Right: Detail Panel */}
-                <div className="w-[420px] bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden flex flex-col flex-shrink-0">
+                <div className="w-[420px] bg-white border border-black/[0.08] rounded-xl overflow-hidden flex flex-col flex-shrink-0">
                     {selectedOrder ? (
                         <>
                             {/* Header */}
-                            <div className="p-4 border-b border-white/[0.05] bg-white/[0.03]">
+                            <div className="p-4 border-b border-black/[0.06] bg-[#F7F8FA]">
                                 <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-sm font-bold text-white">{selectedOrder.contact_name}</h3>
-                                    <button onClick={() => setSelectedOrder(null)} className="p-1 text-white/35 hover:text-white">
+                                    <h3 className="text-sm font-bold text-[#0F172A]">{selectedOrder.contact_name}</h3>
+                                    <button onClick={() => setSelectedOrder(null)} className="p-1 text-[#0F172A]/35 hover:text-[#0F172A]">
                                         <X size={16} />
                                     </button>
                                 </div>
-                                <div className="flex items-center gap-3 text-xs text-white/40">
+                                <div className="flex items-center gap-3 text-xs text-[#0F172A]/40">
                                     <span className="flex items-center gap-1"><Phone size={11} /> {selectedOrder.phone_number}</span>
                                     {selectedOrder.customer_email && (
                                         <button onClick={() => handleCopyEmail(selectedOrder.customer_email)} className="flex items-center gap-1 hover:text-[#4ade80] transition-colors">
@@ -320,7 +320,7 @@ export default function OrdersPage() {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-2">
-                                    <span className="text-xs font-bold text-[#F97316]">{selectedOrder.plan_name} — Bs {selectedOrder.amount}</span>
+                                    <span className="text-xs font-bold text-[#128C7E]">{selectedOrder.plan_name} — Bs {selectedOrder.amount}</span>
                                     <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border", getStatusConfig(selectedOrder.status).color)}>
                                         {getStatusConfig(selectedOrder.status).label}
                                     </span>
@@ -328,11 +328,11 @@ export default function OrdersPage() {
                             </div>
 
                             {/* Payment proof */}
-                            <div className="p-4 border-b border-white/6">
-                                <p className="text-xs font-semibold text-white/40 mb-2 uppercase tracking-wider">Comprobante de Pago</p>
+                            <div className="p-4 border-b border-black/[0.06]">
+                                <p className="text-xs font-semibold text-[#0F172A]/40 mb-2 uppercase tracking-wider">Comprobante de Pago</p>
                                 {selectedOrder.payment_proof_url ? (
                                     <div
-                                        className="relative rounded-lg overflow-hidden cursor-pointer group border border-white/8"
+                                        className="relative rounded-lg overflow-hidden cursor-pointer group border border-black/[0.08]"
                                         onClick={() => setProofModal(selectedOrder.payment_proof_url!)}
                                     >
                                         <img src={selectedOrder.payment_proof_url} alt="Comprobante" className="w-full max-h-48 object-contain bg-black" />
@@ -341,39 +341,39 @@ export default function OrdersPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="rounded-lg bg-[#111]/50 border border-white/8 p-6 text-center">
+                                    <div className="rounded-lg bg-[#F7F8FA] border border-black/[0.08] p-6 text-center">
                                         <ImageIcon size={24} className="text-slate-600 mx-auto mb-2" />
-                                        <p className="text-xs text-white/35">Sin comprobante</p>
+                                        <p className="text-xs text-[#0F172A]/35">Sin comprobante</p>
                                     </div>
                                 )}
                             </div>
 
                             {/* Chat context */}
                             <div className="flex-1 overflow-y-auto p-4">
-                                <p className="text-xs font-semibold text-white/40 mb-2 uppercase tracking-wider">Conversación</p>
+                                <p className="text-xs font-semibold text-[#0F172A]/40 mb-2 uppercase tracking-wider">Conversación</p>
                                 {loadingChat ? (
                                     <div className="flex items-center justify-center py-8">
-                                        <RefreshCcw size={16} className="animate-spin text-white/35" />
+                                        <RefreshCcw size={16} className="animate-spin text-[#0F172A]/35" />
                                     </div>
                                 ) : chatMessages.length > 0 ? (
                                     <div className="space-y-2">
                                         {chatMessages.map(msg => (
-                                            <div key={msg.id} className={cn("max-w-[90%] rounded-lg p-2", msg.is_from_me ? "ml-auto bg-[#25D366]/20 border border-[#25D366]/30" : "bg-[#111] border border-white/8")}>
+                                            <div key={msg.id} className={cn("max-w-[90%] rounded-lg p-2", msg.is_from_me ? "ml-auto bg-[#25D366]/20 border border-[#25D366]/30" : "bg-[#F7F8FA] border border-black/[0.08]")}>
                                                 {msg.media_url && msg.media_type === 'image' && (
                                                     <img src={msg.media_url} alt="" className="w-full rounded mb-1 max-h-24 object-cover cursor-pointer" onClick={() => setProofModal(msg.media_url!)} />
                                                 )}
-                                                <p className="text-[11px] text-white/65 whitespace-pre-wrap break-words">{msg.content}</p>
-                                                <p className="text-[9px] text-white/35 mt-1">{dayjs(msg.created_at).format("HH:mm")}</p>
+                                                <p className="text-[11px] text-[#0F172A]/65 whitespace-pre-wrap break-words">{msg.content}</p>
+                                                <p className="text-[9px] text-[#0F172A]/35 mt-1">{dayjs(msg.created_at).format("HH:mm")}</p>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-xs text-white/35 text-center py-4">No hay mensajes</p>
+                                    <p className="text-xs text-[#0F172A]/35 text-center py-4">No hay mensajes</p>
                                 )}
                             </div>
 
                             {/* Actions */}
-                            <div className="p-3 border-t border-white/[0.05] bg-white/[0.03] flex gap-2">
+                            <div className="p-3 border-t border-black/[0.06] bg-[#F7F8FA] flex gap-2">
                                 {(selectedOrder.status === 'completed' || selectedOrder.status === 'pending_review') && (
                                     <button
                                         onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
@@ -395,7 +395,7 @@ export default function OrdersPage() {
                                 {selectedOrder.chat_id && (
                                     <button
                                         onClick={() => router.push(`/dashboard/chats?chatId=${selectedOrder.chat_id}`)}
-                                        className="flex-1 px-3 py-2 bg-white/[0.05] hover:bg-white/[0.08] text-white/65 rounded-lg text-xs font-bold border border-white/[0.08] transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                        className="flex-1 px-3 py-2 bg-black/[0.04] hover:bg-black/[0.06] text-[#0F172A]/65 rounded-lg text-xs font-bold border border-black/[0.08] transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                     >
                                         <MessageSquare size={14} />
                                         Ver Chat
@@ -403,7 +403,7 @@ export default function OrdersPage() {
                                 )}
                                 <button
                                     onClick={() => deleteOrder(selectedOrder.id)}
-                                    className="px-3 py-2 bg-white/[0.05] hover:bg-rose-500/10 text-white/40 hover:text-rose-400 rounded-lg text-xs border border-white/[0.08] transition-all active:scale-95"
+                                    className="px-3 py-2 bg-black/[0.04] hover:bg-rose-500/10 text-[#0F172A]/40 hover:text-rose-400 rounded-lg text-xs border border-black/[0.08] transition-all active:scale-95"
                                     title="Eliminar"
                                 >
                                     <Trash2 size={14} />
@@ -411,7 +411,7 @@ export default function OrdersPage() {
                             </div>
                         </>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-white/35">
+                        <div className="flex flex-col items-center justify-center h-full text-[#0F172A]/35">
                             <Eye size={40} className="text-slate-700 mb-3" />
                             <p className="text-sm font-medium">Selecciona un pedido</p>
                             <p className="text-xs text-slate-600 mt-1">para ver el comprobante y la conversación</p>
@@ -424,7 +424,7 @@ export default function OrdersPage() {
             {proofModal && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8" onClick={() => setProofModal(null)}>
                     <div className="relative max-w-3xl max-h-[90vh]">
-                        <button onClick={() => setProofModal(null)} className="absolute -top-3 -right-3 bg-[#111] text-white rounded-full p-2 hover:bg-slate-700 z-10 border border-slate-600">
+                        <button onClick={() => setProofModal(null)} className="absolute -top-3 -right-3 bg-white text-[#0F172A] rounded-full p-2 hover:bg-[#F7F8FA] z-10 border border-slate-600">
                             <X size={18} />
                         </button>
                         <img src={proofModal} alt="Comprobante" className="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain" />

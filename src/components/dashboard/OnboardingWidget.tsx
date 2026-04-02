@@ -86,24 +86,24 @@ export function OnboardingWidget() {
         <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-2">
             {isOpen && (
                 <div
-                    className="bg-[#111111] border border-white/[0.08] rounded-2xl shadow-2xl w-72 overflow-hidden"
+                    className="bg-white border border-black/[0.08] rounded-2xl shadow-2xl w-72 overflow-hidden"
                     style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(37,211,102,0.15)', animation: 'slideUpFade 0.2s ease-out' }}
                 >
-                    <div className="p-4 border-b border-white/[0.06] flex items-center justify-between"
+                    <div className="p-4 border-b border-black/[0.06] flex items-center justify-between"
                         style={{ background: 'rgba(37,211,102,0.04)' }}>
                         <div>
-                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
                                 <Sparkles size={14} style={{ color: '#25D366' }} />
                                 Configuración inicial
                             </h3>
-                            <p className="text-xs text-white/40 mt-0.5">{completedCount} de {totalCount} completados</p>
+                            <p className="text-xs text-[#0F172A]/40 mt-0.5">{completedCount} de {totalCount} completados</p>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="text-white/35 hover:text-white/65 p-1 transition-colors">
+                        <button onClick={() => setIsOpen(false)} className="text-[#0F172A]/35 hover:text-[#0F172A]/65 p-1 transition-colors">
                             <ChevronDown size={16} />
                         </button>
                     </div>
 
-                    <div className="px-4 py-2.5 border-b border-white/[0.04]">
+                    <div className="px-4 py-2.5 border-b border-black/[0.04]">
                         <div className="flex items-center gap-3">
                             <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                                 <div className="h-full rounded-full transition-all duration-500"
@@ -123,7 +123,7 @@ export function OnboardingWidget() {
                                         : <step.icon size={14} style={{ color: '#25D366' }} />
                                     }
                                 </div>
-                                <p className="flex-1 text-xs font-medium text-white truncate">{step.title}</p>
+                                <p className="flex-1 text-xs font-medium text-[#0F172A] truncate">{step.title}</p>
                                 {!step.done && (
                                     <Link
                                         href={step.href}
@@ -138,8 +138,8 @@ export function OnboardingWidget() {
                         ))}
                     </div>
 
-                    <div className="px-4 py-3 border-t border-white/[0.04]">
-                        <button onClick={handleDismiss} className="w-full text-[11px] text-white/35 hover:text-white/40 transition-colors">
+                    <div className="px-4 py-3 border-t border-black/[0.04]">
+                        <button onClick={handleDismiss} className="w-full text-[11px] text-[#0F172A]/35 hover:text-[#0F172A]/40 transition-colors">
                             Ocultar esta guía
                         </button>
                     </div>

@@ -396,15 +396,15 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
     if (!activeChatId) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-black text-white/30 relative overflow-hidden">
+            <div className="flex-1 flex flex-col items-center justify-center bg-white text-[#0F172A]/30 relative overflow-hidden">
                 <div className="z-10 text-center">
-                    <div className="bg-[#111111] border border-white/[0.06] p-6 rounded-full inline-flex mb-6 text-white/20">
+                    <div className="bg-[#F7F8FA] border border-black/[0.08] p-6 rounded-full inline-flex mb-6 text-[#0F172A]/20">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-16 h-16">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-white">Selecciona una conversación</h3>
-                    <p className="mt-2 text-white/30 max-w-sm mx-auto text-sm">Elige un chat de la lista para ver el historial y responder.</p>
+                    <h3 className="text-lg font-semibold text-[#0F172A]">Selecciona una conversación</h3>
+                    <p className="mt-2 text-[#0F172A]/30 max-w-sm mx-auto text-sm">Elige un chat de la lista para ver el historial y responder.</p>
                 </div>
             </div>
         )
@@ -417,7 +417,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     return (
         <div className="flex-1 flex h-full min-h-0">
         <div
-            className="flex-1 flex flex-col h-full bg-black relative min-w-0"
+            className="flex-1 flex flex-col h-full bg-white relative min-w-0"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -454,7 +454,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             )}
 
             {/* Header */}
-            <div className="border-b border-white/[0.06] bg-[#111111] shrink-0">
+            <div className="border-b border-black/[0.08] bg-[#F7F8FA] shrink-0">
                 <div className="h-14 flex items-center justify-between px-4 gap-2">
                     {/* Avatar + info — clickeable para abrir sidebar */}
                     <button
@@ -465,8 +465,8 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                             {chatDetails?.contact_name?.charAt(0)?.toUpperCase() || '#'}
                         </div>
                         <div className="min-w-0">
-                            <h3 className="font-semibold text-white text-sm truncate">{chatDetails?.contact_name || 'Desconocido'}</h3>
-                            <span className="text-xs text-white/30">{chatDetails?.phone_number}</span>
+                            <h3 className="font-semibold text-[#0F172A] text-sm truncate">{chatDetails?.contact_name || 'Desconocido'}</h3>
+                            <span className="text-xs text-[#0F172A]/30">{chatDetails?.phone_number}</span>
                         </div>
                     </button>
 
@@ -475,7 +475,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         <div className="relative">
                             <button
                                 onClick={() => setShowTagMenu(!showTagMenu)}
-                                className="flex items-center gap-1 p-2 rounded-xl text-xs bg-white/[0.06] hover:bg-white/[0.10] text-white/55 transition-colors"
+                                className="flex items-center gap-1 p-2 rounded-xl text-xs bg-black/[0.05] hover:bg-black/[0.08] text-[#0F172A]/55 transition-colors"
                             >
                                 <Tag size={14} />
                                 {(chatDetails?.tags?.length || 0) > 0 && (
@@ -483,8 +483,8 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                 )}
                             </button>
                             {showTagMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-[#141414] border border-white/[0.06] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
-                                    <p className="px-3 py-1.5 text-[10px] text-white/30 uppercase tracking-wider font-medium">Etiquetas CRM</p>
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-black/[0.08] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
+                                    <p className="px-3 py-1.5 text-[10px] text-[#0F172A]/30 uppercase tracking-wider font-medium">Etiquetas CRM</p>
                                     {Object.entries(CRM_TAGS).map(([key, tag]) => {
                                         const isActive = chatDetails?.tags?.includes(key)
                                         return (
@@ -508,8 +508,8 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                                     })
                                                 }}
                                                 className={cn(
-                                                    "w-full px-3 py-1.5 text-left text-sm flex items-center gap-2 hover:bg-white/[0.06] transition-colors",
-                                                    isActive ? tag.color + ' font-medium' : 'text-white'
+                                                    "w-full px-3 py-1.5 text-left text-sm flex items-center gap-2 hover:bg-black/[0.04] transition-colors",
+                                                    isActive ? tag.color + ' font-medium' : 'text-[#0F172A]'
                                                 )}
                                             >
                                                 <span>{tag.icon}</span>
@@ -537,7 +537,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                 <span className="hidden lg:inline text-[11px]">{isResendingPlans ? 'Enviando...' : 'Planes'}</span>
                             </button>
                             {resendPlansResult && (
-                                <div className="absolute top-10 right-0 bg-[#0a0a0a] text-xs text-white px-3 py-1.5 rounded-xl shadow-lg border border-white/[0.06] whitespace-nowrap z-10">
+                                <div className="absolute top-10 right-0 bg-[#F7F8FA] text-xs text-[#0F172A] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
                                     {resendPlansResult}
                                 </div>
                             )}
@@ -558,7 +558,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                 <span className="hidden lg:inline text-[11px]">{isSendingReminder ? 'Enviando...' : 'Recordatorio'}</span>
                             </button>
                             {reminderResult && (
-                                <div className="absolute top-10 right-0 bg-[#0a0a0a] text-xs text-white px-3 py-1.5 rounded-xl shadow-lg border border-white/[0.06] whitespace-nowrap z-10">
+                                <div className="absolute top-10 right-0 bg-[#F7F8FA] text-xs text-[#0F172A] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
                                     {reminderResult}
                                 </div>
                             )}
@@ -567,7 +567,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         {/* Buscar */}
                         <button
                             onClick={() => { setIsSearchOpen(v => !v); setMessageSearch('') }}
-                            className={cn("p-2 rounded-xl transition-colors", isSearchOpen ? "bg-[#25D366]/10 text-[#25D366]" : "text-white/55 hover:text-white hover:bg-white/[0.06]")}
+                            className={cn("p-2 rounded-xl transition-colors", isSearchOpen ? "bg-[#25D366]/10 text-[#25D366]" : "text-[#0F172A]/55 hover:text-[#0F172A] hover:bg-black/[0.04]")}
                             title="Buscar en mensajes"
                         >
                             <Search size={16} />
@@ -576,7 +576,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         {/* Info contacto */}
                         <button
                             onClick={() => setShowContactInfo(v => !v)}
-                            className={cn("p-2 rounded-xl transition-colors", showContactInfo ? "bg-[#25D366]/10 text-[#25D366]" : "text-white/55 hover:text-white hover:bg-white/[0.06]")}
+                            className={cn("p-2 rounded-xl transition-colors", showContactInfo ? "bg-[#25D366]/10 text-[#25D366]" : "text-[#0F172A]/55 hover:text-[#0F172A] hover:bg-black/[0.04]")}
                             title="Info del contacto"
                         >
                             <Info size={16} />
@@ -588,18 +588,18 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 {isSearchOpen && (
                     <div className="px-4 pb-3 flex items-center gap-2">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={14} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0F172A]/30" size={14} />
                             <input
                                 autoFocus
                                 type="text"
                                 value={messageSearch}
                                 onChange={e => setMessageSearch(e.target.value)}
                                 placeholder="Buscar en mensajes..."
-                                className="w-full bg-white/[0.06] border border-white/[0.06] rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-white/30"
+                                className="w-full bg-black/[0.05] border border-black/[0.08] rounded-xl py-2 pl-9 pr-4 text-sm text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-[#0F172A]/30"
                             />
                         </div>
                         {messageSearch && (
-                            <span className="text-xs text-white/30 shrink-0">
+                            <span className="text-xs text-[#0F172A]/30 shrink-0">
                                 {displayMessages.filter(m => !m._deleted).length} resultado{displayMessages.filter(m => !m._deleted).length !== 1 ? 's' : ''}
                             </span>
                         )}
@@ -610,9 +610,9 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             {/* Messages Area */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5 bg-black"
+                className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5 bg-[#F7F8FA]"
             >
-                {loading && <p className="text-center text-xs text-white/30">Cargando mensajes...</p>}
+                {loading && <p className="text-center text-xs text-[#0F172A]/30">Cargando mensajes...</p>}
 
                 {displayMessages.filter(m => !m._deleted).map((msg, index) => {
                     const visibleMessages = displayMessages.filter(m => !m._deleted)
@@ -622,7 +622,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         <div key={msg.id}>
                             {showDateSeparator && (
                                 <div className="flex items-center justify-center my-4">
-                                    <div className="bg-[#0a0a0a] border border-white/[0.06] text-white/30 text-[11px] px-3 py-1 rounded-full shadow-sm">
+                                    <div className="bg-[#F7F8FA] border border-black/[0.08] text-[#0F172A]/30 text-[11px] px-3 py-1 rounded-full shadow-sm">
                                         {formatDateSeparator(msg.created_at)}
                                     </div>
                                 </div>
@@ -645,26 +645,26 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
             {/* Quick Replies Modal */}
             {showQRModal && (
-                <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowQRModal(false)}>
-                    <div className="bg-[#111111] border border-white/[0.06] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 border-b border-white/[0.06] flex justify-between items-center">
-                            <h3 className="text-white font-bold flex items-center gap-2"><Zap size={16} className="text-[#25D366]" /> Respuestas Rápidas</h3>
-                            <button onClick={() => setShowQRModal(false)} className="text-white/30 hover:text-white"><X size={20} /></button>
+                <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4" onClick={() => setShowQRModal(false)}>
+                    <div className="bg-[#F7F8FA] border border-black/[0.08] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b border-black/[0.08] flex justify-between items-center">
+                            <h3 className="text-[#0F172A] font-bold flex items-center gap-2"><Zap size={16} className="text-[#25D366]" /> Respuestas Rápidas</h3>
+                            <button onClick={() => setShowQRModal(false)} className="text-[#0F172A]/30 hover:text-[#0F172A]"><X size={20} /></button>
                         </div>
-                        <div className="p-4 border-b border-white/[0.06] space-y-2">
-                            <p className="text-xs text-white/30">Escribe <span className="text-[#25D366] font-mono">/atajo</span> en el chat para insertar rápido.</p>
+                        <div className="p-4 border-b border-black/[0.08] space-y-2">
+                            <p className="text-xs text-[#0F172A]/30">Escribe <span className="text-[#25D366] font-mono">/atajo</span> en el chat para insertar rápido.</p>
                             <input
                                 placeholder="Atajo (ej: hola, pago, gracias)"
                                 value={newQRShortcut}
                                 onChange={e => setNewQRShortcut(e.target.value.toLowerCase().replace(/\s/g, '_'))}
-                                className="w-full bg-white/[0.06] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-white/30"
+                                className="w-full bg-black/[0.05] border border-black/[0.08] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-[#0F172A]/30"
                             />
                             <textarea
                                 placeholder="Mensaje completo..."
                                 value={newQRContent}
                                 onChange={e => setNewQRContent(e.target.value)}
                                 rows={3}
-                                className="w-full bg-white/[0.06] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-white/30 resize-none"
+                                className="w-full bg-black/[0.05] border border-black/[0.08] rounded-xl px-3 py-2 text-sm text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-[#0F172A]/30 resize-none"
                             />
                             <button
                                 onClick={() => {
@@ -678,14 +678,14 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {quickReplies.length === 0 && <p className="text-white/30 text-sm text-center py-4">No hay respuestas rápidas aún.</p>}
+                            {quickReplies.length === 0 && <p className="text-[#0F172A]/30 text-sm text-center py-4">No hay respuestas rápidas aún.</p>}
                             {quickReplies.map(qr => (
-                                <div key={qr.id} className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3 flex gap-3">
+                                <div key={qr.id} className="bg-black/[0.04] border border-black/[0.08] rounded-xl p-3 flex gap-3">
                                     <div className="flex-1 min-w-0">
                                         <span className="text-[#25D366] font-mono text-xs">/{qr.shortcut}</span>
-                                        <p className="text-white text-sm mt-1 line-clamp-2">{qr.content}</p>
+                                        <p className="text-[#0F172A] text-sm mt-1 line-clamp-2">{qr.content}</p>
                                     </div>
-                                    <button onClick={() => saveQuickReplies(quickReplies.filter(r => r.id !== qr.id))} className="text-white/30 hover:text-red-400 transition-colors shrink-0 mt-1">
+                                    <button onClick={() => saveQuickReplies(quickReplies.filter(r => r.id !== qr.id))} className="text-[#0F172A]/30 hover:text-red-400 transition-colors shrink-0 mt-1">
                                         <X size={16} />
                                     </button>
                                 </div>
@@ -696,26 +696,26 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             )}
 
             {/* Input Area */}
-            <div className="px-3 py-2.5 bg-[#111111] border-t border-white/[0.06] shrink-0 relative">
+            <div className="px-3 py-2.5 bg-[#F7F8FA] border-t border-black/[0.08] shrink-0 relative">
                 {/* Quick Replies Popup */}
                 {showQRPopup && (
-                    <div className="absolute bottom-full left-3 right-3 mb-1 bg-[#141414] border border-white/[0.06] rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto">
-                        <div className="px-3 py-2 flex items-center justify-between border-b border-white/[0.06]">
-                            <span className="text-[10px] text-white/30 uppercase tracking-wider flex items-center gap-1"><Zap size={10} /> Respuestas rápidas</span>
+                    <div className="absolute bottom-full left-3 right-3 mb-1 bg-white border border-black/[0.08] rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto">
+                        <div className="px-3 py-2 flex items-center justify-between border-b border-black/[0.08]">
+                            <span className="text-[10px] text-[#0F172A]/30 uppercase tracking-wider flex items-center gap-1"><Zap size={10} /> Respuestas rápidas</span>
                             <button onClick={() => { setShowQRPopup(false); setShowQRModal(true) }} className="text-[10px] text-[#25D366] hover:underline">Gestionar</button>
                         </div>
                         {filteredQR.length === 0 ? (
-                            <div className="px-3 py-3 text-sm text-white/30 text-center">
+                            <div className="px-3 py-3 text-sm text-[#0F172A]/30 text-center">
                                 No hay respuestas. <button onClick={() => { setShowQRPopup(false); setShowQRModal(true) }} className="text-[#25D366]">Crear una</button>
                             </div>
                         ) : filteredQR.map((qr, i) => (
                             <button
                                 key={qr.id}
                                 onClick={() => applyQR(qr)}
-                                className={cn("w-full px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors flex items-center gap-3", i === selectedQRIndex && "bg-white/[0.06]")}
+                                className={cn("w-full px-3 py-2.5 text-left hover:bg-black/[0.04] transition-colors flex items-center gap-3", i === selectedQRIndex && "bg-black/[0.05]")}
                             >
                                 <span className="text-[#25D366] font-mono text-xs shrink-0">/{qr.shortcut}</span>
-                                <span className="text-white text-sm truncate">{qr.content}</span>
+                                <span className="text-[#0F172A] text-sm truncate">{qr.content}</span>
                             </button>
                         ))}
                     </div>
@@ -725,14 +725,14 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                     <div className="absolute bottom-[70px] left-3 z-50">
                         <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
                         <div className="relative z-50 shadow-xl rounded-lg">
-                            <EmojiPicker onEmojiClick={onEmojiClick} theme={'dark' as any} lazyLoadEmojis={true} />
+                            <EmojiPicker onEmojiClick={onEmojiClick} theme={'light' as any} lazyLoadEmojis={true} />
                         </div>
                     </div>
                 )}
 
                 {/* Recording Bar */}
                 {isRecording ? (
-                    <div className="flex items-center gap-3 bg-[#0a0a0a] border border-red-500/20 rounded-xl px-4 py-2.5">
+                    <div className="flex items-center gap-3 bg-[#FFF1F2] border border-red-400/30 rounded-xl px-4 py-2.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
                         <span className="text-red-400 font-mono text-sm font-medium">{formatRecordingTime(recordingSeconds)}</span>
                         <div className="flex-1 flex items-center gap-0.5">
@@ -744,7 +744,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                 />
                             ))}
                         </div>
-                        <button onClick={cancelRecording} className="text-white/30 hover:text-red-400 transition-colors p-1" title="Cancelar">
+                        <button onClick={cancelRecording} className="text-[#0F172A]/30 hover:text-red-400 transition-colors p-1" title="Cancelar">
                             <X size={18} />
                         </button>
                         <button onClick={stopRecording} className="bg-[#25D366] hover:bg-[#1fad52] text-black p-2 rounded-full transition-colors shrink-0" title="Enviar audio">
@@ -754,7 +754,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 ) : (
                     <div className="flex items-center gap-1.5">
                         <button
-                            className={cn("p-2 rounded-xl transition-colors", showEmojiPicker ? "text-[#25D366]" : "text-white/30 hover:text-white hover:bg-white/[0.06]")}
+                            className={cn("p-2 rounded-xl transition-colors", showEmojiPicker ? "text-[#25D366]" : "text-[#0F172A]/30 hover:text-[#0F172A] hover:bg-black/[0.04]")}
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         >
                             <Smile size={20} />
@@ -762,7 +762,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx" />
                         <button
-                            className={cn("p-2 rounded-xl transition-colors", isUploading ? "text-[#25D366] animate-pulse" : "text-white/30 hover:text-white hover:bg-white/[0.06]")}
+                            className={cn("p-2 rounded-xl transition-colors", isUploading ? "text-[#25D366] animate-pulse" : "text-[#0F172A]/30 hover:text-[#0F172A] hover:bg-black/[0.04]")}
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
                             title="Adjuntar archivo"
@@ -770,7 +770,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                             <Paperclip size={20} />
                         </button>
                         <button
-                            className="p-2 rounded-xl text-white/30 hover:text-[#25D366] hover:bg-white/[0.06] transition-colors"
+                            className="p-2 rounded-xl text-[#0F172A]/30 hover:text-[#25D366] hover:bg-black/[0.04] transition-colors"
                             onClick={() => setShowQRModal(true)}
                             title="Respuestas rápidas (o escribe /)"
                         >
@@ -778,7 +778,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         </button>
 
                         <input
-                            className="flex-1 bg-white/[0.06] border border-white/[0.06] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-white/30 min-w-0"
+                            className="flex-1 bg-black/[0.05] border border-black/[0.08] rounded-xl px-4 py-2.5 text-[#0F172A] text-sm focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-[#0F172A]/30 min-w-0"
                             placeholder="Escribe un mensaje... (/ para respuestas rápidas)"
                             value={newMessage}
                             onChange={(e) => {

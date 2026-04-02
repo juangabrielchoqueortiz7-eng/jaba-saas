@@ -100,11 +100,11 @@ export default function TriggersPage() {
     const filtered = triggers.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
 
     return (
-        <div className="p-8 max-w-7xl mx-auto text-slate-200">
+        <div className="p-8 max-w-7xl mx-auto text-slate-700">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#eef0ff] mb-2">Disparadores</h1>
-                    <p className="text-[rgba(238,240,255,0.45)]">Automatiza acciones basadas en eventos o lógica inteligente.</p>
+                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Disparadores</h1>
+                    <p className="text-[rgba(15,23,42,0.45)]">Automatiza acciones basadas en eventos o lógica inteligente.</p>
                 </div>
                 <Link href={`/dashboard/assistants/${assistantId}/triggers/new`}>
                     <Button className="bg-[#eab308] hover:bg-[#ca8a04] text-white gap-2">
@@ -120,14 +120,14 @@ export default function TriggersPage() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar disparadores..."
-                    className="pl-10 bg-[#13152a] border-white/[0.06] text-[#eef0ff] w-full max-w-md"
+                    className="pl-10 bg-white border-black/[0.08] text-[#0F172A] w-full max-w-md"
                 />
             </div>
 
-            <Card className="bg-[#13152a] border-white/[0.06] overflow-hidden">
+            <Card className="bg-white border-black/[0.08] overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-[#0f1120] text-[rgba(37,211,102,0.55)] uppercase font-semibold text-xs tracking-wider">
+                    <table className="w-full text-left text-sm text-slate-500">
+                        <thead className="bg-[#F7F8FA] text-[rgba(37,211,102,0.7)] uppercase font-semibold text-xs tracking-wider">
                             <tr>
                                 <th className="p-4 w-12 text-center">#</th>
                                 <th className="p-4">Nombre</th>
@@ -138,7 +138,7 @@ export default function TriggersPage() {
                                 <th className="p-4 text-right">Opciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/[0.04]">
+                        <tbody className="divide-y divide-black/[0.05]">
                             {filtered.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="p-8 text-center text-slate-500">
@@ -149,7 +149,7 @@ export default function TriggersPage() {
                                 filtered.map((trigger, i) => (
                                     <tr key={trigger.id} className="hover:bg-white/[0.03] transition-colors group">
                                         <td className="p-4 text-center">{i + 1}</td>
-                                        <td className="p-4 font-medium text-white">{trigger.name}</td>
+                                        <td className="p-4 font-medium text-[#0F172A]">{trigger.name}</td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-2 px-2 py-1 bg-white/[0.05] rounded-md w-fit">
                                                 {getTypeIcon(trigger.type)}
@@ -201,7 +201,7 @@ export default function TriggersPage() {
                                                 </Button>
                                             )}
                                             <Link href={`/dashboard/assistants/${assistantId}/triggers/${trigger.id}`}>
-                                                <Button className="h-9 w-9 p-0 bg-transparent hover:bg-white/[0.05] text-slate-400 hover:text-white">
+                                                <Button className="h-9 w-9 p-0 bg-transparent hover:bg-black/[0.05] text-slate-400 hover:text-[#0F172A]">
                                                     <Edit size={16} />
                                                 </Button>
                                             </Link>

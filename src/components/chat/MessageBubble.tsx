@@ -62,8 +62,8 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                 <div className={cn(
                     'rounded-xl overflow-hidden border',
                     isMine
-                        ? 'bg-[#1a1a1a] border-l-2 border-l-[#25D366] border-white/[0.06]'
-                        : 'bg-[#111111] border-white/[0.06]'
+                        ? 'bg-[#F0FDF4] border-l-2 border-l-[#25D366] border-black/[0.06]'
+                        : 'bg-white border-black/[0.08]'
                 )} style={{ minWidth: 220, maxWidth: '65%' }}>
                     <div className="px-3 pt-2.5 pb-1">
                         <div className="flex items-center gap-1.5 mb-2">
@@ -110,7 +110,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
             {isMine && onDelete && showMenu && (
                 <button
                     onClick={() => { onDelete(); setShowMenu(false); }}
-                    className="absolute right-[calc(65%+8px)] top-1 z-10 bg-[#0a0a0a] text-white/55 hover:text-red-400 border border-white/[0.06] rounded-lg px-2 py-1 text-xs flex items-center gap-1 shadow-lg transition-colors"
+                    className="absolute right-[calc(65%+8px)] top-1 z-10 bg-white text-[#0F172A]/55 hover:text-red-400 border border-black/[0.08] rounded-lg px-2 py-1 text-xs flex items-center gap-1 shadow-lg transition-colors"
                 >
                     <Trash2 size={12} />
                     Eliminar
@@ -121,8 +121,8 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                 className={cn(
                     "max-w-[65%] rounded-xl shadow-sm overflow-hidden relative border",
                     isMine
-                        ? "bg-[#1a1a1a] border-l-2 border-l-[#25D366] border-white/[0.06]"
-                        : "bg-[#111111] border-white/[0.06]",
+                        ? "bg-[#F0FDF4] border-l-2 border-l-[#25D366] border-black/[0.06]"
+                        : "bg-white border-black/[0.08]",
                     mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-2"
                 )}
                 onMouseEnter={() => isMine && setShowMenu(true)}

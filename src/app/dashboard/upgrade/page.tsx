@@ -34,17 +34,17 @@ export default async function UpgradePage() {
             <div style={{ marginBottom: '2rem' }}>
                 <Link href="/dashboard" style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                    color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', textDecoration: 'none',
+                    color: 'rgba(15,23,42,0.45)', fontSize: '0.8rem', textDecoration: 'none',
                     marginBottom: '1.25rem',
                 }}>
                     <ArrowLeft size={14} /> Volver al dashboard
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', margin: '0 0 0.4rem', letterSpacing: '-0.03em' }}>
+                        <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', margin: '0 0 0.4rem', letterSpacing: '-0.03em' }}>
                             Planes de conversaciones
                         </h1>
-                        <p style={{ color: 'rgba(255,255,255,0.4)', margin: 0, fontSize: '0.9rem' }}>
+                        <p style={{ color: 'rgba(15,23,42,0.45)', margin: 0, fontSize: '0.9rem' }}>
                             Recarga cuando quieras, sin compromisos mensuales.
                         </p>
                     </div>
@@ -61,30 +61,30 @@ export default async function UpgradePage() {
 
             {/* Usage card */}
             <div style={{
-                background: overLimit ? 'rgba(244,63,94,0.06)' : nearLimit ? 'rgba(251,191,36,0.06)' : '#111',
-                border: `1px solid ${overLimit ? 'rgba(244,63,94,0.2)' : nearLimit ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                background: overLimit ? 'rgba(244,63,94,0.06)' : nearLimit ? 'rgba(251,191,36,0.06)' : '#ffffff',
+                border: `1px solid ${overLimit ? 'rgba(244,63,94,0.2)' : nearLimit ? 'rgba(251,191,36,0.2)' : 'rgba(0,0,0,0.08)'}`,
                 borderRadius: '1.25rem',
                 padding: '1.5rem',
                 marginBottom: '2rem',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div>
-                        <p style={{ margin: '0 0 0.2rem', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        <p style={{ margin: '0 0 0.2rem', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(15,23,42,0.40)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             Uso actual
                         </p>
-                        <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: overLimit ? '#fb7185' : nearLimit ? '#fbbf24' : '#fff', letterSpacing: '-0.02em' }}>
-                            {balance.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'rgba(255,255,255,0.3)' }}>conversaciones restantes</span>
+                        <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: overLimit ? '#fb7185' : nearLimit ? '#fbbf24' : '#0F172A', letterSpacing: '-0.02em' }}>
+                            {balance.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'rgba(15,23,42,0.35)' }}>conversaciones restantes</span>
                         </p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <p style={{ margin: '0 0 0.2rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>Usadas</p>
-                        <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+                        <p style={{ margin: '0 0 0.2rem', fontSize: '0.75rem', color: 'rgba(15,23,42,0.35)' }}>Usadas</p>
+                        <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'rgba(15,23,42,0.65)' }}>
                             {used.toLocaleString()} / {total.toLocaleString()}
                         </p>
                     </div>
                 </div>
                 {/* Progress bar */}
-                <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 9999, overflow: 'hidden' }}>
+                <div style={{ height: 8, background: 'rgba(0,0,0,0.06)', borderRadius: 9999, overflow: 'hidden' }}>
                     <div style={{
                         height: '100%',
                         width: `${pct}%`,
@@ -121,8 +121,8 @@ export default async function UpgradePage() {
 
                     return (
                         <div key={plan.id} style={{
-                            background: isHighlight ? 'rgba(37,211,102,0.05)' : '#111',
-                            border: `1px solid ${isHighlight ? 'rgba(37,211,102,0.25)' : isCurrent ? 'rgba(37,211,102,0.15)' : 'rgba(255,255,255,0.07)'}`,
+                            background: isHighlight ? 'rgba(37,211,102,0.05)' : '#ffffff',
+                            border: `1px solid ${isHighlight ? 'rgba(37,211,102,0.25)' : isCurrent ? 'rgba(37,211,102,0.15)' : 'rgba(0,0,0,0.08)'}`,
                             borderRadius: '1.25rem',
                             padding: '1.5rem',
                             position: 'relative',
@@ -155,10 +155,10 @@ export default async function UpgradePage() {
 
                             {/* Conversations count */}
                             <div>
-                                <p style={{ margin: '0 0 0.2rem', fontSize: '1.75rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>
+                                <p style={{ margin: '0 0 0.2rem', fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.03em' }}>
                                     {plan.conversations.toLocaleString()}
                                 </p>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(15,23,42,0.45)', fontWeight: 600 }}>
                                     conversaciones
                                 </p>
                             </div>
@@ -170,16 +170,16 @@ export default async function UpgradePage() {
                                         <p style={{ margin: '0 0 0.15rem', fontSize: '1.5rem', fontWeight: 900, color: GREEN, letterSpacing: '-0.02em' }}>
                                             GRATIS
                                         </p>
-                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(15,23,42,0.40)' }}>
                                             Recarga: ${plan.recharge_price} USD / 500
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <p style={{ margin: '0 0 0.15rem', fontSize: '1.5rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>
-                                            ${plan.price_usd.toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'rgba(255,255,255,0.35)' }}>USD</span>
+                                        <p style={{ margin: '0 0 0.15rem', fontSize: '1.5rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                                            ${plan.price_usd.toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'rgba(15,23,42,0.40)' }}>USD</span>
                                         </p>
-                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(15,23,42,0.40)' }}>
                                             ${pricePerConv} centavos / conv.
                                         </p>
                                     </>
@@ -206,9 +206,9 @@ export default async function UpgradePage() {
                                 style={{
                                     marginTop: 'auto',
                                     width: '100%',
-                                    background: isHighlight ? GREEN : 'rgba(255,255,255,0.05)',
-                                    color: isHighlight ? '#000' : 'rgba(255,255,255,0.4)',
-                                    border: `1px solid ${isHighlight ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
+                                    background: isHighlight ? GREEN : 'rgba(0,0,0,0.04)',
+                                    color: isHighlight ? '#000' : 'rgba(15,23,42,0.45)',
+                                    border: `1px solid ${isHighlight ? 'transparent' : 'rgba(0,0,0,0.08)'}`,
                                     borderRadius: '9999px',
                                     padding: '0.7rem 1rem',
                                     fontWeight: 700,
@@ -231,8 +231,8 @@ export default async function UpgradePage() {
 
             {/* Note */}
             <div style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: 'rgba(37,211,102,0.04)',
+                border: '1px solid rgba(37,211,102,0.12)',
                 borderRadius: '1rem',
                 padding: '1.25rem 1.5rem',
                 display: 'flex',
@@ -241,10 +241,10 @@ export default async function UpgradePage() {
             }}>
                 <CheckCircle2 size={18} style={{ color: GREEN, flexShrink: 0, marginTop: 1 }} />
                 <div>
-                    <p style={{ margin: '0 0 0.3rem', fontSize: '0.875rem', fontWeight: 700, color: '#fff' }}>
+                    <p style={{ margin: '0 0 0.3rem', fontSize: '0.875rem', fontWeight: 700, color: '#0F172A' }}>
                         ¿Cómo funcionan las conversaciones?
                     </p>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'rgba(15,23,42,0.45)', lineHeight: 1.6 }}>
                         Cada mensaje que tu bot procesa y responde consume 1 conversación de tu saldo. Las conversaciones no expiran — se acumulan hasta usarlas. Cuando el saldo llega a 0, el bot deja de responder hasta que recargues.
                     </p>
                 </div>

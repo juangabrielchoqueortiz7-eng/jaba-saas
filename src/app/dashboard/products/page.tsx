@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
@@ -133,16 +133,16 @@ export default function ProductsPage() {
     ]
 
     return (
-        <div className="p-8 max-w-7xl mx-auto text-slate-200">
+        <div className="p-8 max-w-7xl mx-auto text-[#0F172A]">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#eef0ff] mb-2">Productos y Servicios</h1>
-                    <p className="text-[rgba(238,240,255,0.45)]">Define tu catálogo. La IA usará esta información para responder a tus clientes.</p>
+                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Productos y Servicios</h1>
+                    <p className="text-[rgba(15,23,42,0.45)]">Define tu catálogo. La IA usará esta información para responder a tus clientes.</p>
                 </div>
                 {!isCreating && (
                     <Button
                         onClick={() => { resetForm(); setIsCreating(true) }}
-                        className="bg-[#F97316] hover:bg-[#ea6a0a] text-white gap-2"
+                        className="bg-[#25D366] hover:bg-[#128C7E] text-white gap-2"
                     >
                         <Plus size={20} />
                         Nuevo Producto
@@ -152,12 +152,12 @@ export default function ProductsPage() {
 
             {/* Create/Edit Form */}
             {isCreating && (
-                <Card className="mb-8 border-white/[0.06] bg-[#111111]">
+                <Card className="mb-8 border-black/[0.08] bg-white shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-white">
+                        <CardTitle className="text-[#0F172A]">
                             {editingId ? 'Editar Producto' : 'Nuevo Producto'}
                         </CardTitle>
-                        <button onClick={resetForm} className="text-white/40 hover:text-white">
+                        <button onClick={resetForm} className="text-[#0F172A]/40 hover:text-[#0F172A]">
                             <X size={20} />
                         </button>
                     </CardHeader>
@@ -169,7 +169,7 @@ export default function ProductsPage() {
                                     value={formData.name}
                                     onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                                     placeholder="Ej: Masaje Relajante, Plan Premium, Consulta General..."
-                                    className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff]"
+                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
@@ -180,7 +180,7 @@ export default function ProductsPage() {
                                         value={formData.price}
                                         onChange={e => setFormData(prev => ({ ...prev, price: e.target.value }))}
                                         placeholder="0"
-                                        className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff]"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -188,7 +188,7 @@ export default function ProductsPage() {
                                     <select
                                         value={formData.category}
                                         onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                                        className="w-full h-10 px-3 bg-[#0f1120] border border-white/[0.06] text-[#eef0ff] rounded-md text-sm"
+                                        className="w-full h-10 px-3 bg-[#F7F8FA] border border-black/[0.08] text-[#0F172A] rounded-md text-sm"
                                     >
                                         {categories.map(cat => (
                                             <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -204,7 +204,7 @@ export default function ProductsPage() {
                                         value={formData.duration_months}
                                         onChange={e => setFormData(prev => ({ ...prev, duration_months: e.target.value }))}
                                         placeholder="Ej: 1, 3, 6, 12"
-                                        className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff]"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
                                 </div>
                             </div>
@@ -215,20 +215,20 @@ export default function ProductsPage() {
                                 value={formData.description}
                                 onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                                 placeholder="Describe tu producto o servicio. Esta información la usará la IA para responder a tus clientes..."
-                                className="bg-[#0f1120] border-white/[0.06] text-[#eef0ff] h-24"
+                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-24"
                             />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
                             <Button
                                 onClick={resetForm}
-                                className="bg-transparent hover:bg-white/[0.05] text-white/40 hover:text-white"
+                                className="bg-transparent hover:bg-black/[0.04] text-[#0F172A]/40 hover:text-[#0F172A]"
                             >
                                 Cancelar
                             </Button>
                             <Button
                                 onClick={editingId ? handleUpdate : handleCreate}
                                 disabled={isPending || !formData.name || !formData.price}
-                                className="bg-[#F97316] hover:bg-[#ea6a0a] text-white"
+                                className="bg-[#25D366] hover:bg-[#128C7E] text-white"
                             >
                                 {isPending ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear Producto'}
                             </Button>
@@ -239,19 +239,19 @@ export default function ProductsPage() {
 
             {/* Search */}
             <div className="relative mb-6">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/35" size={20} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#0F172A]/35" size={20} />
                 <Input
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar productos..."
-                    className="pl-10 bg-[#111111] border-white/[0.06] text-[#eef0ff] w-full max-w-md"
+                    className="pl-10 bg-white border-black/[0.08] text-[#0F172A] w-full max-w-md"
                 />
             </div>
 
             {/* Products List */}
             <div className="space-y-3">
                 {filteredProducts.length === 0 ? (
-                    <div className="text-center py-16 text-white/35 bg-[#111111] rounded-xl border border-dashed border-white/[0.08]">
+                    <div className="text-center py-16 text-[#0F172A]/35 bg-white rounded-xl border border-dashed border-black/[0.12]">
                         <Package size={48} className="mx-auto mb-4 opacity-20" />
                         <p className="text-lg font-medium mb-2">No tienes productos creados aún</p>
                         <p className="text-sm">Agrega tus productos o servicios para que la IA pueda informar a tus clientes.</p>
@@ -261,56 +261,56 @@ export default function ProductsPage() {
                         <div
                             key={product.id}
                             className={`flex items-center justify-between p-4 rounded-xl border transition-colors group ${product.is_active
-                                ? 'bg-[#111111] border-white/[0.06] hover:border-[rgba(249,115,22,0.3)]'
-                                : 'bg-[#0f1120] border-white/[0.04] opacity-60'
+                                ? 'bg-white border-black/[0.08] hover:border-[rgba(37,211,102,0.3)]'
+                                : 'bg-[#F7F8FA] border-black/[0.06] opacity-60'
                                 }`}
                         >
                             <div className="flex items-start gap-4 flex-1 min-w-0">
-                                <div className={`p-3 rounded-lg ${product.is_active ? 'bg-[rgba(249,115,22,0.1)] text-[#F97316]' : 'bg-white/[0.05] text-white/35'}`}>
+                                <div className={`p-3 rounded-lg ${product.is_active ? 'bg-[rgba(37,211,102,0.1)] text-[#25D366]' : 'bg-black/[0.04] text-[#0F172A]/35'}`}>
                                     <Package size={24} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-3">
-                                        <h3 className="font-medium text-white text-lg">{product.name}</h3>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#111] text-white/40 capitalize">
+                                        <h3 className="font-medium text-[#0F172A] text-lg">{product.name}</h3>
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#F7F8FA] text-[#0F172A]/40 capitalize border border-black/[0.06]">
                                             {product.category}
                                         </span>
                                         {!product.is_active && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-200">
                                                 Inactivo
                                             </span>
                                         )}
                                     </div>
                                     {product.description && (
-                                        <p className="text-white/40 text-sm line-clamp-1 mt-1">{product.description}</p>
+                                        <p className="text-[#0F172A]/40 text-sm line-clamp-1 mt-1">{product.description}</p>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-3 shrink-0">
                                     {product.duration_months && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(249,115,22,0.1)] text-[#F97316] border border-[rgba(249,115,22,0.2)]">
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(37,211,102,0.1)] text-[#128C7E] border border-[rgba(37,211,102,0.2)]">
                                             {product.duration_months} mes{product.duration_months !== 1 ? 'es' : ''}
                                         </span>
                                     )}
-                                    <DollarSign size={16} className="text-green-400" />
-                                    <span className="text-lg font-bold text-green-400">Bs {product.price}</span>
+                                    <DollarSign size={16} className="text-[#25D366]" />
+                                    <span className="text-lg font-bold text-[#128C7E]">Bs {product.price}</span>
                                 </div>
                             </div>
                             <div className="flex gap-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
-                                    className="h-8 w-8 p-0 bg-transparent hover:bg-[#111] text-white/40 hover:text-white"
+                                    className="h-8 w-8 p-0 bg-transparent hover:bg-[#F7F8FA] text-[#0F172A]/40 hover:text-[#0F172A]"
                                     onClick={() => handleToggle(product.id, product.is_active)}
                                     title={product.is_active ? 'Desactivar' : 'Activar'}
                                 >
-                                    {product.is_active ? <ToggleRight size={18} className="text-green-400" /> : <ToggleLeft size={18} />}
+                                    {product.is_active ? <ToggleRight size={18} className="text-[#25D366]" /> : <ToggleLeft size={18} />}
                                 </Button>
                                 <Button
-                                    className="h-8 w-8 p-0 bg-transparent hover:bg-[#111] text-white/40 hover:text-white"
+                                    className="h-8 w-8 p-0 bg-transparent hover:bg-[#F7F8FA] text-[#0F172A]/40 hover:text-[#0F172A]"
                                     onClick={() => handleEdit(product)}
                                 >
                                     <Edit size={18} />
                                 </Button>
                                 <Button
-                                    className="h-8 w-8 p-0 bg-transparent text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                    className="h-8 w-8 p-0 bg-transparent text-red-400 hover:text-red-500 hover:bg-red-50"
                                     onClick={() => handleDelete(product.id)}
                                 >
                                     <Trash2 size={18} />
@@ -323,8 +323,8 @@ export default function ProductsPage() {
 
             {/* Info Box */}
             {products.length > 0 && (
-                <div className="mt-8 p-4 rounded-lg bg-[rgba(249,115,22,0.05)] border border-[rgba(249,115,22,0.15)]">
-                    <p className="text-sm text-[#F97316]">
+                <div className="mt-8 p-4 rounded-lg bg-[rgba(37,211,102,0.06)] border border-[rgba(37,211,102,0.15)]">
+                    <p className="text-sm text-[#128C7E]">
                         💡 <strong>Tip:</strong> La IA usará estos productos automáticamente al conversar con tus clientes.
                         Asegúrate de que las descripciones sean claras y detalladas.
                     </p>

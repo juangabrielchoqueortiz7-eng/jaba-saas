@@ -110,7 +110,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{children}</span>
-            <div className="flex-1 h-px bg-slate-800" />
+            <div className="flex-1 h-px bg-[#F7F8FA]" />
         </div>
     )
 }
@@ -329,15 +329,15 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
-        <div className="rounded-2xl border border-indigo-800/30 bg-slate-900/70 overflow-hidden mb-8">
+        <div className="rounded-2xl border border-black/[0.08] bg-white overflow-hidden mb-8">
 
             {/* ── Title bar ── */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/40">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.08] bg-[#F7F8FA]">
                 <div>
-                    <h2 className="text-lg font-semibold text-white">Nueva Plantilla de Meta</h2>
+                    <h2 className="text-lg font-semibold text-[#0F172A]">Nueva Plantilla de Meta</h2>
                     <p className="text-xs text-slate-500 mt-0.5">La plantilla se enviará a Meta y aparecerá abajo en estado "Pendiente".</p>
                 </div>
-                <button onClick={onCancel} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <button onClick={onCancel} className="p-1.5 rounded-lg text-slate-400 hover:text-[#0F172A] hover:bg-[#F0F0F0] transition-colors">
                     <X size={18} />
                 </button>
             </div>
@@ -350,39 +350,39 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Name */}
                         <div className="space-y-1.5">
-                            <Label className="text-slate-300 text-sm">Nombre <span className="text-red-400">*</span></Label>
+                            <Label className="text-[#0F172A] text-sm">Nombre <span className="text-red-400">*</span></Label>
                             <Input
                                 value={form.name}
                                 onChange={e => set('name', e.target.value)}
                                 placeholder="ej: recordatorio_pago"
-                                className="bg-slate-950 border-slate-700 text-white font-mono placeholder-slate-600"
+                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] font-mono placeholder-[#0F172A]/35"
                             />
                             <p className="text-[11px] text-slate-500">Minúsculas, números y guiones bajos</p>
                         </div>
                         {/* Category */}
                         <div className="space-y-1.5">
-                            <Label className="text-slate-300 text-sm">Categoría <span className="text-red-400">*</span></Label>
+                            <Label className="text-[#0F172A] text-sm">Categoría <span className="text-red-400">*</span></Label>
                             <Select value={form.category} onValueChange={v => set('category', v as TemplateCategory)}>
-                                <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
+                                <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-slate-900 border-slate-700">
-                                    <SelectItem value="MARKETING"      className="text-slate-200">📣 Marketing</SelectItem>
-                                    <SelectItem value="UTILITY"        className="text-slate-200">🔧 Utilidad</SelectItem>
-                                    <SelectItem value="AUTHENTICATION" className="text-slate-200">🔐 Autenticación</SelectItem>
+                                <SelectContent className="bg-white border-black/[0.08]">
+                                    <SelectItem value="MARKETING"      className="text-[#0F172A]">📣 Marketing</SelectItem>
+                                    <SelectItem value="UTILITY"        className="text-[#0F172A]">🔧 Utilidad</SelectItem>
+                                    <SelectItem value="AUTHENTICATION" className="text-[#0F172A]">🔐 Autenticación</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         {/* Language */}
                         <div className="space-y-1.5">
-                            <Label className="text-slate-300 text-sm">Idioma <span className="text-red-400">*</span></Label>
+                            <Label className="text-[#0F172A] text-sm">Idioma <span className="text-red-400">*</span></Label>
                             <Select value={form.language} onValueChange={v => set('language', v)}>
-                                <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
+                                <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                     <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-slate-900 border-slate-700">
+                                <SelectContent className="bg-white border-black/[0.08]">
                                     {LANGUAGES.map(l => (
-                                        <SelectItem key={l.value} value={l.value} className="text-slate-200">{l.label}</SelectItem>
+                                        <SelectItem key={l.value} value={l.value} className="text-[#0F172A]">{l.label}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -404,7 +404,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                                     form.headerFormat === opt.value
                                         ? 'bg-indigo-600 border-indigo-500 text-white'
-                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                                        : 'bg-[#F7F8FA] border-black/[0.08] text-slate-400 hover:text-[#0F172A] hover:border-black/[0.08]'
                                 }`}
                             >
                                 {opt.icon} {opt.label}
@@ -420,7 +420,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                 onChange={e => set('headerText', e.target.value)}
                                 placeholder="Texto del encabezado — puedes usar {{1}}"
                                 maxLength={60}
-                                className="bg-slate-950 border-slate-700 text-white"
+                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                             />
                             <p className="text-[11px] text-slate-500">{form.headerText.length}/60 caracteres · máx. 1 variable {'{{1}}'}</p>
                             {detectVars(form.headerText).length > 0 && (
@@ -430,7 +430,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                         value={form.headerTextExample}
                                         onChange={e => set('headerTextExample', e.target.value)}
                                         placeholder="ej: Juan Pérez"
-                                        className="bg-slate-950 border-slate-700 text-white h-8 text-sm"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-8 text-sm"
                                     />
                                 </div>
                             )}
@@ -448,16 +448,16 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                 onChange={handleFileChange}
                             />
                             {form.headerPreview ? (
-                                <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/60 border border-slate-700">
+                                <div className="flex items-center gap-4 p-4 rounded-xl bg-[#F7F8FA] border border-black/[0.08]">
                                     {form.headerFormat === 'IMAGE' ? (
-                                        <img src={form.headerPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-slate-600" />
+                                        <img src={form.headerPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-black/[0.08]" />
                                     ) : (
-                                        <div className="w-20 h-20 rounded-lg border border-slate-600 bg-slate-700 flex items-center justify-center text-slate-300">
+                                        <div className="w-20 h-20 rounded-lg border border-black/[0.08] bg-[#F7F8FA] flex items-center justify-center text-[#0F172A]">
                                             {form.headerFormat === 'VIDEO' ? <FileVideo size={32} /> : <FileDoc size={32} />}
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white truncate">{form.headerFile?.name}</p>
+                                        <p className="text-sm text-[#0F172A] truncate">{form.headerFile?.name}</p>
                                         {uploading ? (
                                             <div className="flex items-center gap-2 text-amber-400 text-xs mt-1">
                                                 <Loader2 size={12} className="animate-spin" /> Subiendo a Meta…
@@ -478,7 +478,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                 </div>
                             ) : (
                                 <div
-                                    className={`flex flex-col items-center justify-center gap-2 p-8 rounded-xl border-2 border-dashed transition-colors cursor-pointer ${dragOver ? 'border-indigo-500 bg-indigo-900/10' : 'border-slate-700 hover:border-slate-500'}`}
+                                    className={`flex flex-col items-center justify-center gap-2 p-8 rounded-xl border-2 border-dashed transition-colors cursor-pointer ${dragOver ? 'border-indigo-500 bg-indigo-50' : 'border-black/[0.08] hover:border-black/[0.15]'}`}
                                     onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                                     onDragLeave={() => setDragOver(false)}
                                     onDrop={handleDrop}
@@ -498,7 +498,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
 
                     {/* LOCATION header */}
                     {form.headerFormat === 'LOCATION' && (
-                        <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-800/40 border border-slate-700 text-slate-400 text-sm">
+                        <div className="flex items-center gap-3 p-4 rounded-xl bg-[#F7F8FA] border border-black/[0.08] text-slate-400 text-sm">
                             <MapPin size={18} className="text-indigo-400 shrink-0" />
                             Meta enviará un marcador de ubicación. Las coordenadas se pasan al enviar el mensaje, no aquí.
                         </div>
@@ -512,16 +512,16 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                     {/* Toolbar */}
                     <div className="flex items-center gap-1 mb-2">
                         <button type="button" onClick={insertBold}
-                            className="p-1.5 rounded text-slate-400 hover:bg-slate-800 hover:text-white transition-colors" title="Negrita (*texto*)">
+                            className="p-1.5 rounded text-slate-400 hover:bg-[#F7F8FA] hover:text-[#0F172A] transition-colors" title="Negrita (*texto*)">
                             <Bold size={14} />
                         </button>
                         <button type="button" onClick={insertItalic}
-                            className="p-1.5 rounded text-slate-400 hover:bg-slate-800 hover:text-white transition-colors" title="Cursiva (_texto_)">
+                            className="p-1.5 rounded text-slate-400 hover:bg-[#F7F8FA] hover:text-[#0F172A] transition-colors" title="Cursiva (_texto_)">
                             <Italic size={14} />
                         </button>
                         <div className="w-px h-4 bg-slate-700 mx-1" />
                         <button type="button" onClick={insertVar}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-xs text-indigo-400 hover:bg-slate-800 hover:text-indigo-300 transition-colors font-mono" title="Insertar variable">
+                            className="flex items-center gap-1 px-2 py-1 rounded text-xs text-indigo-400 hover:bg-[#F7F8FA] hover:text-indigo-300 transition-colors font-mono" title="Insertar variable">
                             <Hash size={12} /> Insertar variable
                         </button>
                     </div>
@@ -531,13 +531,13 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                         value={form.body}
                         onChange={e => set('body', e.target.value)}
                         placeholder="Hola {{1}}, tu suscripción de *{{2}}* vence el _{{3}}_."
-                        className="bg-slate-950 border-slate-700 text-white h-32 font-mono text-sm resize-none"
+                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-32 font-mono text-sm resize-none"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">{form.body.length} caracteres · Usa *negrita*, _cursiva_, {'{{n}}'} variables</p>
 
                     {/* Dynamic variable examples */}
                     {detectVars(form.body).length > 0 && (
-                        <div className="mt-3 p-4 rounded-xl bg-slate-800/40 border border-slate-700 space-y-2">
+                        <div className="mt-3 p-4 rounded-xl bg-[#F7F8FA] border border-black/[0.08] space-y-2">
                             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Ejemplos de variables (requerido por Meta)</p>
                             {detectVars(form.body).map((varNum, idx) => (
                                 <div key={varNum} className="flex items-center gap-3">
@@ -550,7 +550,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                             set('bodyExamples', arr)
                                         }}
                                         placeholder={`Ej: ${varNum === 1 ? 'Juan' : varNum === 2 ? 'ChatGPT Plus' : '01/08/2025'}`}
-                                        className="bg-slate-950 border-slate-700 text-white h-8 text-sm"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-8 text-sm"
                                     />
                                 </div>
                             ))}
@@ -566,7 +566,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                         onChange={e => set('footer', e.target.value)}
                         placeholder="Ej: Para cancelar responde STOP"
                         maxLength={60}
-                        className="bg-slate-950 border-slate-700 text-white"
+                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">{form.footer.length}/60 · Sin variables</p>
                 </div>
@@ -600,7 +600,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
 
                     <div className="space-y-3">
                         {form.buttons.map((btn, idx) => (
-                            <div key={btn.id} className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 space-y-3">
+                            <div key={btn.id} className="p-4 rounded-xl bg-[#F7F8FA] border border-black/[0.08] space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${
                                         btn.kind === 'QUICK_REPLY'  ? 'text-emerald-400 border-emerald-800/50 bg-emerald-900/20' :
@@ -623,7 +623,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                         onChange={e => updateBtn(btn.id, { text: e.target.value })}
                                         placeholder="Texto del botón (máx. 25 caracteres)"
                                         maxLength={25}
-                                        className="bg-slate-950 border-slate-700 text-white"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
                                 )}
 
@@ -635,13 +635,13 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                             onChange={e => updateBtn(btn.id, { text: e.target.value })}
                                             placeholder="Texto del botón"
                                             maxLength={25}
-                                            className="bg-slate-950 border-slate-700 text-white"
+                                            className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                         />
                                         <Input
                                             value={(btn as PhoneBtn).phone}
                                             onChange={e => updateBtn(btn.id, { phone: e.target.value } as any)}
                                             placeholder="+591 70000000"
-                                            className="bg-slate-950 border-slate-700 text-white font-mono"
+                                            className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] font-mono"
                                         />
                                     </div>
                                 )}
@@ -657,15 +657,15 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                                     onChange={e => updateBtn(btn.id, { text: e.target.value } as any)}
                                                     placeholder="Texto del botón"
                                                     maxLength={25}
-                                                    className="bg-slate-950 border-slate-700 text-white"
+                                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                                 />
                                                 <Select value={ub.urlType} onValueChange={v => updateBtn(btn.id, { urlType: v as UrlType } as any)}>
-                                                    <SelectTrigger className="bg-slate-950 border-slate-700 text-slate-200">
+                                                    <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent className="bg-slate-900 border-slate-700">
-                                                        <SelectItem value="STATIC"  className="text-slate-200">URL Estática</SelectItem>
-                                                        <SelectItem value="DYNAMIC" className="text-slate-200">{'URL Dinámica ({{1}})'}</SelectItem>
+                                                    <SelectContent className="bg-white border-black/[0.08]">
+                                                        <SelectItem value="STATIC"  className="text-[#0F172A]">URL Estática</SelectItem>
+                                                        <SelectItem value="DYNAMIC" className="text-[#0F172A]">{'URL Dinámica ({{1}})'}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -673,7 +673,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                                 value={ub.url}
                                                 onChange={e => updateBtn(btn.id, { url: e.target.value } as any)}
                                                 placeholder={ub.urlType === 'DYNAMIC' ? 'https://jabachat.com/perfil/' : 'https://jabachat.com'}
-                                                className="bg-slate-950 border-slate-700 text-white font-mono text-sm"
+                                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] font-mono text-sm"
                                             />
                                             {ub.urlType === 'DYNAMIC' && (
                                                 <p className="text-[11px] text-indigo-400">Meta añadirá el valor dinámico al final de la URL al enviar el mensaje.</p>
@@ -718,8 +718,8 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                 )}
 
                 {/* ── Actions ── */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <Button type="button" onClick={onCancel} className="bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white">
+                <div className="flex justify-end gap-3 pt-4 border-t border-black/[0.08]">
+                    <Button type="button" onClick={onCancel} className="bg-transparent hover:bg-[#F7F8FA] text-slate-400 hover:text-[#0F172A]">
                         Cancelar
                     </Button>
                     <Button

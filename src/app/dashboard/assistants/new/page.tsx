@@ -101,10 +101,10 @@ export default function NewAssistantPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <Link href="/dashboard/assistants" className="text-white/40 hover:text-white transition-colors">
+                    <Link href="/dashboard/assistants" className="text-[rgba(15,23,42,0.4)] hover:text-[#0F172A] transition-colors">
                         <ArrowLeft size={24} />
                     </Link>
-                    <h1 className="text-3xl font-bold text-white">Nuevo asistente</h1>
+                    <h1 className="text-3xl font-bold text-[#0F172A]">Nuevo asistente</h1>
                 </div>
                 <Button
                     onClick={handleSave}
@@ -128,12 +128,12 @@ export default function NewAssistantPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex border-b border-white/6 mb-8">
+            <div className="flex border-b border-black/[0.08] mb-8">
                 <button
                     onClick={() => setActiveTab('general')}
                     className={`flex items-center gap-2 px-8 py-3 font-medium transition-colors border-b-2 ${activeTab === 'general'
                         ? 'border-[#25D366] text-[#4ade80]'
-                        : 'border-transparent text-white/40 hover:text-slate-200'
+                        : 'border-transparent text-[rgba(15,23,42,0.4)] hover:text-slate-700'
                         }`}
                 >
                     <Settings size={18} />
@@ -143,7 +143,7 @@ export default function NewAssistantPage() {
                     onClick={() => setActiveTab('ia')}
                     className={`flex items-center gap-2 px-8 py-3 font-medium transition-colors border-b-2 ${activeTab === 'ia'
                         ? 'border-[#25D366] text-[#4ade80]'
-                        : 'border-transparent text-white/40 hover:text-slate-200'
+                        : 'border-transparent text-[rgba(15,23,42,0.4)] hover:text-slate-700'
                         }`}
                 >
                     <Bot size={18} />
@@ -153,7 +153,7 @@ export default function NewAssistantPage() {
                     onClick={() => setActiveTab('chat')}
                     className={`flex items-center gap-2 px-8 py-3 font-medium transition-colors border-b-2 ${activeTab === 'chat'
                         ? 'border-[#25D366] text-[#4ade80]'
-                        : 'border-transparent text-white/40 hover:text-slate-200'
+                        : 'border-transparent text-[rgba(15,23,42,0.4)] hover:text-slate-700'
                         }`}
                 >
                     <MessageSquare size={18} />
@@ -179,7 +179,7 @@ export default function NewAssistantPage() {
                                     placeholder="Ej: JabaBot"
                                     className="bg-slate-50 border-slate-200 focus-visible:ring-[#25D366]"
                                 />
-                                <p className="text-sm text-white/35 leading-relaxed">
+                                <p className="text-sm text-[rgba(15,23,42,0.35)] leading-relaxed">
                                     Este parámetro permite personalizar el nombre al asistente y brindarle una identificación única.
                                 </p>
                             </div>
@@ -221,7 +221,7 @@ export default function NewAssistantPage() {
                                         className="bg-slate-50 border-slate-200 flex-1 focus-visible:ring-[#25D366]"
                                     />
                                 </div>
-                                <p className="text-sm text-white/35 leading-relaxed">
+                                <p className="text-sm text-[rgba(15,23,42,0.35)] leading-relaxed">
                                     Permite ingresar información de contacto o identificación telefónica al asistente.
                                 </p>
                             </div>
@@ -243,11 +243,11 @@ export default function NewAssistantPage() {
                                         placeholder="Hola, ¿en qué puedo ayudarte?"
                                         className="bg-slate-50 border-slate-200 flex-1 focus-visible:ring-[#25D366]"
                                     />
-                                    <button className="px-3 border border-slate-200 bg-slate-100 rounded-md text-white/35 hover:bg-slate-200 transition-colors">
+                                    <button className="px-3 border border-slate-200 bg-slate-100 rounded-md text-[rgba(15,23,42,0.35)] hover:bg-slate-200 transition-colors">
                                         <Layers size={18} />
                                     </button>
                                 </div>
-                                <p className="text-sm text-white/35 leading-relaxed">
+                                <p className="text-sm text-[rgba(15,23,42,0.35)] leading-relaxed">
                                     Permite personalizar el mensaje inicial que se muestra a los usuarios al iniciar una conversación.
                                 </p>
                             </div>
@@ -265,7 +265,7 @@ export default function NewAssistantPage() {
                                     onClick={() => setActiveAiTab(tab.toLowerCase())}
                                     className={`px-4 py-2 text-sm font-medium transition-colors rounded-md text-left ${activeAiTab === tab.toLowerCase()
                                         ? "bg-green-50 text-green-600"
-                                        : "text-white/35 hover:bg-slate-50 hover:text-slate-800"
+                                        : "text-[rgba(15,23,42,0.35)] hover:bg-slate-50 hover:text-slate-800"
                                         }`}
                                 >
                                     {tab}
@@ -290,7 +290,7 @@ export default function NewAssistantPage() {
                                                 <option value="sleep">Dormir</option>
                                             </select>
                                         </div>
-                                        <p className="text-sm text-white/35 leading-relaxed pt-1">
+                                        <p className="text-sm text-[rgba(15,23,42,0.35)] leading-relaxed pt-1">
                                             Establece el estado del asistente, si está activo el asistente responderá todos los mensajes automáticamente.
                                         </p>
                                     </div>
@@ -404,11 +404,11 @@ export default function NewAssistantPage() {
                                         placeholder="Ej: 10046..."
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-[rgba(15,23,42,0.35)] transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-white/35 leading-relaxed text-justify">
+                                <p className="text-xs text-[rgba(15,23,42,0.35)] leading-relaxed text-justify">
                                     Valor único asignado a cada número de teléfono registrado en la plataforma de WhatsApp Business API Cloud.
                                 </p>
                             </div>
@@ -424,11 +424,11 @@ export default function NewAssistantPage() {
                                         placeholder=""
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-[rgba(15,23,42,0.35)] transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-white/35 leading-relaxed text-justify">
+                                <p className="text-xs text-[rgba(15,23,42,0.35)] leading-relaxed text-justify">
                                     Identificador de la cuenta de WhatsApp Business.
                                 </p>
                             </div>
@@ -444,11 +444,11 @@ export default function NewAssistantPage() {
                                         placeholder=""
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-[rgba(15,23,42,0.35)] transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-white/35 leading-relaxed text-justify">
+                                <p className="text-xs text-[rgba(15,23,42,0.35)] leading-relaxed text-justify">
                                     Identificador de la aplicación de Meta.
                                 </p>
                             </div>
@@ -465,11 +465,11 @@ export default function NewAssistantPage() {
                                         placeholder="EAAG..."
                                         className="bg-white border-slate-200"
                                     />
-                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-white/35 transition-colors">
+                                    <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-md text-[rgba(15,23,42,0.35)] transition-colors">
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <p className="text-xs text-white/35 leading-relaxed text-justify">
+                                <p className="text-xs text-[rgba(15,23,42,0.35)] leading-relaxed text-justify">
                                     Token permanente de acceso.
                                 </p>
                             </div>

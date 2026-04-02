@@ -118,8 +118,8 @@ export default function TrainingPage() {
 
     if (isLoading) {
         return (
-            <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-slate-950">
-                <div className="flex items-center gap-3 text-slate-400">
+            <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-[#F7F8FA]">
+                <div className="flex items-center gap-3 text-slate-500">
                     <Loader2 className="animate-spin" size={24} />
                     <span>Cargando entrenamiento...</span>
                 </div>
@@ -128,13 +128,13 @@ export default function TrainingPage() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-slate-950">
+        <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-[#F7F8FA]">
             {/* Left Column: Training Editor */}
             <div className="flex-1 flex flex-col p-6 min-w-0">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Entrenamiento</h1>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <h1 className="text-2xl font-bold text-[#0F172A]">Entrenamiento</h1>
+                        <p className="text-sm text-slate-500 mt-1">
                             Describe tu negocio, productos y reglas. La IA responderá según este prompt.
                         </p>
                     </div>
@@ -151,7 +151,7 @@ export default function TrainingPage() {
                                     ? 'bg-green-500 text-white'
                                     : hasChanges
                                         ? 'bg-yellow-400 hover:bg-yellow-500 text-slate-900'
-                                        : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                                 }`}
                         >
                             {isSaving ? (
@@ -165,7 +165,7 @@ export default function TrainingPage() {
                     </div>
                 </div>
 
-                <div className="flex-1 bg-slate-900 rounded-xl shadow-sm border border-slate-800 flex flex-col overflow-hidden relative">
+                <div className="flex-1 bg-white rounded-xl shadow-sm border border-black/[0.08] flex flex-col overflow-hidden relative">
                     <textarea
                         className="flex-1 w-full p-6 text-slate-300 font-mono text-sm leading-relaxed resize-none bg-transparent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20"
                         value={prompt}
@@ -175,15 +175,15 @@ export default function TrainingPage() {
                     />
 
                     {/* Character Counter */}
-                    <div className="absolute bottom-4 right-4 text-xs font-mono text-slate-500 bg-slate-900/80 px-2 py-1 rounded border border-slate-800">
+                    <div className="absolute bottom-4 right-4 text-xs font-mono text-slate-500 bg-white/80 px-2 py-1 rounded border border-black/[0.08]">
                         {prompt.length}/40000
                     </div>
                 </div>
             </div>
 
             {/* Right Column: Chat Simulator */}
-            <div className="w-[400px] border-l border-slate-800 bg-slate-900 flex flex-col shadow-xl z-10">
-                <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+            <div className="w-[400px] border-l border-black/[0.08] bg-[#F7F8FA] flex flex-col shadow-xl z-10">
+                <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-white/50">
                     <h2 className="font-semibold text-slate-300 flex items-center gap-2">
                         <Sparkles size={16} className="text-indigo-400" />
                         Simulador de chat
@@ -197,7 +197,7 @@ export default function TrainingPage() {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950/50">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F7F8FA]">
                     {simulatedMessages.length === 0 && (
                         <div className="text-center py-12 text-slate-600">
                             <Bot size={32} className="mx-auto mb-3 opacity-30" />
@@ -214,7 +214,7 @@ export default function TrainingPage() {
 
                             <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${msg.role === 'user'
                                 ? 'bg-blue-600 text-white rounded-tr-sm'
-                                : 'bg-slate-800 text-slate-300 border border-slate-700 rounded-tl-sm'
+                                : 'bg-[#F7F8FA] text-[#0F172A] border border-black/[0.08] rounded-tl-sm'
                                 }`}>
                                 {msg.content}
                             </div>
@@ -233,7 +233,7 @@ export default function TrainingPage() {
                             <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
                                 <Bot size={16} className="text-indigo-400" />
                             </div>
-                            <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1">
+                            <div className="bg-[#F7F8FA] border border-black/[0.08] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1">
                                 <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                                 <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                                 <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce"></span>
@@ -244,14 +244,14 @@ export default function TrainingPage() {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 border-t border-slate-800 bg-slate-900 space-y-3">
+                <div className="p-4 border-t border-black/[0.08] bg-white space-y-3">
                     <div className="relative">
                         <div className="absolute left-3 top-3 w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
                             <User size={16} className="text-blue-400" />
                         </div>
                         <textarea
                             placeholder="Escribe un mensaje de prueba..."
-                            className="w-full pl-14 pr-4 py-4 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-20 resize-none"
+                            className="w-full pl-14 pr-4 py-4 bg-[#F7F8FA] border border-black/[0.08] rounded-lg text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-20 resize-none"
                             value={simulatorInput}
                             onChange={(e) => setSimulatorInput(e.target.value)}
                             onKeyDown={(e) => {

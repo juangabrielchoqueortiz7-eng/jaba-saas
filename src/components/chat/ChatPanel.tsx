@@ -29,7 +29,6 @@ export function ChatPanel() {
         }
         fetchUnread()
 
-        // Solo Realtime — sin polling
         const channel = supabase
             .channel('chat-panel-unread')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, fetchUnread)
@@ -46,7 +45,7 @@ export function ChatPanel() {
             {/* Backdrop */}
             {isChatOpen && (
                 <div
-                    className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+                    className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm transition-opacity duration-300"
                     onClick={closeChat}
                 />
             )}
@@ -56,20 +55,20 @@ export function ChatPanel() {
                 className={`
                     fixed top-0 right-0 bottom-0 z-[70]
                     w-full sm:w-[480px] md:w-[560px] lg:w-[640px]
-                    bg-black border-l border-white/[0.06]
-                    shadow-2xl shadow-black/60
+                    bg-white border-l border-black/[0.08]
+                    shadow-2xl shadow-black/[0.10]
                     transform transition-transform duration-300 ease-in-out
                     ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}
                     flex flex-col
                 `}
             >
                 {/* Panel Header */}
-                <div className="h-14 flex items-center justify-between px-4 bg-[#111111] border-b border-white/[0.06] shrink-0">
+                <div className="h-14 flex items-center justify-between px-4 bg-[#F7F8FA] border-b border-black/[0.08] shrink-0">
                     <div className="flex items-center gap-3">
                         {selectedChatId ? (
                             <button
                                 onClick={handleBackToList}
-                                className="flex items-center gap-2 text-[#25D366] hover:text-[#1fad52] transition-colors text-sm font-medium"
+                                className="flex items-center gap-2 text-[#25D366] hover:text-[#128C7E] transition-colors text-sm font-medium"
                             >
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -81,7 +80,7 @@ export function ChatPanel() {
                                 <div className="w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center">
                                     <MessageSquare size={16} className="text-black" />
                                 </div>
-                                <h2 className="text-white font-semibold text-base">Chat Interno</h2>
+                                <h2 className="text-[#0F172A] font-semibold text-base">Chat Interno</h2>
                                 {totalUnread > 0 && (
                                     <span className="min-w-5 h-5 px-1.5 bg-[#25D366] text-black text-[10px] font-bold rounded-full flex items-center justify-center">
                                         {totalUnread > 99 ? '99+' : totalUnread}
@@ -92,7 +91,7 @@ export function ChatPanel() {
                     </div>
                     <button
                         onClick={closeChat}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-[#0F172A]/55 hover:text-[#0F172A] hover:bg-black/[0.06] transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -101,7 +100,7 @@ export function ChatPanel() {
                 {/* Panel Content */}
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     <Suspense fallback={
-                        <div className="flex-1 flex items-center justify-center text-white/55">
+                        <div className="flex-1 flex items-center justify-center text-[#0F172A]/55">
                             <div className="flex flex-col items-center gap-3">
                                 <div className="w-8 h-8 border-2 border-[#25D366] border-t-transparent rounded-full animate-spin" />
                                 <span className="text-sm">Cargando...</span>

@@ -145,7 +145,7 @@ export default function RenewalsPage() {
             case 'approved': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
             case 'pending_review': return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
             case 'rejected': return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-            default: return 'bg-slate-500/10 text-white/40'
+            default: return 'bg-slate-500/10 text-[#0F172A]/40'
         }
     }
 
@@ -171,15 +171,15 @@ export default function RenewalsPage() {
         <div className="p-8 max-w-7xl mx-auto min-h-screen">
             <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#eef0ff] flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-[#0F172A] flex items-center gap-3">
                         <RefreshCcw className="text-[#10b981]" />
                         Renovaciones
                     </h1>
-                    <p className="text-[rgba(238,240,255,0.45)] mt-1">Renovaciones automáticas — supervisa el historial y aprueba casos pendientes</p>
+                    <p className="text-[rgba(15,23,42,0.45)] mt-1">Renovaciones automáticas — supervisa el historial y aprueba casos pendientes</p>
                 </div>
                 <button
                     onClick={() => { setLoading(true); fetchRenewals(); }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-white/[0.06] rounded-xl text-sm font-medium hover:bg-white/[0.05] text-white/65 transition-all active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-black/[0.08] rounded-xl text-sm font-medium hover:bg-black/[0.04] text-[#0F172A]/65 transition-all active:scale-95"
                 >
                     <RefreshCcw size={16} className={cn(loading && "animate-spin text-[#10b981]")} />
                     Actualizar
@@ -188,57 +188,57 @@ export default function RenewalsPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
-                    <p className="text-white/40 text-sm font-medium mb-1">Total</p>
-                    <p className="text-2xl font-bold text-[#eef0ff]">{totalRenewals}</p>
+                <div className="bg-white border border-black/[0.08] p-5 rounded-2xl">
+                    <p className="text-[#0F172A]/40 text-sm font-medium mb-1">Total</p>
+                    <p className="text-2xl font-bold text-[#0F172A]">{totalRenewals}</p>
                 </div>
-                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-white border border-black/[0.08] p-5 rounded-2xl">
                     <p className="text-[#FBBF24] text-sm font-medium mb-1">Pendientes</p>
-                    <p className="text-2xl font-bold text-[#eef0ff]">{pendingCount}</p>
+                    <p className="text-2xl font-bold text-[#0F172A]">{pendingCount}</p>
                 </div>
-                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-white border border-black/[0.08] p-5 rounded-2xl">
                     <p className="text-[#10b981] text-sm font-medium mb-1">Aprobadas</p>
-                    <p className="text-2xl font-bold text-[#eef0ff]">{approvedCount}</p>
+                    <p className="text-2xl font-bold text-[#0F172A]">{approvedCount}</p>
                 </div>
-                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-white border border-black/[0.08] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
                         <DollarSign size={14} className="text-[#F97316]" />
                         <p className="text-[#F97316] text-sm font-medium">Ingresos Mes</p>
                     </div>
-                    <p className="text-2xl font-bold text-[#eef0ff] mt-1">Bs {monthlyRevenue}</p>
+                    <p className="text-2xl font-bold text-[#0F172A] mt-1">Bs {monthlyRevenue}</p>
                 </div>
-                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-white border border-black/[0.08] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
                         <TrendingUp size={14} className="text-[#10b981]" />
                         <p className="text-[#10b981] text-sm font-medium">Conversión</p>
                     </div>
-                    <p className="text-2xl font-bold text-[#eef0ff] mt-1">{conversionRate}%</p>
+                    <p className="text-2xl font-bold text-[#0F172A] mt-1">{conversionRate}%</p>
                 </div>
-                <div className="bg-[#111111] border border-white/[0.06] p-5 rounded-2xl">
+                <div className="bg-white border border-black/[0.08] p-5 rounded-2xl">
                     <div className="flex items-center gap-1.5">
                         <BarChart3 size={14} className="text-[#F97316]" />
                         <p className="text-[#F97316] text-sm font-medium">1er vs 2do Msg</p>
                     </div>
-                    <p className="text-lg font-bold text-[#eef0ff] mt-1">{reminderConversions} / {followupConversions}</p>
+                    <p className="text-lg font-bold text-[#0F172A] mt-1">{reminderConversions} / {followupConversions}</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-[#111111] border border-white/[0.06] p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-white border border-black/[0.08] p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0F172A]/35" size={18} />
                     <input
                         type="text"
                         placeholder="Buscar por email, teléfono o plan..."
-                        className="w-full bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 pl-10 pr-4 text-sm text-white/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50 transition-all"
+                        className="w-full bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 pl-10 pr-4 text-sm text-[#0F172A]/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Filter size={18} className="text-white/35" />
+                    <Filter size={18} className="text-[#0F172A]/35" />
                     <select
-                        className="bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 px-4 text-sm text-white/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50 cursor-pointer"
+                        className="bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 px-4 text-sm text-[#0F172A]/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/50 cursor-pointer"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
@@ -251,7 +251,7 @@ export default function RenewalsPage() {
             </div>
 
             {/* Table */}
-            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl">
+            <div className="bg-white border border-black/[0.08] rounded-2xl overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
@@ -266,14 +266,14 @@ export default function RenewalsPage() {
                         </thead>
                         <tbody className="divide-y divide-white/[0.03]">
                             {filteredRenewals.length > 0 ? filteredRenewals.map((renewal) => (
-                                <tr key={renewal.id} className="hover:bg-[#111]/30 transition-colors group">
+                                <tr key={renewal.id} className="hover:bg-black/[0.03] transition-colors group">
                                     <td className="px-6 py-5">
                                         <div className="flex flex-col">
-                                            <div className="flex items-center gap-1.5 text-sm text-white/65">
+                                            <div className="flex items-center gap-1.5 text-sm text-[#0F172A]/65">
                                                 <Mail size={14} className="text-[#25D366]" />
                                                 <span>{renewal.customer_email || 'N/A'}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5 text-xs text-white/40 mt-1">
+                                            <div className="flex items-center gap-1.5 text-xs text-[#0F172A]/40 mt-1">
                                                 <Phone size={12} />
                                                 <span>{renewal.phone_number}</span>
                                             </div>
@@ -284,7 +284,7 @@ export default function RenewalsPage() {
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-[#eef0ff]">{renewal.plan_name}</span>
+                                            <span className="text-sm font-bold text-[#0F172A]">{renewal.plan_name}</span>
                                             <span className="text-sm text-[#10b981] font-medium">Bs {renewal.amount}</span>
                                         </div>
                                     </td>
@@ -359,7 +359,7 @@ export default function RenewalsPage() {
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <RefreshCcw size={48} className="text-slate-800" />
-                                            <p className="text-white/35 font-medium">No se encontraron renovaciones.</p>
+                                            <p className="text-[#0F172A]/35 font-medium">No se encontraron renovaciones.</p>
                                             <p className="text-slate-600 text-sm">Las renovaciones aparecerán aquí cuando los clientes renueven sus suscripciones.</p>
                                         </div>
                                     </td>
@@ -373,10 +373,10 @@ export default function RenewalsPage() {
             {/* Receipt Modal */}
             {receiptModal && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setReceiptModal(null)}>
-                    <div className="max-w-lg w-full bg-[#0a0a0a] rounded-2xl overflow-hidden border border-white/8" onClick={e => e.stopPropagation()}>
+                    <div className="max-w-lg w-full bg-white rounded-2xl overflow-hidden border border-black/[0.08]" onClick={e => e.stopPropagation()}>
                         <div className="p-4 border-b border-white/8 flex justify-between items-center">
-                            <h3 className="text-white font-bold">Comprobante de Pago</h3>
-                            <button onClick={() => setReceiptModal(null)} className="text-white/40 hover:text-white">✕</button>
+                            <h3 className="text-[#0F172A] font-bold">Comprobante de Pago</h3>
+                            <button onClick={() => setReceiptModal(null)} className="text-[#0F172A]/40 hover:text-[#0F172A]">✕</button>
                         </div>
                         <div className="p-4">
                             <img src={receiptModal} alt="Comprobante" className="w-full rounded-lg" />

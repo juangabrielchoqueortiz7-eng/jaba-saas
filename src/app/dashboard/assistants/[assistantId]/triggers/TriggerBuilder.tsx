@@ -211,21 +211,21 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
         return detectTemplateVars(tpl.components)
     }
 
-    if (isLoading) return <div className="p-8 text-white">Cargando disparador...</div>
+    if (isLoading) return <div className="p-8 text-[#0F172A]">Cargando disparador...</div>
 
     return (
-        <div className="p-8 max-w-7xl mx-auto text-slate-200">
+        <div className="p-8 max-w-7xl mx-auto text-[#0F172A]">
             {/* ── Top Bar ── */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <Button
-                        className="h-9 w-9 p-0 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
+                        className="h-9 w-9 p-0 bg-transparent hover:bg-slate-100 text-slate-400 hover:text-slate-700"
                         onClick={() => router.back()}
                     >
                         <ArrowLeft />
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-1">
+                        <h1 className="text-3xl font-bold text-[#0F172A] mb-1">
                             {triggerId ? 'Editar Disparador' : 'Nuevo Disparador'}
                         </h1>
                         <p className="text-slate-400">Automatización avanzada</p>
@@ -244,9 +244,9 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* ── LEFT: Config ── */}
                 <div className="lg:col-span-4 space-y-6">
-                    <Card className="bg-slate-900 border-slate-800">
+                    <Card className="bg-white border-black/[0.08]">
                         <CardHeader>
-                            <CardTitle className="text-white text-lg">Disparador</CardTitle>
+                            <CardTitle className="text-[#0F172A] text-lg">Disparador</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Name */}
@@ -256,7 +256,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                     value={name}
                                     onChange={e => setName(e.target.value)}
                                     placeholder="Ej: Recordatorio Canva"
-                                    className="bg-slate-950 border-slate-800 text-white"
+                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                 />
                             </div>
 
@@ -264,7 +264,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                             <div className="space-y-2">
                                 <Label>Tipo</Label>
                                 <Select value={type} onValueChange={(v) => setType(v as TriggerType)}>
-                                    <SelectTrigger className="bg-slate-950 border-slate-800 text-white">
+                                    <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -287,7 +287,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                         value={description}
                                         onChange={e => setDescription(e.target.value)}
                                         placeholder="Describe cuándo activar. Ej: 'Cliente envía comprobante'"
-                                        className="bg-slate-950 border-slate-800 text-white h-32 resize-none"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-white h-32 resize-none"
                                     />
                                 </div>
                             )}
@@ -297,7 +297,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                 <div className="space-y-2 animate-in fade-in">
                                     <Label>Flujo a ejecutar</Label>
                                     <Select value={selectedFlowId} onValueChange={setSelectedFlowId}>
-                                        <SelectTrigger className="bg-slate-950 border-slate-800 text-white">
+                                        <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                             <SelectValue placeholder="Selecciona un flujo..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -326,7 +326,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                         value={timeMinutes}
                                         onChange={e => setTimeMinutes(e.target.value)}
                                         placeholder="30"
-                                        className="bg-slate-950 border-slate-800 text-white"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
                                     <p className="text-xs text-slate-500">
                                         Se activa si el cliente no responde en {timeMinutes || '?'} min.
@@ -355,7 +355,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                 audience_value: v === 'service' ? 'CANVA' : ''
                                             }))}
                                         >
-                                            <SelectTrigger className="bg-slate-950 border-slate-800 text-white text-sm">
+                                            <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -374,7 +374,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                 value={scheduleConfig.audience_value}
                                                 onValueChange={v => setScheduleConfig(prev => ({ ...prev, audience_value: v }))}
                                             >
-                                                <SelectTrigger className="bg-slate-950 border-slate-800 text-white text-sm">
+                                                <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -390,7 +390,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                         <div className="space-y-2">
                                             <Label className="text-xs text-slate-400">Etiqueta del chat</Label>
                                             <Input
-                                                className="bg-slate-950 border-slate-800 text-sm"
+                                                className="bg-[#F7F8FA] border-black/[0.08] text-sm"
                                                 placeholder="Ej: VIP, CLIENTE_ACTIVO"
                                                 value={scheduleConfig.audience_value}
                                                 onChange={e => setScheduleConfig(prev => ({ ...prev, audience_value: e.target.value }))}
@@ -405,7 +405,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                             value={scheduleConfig.send_days}
                                             onValueChange={v => setScheduleConfig(prev => ({ ...prev, send_days: v as ScheduleConfig['send_days'] }))}
                                         >
-                                            <SelectTrigger className="bg-slate-950 border-slate-800 text-white text-sm">
+                                            <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -422,8 +422,8 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                     </div>
 
                                     {/* Summary */}
-                                    <div className="p-3 rounded-lg bg-slate-800/60 text-xs text-slate-400 space-y-1">
-                                        <p className="font-semibold text-slate-300">Resumen del envío:</p>
+                                    <div className="p-3 rounded-lg bg-[#F7F8FA] text-xs text-slate-400 space-y-1">
+                                        <p className="font-semibold text-[#0F172A]">Resumen del envío:</p>
                                         <p>
                                             {scheduleConfig.audience_type === 'service' && `Suscriptores de ${scheduleConfig.audience_value}`}
                                             {scheduleConfig.audience_type === 'tag' && `Chats con etiqueta "${scheduleConfig.audience_value}"`}
@@ -440,12 +440,12 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
 
                 {/* ── RIGHT: Tabs ── */}
                 <div className="lg:col-span-8">
-                    <div className="flex border-b border-slate-800 mb-6">
+                    <div className="flex border-b border-black/[0.08] mb-6">
                         <button
                             onClick={() => setActiveTab('conditions')}
                             className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'conditions'
                                 ? 'border-red-500 text-red-500'
-                                : 'border-transparent text-slate-400 hover:text-white'}`}
+                                : 'border-transparent text-slate-400 hover:text-[#0F172A]'}`}
                         >
                             Condiciones ({conditions.length})
                         </button>
@@ -453,7 +453,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                             onClick={() => setActiveTab('actions')}
                             className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'actions'
                                 ? 'border-green-500 text-green-500'
-                                : 'border-transparent text-slate-400 hover:text-white'}`}
+                                : 'border-transparent text-slate-400 hover:text-[#0F172A]'}`}
                         >
                             Acciones ({actions.length})
                         </button>
@@ -462,8 +462,8 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                     {/* ── CONDITIONS ── */}
                     {activeTab === 'conditions' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-left-4">
-                            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-lg border border-slate-800">
-                                <h3 className="text-white font-medium">Reglas de filtro</h3>
+                            <div className="flex justify-between items-center bg-white p-4 rounded-lg border border-black/[0.08]">
+                                <h3 className="text-[#0F172A] font-medium">Reglas de filtro</h3>
                                 <Select onValueChange={(v) => addCondition(v as ConditionType)}>
                                     <SelectTrigger className="w-[200px] bg-red-600 border-red-500 text-white h-9">
                                         <SelectValue placeholder="Agregar condición" />
@@ -478,14 +478,14 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                             </div>
 
                             {conditions.length === 0 ? (
-                                <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-xl">
+                                <div className="text-center py-12 border-2 border-dashed border-black/[0.08] rounded-xl">
                                     <Filter className="mx-auto h-10 w-10 text-slate-600 mb-2" />
                                     <p className="text-slate-500">No hay condiciones definidas.</p>
                                     <p className="text-xs text-slate-600">El disparador se ejecutará siempre si la lógica coincide.</p>
                                 </div>
                             ) : (
                                 conditions.map((cond, index) => (
-                                    <Card key={index} className="bg-slate-900 border-slate-800 relative">
+                                    <Card key={index} className="bg-white border-black/[0.08] relative">
                                         <button
                                             onClick={() => removeCondition(index)}
                                             className="absolute top-2 right-2 text-slate-500 hover:text-red-500"
@@ -503,7 +503,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                 value={cond.operator}
                                                 onValueChange={(v) => updateCondition(index, 'operator', v)}
                                             >
-                                                <SelectTrigger className="h-9 bg-slate-950 border-slate-800 text-xs">
+                                                <SelectTrigger className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -514,7 +514,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                 </SelectContent>
                                             </Select>
                                             <Input
-                                                className="h-9 bg-slate-950 border-slate-800"
+                                                className="h-9 bg-[#F7F8FA] border-black/[0.08]"
                                                 placeholder="Valor..."
                                                 value={cond.value}
                                                 onChange={(e) => updateCondition(index, 'value', e.target.value)}
@@ -529,8 +529,8 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                     {/* ── ACTIONS ── */}
                     {activeTab === 'actions' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-lg border border-slate-800">
-                                <h3 className="text-white font-medium">Secuencia de ejecución</h3>
+                            <div className="flex justify-between items-center bg-white p-4 rounded-lg border border-black/[0.08]">
+                                <h3 className="text-[#0F172A] font-medium">Secuencia de ejecución</h3>
                                 <Select onValueChange={(v) => addAction(v as ActionType)}>
                                     <SelectTrigger className="w-[220px] bg-green-600 border-green-500 text-white h-9">
                                         <SelectValue placeholder="Agregar acción" />
@@ -547,17 +547,17 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                             </div>
 
                             {actions.length === 0 ? (
-                                <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-xl">
+                                <div className="text-center py-12 border-2 border-dashed border-black/[0.08] rounded-xl">
                                     <AlertCircle className="mx-auto h-10 w-10 text-slate-600 mb-2" />
                                     <p className="text-slate-500">No hay acciones configuradas.</p>
                                     <p className="text-xs text-slate-600">Agrega al menos una acción para que el disparador haga algo.</p>
                                 </div>
                             ) : (
                                 actions.map((action, index) => (
-                                    <div key={index} className="bg-slate-900 border border-slate-800 rounded-lg p-4 relative">
+                                    <div key={index} className="bg-white border border-black/[0.08] rounded-lg p-4 relative">
                                         <div className="absolute top-2 right-2">
                                             <Button
-                                                className="h-6 w-6 p-0 bg-transparent hover:bg-slate-800 text-slate-500 hover:text-red-400"
+                                                className="h-6 w-6 p-0 bg-transparent hover:bg-[#F7F8FA] text-slate-500 hover:text-red-400"
                                                 onClick={() => removeAction(index)}
                                             >
                                                 <Trash2 size={14} />
@@ -607,7 +607,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                                     setActions(next)
                                                                 }}
                                                             >
-                                                                <SelectTrigger className="bg-slate-950 border-slate-800 text-white text-sm">
+                                                                <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm">
                                                                     <SelectValue placeholder="Selecciona una plantilla..." />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
@@ -627,7 +627,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                             const body = tpl?.components.find(c => c.type === 'BODY')
                                                             if (!body?.text) return null
                                                             return (
-                                                                <div className="p-3 rounded-lg bg-slate-800/50 text-xs text-slate-400 font-mono whitespace-pre-wrap">
+                                                                <div className="p-3 rounded-lg bg-[#F7F8FA] text-xs text-slate-400 font-mono whitespace-pre-wrap">
                                                                     {body.text}
                                                                 </div>
                                                             )
@@ -640,11 +640,11 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                                     Variables de la plantilla
                                                                 </p>
                                                                 <p className="text-[11px] text-slate-500">
-                                                                    Usa: <code className="bg-slate-800 px-1 rounded">{'{numero}'}</code>{' '}
-                                                                    <code className="bg-slate-800 px-1 rounded">{'{nombre}'}</code>{' '}
-                                                                    <code className="bg-slate-800 px-1 rounded">{'{vencimiento}'}</code>{' '}
-                                                                    <code className="bg-slate-800 px-1 rounded">{'{correo}'}</code>{' '}
-                                                                    <code className="bg-slate-800 px-1 rounded">{'{servicio}'}</code>
+                                                                    Usa: <code className="bg-[#F7F8FA] px-1 rounded">{'{numero}'}</code>{' '}
+                                                                    <code className="bg-[#F7F8FA] px-1 rounded">{'{nombre}'}</code>{' '}
+                                                                    <code className="bg-[#F7F8FA] px-1 rounded">{'{vencimiento}'}</code>{' '}
+                                                                    <code className="bg-[#F7F8FA] px-1 rounded">{'{correo}'}</code>{' '}
+                                                                    <code className="bg-[#F7F8FA] px-1 rounded">{'{servicio}'}</code>
                                                                 </p>
                                                                 {Array.from({ length: getTemplateVarCount(action.payload.templateName) }).map((_, vi) => (
                                                                     <div key={vi} className="flex items-center gap-2">
@@ -652,7 +652,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                                             {`{{${vi + 1}}}`}
                                                                         </span>
                                                                         <Input
-                                                                            className="h-8 text-xs bg-slate-950 border-slate-800"
+                                                                            className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]"
                                                                             placeholder={`Valor para {{${vi + 1}}} — ej: {nombre}`}
                                                                             value={(action.payload.variables || [])[vi] || ''}
                                                                             onChange={e => {
@@ -675,7 +675,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                             <div className="space-y-1">
                                                 <Label className="text-xs">Mensaje</Label>
                                                 <Input
-                                                    className="h-8 text-xs bg-slate-950 border-slate-800"
+                                                    className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]"
                                                     placeholder="Escribe el mensaje... usa {nombre}, {telefono}"
                                                     value={action.payload.message}
                                                     onChange={(e) => updateActionPayload(index, 'message', e.target.value)}
@@ -688,7 +688,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                             <div className="space-y-1">
                                                 <Label className="text-xs">Etiqueta</Label>
                                                 <Input
-                                                    className="h-8 text-xs bg-slate-950 border-slate-800"
+                                                    className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]"
                                                     placeholder="Ej: PAGO_RECIBIDO"
                                                     value={action.payload.tag}
                                                     onChange={(e) => updateActionPayload(index, 'tag', e.target.value)}
@@ -704,7 +704,7 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                                     value={action.payload.status}
                                                     onValueChange={(v) => updateActionPayload(index, 'status', v)}
                                                 >
-                                                    <SelectTrigger className="h-8 text-xs bg-slate-950 border-slate-800">
+                                                    <SelectTrigger className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -720,13 +720,13 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                         {action.type === 'notify_admin' && (
                                             <div className="space-y-2">
                                                 <Input
-                                                    className="h-8 text-xs bg-slate-900 border-slate-800"
+                                                    className="h-8 text-xs bg-white border-black/[0.08]"
                                                     placeholder="Título"
                                                     value={action.payload.title}
                                                     onChange={(e) => updateActionPayload(index, 'title', e.target.value)}
                                                 />
                                                 <Textarea
-                                                    className="h-16 text-xs bg-slate-900 border-slate-800 resize-none"
+                                                    className="h-16 text-xs bg-white border-black/[0.08] resize-none"
                                                     placeholder="Mensaje..."
                                                     value={action.payload.message}
                                                     onChange={(e) => updateActionPayload(index, 'message', e.target.value)}
@@ -738,13 +738,13 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
                                         {action.type === 'toggle_bot' && (
                                             <div className="flex items-center gap-2">
                                                 <Button
-                                                    className={`h-8 px-3 text-xs ${action.payload.active ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-400'}`}
+                                                    className={`h-8 px-3 text-xs ${action.payload.active ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}
                                                     onClick={() => updateActionPayload(index, 'active', true)}
                                                 >
                                                     ENCENDER
                                                 </Button>
                                                 <Button
-                                                    className={`h-8 px-3 text-xs ${!action.payload.active ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-400'}`}
+                                                    className={`h-8 px-3 text-xs ${!action.payload.active ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'}`}
                                                     onClick={() => updateActionPayload(index, 'active', false)}
                                                 >
                                                     APAGAR

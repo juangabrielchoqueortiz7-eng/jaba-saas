@@ -90,17 +90,17 @@ export default function NotificationsPage() {
             {/* Header */}
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#eef0ff] flex items-center gap-3">
+                    <h1 className="text-2xl font-bold text-[#0F172A] flex items-center gap-3">
                         <Bell className="text-[#25D366]" size={24} />
                         Historial de Notificaciones
                     </h1>
-                    <p className="text-[rgba(238,240,255,0.45)] text-sm mt-1">
+                    <p className="text-[rgba(15,23,42,0.45)] text-sm mt-1">
                         Registro de todos los mensajes automáticos enviados a tus suscriptores
                     </p>
                 </div>
                 <button
                     onClick={() => { setLoading(true); fetchLogs() }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-white/[0.06] rounded-xl text-sm font-medium hover:bg-white/[0.05] text-white/65 transition-all active:scale-95 self-start md:self-auto"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-black/[0.08] rounded-xl text-sm font-medium hover:bg-black/[0.04] text-[#0F172A]/65 transition-all active:scale-95 self-start md:self-auto"
                 >
                     <RefreshCcw size={15} className={cn(loading && 'animate-spin text-[#25D366]')} />
                     Actualizar
@@ -115,13 +115,13 @@ export default function NotificationsPage() {
                     { icon: <XCircle size={18} />, label: 'Fallidos', value: stats.failed, color: '#f87171', rgb: '248,113,113' },
                     { icon: <TrendingUp size={18} />, label: 'Tasa de éxito', value: `${stats.rate}%`, color: stats.rate >= 80 ? '#10b981' : stats.rate >= 50 ? '#f59e0b' : '#f87171', rgb: '99,102,241' },
                 ].map((s, i) => (
-                    <div key={i} className="bg-[#111111] border border-white/[0.06] rounded-2xl p-4 relative overflow-hidden">
+                    <div key={i} className="bg-white border border-black/[0.08] rounded-2xl p-4 relative overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: s.color }} />
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-white/40" style={{ color: s.color }}>{s.icon}</span>
                         </div>
                         <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
-                        <div className="text-xs text-white/40 mt-1">{s.label}</div>
+                        <div className="text-xs text-[#0F172A]/40 mt-1">{s.label}</div>
                     </div>
                 ))}
             </div>
@@ -138,23 +138,23 @@ export default function NotificationsPage() {
             </div>
 
             {/* Filtros */}
-            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-4 mb-5 flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+            <div className="bg-white border border-black/[0.08] rounded-2xl p-4 mb-5 flex flex-col md:flex-row gap-3 items-stretch md:items-center">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" size={16} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0F172A]/35" size={16} />
                     <input
                         type="text"
                         placeholder="Buscar por teléfono, email o plan..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 pl-9 pr-4 text-sm text-white/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40 placeholder:text-slate-600"
+                        className="w-full bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 pl-9 pr-4 text-sm text-[#0F172A]/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40 placeholder:text-slate-400"
                     />
                 </div>
                 <div className="flex items-center gap-2">
-                    <Filter size={15} className="text-white/35 shrink-0" />
+                    <Filter size={15} className="text-[#0F172A]/35 shrink-0" />
                     <select
                         value={typeFilter}
                         onChange={e => setTypeFilter(e.target.value)}
-                        className="bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 px-3 text-sm text-white/65 focus:outline-none cursor-pointer"
+                        className="bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 px-3 text-sm text-[#0F172A]/65 focus:outline-none cursor-pointer"
                     >
                         <option value="all">Todos los tipos</option>
                         {Object.entries(TYPE_CONFIG).map(([k, v]) => (
@@ -164,7 +164,7 @@ export default function NotificationsPage() {
                     <select
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
-                        className="bg-[#0f1120] border border-white/[0.06] rounded-xl py-2 px-3 text-sm text-white/65 focus:outline-none cursor-pointer"
+                        className="bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 px-3 text-sm text-[#0F172A]/65 focus:outline-none cursor-pointer"
                     >
                         <option value="all">Todos los estados</option>
                         <option value="sent">✓ Exitosos</option>
@@ -174,7 +174,7 @@ export default function NotificationsPage() {
                 {(search || typeFilter !== 'all' || statusFilter !== 'all') && (
                     <button
                         onClick={() => { setSearch(''); setTypeFilter('all'); setStatusFilter('all') }}
-                        className="text-xs text-white/40 hover:text-slate-200 transition-colors px-3 py-2 rounded-xl hover:bg-white/[0.05] shrink-0"
+                        className="text-xs text-[#0F172A]/40 hover:text-[#0F172A] transition-colors px-3 py-2 rounded-xl hover:bg-black/[0.04] shrink-0"
                     >
                         Limpiar filtros
                     </button>
@@ -182,11 +182,11 @@ export default function NotificationsPage() {
             </div>
 
             {/* Tabla */}
-            <div className="bg-[#111111] border border-white/[0.06] rounded-2xl overflow-hidden shadow-xl">
+            <div className="bg-white border border-black/[0.08] rounded-2xl overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-white/[0.05] bg-white/[0.02]">
+                            <tr className="border-b border-black/[0.05] bg-black/[0.02]">
                                 <th className="px-5 py-3.5 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Fecha</th>
                                 <th className="px-5 py-3.5 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Contacto</th>
                                 <th className="px-5 py-3.5 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Plan</th>
@@ -195,10 +195,10 @@ export default function NotificationsPage() {
                                 <th className="px-5 py-3.5 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Detalle</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/[0.03]">
+                        <tbody className="divide-y divide-black/[0.04]">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-16 text-center text-white/35">
+                                    <td colSpan={6} className="px-5 py-16 text-center text-[#0F172A]/35">
                                         <RefreshCcw size={28} className="animate-spin mx-auto mb-3 text-[#25D366]" />
                                         Cargando...
                                     </td>
@@ -207,7 +207,7 @@ export default function NotificationsPage() {
                                 <tr>
                                     <td colSpan={6} className="px-5 py-16 text-center">
                                         <Bell size={40} className="mx-auto mb-3 text-slate-700" />
-                                        <p className="text-white/35 font-medium">No hay notificaciones.</p>
+                                        <p className="text-[#0F172A]/35 font-medium">No hay notificaciones.</p>
                                         <p className="text-slate-600 text-sm mt-1">Los mensajes automáticos aparecerán aquí cuando se envíen.</p>
                                     </td>
                                 </tr>
@@ -216,19 +216,19 @@ export default function NotificationsPage() {
                                 const isSent = log.status === 'sent'
                                 const date = dayjs(log.created_at)
                                 return (
-                                    <tr key={log.id} className="hover:bg-white/[0.02] transition-colors group">
+                                    <tr key={log.id} className="hover:bg-black/[0.02] transition-colors group">
                                         <td className="px-5 py-4">
-                                            <div className="text-sm text-white/65">{date.format('DD/MM/YY')}</div>
-                                            <div className="text-xs text-white/35">{date.format('HH:mm')}</div>
+                                            <div className="text-sm text-[#0F172A]/65">{date.format('DD/MM/YY')}</div>
+                                            <div className="text-xs text-[#0F172A]/35">{date.format('HH:mm')}</div>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <div className="text-sm text-slate-200 font-mono">{log.subscriptions?.correo || log.phone_number || '—'}</div>
+                                            <div className="text-sm text-[#0F172A] font-mono">{log.subscriptions?.correo || log.phone_number || '—'}</div>
                                             {log.subscriptions?.correo && log.phone_number && (
-                                                <div className="text-xs text-white/35">{log.phone_number}</div>
+                                                <div className="text-xs text-[#0F172A]/35">{log.phone_number}</div>
                                             )}
                                         </td>
                                         <td className="px-5 py-4">
-                                            <span className="text-sm text-white/65">{log.subscriptions?.plan_name || '—'}</span>
+                                            <span className="text-sm text-[#0F172A]/65">{log.subscriptions?.plan_name || '—'}</span>
                                         </td>
                                         <td className="px-5 py-4">
                                             <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border', typeCfg.bg, typeCfg.color)}>
@@ -264,23 +264,23 @@ export default function NotificationsPage() {
 
                 {/* Paginación */}
                 {totalPages > 1 && (
-                    <div className="px-5 py-3 border-t border-white/[0.05] flex items-center justify-between">
-                        <span className="text-xs text-white/35">
+                    <div className="px-5 py-3 border-t border-black/[0.05] flex items-center justify-between">
+                        <span className="text-xs text-[#0F172A]/35">
                             Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
                         </span>
                         <div className="flex gap-1">
                             <button
                                 onClick={() => setPage(p => Math.max(0, p - 1))}
                                 disabled={page === 0}
-                                className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.05] text-white/65 disabled:opacity-30 hover:bg-white/[0.08] transition-colors"
+                                className="px-3 py-1.5 text-xs rounded-lg bg-black/[0.04] text-[#0F172A]/65 disabled:opacity-30 hover:bg-black/[0.06] transition-colors"
                             >
                                 ← Anterior
                             </button>
-                            <span className="px-3 py-1.5 text-xs text-white/40">{page + 1} / {totalPages}</span>
+                            <span className="px-3 py-1.5 text-xs text-[#0F172A]/40">{page + 1} / {totalPages}</span>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                                 disabled={page >= totalPages - 1}
-                                className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.05] text-white/65 disabled:opacity-30 hover:bg-white/[0.08] transition-colors"
+                                className="px-3 py-1.5 text-xs rounded-lg bg-black/[0.04] text-[#0F172A]/65 disabled:opacity-30 hover:bg-black/[0.06] transition-colors"
                             >
                                 Siguiente →
                             </button>

@@ -83,22 +83,22 @@ export default function RechargesPage() {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#eef0ff] mb-2">Recargas y Saldo</h1>
-                    <p className="text-[rgba(238,240,255,0.45)]">Gestiona tu saldo disponible para conversaciones y audios.</p>
+                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Recargas y Saldo</h1>
+                    <p className="text-[rgba(15,23,42,0.45)]">Gestiona tu saldo disponible para conversaciones y audios.</p>
                 </div>
 
                 {/* Visual Wallet Card */}
-                <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-6 shadow-lg min-w-[280px]">
+                <div className="bg-white border border-black/[0.08] rounded-2xl p-4 flex items-center gap-6 shadow-lg min-w-[280px]">
                     <div className="space-y-1 flex-1">
-                        <p className="text-xs text-white/35 uppercase tracking-wider font-semibold">Tu Saldo Actual</p>
+                        <p className="text-xs text-[#0F172A]/35 uppercase tracking-wider font-semibold">Tu Saldo Actual</p>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-white">
+                            <span className="text-2xl font-bold text-[#0F172A]">
                                 {activeTab === 'conversations'
                                     ? balance.balance_conversations.toLocaleString()
                                     : balance.balance_audio_minutes
                                 }
                             </span>
-                            <span className="text-sm text-white/40">
+                            <span className="text-sm text-[#0F172A]/40">
                                 {activeTab === 'conversations' ? 'conversaciones' : 'minutos'}
                             </span>
                         </div>
@@ -116,14 +116,14 @@ export default function RechargesPage() {
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* Tabs */}
-                    <div className="bg-[#111111] p-1 rounded-xl flex gap-1 border border-white/[0.06] backdrop-blur-sm">
+                    <div className="bg-white p-1 rounded-xl flex gap-1 border border-black/[0.08] backdrop-blur-sm">
                         <button
                             onClick={() => setActiveTab('conversations')}
                             className={cn(
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'conversations'
                                     ? "bg-[rgba(16,185,129,0.1)] text-[#10b981] shadow-sm ring-1 ring-[rgba(16,185,129,0.25)]"
-                                    : "text-white/40 hover:text-white hover:bg-white/[0.05]"
+                                    : "text-[#0F172A]/40 hover:text-[#0F172A] hover:bg-black/[0.04]"
                             )}
                         >
                             <MessageSquare size={16} />
@@ -135,7 +135,7 @@ export default function RechargesPage() {
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'audios'
                                     ? "bg-[rgba(249,115,22,0.1)] text-[#F97316] shadow-sm ring-1 ring-[rgba(249,115,22,0.25)]"
-                                    : "text-white/40 hover:text-white hover:bg-white/[0.05]"
+                                    : "text-[#0F172A]/40 hover:text-[#0F172A] hover:bg-black/[0.04]"
                             )}
                         >
                             <Mic size={16} />
@@ -155,7 +155,7 @@ export default function RechargesPage() {
                                         "relative border rounded-2xl p-5 cursor-pointer transition-all duration-200 group hover:shadow-lg",
                                         isSelected
                                             ? "bg-[rgba(249,115,22,0.08)] border-[rgba(249,115,22,0.4)] ring-1 ring-[rgba(249,115,22,0.3)]"
-                                            : "bg-[#111111] border-white/[0.06] hover:border-white/[0.12]"
+                                            : "bg-white border-black/[0.08] hover:border-black/[0.15]"
                                     )}
                                 >
                                     {/* Popular Badge */}
@@ -171,7 +171,7 @@ export default function RechargesPage() {
                                         "absolute top-4 right-4 w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
                                         isSelected
                                             ? "bg-[#F97316] border-[#F97316] text-white"
-                                            : "border-white/[0.15] text-transparent"
+                                            : "border-black/[0.10] text-transparent"
                                     )}>
                                         <Check size={12} strokeWidth={4} />
                                     </div>
@@ -179,10 +179,10 @@ export default function RechargesPage() {
                                     {/* Content */}
                                     <div className="space-y-4">
                                         <div>
-                                            <p className="text-white/40 text-sm font-medium mb-1">
+                                            <p className="text-[#0F172A]/40 text-sm font-medium mb-1">
                                                 {activeTab === 'conversations' ? 'Paquete de' : 'Recarga de'}
                                             </p>
-                                            <p className="text-2xl font-bold text-white">
+                                            <p className="text-2xl font-bold text-[#0F172A]">
                                                 {pkg.count} {activeTab === 'conversations' ? 'Chats' : 'Min'}
                                             </p>
                                         </div>
@@ -194,11 +194,11 @@ export default function RechargesPage() {
                                                         Ahorras ${pkg.save}
                                                     </p>
                                                 )}
-                                                <p className="text-2xl font-bold text-white">
-                                                    ${Math.floor(pkg.price)}<span className="text-base text-white/40">.{(pkg.price % 1).toFixed(2).substring(2)}</span>
+                                                <p className="text-2xl font-bold text-[#0F172A]">
+                                                    ${Math.floor(pkg.price)}<span className="text-base text-[#0F172A]/40">.{(pkg.price % 1).toFixed(2).substring(2)}</span>
                                                 </p>
                                             </div>
-                                            <div className="text-white/35 text-xs font-mono">USD</div>
+                                            <div className="text-[#0F172A]/35 text-xs font-mono">USD</div>
                                         </div>
                                     </div>
                                 </div>
@@ -209,22 +209,22 @@ export default function RechargesPage() {
 
                 {/* Right Column: Checkout Summary */}
                 <div className="space-y-6">
-                    <Card className="bg-[#111111] border-white/[0.06] sticky top-6 shadow-xl overflow-hidden">
+                    <Card className="bg-white border-black/[0.08] sticky top-6 shadow-xl overflow-hidden">
                         <div className="h-2 bg-gradient-to-r from-[#25D366] via-[#25D366] to-[#f59e0b]" />
                         <CardContent className="p-6 space-y-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-white mb-4">Resumen de compra</h3>
+                                <h3 className="text-lg font-semibold text-[#0F172A] mb-4">Resumen de compra</h3>
 
                                 <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between text-white/40">
+                                    <div className="flex justify-between text-[#0F172A]/40">
                                         <span>Producto</span>
-                                        <span className="text-slate-200 font-medium">
+                                        <span className="text-[#0F172A] font-medium">
                                             {selectedPackage?.count} {activeTab === 'conversations' ? 'Conversaciones' : 'Minutos'}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between text-white/40">
+                                    <div className="flex justify-between text-[#0F172A]/40">
                                         <span>Precio</span>
-                                        <span className="text-slate-200 font-medium">${selectedPackage?.price}</span>
+                                        <span className="text-[#0F172A] font-medium">${selectedPackage?.price}</span>
                                     </div>
                                     {selectedPackage && selectedPackage.save > 0 && (
                                         <div className="flex justify-between text-green-400">
@@ -232,9 +232,9 @@ export default function RechargesPage() {
                                             <span>-${selectedPackage.save}</span>
                                         </div>
                                     )}
-                                    <div className="pt-3 border-t border-white/[0.05] flex justify-between items-center">
-                                        <span className="text-white font-bold">Total a pagar</span>
-                                        <span className="text-2xl font-bold text-white">${selectedPackage?.price}</span>
+                                    <div className="pt-3 border-t border-black/[0.06] flex justify-between items-center">
+                                        <span className="text-[#0F172A] font-bold">Total a pagar</span>
+                                        <span className="text-2xl font-bold text-[#0F172A]">${selectedPackage?.price}</span>
                                     </div>
                                 </div>
                             </div>
@@ -252,7 +252,7 @@ export default function RechargesPage() {
                             </Button>
 
                             <div className="text-center space-y-2">
-                                <p className="text-xs text-white/35 flex items-center justify-center gap-1">
+                                <p className="text-xs text-[#0F172A]/35 flex items-center justify-center gap-1">
                                     <AlertCircle size={12} />
                                     Pago seguro y encriptado
                                 </p>
@@ -261,9 +261,9 @@ export default function RechargesPage() {
                     </Card>
 
                     {/* Frequently Asked Questions Mini */}
-                    <div className="bg-[#111111] rounded-xl p-5 border border-white/[0.06]">
-                        <h4 className="text-sm font-semibold text-white/65 mb-3">¿Cómo funciona?</h4>
-                        <ul className="text-xs text-white/35 space-y-2 list-disc pl-4">
+                    <div className="bg-white rounded-xl p-5 border border-black/[0.08]">
+                        <h4 className="text-sm font-semibold text-[#0F172A]/65 mb-3">¿Cómo funciona?</h4>
+                        <ul className="text-xs text-[#0F172A]/35 space-y-2 list-disc pl-4">
                             <li>El saldo se acredita inmediatamente.</li>
                             <li>Las conversaciones no caducan.</li>
                             <li>Soporte prioritario incluido.</li>

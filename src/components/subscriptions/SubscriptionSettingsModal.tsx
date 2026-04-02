@@ -76,7 +76,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-[#0a0a0a]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header with Gradient */}
@@ -119,7 +119,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <label className="block text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 ⏳ Recordatorio Preventivo
                             </label>
-                            <p className="text-xs text-white/35 mb-3">Se envía cuando faltan 3 días o menos.</p>
+                            <p className="text-xs text-[#0F172A]/35 mb-3">Se envía cuando faltan 3 días o menos.</p>
                             <textarea
                                 className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
                                 value={messages.reminder_msg}
@@ -136,7 +136,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <label className="block text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 ⚠️ Vencido con Acceso
                             </label>
-                            <p className="text-xs text-white/35 mb-3">Se envía cuando la fecha pasó pero sigue marcado como ACTIVO.</p>
+                            <p className="text-xs text-[#0F172A]/35 mb-3">Se envía cuando la fecha pasó pero sigue marcado como ACTIVO.</p>
                             <textarea
                                 className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
                                 value={messages.expired_grace_msg}
@@ -153,7 +153,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <label className="block text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 🔒 Acceso Cortado
                             </label>
-                            <p className="text-xs text-white/35 mb-3">Se envía cuando el estado es INACTIVO.</p>
+                            <p className="text-xs text-[#0F172A]/35 mb-3">Se envía cuando el estado es INACTIVO.</p>
                             <textarea
                                 className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
                                 value={messages.expired_removed_msg}

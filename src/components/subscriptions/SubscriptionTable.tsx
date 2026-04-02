@@ -227,12 +227,12 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     const getDateStatus = (dateString: string) => {
-        if (!dateString) return { className: 'text-white/40', label: 'Sin Fecha', days: Infinity };
+        if (!dateString) return { className: 'text-[#0F172A]/40', label: 'Sin Fecha', days: Infinity };
 
         let date = dayjs(dateString, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
         if (!date.isValid()) date = dayjs(dateString); // Fallback
 
-        if (!date.isValid()) return { className: 'text-white/40', label: dateString, days: Infinity };
+        if (!date.isValid()) return { className: 'text-[#0F172A]/40', label: dateString, days: Infinity };
 
         const diff = date.diff(dayjs().startOf('day'), 'day');
 
@@ -407,22 +407,22 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             {/* Tabs & Search */}
             <div className="flex flex-col gap-3">
                 <div className="overflow-x-auto -mx-1 px-1 pb-2">
-                    <div className="flex space-x-2 bg-[#111] p-1 rounded-lg w-max border border-white/8">
+                    <div className="flex space-x-2 bg-[#F7F8FA] p-1 rounded-lg w-max border border-black/[0.08]">
                         <button
                             onClick={() => { setFilters(prev => ({ ...prev, status: 'ACTIVO' })); setCurrentPage(1); }}
-                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'ACTIVO' ? 'bg-slate-700 text-emerald-400 shadow-sm' : 'text-white/40 hover:text-slate-200'}`}
+                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'ACTIVO' ? 'bg-[#F7F8FA] text-emerald-400 shadow-sm' : 'text-[#0F172A]/40 hover:text-[#0F172A]'}`}
                         >
                             <CheckCircle size={14} /> Activos
                         </button>
                         <button
                             onClick={() => { setFilters(prev => ({ ...prev, status: 'INACTIVO' })); setCurrentPage(1); }}
-                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'INACTIVO' ? 'bg-slate-700 text-amber-400 shadow-sm' : 'text-white/40 hover:text-slate-200'}`}
+                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'INACTIVO' ? 'bg-[#F7F8FA] text-amber-400 shadow-sm' : 'text-[#0F172A]/40 hover:text-[#0F172A]'}`}
                         >
                             <XCircle size={14} /> Inactivos
                         </button>
                         <button
                             onClick={() => { setFilters(prev => ({ ...prev, status: 'POR_VENCER' })); setCurrentPage(1); }}
-                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'POR_VENCER' ? 'bg-slate-700 text-red-400 shadow-sm' : 'text-white/40 hover:text-slate-200'}`}
+                            className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap ${filtersState.status === 'POR_VENCER' ? 'bg-[#F7F8FA] text-red-400 shadow-sm' : 'text-[#0F172A]/40 hover:text-[#0F172A]'}`}
                         >
                             <AlertTriangle size={14} /> Por Vencer
                         </button>
@@ -445,16 +445,16 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                             setCurrentPage(1);
                         }}
                     >
-                        <SelectTrigger className="bg-[#111] border-white/8 text-slate-200 h-[38px] w-full sm:w-[160px]">
+                        <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-[38px] w-full sm:w-[160px]">
                             <div className="flex items-center gap-2">
                                 <span>{filtersState.servicio ? filtersState.servicio : 'Todos los Servicios'}</span>
                             </div>
                         </SelectTrigger>
-                        <SelectContent className="bg-[#111] border-white/8">
-                            <SelectItem value="ALL" className="text-white/65 focus:bg-slate-700 focus:text-white">Todos los Servicios</SelectItem>
-                            <SelectItem value="CANVA" className="text-[#4ade80] focus:bg-slate-700 focus:text-white">🎨 Canva</SelectItem>
-                            <SelectItem value="CHATGPT" className="text-teal-400 focus:bg-slate-700 focus:text-white">🤖 ChatGPT</SelectItem>
-                            <SelectItem value="GEMINI" className="text-blue-400 focus:bg-slate-700 focus:text-white">✨ Gemini</SelectItem>
+                        <SelectContent className="bg-[#F7F8FA] border-black/[0.08]">
+                            <SelectItem value="ALL" className="text-[#0F172A]/65 focus:bg-white focus:text-[#0F172A]">Todos los Servicios</SelectItem>
+                            <SelectItem value="CANVA" className="text-[#4ade80] focus:bg-white focus:text-[#0F172A]">🎨 Canva</SelectItem>
+                            <SelectItem value="CHATGPT" className="text-teal-400 focus:bg-white focus:text-[#0F172A]">🤖 ChatGPT</SelectItem>
+                            <SelectItem value="GEMINI" className="text-blue-400 focus:bg-white focus:text-[#0F172A]">✨ Gemini</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -465,18 +465,18 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                             setCurrentPage(1);
                         }}
                     >
-                        <SelectTrigger className="bg-[#111] border-white/8 text-slate-200 h-[38px] w-full sm:w-[200px]">
+                        <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-[38px] w-full sm:w-[200px]">
                             <div className="flex items-center gap-2">
-                                <Users size={16} className="text-white/40" />
+                                <Users size={16} className="text-[#0F172A]/40" />
                                 <span>{filtersState.equipo ? `Equipo: ${filtersState.equipo}` : 'Todos los Equipos'}</span>
                             </div>
                         </SelectTrigger>
-                        <SelectContent className="bg-[#111] border-white/8">
-                            <SelectItem value="ALL" className="text-white/65 focus:bg-slate-700 focus:text-white">
+                        <SelectContent className="bg-[#F7F8FA] border-black/[0.08]">
+                            <SelectItem value="ALL" className="text-[#0F172A]/65 focus:bg-white focus:text-[#0F172A]">
                                 Todos los Equipos
                             </SelectItem>
                             {teams.map(team => (
-                                <SelectItem key={team} value={team} className="text-white/65 focus:bg-slate-700 focus:text-white">
+                                <SelectItem key={team} value={team} className="text-[#0F172A]/65 focus:bg-white focus:text-[#0F172A]">
                                     Equipo {team}
                                 </SelectItem>
                             ))}
@@ -488,9 +488,9 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             {/* Mobile View: Cards */}
             <div className="block md:hidden space-y-4">
                 {isLoading ? (
-                    <div className="text-center py-10 text-white/40">Cargando...</div>
+                    <div className="text-center py-10 text-[#0F172A]/40">Cargando...</div>
                 ) : paginatedData.length === 0 ? (
-                    <div className="text-center py-10 text-white/40">No hay registros</div>
+                    <div className="text-center py-10 text-[#0F172A]/40">No hay registros</div>
                 ) : (
                     paginatedData.map(sub => (
                         <SubscriptionCard
@@ -508,10 +508,10 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             </div>
 
             {/* Desktop View: Table */}
-            <div className="hidden md:block bg-[#0a0a0a] border border-white/6 rounded-xl shadow-xl overflow-hidden">
+            <div className="hidden md:block bg-white border border-black/[0.08] rounded-xl shadow-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-black text-white/40 uppercase text-xs border-b border-white/6">
+                        <thead className="bg-[#F7F8FA] text-[#0F172A]/40 uppercase text-xs border-b border-black/[0.06]">
                             <tr>
                                 <th className="px-4 py-3 w-[90px]">Servicio</th>
                                 <th className="px-6 py-3 min-w-[140px]">
@@ -520,7 +520,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                         <input
                                             type="text"
                                             placeholder="Buscar..."
-                                            className="w-full text-xs border-white/8 bg-[#111] rounded px-2 py-1 font-normal text-slate-200 focus:outline-none focus:border-[#25D366] placeholder-slate-500"
+                                            className="w-full text-xs border-black/[0.08] bg-[#F7F8FA] rounded px-2 py-1 font-normal text-[#0F172A] focus:outline-none focus:border-[#25D366] placeholder-slate-500"
                                             value={filtersState.numero}
                                             onChange={(e) => { setFilters(prev => ({ ...prev, numero: e.target.value })); setCurrentPage(1); }}
                                         />
@@ -532,7 +532,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                         <input
                                             type="text"
                                             placeholder="Buscar..."
-                                            className="w-full text-xs border-white/8 bg-[#111] rounded px-2 py-1 font-normal text-slate-200 focus:outline-none focus:border-[#25D366] placeholder-slate-500"
+                                            className="w-full text-xs border-black/[0.08] bg-[#F7F8FA] rounded px-2 py-1 font-normal text-[#0F172A] focus:outline-none focus:border-[#25D366] placeholder-slate-500"
                                             value={filtersState.correo}
                                             onChange={(e) => { setFilters(prev => ({ ...prev, correo: e.target.value })); setCurrentPage(1); }}
                                         />
@@ -544,7 +544,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                         <input
                                             type="text"
                                             placeholder="Fecha..."
-                                            className="w-full text-xs border-white/8 bg-[#111] rounded px-2 py-1 font-normal text-slate-200 focus:outline-none focus:border-[#25D366] placeholder-slate-500"
+                                            className="w-full text-xs border-black/[0.08] bg-[#F7F8FA] rounded px-2 py-1 font-normal text-[#0F172A] focus:outline-none focus:border-[#25D366] placeholder-slate-500"
                                             value={filtersState.vencimiento}
                                             onChange={(e) => { setFilters(prev => ({ ...prev, vencimiento: e.target.value })); setCurrentPage(1); }}
                                         />
@@ -557,7 +557,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                         <input
                                             type="text"
                                             placeholder="Eq..."
-                                            className="w-full text-xs border-white/8 bg-[#111] rounded px-2 py-1 font-normal text-slate-200 focus:outline-none focus:border-[#25D366] placeholder-slate-500"
+                                            className="w-full text-xs border-black/[0.08] bg-[#F7F8FA] rounded px-2 py-1 font-normal text-[#0F172A] focus:outline-none focus:border-[#25D366] placeholder-slate-500"
                                             value={filtersState.equipo}
                                             onChange={(e) => { setFilters(prev => ({ ...prev, equipo: e.target.value })); setCurrentPage(1); }}
                                         />
@@ -569,11 +569,11 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                         <tbody className="divide-y divide-slate-800">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-10 text-white/35">Cargando...</td>
+                                    <td colSpan={7} className="text-center py-10 text-[#0F172A]/35">Cargando...</td>
                                 </tr>
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-10 text-white/35">No hay registros</td>
+                                    <td colSpan={7} className="text-center py-10 text-[#0F172A]/35">No hay registros</td>
                                 </tr>
                             ) : (
                                 paginatedData.map(sub => {
@@ -589,7 +589,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
                                     const badge = getServicioBadge(sub.servicio);
                                     return (
-                                        <tr key={sub.id} className="hover:bg-[#111]/50 group transition-colors">
+                                        <tr key={sub.id} className="hover:bg-black/[0.03] group transition-colors">
                                             <td className="px-4 py-3">
                                                 <span className={`px-2 py-1 rounded-full text-[10px] font-bold border whitespace-nowrap ${badge.className}`}>
                                                     {badge.label}
@@ -597,7 +597,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                             </td>
                                             <td className="px-6 py-3">
                                                 <input
-                                                    className="bg-transparent w-full focus:outline-none focus:bg-[#111] focus:ring-1 focus:ring-[#25D366] rounded px-1 text-white/65 font-mono"
+                                                    className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#25D366] rounded px-1 text-[#0F172A]/65 font-mono"
                                                     defaultValue={sub.numero}
                                                     onBlur={(e) => handleUpdate(sub.id, 'numero', e.target.value)}
                                                 />
@@ -606,13 +606,13 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                 <div className="flex flex-col gap-1">
                                                     <div className="flex items-center gap-2">
                                                         <input
-                                                            className="bg-transparent w-full focus:outline-none focus:bg-[#111] focus:ring-1 focus:ring-[#25D366] rounded px-1 truncate text-white/65"
+                                                            className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#25D366] rounded px-1 truncate text-[#0F172A]/65"
                                                             defaultValue={sub.correo}
                                                             onBlur={(e) => handleUpdate(sub.id, 'correo', e.target.value)}
                                                         />
                                                         <button
                                                             onClick={() => copyToClipboard(sub.correo)}
-                                                            className="p-1.5 hover:bg-slate-700/50 rounded-md text-white/40 hover:text-[#4ade80] transition-all"
+                                                            className="p-1.5 hover:bg-black/[0.03] rounded-md text-[#0F172A]/40 hover:text-[#4ade80] transition-all"
                                                             title="Copiar correo"
                                                         >
                                                             <Copy size={14} />
@@ -620,19 +620,19 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                     </div>
                                                     {sub.password && (
                                                         <div className="flex items-center gap-1">
-                                                            <span className="text-xs text-white/35 font-mono flex-1 truncate">
+                                                            <span className="text-xs text-[#0F172A]/35 font-mono flex-1 truncate">
                                                                 {visiblePasswords.has(sub.id) ? sub.password : '••••••••'}
                                                             </span>
                                                             <button
                                                                 onClick={() => togglePasswordVisibility(sub.id)}
-                                                                className="p-1 text-white/35 hover:text-white/65 transition-colors"
+                                                                className="p-1 text-[#0F172A]/35 hover:text-[#0F172A]/65 transition-colors"
                                                                 title={visiblePasswords.has(sub.id) ? 'Ocultar' : 'Ver contraseña'}
                                                             >
                                                                 {visiblePasswords.has(sub.id) ? <EyeOff size={12} /> : <Eye size={12} />}
                                                             </button>
                                                             <button
                                                                 onClick={() => copyToClipboard(sub.password!)}
-                                                                className="p-1 text-white/35 hover:text-[#4ade80] transition-colors"
+                                                                className="p-1 text-[#0F172A]/35 hover:text-[#4ade80] transition-colors"
                                                                 title="Copiar contraseña"
                                                             >
                                                                 <Copy size={12} />
@@ -644,7 +644,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                             <td className="px-6 py-3">
                                                 {/* Custom logic to map light classes to dark */}
                                                 <input
-                                                    className={`bg-transparent w-full focus:outline-none focus:bg-[#111] focus:ring-1 focus:ring-[#25D366] rounded px-1 ${dateInfo.className.replace('text-slate-700', 'text-white/65').replace('bg-red-50', 'bg-red-900/20 text-red-400').replace('bg-amber-50', 'bg-amber-900/20 text-amber-400').replace('text-[#25D366]', 'text-[#4ade80]').replace('text-red-600', 'text-red-400').replace('text-amber-600', 'text-amber-400')}`}
+                                                    className={`bg-transparent w-full focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#25D366] rounded px-1 ${dateInfo.className.replace('text-slate-700', 'text-[#0F172A]/65').replace('bg-red-50', 'bg-red-900/20 text-red-400').replace('bg-amber-50', 'bg-amber-900/20 text-amber-400').replace('text-[#25D366]', 'text-[#4ade80]').replace('text-red-600', 'text-red-400').replace('text-amber-600', 'text-amber-400')}`}
                                                     defaultValue={sub.vencimiento}
                                                     onBlur={(e) => handleUpdate(sub.id, 'vencimiento', e.target.value)}
                                                 />
@@ -652,14 +652,14 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                             <td className="px-6 py-3 text-center">
                                                 <button
                                                     onClick={() => toggleStatus(sub)}
-                                                    className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${sub.estado === 'ACTIVO' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-800 hover:bg-emerald-900/50' : 'bg-[#111] text-white/35 border-white/8 hover:bg-slate-700'}`}
+                                                    className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${sub.estado === 'ACTIVO' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-800 hover:bg-emerald-900/50' : 'bg-[#F7F8FA] text-[#0F172A]/35 border-black/[0.08] hover:bg-[#F7F8FA]'}`}
                                                 >
                                                     {sub.estado}
                                                 </button>
                                             </td>
                                             <td className="px-6 py-3">
                                                 <input
-                                                    className="bg-transparent w-full focus:outline-none focus:bg-[#111] focus:ring-1 focus:ring-[#25D366] rounded px-1 text-center text-white/65"
+                                                    className="bg-transparent w-full focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#25D366] rounded px-1 text-center text-[#0F172A]/65"
                                                     defaultValue={sub.equipo}
                                                     onBlur={(e) => handleUpdate(sub.id, 'equipo', e.target.value)}
                                                 />
@@ -688,40 +688,40 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
                                                         {renewMenuOpen?.id === sub.id && createPortal(
                                                             <div
-                                                                className="fixed z-[9999] bg-[#111] border border-white/8 rounded-lg shadow-xl flex flex-col p-1 w-32 animate-in fade-in zoom-in-95 duration-100"
+                                                                className="fixed z-[9999] bg-[#F7F8FA] border border-black/[0.08] rounded-lg shadow-xl flex flex-col p-1 w-32 animate-in fade-in zoom-in-95 duration-100"
                                                                 style={{
                                                                     top: `${renewMenuOpen.top}px`,
                                                                     left: `${renewMenuOpen.left}px`
                                                                 }}
                                                             >
-                                                                <div className="text-xs font-semibold text-white/40 px-2 py-1 uppercase tracking-wider border-b border-white/8/50 mb-1">Renovar</div>
+                                                                <div className="text-xs font-semibold text-[#0F172A]/40 px-2 py-1 uppercase tracking-wider border-b border-black/[0.08]/50 mb-1">Renovar</div>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 1)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-white/65 hover:bg-[#25D366] hover:text-white rounded transition-colors flex justify-between items-center"
+                                                                    className="text-left px-2 py-1.5 text-xs text-[#0F172A]/65 hover:bg-[#25D366] hover:text-white rounded transition-colors flex justify-between items-center"
                                                                 >
                                                                     +1 Mes
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 3)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-white/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-[#0F172A]/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
                                                                 >
                                                                     +3 Meses
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 6)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-white/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-[#0F172A]/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
                                                                 >
                                                                     +6 Meses
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 9)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-white/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-[#0F172A]/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
                                                                 >
                                                                     +9 Meses
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleRenew(sub.id, 12)}
-                                                                    className="text-left px-2 py-1.5 text-xs text-white/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
+                                                                    className="text-left px-2 py-1.5 text-xs text-[#0F172A]/65 hover:bg-[#25D366] hover:text-white rounded transition-colors"
                                                                 >
                                                                     +1 Año
                                                                 </button>
@@ -738,7 +738,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                     </button>
                                                     <button
                                                         onClick={() => openWhatsApp(sub)}
-                                                        className={`p-2 rounded-lg border transition-colors relative ${sub.notified ? 'bg-[#111] text-white/35 border-white/8 hover:text-emerald-500' : 'bg-emerald-900/20 text-emerald-500 hover:bg-emerald-900/40 border-emerald-900/50'}`}
+                                                        className={`p-2 rounded-lg border transition-colors relative ${sub.notified ? 'bg-[#F7F8FA] text-[#0F172A]/35 border-black/[0.08] hover:text-emerald-500' : 'bg-emerald-900/20 text-emerald-500 hover:bg-emerald-900/40 border-emerald-900/50'}`}
                                                         title={sub.notified ? "Ya notificado hoy (Clic para reenviar)" : "Enviar recordatorio por WhatsApp"}
                                                     >
                                                         <MessageCircle size={16} />
@@ -750,12 +750,12 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                                                     </button>
                                                     <button
                                                         onClick={() => handleUpdate(sub.id, 'auto_notify_paused', !sub.auto_notify_paused)}
-                                                        className={`p-2 rounded-lg border transition-colors ${sub.auto_notify_paused ? 'bg-amber-900/20 text-amber-500 border-amber-900/50 hover:bg-amber-900/40' : 'bg-[#111] text-white/35 border-white/8 hover:text-amber-500'}`}
+                                                        className={`p-2 rounded-lg border transition-colors ${sub.auto_notify_paused ? 'bg-amber-900/20 text-amber-500 border-amber-900/50 hover:bg-amber-900/40' : 'bg-[#F7F8FA] text-[#0F172A]/35 border-black/[0.08] hover:text-amber-500'}`}
                                                         title={sub.auto_notify_paused ? 'Automatización pausada (clic para activar)' : 'Pausar automatización para este cliente'}
                                                     >
                                                         {sub.auto_notify_paused ? <PlayCircle size={16} /> : <PauseCircle size={16} />}
                                                     </button>
-                                                    <button onClick={() => handleDelete(sub.id)} className="p-2 rounded-lg hover:bg-red-900/20 text-white/35 hover:text-red-400 transition-colors" title="Eliminar">
+                                                    <button onClick={() => handleDelete(sub.id)} className="p-2 rounded-lg hover:bg-red-900/20 text-[#0F172A]/35 hover:text-red-400 transition-colors" title="Eliminar">
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
@@ -776,30 +776,30 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex justify-between items-center bg-[#0a0a0a] p-3 rounded-lg border border-white/6 shadow-sm">
+                <div className="flex justify-between items-center bg-[#F7F8FA] p-3 rounded-lg border border-black/[0.06] shadow-sm">
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="px-3 py-1 rounded bg-[#111] border border-white/8 text-white/65 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
+                        className="px-3 py-1 rounded bg-[#F7F8FA] border border-black/[0.08] text-[#0F172A]/65 text-sm disabled:opacity-50 hover:bg-[#F7F8FA] hover:text-white transition-colors"
                     >
                         Anterior
                     </button>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-white/40 font-medium hidden sm:inline">Página</span>
+                        <span className="text-sm text-[#0F172A]/40 font-medium hidden sm:inline">Página</span>
                         <input
                             type="text"
                             value={inputPage}
                             onChange={handlePageInput}
                             onBlur={handlePageCommit}
                             onKeyDown={handleKeyDown}
-                            className="w-16 px-2 py-1 text-sm border border-white/8 bg-[#111] rounded focus:outline-none focus:ring-1 focus:ring-[#25D366] text-center text-slate-200"
+                            className="w-16 px-2 py-1 text-sm border border-black/[0.08] bg-[#F7F8FA] rounded focus:outline-none focus:ring-1 focus:ring-[#25D366] text-center text-[#0F172A]"
                         />
-                        <span className="text-sm text-white/40 font-medium">de {totalPages}</span>
+                        <span className="text-sm text-[#0F172A]/40 font-medium">de {totalPages}</span>
                     </div>
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="px-3 py-1 rounded bg-[#111] border border-white/8 text-white/65 text-sm disabled:opacity-50 hover:bg-slate-700 hover:text-white transition-colors"
+                        className="px-3 py-1 rounded bg-[#F7F8FA] border border-black/[0.08] text-[#0F172A]/65 text-sm disabled:opacity-50 hover:bg-[#F7F8FA] hover:text-white transition-colors"
                     >
                         Siguiente
                     </button>

@@ -28,7 +28,7 @@ export function AssistantActions({ asst }: { asst: any }) {
     }
 
     return (
-        <div className="flex items-center gap-1 text-white/40">
+        <div className="flex items-center gap-1 text-[rgba(15,23,42,0.4)]">
             <Link
                 href="/dashboard/chats"
                 onClick={() => handleSelectAssistant(asst.id)}

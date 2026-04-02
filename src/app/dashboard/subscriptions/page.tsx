@@ -140,28 +140,28 @@ export default function SubscriptionsPage() {
         <div className="flex flex-col h-full p-3 sm:p-6 space-y-4 sm:space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Gestor de Suscripciones</h1>
-                    <p className="text-white/40 text-sm">Administra tus clientes y renovaciones</p>
+                    <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">Gestor de Suscripciones</h1>
+                    <p className="text-[#0F172A]/40 text-sm">Administra tus clientes y renovaciones</p>
                 </div>
                 <SubscriptionActions onRefresh={() => fetchSubscriptions(true)} onLocalAdd={handleLocalAdd} pendingCount={pendingCount} />
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <Card className="bg-[#111111] border-white/[0.06]">
+                <Card className="bg-white border-black/[0.08]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-white/65">
+                        <CardTitle className="text-sm font-medium text-[#0F172A]/65">
                             Total Suscripciones
                         </CardTitle>
-                        <Users className="h-4 w-4 text-white/35" />
+                        <Users className="h-4 w-4 text-[#0F172A]/35" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-[#eef0ff]">{subscriptions.length}</div>
-                        <p className="text-xs text-white/35">
+                        <div className="text-2xl font-bold text-[#0F172A]">{subscriptions.length}</div>
+                        <p className="text-xs text-[#0F172A]/35">
                             Total de registros
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#111111] border-white/[0.06]">
+                <Card className="bg-white border-black/[0.08]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-[#25D366]">
                             Activos
@@ -170,12 +170,12 @@ export default function SubscriptionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-[#25D366]">{activeCount}</div>
-                        <p className="text-xs text-white/35">
+                        <p className="text-xs text-[#0F172A]/35">
                             Suscripciones vigentes
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#111111] border-white/[0.06]">
+                <Card className="bg-white border-black/[0.08]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-red-400">
                             Inactivos
@@ -184,21 +184,21 @@ export default function SubscriptionsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-400">{inactiveCount}</div>
-                        <p className="text-xs text-white/35">
+                        <p className="text-xs text-[#0F172A]/35">
                             Suscripciones finalizadas
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="bg-[#111111] border-white/[0.06]">
+                <Card className="bg-white border-black/[0.08]">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-white/60">
+                        <CardTitle className="text-sm font-medium text-[#0F172A]/60">
                             ⏳ Por Vencer
                         </CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-white/40" />
+                        <AlertTriangle className="h-4 w-4 text-[#0F172A]/40" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-white/80">{pendingCount}</div>
-                        <p className="text-xs text-white/35">
+                        <div className="text-2xl font-bold text-[#0F172A]/80">{pendingCount}</div>
+                        <p className="text-xs text-[#0F172A]/35">
                             Pendientes de recordatorio
                         </p>
                     </CardContent>

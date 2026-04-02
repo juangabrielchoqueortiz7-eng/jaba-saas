@@ -38,7 +38,7 @@ export default function SettingsPage() {
             checkStatus()
         }, [])
 
-        if (loading) return <div className="p-4 bg-[#0a0a0a] border border-white/6 rounded-lg text-white/40">Verificando conexión...</div>
+        if (loading) return <div className="p-4 bg-[#F7F8FA] border border-black/[0.08] rounded-lg text-[#0F172A]/40">Verificando conexión...</div>
         if (error) return (
             <div className="p-4 bg-red-900/10 border border-red-800/50 rounded-lg flex items-center gap-3 text-red-400">
                 <AlertCircle size={20} />
@@ -53,21 +53,21 @@ export default function SettingsPage() {
         if (!status) return null
 
         return (
-            <div className="bg-[#0a0a0a] border border-white/6 rounded-lg overflow-hidden">
-                <div className="bg-black p-4 border-b border-white/6 flex items-center justify-between">
-                    <h3 className="text-white font-medium flex items-center gap-2">
+            <div className="bg-[#F7F8FA] border border-black/[0.08] rounded-lg overflow-hidden">
+                <div className="bg-[#F7F8FA] p-4 border-b border-black/[0.08] flex items-center justify-between">
+                    <h3 className="text-[#0F172A] font-medium flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                         Conexión Establecida
                     </h3>
-                    <Button onClick={checkStatus} className="h-8 px-3 text-sm bg-transparent text-white/40 hover:text-white hover:bg-[#111]">
+                    <Button onClick={checkStatus} className="h-8 px-3 text-sm bg-transparent text-[#0F172A]/40 hover:text-[#0F172A] hover:bg-[#F0F0F0]">
                         <Settings2 size={14} className="mr-2" /> Actualizar
                     </Button>
                 </div>
 
                 {/* Mimic the user's screenshot table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-white/40">
-                        <thead className="bg-black/50 text-white/35 uppercase font-semibold text-xs">
+                    <table className="w-full text-left text-sm text-[#0F172A]/40">
+                        <thead className="bg-[#F7F8FA] text-[#0F172A]/35 uppercase font-semibold text-xs">
                             <tr>
                                 <th className="p-4">Número de teléfono</th>
                                 <th className="p-4">Nombre</th>
@@ -75,7 +75,7 @@ export default function SettingsPage() {
                                 <th className="p-4">Calidad</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-slate-200">
                             <tr>
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
@@ -83,26 +83,26 @@ export default function SettingsPage() {
                                             <MessageSquare size={16} />
                                         </div>
                                         <div>
-                                            <p className="text-white font-medium">{status.display_phone_number}</p>
-                                            <p className="text-xs text-white/35">{status.status}</p>
+                                            <p className="text-[#0F172A] font-medium">{status.display_phone_number}</p>
+                                            <p className="text-xs text-[#0F172A]/35">{status.status}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-4 p-4 font-medium text-white/65">
+                                <td className="p-4 p-4 font-medium text-[#0F172A]/65">
                                     <div className="flex flex-col">
                                         <span>{status.verified_name || 'No verificado'}</span>
                                         {status.name_status && (
-                                            <span className="text-[10px] uppercase text-white/35">{status.name_status}</span>
+                                            <span className="text-[10px] uppercase text-[#0F172A]/35">{status.name_status}</span>
                                         )}
                                     </div>
                                 </td>
                                 <td className="p-4">
                                     <div className="flex flex-col gap-1">
-                                        <span className="bg-[#111] px-3 py-1 rounded-full text-xs font-medium text-white/65 border border-white/8 w-fit">
+                                        <span className="bg-[#F7F8FA] px-3 py-1 rounded-full text-xs font-medium text-[#0F172A]/65 border border-black/[0.08] w-fit">
                                             {status.status === 'VERIFIED' ? 'Conectado' : 'Pendiente'}
                                         </span>
                                         {status.health_status && (
-                                            <span className="text-[10px] text-white/35 uppercase">{status.health_status}</span>
+                                            <span className="text-[10px] text-[#0F172A]/35 uppercase">{status.health_status}</span>
                                         )}
                                     </div>
                                 </td>
@@ -123,8 +123,8 @@ export default function SettingsPage() {
 
                 {/* Registration Action if not connected */}
                 {(status.status !== 'VERIFIED' || status.requires_registration) && (
-                    <div className="p-4 bg-[#0a0a0a] border-t border-white/6 flex items-center justify-between">
-                        <div className="text-sm text-white/40">
+                    <div className="p-4 bg-[#F7F8FA] border-t border-black/[0.08] flex items-center justify-between">
+                        <div className="text-sm text-[#0F172A]/40">
                             ¿Tu número está "Pendiente" o bloqueado? Necesitas completar el registro.
                         </div>
                         <RegistrationModal phoneNumberId={phoneNumberId} accessToken={accessToken} onSuccess={checkStatus} />
@@ -186,7 +186,7 @@ export default function SettingsPage() {
         }
 
         if (!open) return (
-            <Button onClick={() => setOpen(true)} className="gap-2 bg-[#111] hover:bg-slate-700 text-white">
+            <Button onClick={() => setOpen(true)} className="gap-2 bg-[#F7F8FA] hover:bg-[#E8EAED] text-[#0F172A]">
                 <Smartphone size={16} />
                 Completar Registro
             </Button>
@@ -194,17 +194,17 @@ export default function SettingsPage() {
 
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div className="bg-[#0a0a0a] border border-white/6 rounded-lg shadow-lg w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-[#F7F8FA] border border-black/[0.08] rounded-lg shadow-lg w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
                     <button
                         onClick={() => setOpen(false)}
-                        className="absolute right-4 top-4 text-white/40 hover:text-white"
+                        className="absolute right-4 top-4 text-[#0F172A]/40 hover:text-[#0F172A]"
                     >
                         <X size={20} />
                     </button>
 
-                    <div className="p-6 border-b border-white/6">
-                        <h2 className="text-lg font-semibold text-white">Registro de WhatsApp API</h2>
-                        <p className="text-sm text-white/40 mt-1">
+                    <div className="p-6 border-b border-black/[0.08]">
+                        <h2 className="text-lg font-semibold text-[#0F172A]">Registro de WhatsApp API</h2>
+                        <p className="text-sm text-[#0F172A]/40 mt-1">
                             {step === 'register' ? 'Paso Final: Activar Número' : 'Para activar tu número, Meta requiere verificarlo mediante un código SMS.'}
                         </p>
                     </div>
@@ -219,7 +219,7 @@ export default function SettingsPage() {
 
                         {step === 'request' && (
                             <div className="space-y-4">
-                                <p className="text-sm text-white/65">
+                                <p className="text-sm text-[#0F172A]/65">
                                     Al continuar, Meta enviará un SMS con un código de 6 dígitos a tu número. Asegúrate de tener señal.
                                 </p>
                                 <Button onClick={handleRequestCode} disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white">
@@ -232,12 +232,12 @@ export default function SettingsPage() {
                         {step === 'verify' && (
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="text-white">Código de Verificación (SMS)</Label>
+                                    <Label className="text-[#0F172A]">Código de Verificación (SMS)</Label>
                                     <Input
                                         value={code}
                                         onChange={e => setCode(e.target.value)}
                                         placeholder="123456"
-                                        className="bg-black border-white/6 text-center text-lg tracking-widest text-white"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-center text-lg tracking-widest text-[#0F172A]"
                                         maxLength={6}
                                     />
                                 </div>
@@ -245,7 +245,7 @@ export default function SettingsPage() {
                                     {loading ? <RefreshCw className="animate-spin mr-2 h-4 w-4" /> : null}
                                     Verificar Código
                                 </Button>
-                                <Button onClick={() => setStep('request')} className="w-full text-white/40 hover:text-white bg-transparent hover:bg-[#111]">
+                                <Button onClick={() => setStep('request')} className="w-full text-[#0F172A]/40 hover:text-[#0F172A] bg-transparent hover:bg-[#F0F0F0]">
                                     Volver / Reenviar SMS
                                 </Button>
                             </div>
@@ -254,15 +254,15 @@ export default function SettingsPage() {
                         {step === 'register' && (
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="text-white">PIN de Registro (2FA)</Label>
-                                    <p className="text-xs text-white/40 mb-2">
+                                    <Label className="text-[#0F172A]">PIN de Registro (2FA)</Label>
+                                    <p className="text-xs text-[#0F172A]/40 mb-2">
                                         Ingresa un PIN de 6 dígitos para proteger tu línea. Hemos prellenado el código SMS por defecto.
                                     </p>
                                     <Input
                                         value={pin}
                                         onChange={e => setPin(e.target.value)}
                                         placeholder="123456"
-                                        className="bg-black border-white/6 text-center text-lg tracking-widest text-white"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-center text-lg tracking-widest text-[#0F172A]"
                                         maxLength={6}
                                     />
                                 </div>
@@ -483,7 +483,7 @@ export default function SettingsPage() {
             setTimeout(() => setCopied(false), 2000)
         }
         return (
-            <Button onClick={handleCopy} className="h-9 w-9 border border-white/8 bg-[#0a0a0a] hover:bg-[#111] text-white/40 flex items-center justify-center p-0">
+            <Button onClick={handleCopy} className="h-9 w-9 border border-black/[0.08] bg-[#F7F8FA] hover:bg-[#F0F0F0] text-[#0F172A]/40 flex items-center justify-center p-0">
                 {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
         )
@@ -496,7 +496,7 @@ export default function SettingsPage() {
                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors border-b-2",
                 activeTab === id
                     ? "border-[#25D366] text-[#25D366] bg-[rgba(99,102,241,0.1)]"
-                    : "border-transparent text-white/40 hover:text-slate-200 hover:bg-[#111]"
+                    : "border-transparent text-[#0F172A]/40 hover:text-[#0F172A] hover:bg-[#F0F0F0]"
             )}
         >
             <Icon className="w-4 h-4" />
@@ -511,7 +511,7 @@ export default function SettingsPage() {
                 "px-4 py-2 text-sm font-medium transition-colors border-l-2 first:border-l-0 md:border-l-0 md:border-b-2",
                 activeAiTab === id
                     ? "border-[#25D366] text-[#25D366] bg-[rgba(99,102,241,0.1)]"
-                    : "border-transparent text-white/40 hover:text-slate-200 hover:bg-[#111]"
+                    : "border-transparent text-[#0F172A]/40 hover:text-[#0F172A] hover:bg-[#F0F0F0]"
             )}
         >
             {label}
@@ -519,11 +519,11 @@ export default function SettingsPage() {
     )
 
     const SettingRow = ({ label, description, children }: { label: string, description: string, children: React.ReactNode }) => (
-        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+        <div className="grid gap-4 p-5 border border-black/[0.08] rounded-lg bg-[#F7F8FA] hover:border-black/[0.15] transition-colors">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1 md:w-1/2">
-                    <Label className="text-base font-semibold text-slate-200">{label}</Label>
-                    <p className="text-xs text-white/40 leading-relaxed text-justify">
+                    <Label className="text-base font-semibold text-[#0F172A]">{label}</Label>
+                    <p className="text-xs text-[#0F172A]/40 leading-relaxed text-justify">
                         {description}
                     </p>
                 </div>
@@ -536,7 +536,7 @@ export default function SettingsPage() {
 
     const CustomSwitch = ({ checked, onCheckedChange, label }: { checked: boolean, onCheckedChange: (c: boolean) => void, label: string }) => (
         <label className="flex items-center cursor-pointer gap-3">
-            <span className="text-sm text-white/65 font-medium">{label}</span>
+            <span className="text-sm text-[#0F172A]/65 font-medium">{label}</span>
             <div className="relative">
                 <input type="checkbox" className="sr-only" checked={checked} onChange={e => onCheckedChange(e.target.checked)} />
                 <div className={cn("w-10 h-6 rounded-full shadow-inner transition-colors", checked ? "bg-green-600" : "bg-slate-700")}></div>
@@ -548,7 +548,7 @@ export default function SettingsPage() {
     return (
         <div className="container mx-auto p-6 max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold flex items-center gap-3 text-[#eef0ff]">
+                <h1 className="text-3xl font-bold flex items-center gap-3 text-[#0F172A]">
                     <Settings2 className="w-8 h-8 text-[#25D366]" />
                     Panel de Administración
                 </h1>
@@ -570,107 +570,107 @@ export default function SettingsPage() {
             )}
 
             {/* Tabs Header */}
-            <div className="bg-[#111111] border border-white/[0.06] rounded-t-lg flex overflow-x-auto">
+            <div className="bg-[#F7F8FA] border border-black/[0.08] rounded-t-lg flex overflow-x-auto">
                 <TabButton id="general" label="General" icon={Bot} />
                 <TabButton id="ai" label="Inteligencia Artificial (IA)" icon={BrainCircuit} />
                 <TabButton id="chat" label="Conexión (Chat)" icon={MessageSquare} />
             </div>
 
             {/* Tabs Content */}
-            <div className="bg-[#111111] border border-white/[0.06] border-t-0 rounded-b-lg p-6 min-h-[400px]">
+            <div className="bg-white border border-black/[0.08] border-t-0 rounded-b-lg p-6 min-h-[400px]">
 
                 {/* --- GENERAL TAB --- */}
                 {activeTab === 'general' && (
                     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
                         <div className="grid gap-6">
                             {/* Bot Name */}
-                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
-                                <Label htmlFor="botName" className="text-base font-semibold text-slate-200">Nombre del Asistente</Label>
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="botName" className="text-base font-semibold text-[#0F172A]">Nombre del Asistente</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <Input
                                         id="botName"
                                         value={botName}
                                         onChange={e => setBotName(e.target.value)}
                                         placeholder="Ej: JabaBot"
-                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-white/35 focus-visible:ring-[#25D366]"
+                                        className="h-11 bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] placeholder:text-[#0F172A]/35 focus-visible:ring-[#25D366]"
                                     />
-                                    <p className="text-sm text-white/40 leading-relaxed">
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         Este parámetro permite personalizar el nombre al asistente y brindarle una identificación única ante tus clientes.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Phone Display */}
-                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
-                                <Label htmlFor="phoneDisplay" className="text-base font-semibold text-slate-200">Teléfono Visible</Label>
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="phoneDisplay" className="text-base font-semibold text-[#0F172A]">Teléfono Visible</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <Input
                                         id="phoneDisplay"
                                         value={phoneDisplay}
                                         onChange={e => setPhoneDisplay(e.target.value)}
                                         placeholder="+591 00000000"
-                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-white/35 focus-visible:ring-[#25D366]"
+                                        className="h-11 bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] placeholder:text-[#0F172A]/35 focus-visible:ring-[#25D366]"
                                     />
-                                    <p className="text-sm text-white/40 leading-relaxed">
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         Permite ingresar información de contacto o identificación telefónica visual del asistente.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Welcome Message */}
-                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
-                                <Label htmlFor="welcomeMessage" className="text-base font-semibold text-slate-200">Mensaje de bienvenida</Label>
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="welcomeMessage" className="text-base font-semibold text-[#0F172A]">Mensaje de bienvenida</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <textarea
                                         id="welcomeMessage"
                                         value={welcomeMessage}
                                         onChange={e => setWelcomeMessage(e.target.value)}
                                         placeholder="Hola, ¿en qué puedo ayudarte hoy?"
-                                        className="min-h-[100px] w-full rounded-md border border-white/8 bg-[#0a0a0a] px-3 py-2 text-sm shadow-sm text-white placeholder:text-white/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                        className="min-h-[100px] w-full rounded-md border border-black/[0.08] bg-[#F7F8FA] px-3 py-2 text-sm shadow-sm text-[#0F172A] placeholder:text-[#0F172A]/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
                                     />
-                                    <p className="text-sm text-white/40 leading-relaxed">
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         Permite personalizar el mensaje inicial que se muestra a los usuarios al iniciar una conversación (si aplica).
                                     </p>
                                 </div>
                             </div>
 
                             {/* Service Name */}
-                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
-                                <Label htmlFor="serviceName" className="text-base font-semibold text-slate-200">Nombre del servicio</Label>
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="serviceName" className="text-base font-semibold text-[#0F172A]">Nombre del servicio</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <Input
                                         id="serviceName"
                                         value={serviceName}
                                         onChange={e => setServiceName(e.target.value)}
                                         placeholder="Ej: Canva Pro, Gym Premium, Academia Virtual"
-                                        className="h-11 bg-[#0f1120] border-white/[0.08] text-[#eef0ff] placeholder:text-white/35 focus-visible:ring-[#25D366]"
+                                        className="h-11 bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] placeholder:text-[#0F172A]/35 focus-visible:ring-[#25D366]"
                                     />
-                                    <p className="text-sm text-white/40 leading-relaxed">
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         El nombre del servicio que vendes. Se usará en los mensajes del bot y recordatorios. Ej: "Canva Pro", "Netflix Premium".
                                     </p>
                                 </div>
                             </div>
 
                             {/* Service Description */}
-                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
-                                <Label htmlFor="serviceDescription" className="text-base font-semibold text-slate-200">Descripción del servicio</Label>
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="serviceDescription" className="text-base font-semibold text-[#0F172A]">Descripción del servicio</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <textarea
                                         id="serviceDescription"
                                         value={serviceDescription}
                                         onChange={e => setServiceDescription(e.target.value)}
                                         placeholder="Ej: acceso ilimitado a diseño profesional con plantillas premium, IA para diseños y más"
-                                        className="min-h-[80px] w-full rounded-md border border-white/8 bg-[#0a0a0a] px-3 py-2 text-sm shadow-sm text-white placeholder:text-white/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                        className="min-h-[80px] w-full rounded-md border border-black/[0.08] bg-[#F7F8FA] px-3 py-2 text-sm shadow-sm text-[#0F172A] placeholder:text-[#0F172A]/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
                                     />
-                                    <p className="text-sm text-white/40 leading-relaxed">
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         Descripción breve de lo que ofreces. Se usará en el saludo del bot cuando un nuevo cliente escribe.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Promo Image - Drag & Drop Upload */}
-                            <div className="grid gap-3 p-4 border border-white/[0.06] rounded-lg hover:border-white/[0.1] transition-colors bg-[#0f1120]">
-                                <Label className="text-base font-semibold text-slate-200">Imagen de precios</Label>
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label className="text-base font-semibold text-[#0F172A]">Imagen de precios</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
                                     <div className="space-y-3">
                                         {(promoImageUrl || promoLocalPreview) ? (
@@ -680,12 +680,12 @@ export default function SettingsPage() {
                                                     <img
                                                         src={promoLocalPreview || promoImageUrl}
                                                         alt="Imagen de precios"
-                                                        className="max-h-56 w-full rounded-xl border border-white/8 object-contain bg-[#0a0a0a]"
+                                                        className="max-h-56 w-full rounded-xl border border-black/[0.08] object-contain bg-[#F7F8FA]"
                                                     />
                                                     {promoUploading && (
                                                         <div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center gap-2">
                                                             <RefreshCw className="w-6 h-6 text-green-400 animate-spin" />
-                                                            <span className="text-xs text-white/65">Guardando imagen...</span>
+                                                            <span className="text-xs text-[#0F172A]/65">Guardando imagen...</span>
                                                         </div>
                                                     )}
                                                     {!promoUploading && (
@@ -711,7 +711,7 @@ export default function SettingsPage() {
                                                 htmlFor="promoImageFile"
                                                 className={`flex flex-col items-center justify-center gap-3 p-10 border-2 border-dashed rounded-xl cursor-pointer transition-all ${promoDragging
                                                     ? 'border-green-500 bg-green-500/10 scale-[1.01]'
-                                                    : 'border-white/8 hover:border-green-600/50 hover:bg-[#0a0a0a] bg-black'
+                                                    : 'border-black/[0.08] hover:border-green-600/50 hover:bg-[#F0FDF4] bg-white'
                                                     }`}
                                                 onDragOver={e => { e.preventDefault(); setPromoDragging(true) }}
                                                 onDragLeave={() => setPromoDragging(false)}
@@ -735,33 +735,33 @@ export default function SettingsPage() {
                                                         e.target.value = ''
                                                     }}
                                                 />
-                                                <div className="w-14 h-14 rounded-full bg-[#111] border border-white/8 flex items-center justify-center text-3xl">
+                                                <div className="w-14 h-14 rounded-full bg-[#F7F8FA] border border-black/[0.08] flex items-center justify-center text-3xl">
                                                     🖼️
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-sm font-semibold text-slate-200">Arrastra tu imagen aquí</p>
-                                                    <p className="text-xs text-white/35 mt-1">o haz clic para seleccionar</p>
+                                                    <p className="text-sm font-semibold text-[#0F172A]">Arrastra tu imagen aquí</p>
+                                                    <p className="text-xs text-[#0F172A]/35 mt-1">o haz clic para seleccionar</p>
                                                     <p className="text-xs text-slate-600 mt-2">JPG · PNG · WEBP</p>
                                                 </div>
                                             </label>
                                         )}
                                     </div>
-                                    <p className="text-sm text-white/40 leading-relaxed">
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         Imagen con tus precios que se envía automáticamente al cliente cuando solicita información. Usa JPG o PNG de buena calidad. Puedes eliminarla y cambiarla cuando quieras.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Reference (Disabled) */}
-                            <div className="grid gap-3 p-4 border border-white/6 rounded-lg bg-black/30 opacity-60">
-                                <Label className="text-base font-semibold text-white/35">Usar referencia (Opcional)</Label>
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg bg-[#F7F8FA] opacity-60">
+                                <Label className="text-base font-semibold text-[#0F172A]/35">Usar referencia (Opcional)</Label>
                                 <div className="grid md:grid-cols-[1fr_300px] gap-4 items-center">
                                     <Input
                                         disabled
                                         placeholder="No seleccionado aún"
-                                        className="bg-[#0a0a0a] border-white/6 text-white/35"
+                                        className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]/35"
                                     />
-                                    <p className="text-sm text-white/35 leading-relaxed">
+                                    <p className="text-sm text-[#0F172A]/35 leading-relaxed">
                                         Función en desarrollo: Clona configuraciones de otros bots.
                                     </p>
                                 </div>
@@ -775,7 +775,7 @@ export default function SettingsPage() {
                     <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-200">
                         {/* Sub-tabs Sidebar */}
                         <div className="flex flex-col md:flex-row gap-6">
-                            <div className="w-full md:w-48 flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-white/6 shrink-0">
+                            <div className="w-full md:w-48 flex flex-row md:flex-col border-b md:border-b-0 md:border-r border-black/[0.08] shrink-0">
                                 <SubTabButton id="general" label="General" />
                                 <SubTabButton id="text" label="Texto" />
                                 <SubTabButton id="audio" label="Audio" />
@@ -789,7 +789,7 @@ export default function SettingsPage() {
                                             <select
                                                 value={aiStatus}
                                                 onChange={e => setAiStatus(e.target.value)}
-                                                className="h-10 rounded-md border border-white/8 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
+                                                className="h-10 rounded-md border border-black/[0.08] bg-[#F7F8FA] text-[#0F172A] px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
                                             >
                                                 <option value="active">Activar</option>
                                                 <option value="sleep">Dormir</option>
@@ -799,14 +799,14 @@ export default function SettingsPage() {
                                         <SettingRow label="Tiempo de respuesta" description="Establece el intervalo de tiempo (segundos) en el que el asistente debe esperar antes de 'escribir' y responder.">
                                             <div className="flex items-center gap-2">
                                                 <Button type="button" onClick={() => setResponseDelay(d => Math.max(0, d - 1))} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">-</Button>
-                                                <span className="w-8 text-center text-white font-mono">{responseDelay}s</span>
+                                                <span className="w-8 text-center text-[#0F172A] font-mono">{responseDelay}s</span>
                                                 <Button type="button" onClick={() => setResponseDelay(d => d + 1)} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">+</Button>
                                             </div>
                                         </SettingRow>
 
                                         <SettingRow label="Respuesta del asistente" description="Establece la probabilidad de respuestas en audio vs texto. Más a la derecha = más audios.">
                                             <div className="w-full md:w-64 space-y-2">
-                                                <div className="flex justify-between text-xs text-white/40">
+                                                <div className="flex justify-between text-xs text-[#0F172A]/40">
                                                     <span>Texto</span>
                                                     <span>Audio</span>
                                                 </div>
@@ -833,7 +833,7 @@ export default function SettingsPage() {
                                             <select
                                                 value={messageDeliveryMode}
                                                 onChange={e => setMessageDeliveryMode(e.target.value)}
-                                                className="h-10 rounded-md border border-white/8 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
+                                                className="h-10 rounded-md border border-black/[0.08] bg-[#F7F8FA] text-[#0F172A] px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
                                             >
                                                 <option value="complete">Completo</option>
                                                 <option value="parts">Por partes</option>
@@ -857,7 +857,7 @@ export default function SettingsPage() {
                                             <select
                                                 value={audioVoiceId}
                                                 onChange={e => setAudioVoiceId(e.target.value)}
-                                                className="h-10 rounded-md border border-white/8 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
+                                                className="h-10 rounded-md border border-black/[0.08] bg-[#F7F8FA] text-[#0F172A] px-3 py-2 text-sm focus-visible:ring-green-500 w-full md:w-48"
                                             >
                                                 <option value="">No seleccionado aún</option>
                                                 <option value="es-US-Journey-D">Journey D (Hombre - Google)</option>
@@ -871,7 +871,7 @@ export default function SettingsPage() {
                                         <SettingRow label="Cantidad de audios" description="Límite máximo de audios consecutivos que el asistente puede enviar en una misma conversación.">
                                             <div className="flex items-center gap-2">
                                                 <Button type="button" onClick={() => setMaxAudioCount(c => Math.max(0, c - 1))} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">-</Button>
-                                                <span className="w-8 text-center text-white font-mono">{maxAudioCount}</span>
+                                                <span className="w-8 text-center text-[#0F172A] font-mono">{maxAudioCount}</span>
                                                 <Button type="button" onClick={() => setMaxAudioCount(c => c + 1)} className="h-8 w-8 bg-green-600 border-0 hover:bg-green-700 text-white flex items-center justify-center p-0">+</Button>
                                             </div>
                                         </SettingRow>
@@ -897,10 +897,10 @@ export default function SettingsPage() {
                         )}
 
                         {/* Phone Number ID */}
-                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                        <div className="grid gap-4 p-5 border border-black/[0.08] rounded-lg bg-[#F7F8FA] hover:border-black/[0.15] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
-                                    <Label htmlFor="phoneId" className="text-base font-semibold text-slate-200">Id. Número de teléfono</Label>
+                                    <Label htmlFor="phoneId" className="text-base font-semibold text-[#0F172A]">Id. Número de teléfono</Label>
                                 </div>
                                 <div className="space-y-2 md:w-2/3">
                                     <Input
@@ -908,9 +908,9 @@ export default function SettingsPage() {
                                         placeholder="Ej: 100468324..."
                                         value={phoneNumberId}
                                         onChange={(e) => setPhoneNumberId(e.target.value)}
-                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
+                                        className="font-mono bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
-                                    <p className="text-sm text-white/40 leading-relaxed text-justify">
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed text-justify">
                                         Valor único asignado a cada número de teléfono registrado en la plataforma de WhatsApp Business API Cloud.
                                     </p>
                                 </div>
@@ -918,10 +918,10 @@ export default function SettingsPage() {
                         </div>
 
                         {/* WABA ID */}
-                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                        <div className="grid gap-4 p-5 border border-black/[0.08] rounded-lg bg-[#F7F8FA] hover:border-black/[0.15] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
-                                    <Label htmlFor="wabaId" className="text-base font-semibold text-slate-200">Id. cuenta de WhatsApp Business</Label>
+                                    <Label htmlFor="wabaId" className="text-base font-semibold text-[#0F172A]">Id. cuenta de WhatsApp Business</Label>
                                 </div>
                                 <div className="space-y-2 md:w-2/3">
                                     <Input
@@ -929,17 +929,17 @@ export default function SettingsPage() {
                                         placeholder="Ej: 139568..."
                                         value={wabaId}
                                         onChange={(e) => setWabaId(e.target.value)}
-                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
+                                        className="font-mono bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* App ID */}
-                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                        <div className="grid gap-4 p-5 border border-black/[0.08] rounded-lg bg-[#F7F8FA] hover:border-black/[0.15] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
-                                    <Label htmlFor="appId" className="text-base font-semibold text-slate-200">Id. de la aplicación</Label>
+                                    <Label htmlFor="appId" className="text-base font-semibold text-[#0F172A]">Id. de la aplicación</Label>
                                 </div>
                                 <div className="space-y-2 md:w-2/3">
                                     <Input
@@ -947,17 +947,17 @@ export default function SettingsPage() {
                                         placeholder="Ej: 64532..."
                                         value={appId}
                                         onChange={(e) => setAppId(e.target.value)}
-                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
+                                        className="font-mono bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* Access Token */}
-                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                        <div className="grid gap-4 p-5 border border-black/[0.08] rounded-lg bg-[#F7F8FA] hover:border-black/[0.15] transition-colors">
                             <div className="flex flex-col md:flex-row gap-6 items-start">
                                 <div className="space-y-2 md:w-1/3">
-                                    <Label htmlFor="token" className="text-base font-semibold text-slate-200">Token permanente</Label>
+                                    <Label htmlFor="token" className="text-base font-semibold text-[#0F172A]">Token permanente</Label>
                                 </div>
                                 <div className="space-y-2 md:w-2/3">
                                     <Input
@@ -966,16 +966,16 @@ export default function SettingsPage() {
                                         placeholder="EAAG..."
                                         value={accessToken}
                                         onChange={(e) => setAccessToken(e.target.value)}
-                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white"
+                                        className="font-mono bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* Webhook Configuration */}
-                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                        <div className="grid gap-4 p-5 border border-black/[0.08] rounded-lg bg-[#F7F8FA] hover:border-black/[0.15] transition-colors">
                             <div className="flex items-center justify-between">
-                                <Label className="text-base font-semibold text-slate-200">Configuración de Webhook</Label>
+                                <Label className="text-base font-semibold text-[#0F172A]">Configuración de Webhook</Label>
                                 <button
                                     type="button"
                                     onClick={async () => {
@@ -1009,36 +1009,36 @@ export default function SettingsPage() {
 
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <p className="text-xs text-white/35 font-medium uppercase tracking-wider">URL del Webhook</p>
+                                    <p className="text-xs text-[#0F172A]/35 font-medium uppercase tracking-wider">URL del Webhook</p>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 bg-[#0a0a0a] border border-white/8 rounded-md px-3 py-2 text-sm text-white/65 truncate font-mono">
+                                        <div className="flex-1 bg-[#F7F8FA] border border-black/[0.08] rounded-md px-3 py-2 text-sm text-[#0F172A]/65 truncate font-mono">
                                             {webhookUrl}
                                         </div>
                                         <CopyButton text={webhookUrl} />
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs text-white/35 font-medium uppercase tracking-wider">Token de verificación</p>
+                                    <p className="text-xs text-[#0F172A]/35 font-medium uppercase tracking-wider">Token de verificación</p>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 bg-[#0a0a0a] border border-white/8 rounded-md px-3 py-2 text-sm text-white/65 truncate font-mono">
+                                        <div className="flex-1 bg-[#F7F8FA] border border-black/[0.08] rounded-md px-3 py-2 text-sm text-[#0F172A]/65 truncate font-mono">
                                             {webhookToken}
                                         </div>
                                         <CopyButton text={webhookToken} />
                                     </div>
                                 </div>
                             </div>
-                            <p className="text-xs text-white/35 mt-1">
+                            <p className="text-xs text-[#0F172A]/35 mt-1">
                                 Copia estos valores en el Panel de Desarrolladores de Meta → WhatsApp → Configuración → Webhooks.
                             </p>
                         </div>
 
                         {/* Enviar mensaje de prueba */}
-                        <div className="grid gap-4 p-5 border border-white/[0.06] rounded-lg bg-[#0f1120] hover:border-white/[0.1] transition-colors">
+                        <div className="grid gap-4 p-5 border border-black/[0.08] rounded-lg bg-[#F7F8FA] hover:border-black/[0.15] transition-colors">
                             <div className="flex items-center gap-2">
                                 <FlaskConical size={16} className="text-amber-400" />
-                                <Label className="text-base font-semibold text-slate-200">Enviar mensaje de prueba</Label>
+                                <Label className="text-base font-semibold text-[#0F172A]">Enviar mensaje de prueba</Label>
                             </div>
-                            <p className="text-sm text-white/40">
+                            <p className="text-sm text-[#0F172A]/40">
                                 Verifica que tu token y número estén funcionando enviando un WhatsApp de prueba.
                             </p>
                             <div className="flex gap-3 items-start">
@@ -1047,9 +1047,9 @@ export default function SettingsPage() {
                                         placeholder="Ej: 59170000000"
                                         value={testPhone}
                                         onChange={e => setTestPhone(e.target.value)}
-                                        className="font-mono bg-[#0a0a0a] border-white/8 text-white placeholder:text-slate-600"
+                                        className="font-mono bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] placeholder:text-[#0F172A]/35"
                                     />
-                                    <p className="text-xs text-white/35 mt-1">Número con código de país (sin + ni espacios)</p>
+                                    <p className="text-xs text-[#0F172A]/35 mt-1">Número con código de país (sin + ni espacios)</p>
                                 </div>
                                 <Button
                                     type="button"

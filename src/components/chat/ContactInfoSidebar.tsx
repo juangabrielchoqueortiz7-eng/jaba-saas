@@ -82,27 +82,27 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
     }, [phoneNumber, chatId, supabase])
 
     return (
-        <div className="w-72 border-l border-white/[0.06] bg-[#0a0a0a] flex flex-col h-full overflow-y-auto shrink-0">
+        <div className="w-72 border-l border-black/[0.08] bg-[#F7F8FA] flex flex-col h-full overflow-y-auto shrink-0">
             {/* Header */}
-            <div className="p-4 border-b border-white/[0.06] bg-[#111111] flex items-center justify-between shrink-0">
-                <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+            <div className="p-4 border-b border-black/[0.08] bg-white flex items-center justify-between shrink-0">
+                <h3 className="text-[#0F172A] font-semibold text-sm flex items-center gap-2">
                     <User size={14} className="text-[#25D366]" />
                     Info del contacto
                 </h3>
-                <button onClick={onClose} className="text-white/30 hover:text-white transition-colors">
+                <button onClick={onClose} className="text-[#0F172A]/35 hover:text-[#0F172A] transition-colors">
                     <X size={16} />
                 </button>
             </div>
 
             {/* Contact header */}
-            <div className="p-4 border-b border-white/[0.06]">
+            <div className="p-4 border-b border-black/[0.08]">
                 <div className="flex flex-col items-center gap-3 text-center">
                     <div className="w-16 h-16 rounded-full bg-[#25D366] flex items-center justify-center text-black font-bold text-2xl">
                         {contactName ? contactName.charAt(0).toUpperCase() : '#'}
                     </div>
                     <div>
-                        <p className="text-white font-semibold text-base">{contactName}</p>
-                        <p className="text-white/30 text-xs flex items-center justify-center gap-1 mt-0.5">
+                        <p className="text-[#0F172A] font-semibold text-base">{contactName}</p>
+                        <p className="text-[#0F172A]/35 text-xs flex items-center justify-center gap-1 mt-0.5">
                             <Phone size={11} /> {phoneNumber}
                         </p>
                     </div>
@@ -130,37 +130,37 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
                 <div className="flex-1 p-3 space-y-3">
                     {/* Suscripciones */}
                     <div>
-                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <p className="text-[10px] font-bold text-[#0F172A]/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                             <Package size={10} /> Suscripciones ({subscriptions.length})
                         </p>
                         {subscriptions.length === 0 ? (
-                            <p className="text-white/20 text-xs text-center py-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                            <p className="text-[#0F172A]/25 text-xs text-center py-3 bg-black/[0.02] rounded-xl border border-black/[0.04]">
                                 Sin suscripciones
                             </p>
                         ) : (
                             <div className="space-y-2">
                                 {subscriptions.map(sub => {
-                                    const statusInfo = SUB_STATUS_LABELS[sub.estado?.toLowerCase()] || { label: sub.estado, color: 'text-white/55', bg: 'bg-white/[0.06]' }
+                                    const statusInfo = SUB_STATUS_LABELS[sub.estado?.toLowerCase()] || { label: sub.estado, color: 'text-[#0F172A]/55', bg: 'bg-black/[0.05]' }
                                     return (
-                                        <div key={sub.id} className="bg-[#111111] border border-white/[0.06] rounded-xl p-3 space-y-1.5">
+                                        <div key={sub.id} className="bg-white border border-black/[0.08] rounded-xl p-3 space-y-1.5">
                                             <div className="flex items-center justify-between">
-                                                <p className="text-white font-semibold text-xs truncate flex-1">{sub.servicio || '—'}</p>
+                                                <p className="text-[#0F172A] font-semibold text-xs truncate flex-1">{sub.servicio || '—'}</p>
                                                 <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium ml-2", statusInfo.bg, statusInfo.color)}>
                                                     {statusInfo.label}
                                                 </span>
                                             </div>
                                             {sub.vencimiento && (
-                                                <p className="text-white/30 text-[11px] flex items-center gap-1">
+                                                <p className="text-[#0F172A]/35 text-[11px] flex items-center gap-1">
                                                     <Calendar size={10} /> Vence: {formatDate(sub.vencimiento)}
                                                 </p>
                                             )}
                                             {sub.correo && (
-                                                <p className="text-white/30 text-[11px] flex items-center gap-1 truncate">
+                                                <p className="text-[#0F172A]/35 text-[11px] flex items-center gap-1 truncate">
                                                     <Mail size={10} /> {sub.correo}
                                                 </p>
                                             )}
                                             {sub.equipo && (
-                                                <p className="text-white/30 text-[11px] flex items-center gap-1">
+                                                <p className="text-[#0F172A]/35 text-[11px] flex items-center gap-1">
                                                     <Users size={10} /> {sub.equipo}
                                                 </p>
                                             )}
@@ -173,21 +173,21 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
 
                     {/* Pedidos */}
                     <div>
-                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <p className="text-[10px] font-bold text-[#0F172A]/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                             <ShoppingBag size={10} /> Pedidos ({orders.length})
                         </p>
                         {orders.length === 0 ? (
-                            <p className="text-white/20 text-xs text-center py-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                            <p className="text-[#0F172A]/25 text-xs text-center py-3 bg-black/[0.02] rounded-xl border border-black/[0.04]">
                                 Sin pedidos
                             </p>
                         ) : (
                             <div className="space-y-2">
                                 {orders.map(order => {
-                                    const statusInfo = ORDER_STATUS_LABELS[order.status] || { label: order.status, color: 'text-white/55', bg: 'bg-white/[0.06]' }
+                                    const statusInfo = ORDER_STATUS_LABELS[order.status] || { label: order.status, color: 'text-[#0F172A]/55', bg: 'bg-black/[0.05]' }
                                     return (
-                                        <div key={order.id} className="bg-[#111111] border border-white/[0.06] rounded-xl p-3 space-y-1.5">
+                                        <div key={order.id} className="bg-white border border-black/[0.08] rounded-xl p-3 space-y-1.5">
                                             <div className="flex items-center justify-between">
-                                                <p className="text-white font-semibold text-xs truncate flex-1">{order.plan_name || '—'}</p>
+                                                <p className="text-[#0F172A] font-semibold text-xs truncate flex-1">{order.plan_name || '—'}</p>
                                                 {order.amount != null && (
                                                     <span className="text-[#25D366] text-xs font-bold ml-2 shrink-0">
                                                         Bs {order.amount}
@@ -197,7 +197,7 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
                                             <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium inline-block", statusInfo.bg, statusInfo.color)}>
                                                 {statusInfo.label}
                                             </span>
-                                            <p className="text-white/30 text-[11px] flex items-center gap-1">
+                                            <p className="text-[#0F172A]/35 text-[11px] flex items-center gap-1">
                                                 <Calendar size={10} /> {formatDate(order.created_at)}
                                             </p>
                                         </div>

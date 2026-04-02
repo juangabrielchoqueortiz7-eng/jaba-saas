@@ -115,20 +115,20 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-900/80">
+                <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-white/80">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
                             <Send size={18} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white">Envío Masivo</h2>
-                            <p className="text-xs text-slate-400">Envía una plantilla Meta a múltiples contactos a la vez</p>
+                            <h2 className="text-lg font-bold text-[#0F172A]">Envío Masivo</h2>
+                            <p className="text-xs text-slate-500">Envía una plantilla Meta a múltiples contactos a la vez</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1">
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors p-1">
                         <X size={20} />
                     </button>
                 </div>
@@ -139,7 +139,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
 
                         {/* Plantilla */}
                         <div className="space-y-2">
-                            <Label className="text-slate-300 font-semibold">1. Plantilla Meta</Label>
+                            <Label className="text-[#0F172A] font-semibold">1. Plantilla Meta</Label>
                             {approved.length === 0 ? (
                                 <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-900/20 border border-amber-800/40 text-amber-400 text-xs">
                                     <AlertTriangle size={14} className="shrink-0" />
@@ -147,7 +147,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                                 </div>
                             ) : (
                                 <Select value={templateName} onValueChange={setTemplateName}>
-                                    <SelectTrigger className="bg-slate-950 border-slate-800 text-white">
+                                    <SelectTrigger className="bg-[#F7F8FA] border-slate-200 text-[#0F172A]">
                                         <SelectValue placeholder="Selecciona una plantilla aprobada..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -162,7 +162,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                             )}
 
                             {bodyText && (
-                                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 text-xs text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">
+                                <div className="p-3 rounded-lg bg-slate-100 border border-slate-200 text-xs text-slate-500 font-mono whitespace-pre-wrap leading-relaxed">
                                     {bodyText}
                                 </div>
                             )}
@@ -171,19 +171,19 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                         {/* Variables */}
                         {varCount > 0 && (
                             <div className="space-y-2">
-                                <Label className="text-slate-300 font-semibold">2. Variables</Label>
+                                <Label className="text-[#0F172A] font-semibold">2. Variables</Label>
                                 <p className="text-[11px] text-slate-500">
-                                    Usa: <code className="bg-slate-800 px-1 rounded">{'{nombre}'}</code>{' '}
-                                    <code className="bg-slate-800 px-1 rounded">{'{vencimiento}'}</code>{' '}
-                                    <code className="bg-slate-800 px-1 rounded">{'{correo}'}</code>{' '}
-                                    <code className="bg-slate-800 px-1 rounded">{'{servicio}'}</code>{' '}
-                                    <code className="bg-slate-800 px-1 rounded">{'{numero}'}</code>
+                                    Usa: <code className="bg-slate-100 px-1 rounded">{'{nombre}'}</code>{' '}
+                                    <code className="bg-slate-100 px-1 rounded">{'{vencimiento}'}</code>{' '}
+                                    <code className="bg-slate-100 px-1 rounded">{'{correo}'}</code>{' '}
+                                    <code className="bg-slate-100 px-1 rounded">{'{servicio}'}</code>{' '}
+                                    <code className="bg-slate-100 px-1 rounded">{'{numero}'}</code>
                                 </p>
                                 {Array.from({ length: varCount }).map((_, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         <span className="text-xs text-indigo-400 font-mono w-10 shrink-0">{`{{${i + 1}}}`}</span>
                                         <Input
-                                            className="h-8 text-xs bg-slate-950 border-slate-800"
+                                            className="h-8 text-xs bg-[#F7F8FA] border-slate-200"
                                             placeholder={`ej: {nombre}`}
                                             value={variables[i] || ''}
                                             onChange={e => {
@@ -199,7 +199,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
 
                         {/* Audiencia */}
                         <div className="space-y-3">
-                            <Label className="text-slate-300 font-semibold">{varCount > 0 ? '3.' : '2.'} Audiencia</Label>
+                            <Label className="text-[#0F172A] font-semibold">{varCount > 0 ? '3.' : '2.'} Audiencia</Label>
                             <div className="grid grid-cols-3 gap-2">
                                 {([
                                     { val: 'service', label: '🎯 Por Servicio', desc: 'Canva, ChatGPT o Gemini' },
@@ -213,8 +213,8 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                                             setAudienceValue(opt.val === 'service' ? 'CANVA' : '')
                                         }}
                                         className={`p-3 rounded-xl border text-left transition-all ${audienceType === opt.val
-                                            ? 'border-indigo-500 bg-indigo-500/10 text-white'
-                                            : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-600'
+                                            ? 'border-indigo-500 bg-indigo-50 text-[#0F172A]'
+                                            : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-400'
                                         }`}
                                     >
                                         <div className="text-sm font-semibold">{opt.label}</div>
@@ -225,7 +225,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
 
                             {audienceType === 'service' && (
                                 <Select value={audienceValue} onValueChange={setAudienceValue}>
-                                    <SelectTrigger className="bg-slate-950 border-slate-800 text-white">
+                                    <SelectTrigger className="bg-[#F7F8FA] border-slate-200 text-[#0F172A]">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -238,7 +238,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
 
                             {audienceType === 'tag' && (
                                 <Input
-                                    className="bg-slate-950 border-slate-800 text-white"
+                                    className="bg-[#F7F8FA] border-slate-200 text-[#0F172A]"
                                     placeholder="Nombre de la etiqueta, ej: VIP"
                                     value={audienceValue}
                                     onChange={e => setAudienceValue(e.target.value)}
@@ -254,13 +254,13 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
 
                         {/* Actions */}
                         <div className="flex justify-end gap-3 pt-2">
-                            <Button onClick={onClose} className="bg-transparent hover:bg-slate-800 text-slate-400">
+                            <Button onClick={onClose} className="bg-transparent hover:bg-slate-100 text-slate-500">
                                 Cancelar
                             </Button>
                             <Button
                                 onClick={handlePreview}
                                 disabled={!templateName || loadingPreview || (audienceType === 'tag' && !audienceValue)}
-                                className="bg-slate-700 hover:bg-slate-600 text-white gap-2"
+                                className="bg-slate-200 hover:bg-slate-300 text-[#0F172A] gap-2"
                             >
                                 {loadingPreview ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />}
                                 Vista previa
@@ -273,8 +273,8 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                 {step === 'preview' && (
                     <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
                         <div className="text-center py-4">
-                            <div className="text-5xl font-black text-white mb-2">{previewCount}</div>
-                            <p className="text-slate-400 text-sm">
+                            <div className="text-5xl font-black text-[#0F172A] mb-2">{previewCount}</div>
+                            <p className="text-slate-500 text-sm">
                                 contactos recibirán la plantilla <span className="font-mono text-indigo-400">"{templateName}"</span>
                             </p>
                             <p className="text-xs text-slate-500 mt-1">
@@ -286,7 +286,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                             <div className="space-y-2">
                                 <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Muestra de contactos</p>
                                 {previewContacts.map((c, i) => (
-                                    <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/50 text-xs">
+                                    <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-100 text-xs">
                                         <span className="font-mono text-slate-400">{c.phone}</span>
                                         {c.correo && <span className="text-slate-500">{c.correo}</span>}
                                         {c.servicio && <span className="text-indigo-400 font-semibold">{c.servicio}</span>}
@@ -305,7 +305,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                         )}
 
                         <div className="flex justify-end gap-3 pt-2">
-                            <Button onClick={() => setStep('config')} className="bg-transparent hover:bg-slate-800 text-slate-400">
+                            <Button onClick={() => setStep('config')} className="bg-transparent hover:bg-slate-100 text-slate-500">
                                 ← Editar
                             </Button>
                             <Button
@@ -333,10 +333,10 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                                     : <AlertTriangle size={32} className="text-amber-400" />
                                 }
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-1">
+                            <h3 className="text-xl font-bold text-[#0F172A] mb-1">
                                 {result.failed === 0 ? '¡Envío completado!' : 'Envío con errores'}
                             </h3>
-                            <p className="text-slate-400 text-sm">
+                            <p className="text-slate-500 text-sm">
                                 {result.failed === 0
                                     ? `Se enviaron ${result.sent} mensajes correctamente.`
                                     : `${result.sent} enviados, ${result.failed} fallaron.`}
@@ -349,7 +349,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                                 { label: 'Enviados', val: result.sent, color: '#10b981' },
                                 { label: 'Fallidos', val: result.failed, color: result.failed > 0 ? '#f87171' : '#475569' },
                             ].map((s, i) => (
-                                <div key={i} className="text-center p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                                <div key={i} className="text-center p-4 rounded-xl bg-slate-100 border border-slate-200">
                                     <div className="text-2xl font-black" style={{ color: s.color }}>{s.val}</div>
                                     <div className="text-xs text-slate-500 mt-1">{s.label}</div>
                                 </div>
@@ -366,7 +366,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                         )}
 
                         <div className="flex justify-end gap-3 pt-2">
-                            <Button onClick={() => { setStep('config'); setResult(null); setTemplateName(''); }} className="bg-transparent hover:bg-slate-800 text-slate-400">
+                            <Button onClick={() => { setStep('config'); setResult(null); setTemplateName(''); }} className="bg-transparent hover:bg-slate-100 text-slate-500">
                                 Nuevo envío
                             </Button>
                             <Button onClick={onClose} className="bg-indigo-600 hover:bg-indigo-700 text-white">
