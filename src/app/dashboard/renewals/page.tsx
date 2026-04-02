@@ -142,9 +142,9 @@ export default function RenewalsPage() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'approved': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-            case 'pending_review': return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-            case 'rejected': return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+            case 'approved': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            case 'pending_review': return 'bg-amber-50 text-amber-700 border-amber-200'
+            case 'rejected': return 'bg-rose-50 text-rose-700 border-rose-200'
             default: return 'bg-slate-500/10 text-[#0F172A]/40'
         }
     }
@@ -255,16 +255,16 @@ export default function RenewalsPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-white/[0.05] bg-white/[0.03]">
-                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Fecha / Cliente</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Plan / Monto</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Fecha Anterior → Nueva</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Origen</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Estado</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-[rgba(99,102,241,0.55)] uppercase tracking-wider">Acciones</th>
+                            <tr className="border-b border-black/[0.06] bg-[#F7F8FA]">
+                                <th className="px-6 py-4 text-xs font-semibold text-[#6366f1]/70 uppercase tracking-wider">Fecha / Cliente</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[#6366f1]/70 uppercase tracking-wider">Plan / Monto</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[#6366f1]/70 uppercase tracking-wider">Fecha Anterior → Nueva</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[#6366f1]/70 uppercase tracking-wider">Origen</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[#6366f1]/70 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-[#6366f1]/70 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/[0.03]">
+                        <tbody className="divide-y divide-black/[0.05]">
                             {filteredRenewals.length > 0 ? filteredRenewals.map((renewal) => (
                                 <tr key={renewal.id} className="hover:bg-black/[0.03] transition-colors group">
                                     <td className="px-6 py-5">
@@ -290,15 +290,15 @@ export default function RenewalsPage() {
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-red-400">{renewal.old_expiration}</span>
-                                            <ArrowRight size={14} className="text-slate-600" />
-                                            <span className="text-emerald-400 font-bold">{renewal.new_expiration}</span>
+                                            <span className="text-red-600">{renewal.old_expiration}</span>
+                                            <ArrowRight size={14} className="text-[#0F172A]/40" />
+                                            <span className="text-emerald-700 font-bold">{renewal.new_expiration}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5">
                                         <span className={cn(
                                             "px-2 py-1 rounded text-[10px] font-bold uppercase",
-                                            renewal.triggered_by === 'reminder' ? 'bg-blue-500/10 text-blue-400' : 'bg-[#25D366]/8 text-[#4ade80]'
+                                            renewal.triggered_by === 'reminder' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
                                         )}>
                                             {renewal.triggered_by === 'reminder' ? '1er Msg' : '2do Msg'}
                                         </span>
@@ -327,7 +327,7 @@ export default function RenewalsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => updateStatus(renewal.id, 'rejected')}
-                                                        className="px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] text-rose-400 rounded-lg text-xs font-bold border border-white/[0.08] transition-all active:scale-95"
+                                                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold border border-rose-200 transition-all active:scale-95"
                                                     >
                                                         Rechazar
                                                     </button>

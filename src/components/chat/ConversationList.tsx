@@ -90,6 +90,8 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
     }, [supabase])
 
     const handleSelectChat = (chatId: string) => {
+        // Reset badge locally right away (before the Supabase realtime event arrives)
+        setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread_count: 0 } : c))
         if (onSelectChat) {
             onSelectChat(chatId)
         } else {

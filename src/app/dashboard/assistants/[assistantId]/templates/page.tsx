@@ -10,6 +10,7 @@ import { Plus, Search, Trash2, Edit, FileText, Bell, BellOff, RefreshCw, CheckCi
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getTemplates, createTemplate, updateTemplate, deleteTemplate, getSubscriptionSettings, updateSubscriptionSettings, type Template } from './actions'
 import MetaTemplateBuilder from './MetaTemplateBuilder'
+import SimpleTemplateWizard from './SimpleTemplateWizard'
 import BroadcastModal from './BroadcastModal'
 
 type MetaTemplate = {
@@ -60,6 +61,7 @@ export default function TemplatesPage() {
     const [metaSearch, setMetaSearch] = useState('')
 
     const [builderOpen, setBuilderOpen] = useState(false)
+    const [useAdvancedBuilder, setUseAdvancedBuilder] = useState(false)
     const [broadcastOpen, setBroadcastOpen] = useState(false)
 
     // Template config per service
@@ -258,10 +260,17 @@ export default function TemplatesPage() {
                 )}
             </div>
 
-            {builderOpen && (
+            {builderOpen && !useAdvancedBuilder && (
+                <SimpleTemplateWizard
+                    onSuccess={async () => { setBuilderOpen(false); setUseAdvancedBuilder(false); await loadMetaTemplates() }}
+                    onCancel={() => { setBuilderOpen(false); setUseAdvancedBuilder(false) }}
+                    onAdvancedMode={() => setUseAdvancedBuilder(true)}
+                />
+            )}
+            {builderOpen && useAdvancedBuilder && (
                 <MetaTemplateBuilder
-                    onSuccess={async () => { setBuilderOpen(false); await loadMetaTemplates() }}
-                    onCancel={() => setBuilderOpen(false)}
+                    onSuccess={async () => { setBuilderOpen(false); setUseAdvancedBuilder(false); await loadMetaTemplates() }}
+                    onCancel={() => { setBuilderOpen(false); setUseAdvancedBuilder(false) }}
                 />
             )}
 

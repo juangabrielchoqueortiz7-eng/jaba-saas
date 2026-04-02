@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Search, Plus, Trash2, Edit, Zap, Clock, Workflow, Calendar, Play, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Search, Plus, Trash2, Edit, Zap, Clock, Workflow, Calendar, Play, CheckCircle, AlertCircle, Loader2, HelpCircle, ChevronDown, ChevronUp, Tag, BellRing } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getTriggers, toggleTrigger, deleteTrigger } from './actions'
@@ -35,6 +35,7 @@ export default function TriggersPage() {
 
     const [triggers, setTriggers] = useState<any[]>([])
     const [search, setSearch] = useState('')
+    const [showHelp, setShowHelp] = useState(false)
     const [isPending, startTransition] = useTransition()
     const [runningId, setRunningId] = useState<string | null>(null)
     const [runResult, setRunResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null)
@@ -112,6 +113,43 @@ export default function TriggersPage() {
                         Nuevo Disparador
                     </Button>
                 </Link>
+            </div>
+
+            {/* Info Card */}
+            <div className="mb-6 rounded-[14px] border border-[#eab308]/30 bg-[#fefce8] overflow-hidden">
+                <button
+                    onClick={() => setShowHelp(v => !v)}
+                    className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-none cursor-pointer text-left"
+                >
+                    <HelpCircle size={16} className="text-[#ca8a04] flex-shrink-0" />
+                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son los Disparadores? — Haz clic para aprender</span>
+                    {showHelp ? <ChevronUp size={16} className="text-[#ca8a04]" /> : <ChevronDown size={16} className="text-[#ca8a04]" />}
+                </button>
+                {showHelp && (
+                    <div className="px-5 pb-5 space-y-4">
+                        <p className="text-sm text-[#0F172A]/65 leading-relaxed">
+                            Los disparadores monitorizan <strong>condiciones específicas</strong> y ejecutan acciones automáticas cuando se cumplen.
+                            Por ejemplo: si un cliente lleva 30 minutos sin responder, enviarle un recordatorio automáticamente.
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                                { icon: <Zap size={16} className="text-yellow-500" />, title: 'Lógico', desc: 'Se activa por palabras clave o condiciones del chat.' },
+                                { icon: <Clock size={16} className="text-blue-500" />, title: 'Tiempo', desc: 'Se activa si no hay respuesta en X minutos.' },
+                                { icon: <Calendar size={16} className="text-indigo-500" />, title: 'Programado', desc: 'Se activa en una fecha/hora específica.' },
+                                { icon: <Workflow size={16} className="text-purple-500" />, title: 'Flujo', desc: 'Inicia un flujo conversacional completo.' },
+                            ].map((item, i) => (
+                                <div key={i} className="bg-white border border-black/[0.07] rounded-xl p-3">
+                                    <div className="mb-2">{item.icon}</div>
+                                    <p className="font-bold text-xs text-[#0F172A] mb-1">{item.title}</p>
+                                    <p className="text-[11px] text-[#0F172A]/50 leading-relaxed">{item.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bg-[#fef9c3] border border-[#eab308]/30 rounded-lg px-4 py-3 text-xs text-[#0F172A]/65">
+                            <strong>📋 ¿Cómo crear uno?</strong> Haz clic en "Nuevo Disparador", elige el tipo, define la condición (ej: el mensaje contiene "precio") y la acción (ej: enviar mensaje de catálogo). Actívalo y listo.
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="relative mb-6">

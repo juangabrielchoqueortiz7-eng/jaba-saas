@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import {
     LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit,
-    ShoppingCart, Package, RefreshCcw, GitBranch, Zap,
-    FileText, Settings, Users, Trophy, CreditCard, ChevronRight, Building2, Bell
+    ShoppingCart, Package, GitBranch, Zap,
+    FileText, Settings, Users, Trophy, CreditCard, ChevronRight, Building2
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 
@@ -112,7 +112,6 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const [activeId, setActiveId] = useState<string | undefined>(paramId)
     const [assistantName, setAssistantName] = useState<string>('')
     const [isAdmin, setIsAdmin] = useState(false)
-    const [pendingRenewals, setPendingRenewals] = useState(0)
 
     useEffect(() => {
         if (paramId) {
@@ -145,23 +144,6 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         loadData()
     }, [activeId])
 
-    useEffect(() => {
-        if (!isAdmin) return
-        const supabase = createClient()
-        const fetchPending = async () => {
-            const { count } = await supabase
-                .from('subscription_renewals')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'pending_review')
-            setPendingRenewals(count || 0)
-        }
-        fetchPending()
-        const channel = supabase
-            .channel('sidebar-renewals')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_renewals' }, fetchPending)
-            .subscribe()
-        return () => { supabase.removeChannel(channel) }
-    }, [isAdmin])
 
     const hasAssistant = !!activeId
     const nav = () => { if (onNavigate) onNavigate() }
@@ -240,14 +222,6 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     <NavItem href="/dashboard/subscriptions"
                         icon={<Users size={17} />} label="Suscripciones"
                         active={is('/dashboard/subscriptions')} onNavigate={nav}
-                        accentColor="#25D366" />
-                    <NavItem href="/dashboard/renewals"
-                        icon={<RefreshCcw size={17} />} label="Renovaciones"
-                        active={is('/dashboard/renewals')} badge={pendingRenewals}
-                        onNavigate={nav} accentColor="#25D366" />
-                    <NavItem href="/dashboard/notifications"
-                        icon={<Bell size={17} />} label="Notificaciones"
-                        active={is('/dashboard/notifications')} onNavigate={nav}
                         accentColor="#25D366" />
                     <NavItem href="/dashboard/admin-accounts"
                         icon={<Building2 size={17} />} label="Cuentas"

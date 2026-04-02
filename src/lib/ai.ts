@@ -88,7 +88,10 @@ export async function generateChatResponse(history: { role: 'user' | 'model', pa
 // Se requiere GOOGLE_API_KEY con permisos de Cloud Text-to-Speech API.
 
 export async function generateAudio(text: string, voiceId: string = 'es-US-Neural2-A'): Promise<string | null> {
-    if (!apiKey) return null;
+    if (!apiKey) {
+        console.error('[TTS] GOOGLE_API_KEY no está configurado — el audio no funcionará.');
+        return null;
+    }
 
     try {
         const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
@@ -107,15 +110,26 @@ export async function generateAudio(text: string, voiceId: string = 'es-US-Neura
 
         const data = await response.json();
 
+        if (!response.ok) {
+            const errorCode    = data?.error?.code    ?? response.status;
+            const errorMessage = data?.error?.message ?? 'Respuesta no OK';
+            const errorStatus  = data?.error?.status  ?? '';
+            console.error(`[TTS] HTTP ${errorCode} — ${errorStatus}: ${errorMessage}`);
+            if (errorCode === 403) {
+                console.error('[TTS] ⚠️  Probablemente el GOOGLE_API_KEY no tiene habilitado el servicio "Cloud Text-to-Speech API". Habilítalo en Google Cloud Console → APIs y servicios → Biblioteca.');
+            }
+            return null;
+        }
+
         if (data.audioContent) {
             return data.audioContent; // Base64 string
         } else {
-            console.error("Google TTS Error:", JSON.stringify(data));
+            console.error('[TTS] Respuesta OK pero sin audioContent:', JSON.stringify(data));
             return null;
         }
 
     } catch (error) {
-        console.error("Error generando audio TTS:", error);
+        console.error('[TTS] Error de red al llamar Google TTS:', error);
         return null;
     }
 }

@@ -92,6 +92,11 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     const audioChunksRef = useRef<Blob[]>([])
     const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+    // File confirm modal
+    const [pendingFile, setPendingFile] = useState<File | null>(null)
+    const [pendingFilePreview, setPendingFilePreview] = useState<string | null>(null)
+    const [fileCaption, setFileCaption] = useState('')
+
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [supabase] = useState(() => createClient())
     const searchParams = useSearchParams()
@@ -206,29 +211,30 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
         setIsDragging(false)
     }, [])
 
-    const handleDrop = useCallback(async (e: React.DragEvent) => {
+    const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault()
         setIsDragging(false)
         const file = e.dataTransfer.files[0]
         if (file && activeChatId) {
-            await uploadFile(file)
+            openFileConfirm(file)
         }
     }, [activeChatId])
 
-    const uploadFile = async (file: File) => {
+    const uploadFile = async (file: File, caption?: string) => {
         if (!activeChatId) return
         setIsUploading(true)
         try {
             const formData = new FormData()
             formData.append('chatId', activeChatId)
             formData.append('file', file)
+            if (caption) formData.append('caption', caption)
 
             // Optimistic preview for images
             if (file.type.startsWith('image/')) {
                 const objectUrl = URL.createObjectURL(file)
                 const tempMsg: Message = {
                     id: Date.now().toString(),
-                    content: '',
+                    content: caption || '',
                     is_from_me: true,
                     created_at: new Date().toISOString(),
                     status: 'sent',
@@ -254,9 +260,35 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
         }
     }
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const openFileConfirm = (file: File) => {
+        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+            setPendingFilePreview(URL.createObjectURL(file))
+        } else {
+            setPendingFilePreview(null)
+        }
+        setPendingFile(file)
+        setFileCaption('')
+    }
+
+    const closeFileConfirm = () => {
+        if (pendingFilePreview) URL.revokeObjectURL(pendingFilePreview)
+        setPendingFile(null)
+        setPendingFilePreview(null)
+        setFileCaption('')
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+
+    const confirmSendFile = async () => {
+        if (!pendingFile) return
+        const file = pendingFile
+        const caption = fileCaption
+        closeFileConfirm()
+        await uploadFile(file, caption)
+    }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
-        if (file) await uploadFile(file)
+        if (file) openFileConfirm(file)
     }
 
     // ===== AUDIO RECORDING (Bug 4) =====
@@ -440,6 +472,68 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     />
+                </div>
+            )}
+
+            {/* FILE CONFIRM MODAL */}
+            {pendingFile && (
+                <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeFileConfirm}>
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.08]">
+                            <span className="font-semibold text-[#0F172A] text-sm">Enviar archivo</span>
+                            <button onClick={closeFileConfirm} className="p-1 rounded-full hover:bg-black/[0.06] text-[#0F172A]/50 transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Preview */}
+                        <div className="bg-[#F7F8FA] flex items-center justify-center" style={{ minHeight: 200 }}>
+                            {pendingFilePreview && pendingFile.type.startsWith('image/') ? (
+                                <img src={pendingFilePreview} alt="Preview" className="max-h-64 max-w-full object-contain rounded-lg" />
+                            ) : pendingFilePreview && pendingFile.type.startsWith('video/') ? (
+                                <video src={pendingFilePreview} controls className="max-h-64 max-w-full rounded-lg" />
+                            ) : (
+                                <div className="flex flex-col items-center gap-3 py-8">
+                                    <div className="w-16 h-16 rounded-2xl bg-[#25D366]/10 flex items-center justify-center">
+                                        <Paperclip size={28} className="text-[#25D366]" />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm font-medium text-[#0F172A] max-w-[240px] truncate">{pendingFile.name}</p>
+                                        <p className="text-xs text-[#0F172A]/40 mt-0.5">{(pendingFile.size / 1024).toFixed(0)} KB</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Caption input */}
+                        <div className="px-4 pt-3 pb-4">
+                            <input
+                                type="text"
+                                value={fileCaption}
+                                onChange={e => setFileCaption(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') confirmSendFile() }}
+                                placeholder="Añadir descripción (opcional)..."
+                                className="w-full bg-[#F7F8FA] border border-black/[0.08] rounded-xl px-4 py-2.5 text-sm text-[#0F172A] placeholder:text-[#0F172A]/35 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40 mb-3"
+                                autoFocus
+                            />
+                            <div className="flex gap-2">
+                                <button onClick={closeFileConfirm} className="flex-1 py-2.5 rounded-xl border border-black/[0.08] text-sm font-medium text-[#0F172A]/60 hover:bg-black/[0.04] transition-colors">
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmSendFile}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <Send size={15} />
+                                    Enviar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

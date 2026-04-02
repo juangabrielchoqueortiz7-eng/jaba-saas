@@ -342,6 +342,9 @@ export default function SettingsPage() {
     const [audioVoiceId, setAudioVoiceId] = useState('')
     const [maxAudioCount, setMaxAudioCount] = useState(2)
     const [replyAudioWithAudio, setReplyAudioWithAudio] = useState(false)
+    const [ttsStatus, setTtsStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle')
+    const [ttsError, setTtsError] = useState<string | null>(null)
+    const [ttsHint, setTtsHint] = useState<string | null>(null)
 
     useEffect(() => {
         async function loadCredentials() {
@@ -386,6 +389,26 @@ export default function SettingsPage() {
         }
         loadCredentials()
     }, [])
+
+    const testTts = async () => {
+        setTtsStatus('checking')
+        setTtsError(null)
+        setTtsHint(null)
+        try {
+            const res = await fetch('/api/tts-status')
+            const data = await res.json()
+            if (data.ok) {
+                setTtsStatus('ok')
+            } else {
+                setTtsStatus('error')
+                setTtsError(data.error || 'Error desconocido')
+                setTtsHint(data.hint || null)
+            }
+        } catch (err: any) {
+            setTtsStatus('error')
+            setTtsError(err.message || 'Error al contactar el servidor')
+        }
+    }
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -767,6 +790,42 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Remarketing automático */}
+                        <div className="mt-8 rounded-2xl border border-[#25D366]/20 bg-[rgba(37,211,102,0.03)] overflow-hidden">
+                            <div className="flex items-center gap-3 px-6 py-4 border-b border-[#25D366]/15">
+                                <div className="w-8 h-8 rounded-full bg-[#25D366]/10 flex items-center justify-center">
+                                    <span className="text-base">🔄</span>
+                                </div>
+                                <div>
+                                    <p className="font-bold text-[#0F172A] text-sm">¿Cómo funciona el remarketing automático?</p>
+                                    <p className="text-xs text-[#0F172A]/45 mt-0.5">Tu bot envía mensajes de renovación en 3 pasos sin que hagas nada</p>
+                                </div>
+                            </div>
+                            <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {[
+                                    { step: '1', time: '13:00 UTC (9am BOT)', icon: '📤', color: 'bg-blue-50 border-blue-200', textColor: 'text-blue-700', title: 'Plantilla Meta enviada', desc: 'Se envía la plantilla de WhatsApp a clientes que vencen en 7 días. Abre una ventana de 24h para mensajes normales.' },
+                                    { step: '2', time: '22:00 UTC (6pm BOT)', icon: '💬', color: 'bg-emerald-50 border-emerald-200', textColor: 'text-emerald-700', title: 'Seguimiento gratuito', desc: 'Si aún no renovó, se envía un mensaje normal (sin costo Meta) dentro de la ventana de 24h.' },
+                                    { step: '3', time: '13:00 UTC día siguiente', icon: '⚡', color: 'bg-amber-50 border-amber-200', textColor: 'text-amber-700', title: 'Último aviso urgente', desc: 'Para quienes vencen HOY se envía un último recordatorio con urgencia.' },
+                                ].map((item) => (
+                                    <div key={item.step} className={`rounded-xl border p-4 ${item.color}`}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-lg">{item.icon}</span>
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${item.textColor}`}>Paso {item.step}</span>
+                                        </div>
+                                        <p className={`font-semibold text-sm mb-1 ${item.textColor}`}>{item.title}</p>
+                                        <p className="text-xs text-[#0F172A]/55 leading-relaxed mb-2">{item.desc}</p>
+                                        <p className={`text-[10px] font-mono ${item.textColor} opacity-70`}>{item.time}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="px-6 pb-5">
+                                <div className="bg-white border border-black/[0.07] rounded-xl px-4 py-3 text-xs text-[#0F172A]/60 leading-relaxed">
+                                    <strong>💡 Personaliza el contenido:</strong> Ve a <strong>Plantillas</strong> para editar los mensajes de cada paso.
+                                    Los mensajes de seguimiento (paso 2 y 3) se configuran desde la sección de <strong>Plantillas Meta → Configuración de Servicios</strong>.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -853,6 +912,42 @@ export default function SettingsPage() {
                                 {/* AI > Audio */}
                                 {activeAiTab === 'audio' && (
                                     <div className="space-y-4">
+
+                                        {/* TTS Connectivity Status */}
+                                        <div className="rounded-xl border border-black/[0.08] bg-[#F7F8FA] p-4 space-y-3">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-[#0F172A]">Estado de Google Text-to-Speech</p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">
+                                                        Requiere <code className="bg-slate-200 text-indigo-600 px-1 rounded text-[11px]">GOOGLE_API_KEY</code> con el servicio <strong>"Cloud Text-to-Speech API"</strong> habilitado en Google Cloud Console.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={testTts}
+                                                    disabled={ttsStatus === 'checking'}
+                                                    className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border border-black/[0.08] bg-white hover:border-green-500 hover:text-green-700 text-slate-600 transition-colors disabled:opacity-50"
+                                                >
+                                                    {ttsStatus === 'checking' ? '⏳ Probando...' : '🔌 Probar TTS'}
+                                                </button>
+                                            </div>
+                                            {ttsStatus === 'ok' && (
+                                                <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                                                    <span>✅</span>
+                                                    <span><strong>Funcionando correctamente.</strong> Google TTS está activo y el API key tiene los permisos correctos.</span>
+                                                </div>
+                                            )}
+                                            {ttsStatus === 'error' && (
+                                                <div className="text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 space-y-1.5">
+                                                    <p className="text-red-700 font-semibold">❌ {ttsError}</p>
+                                                    {ttsHint && <p className="text-red-600 leading-relaxed">{ttsHint}</p>}
+                                                </div>
+                                            )}
+                                            {ttsStatus === 'idle' && (
+                                                <p className="text-[11px] text-slate-400">Haz clic en "Probar TTS" para verificar si el audio IA está funcionando correctamente.</p>
+                                            )}
+                                        </div>
+
                                         <SettingRow label="Voz del audio" description="Selecciona la voz que usará el asistente para generar notas de voz (Google Gemini / TTS).">
                                             <select
                                                 value={audioVoiceId}

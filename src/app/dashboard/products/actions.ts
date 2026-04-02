@@ -41,6 +41,7 @@ export async function createProduct(productData: {
     price: number
     category: string
     duration_months?: number
+    qr_image_url?: string | null
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -54,7 +55,8 @@ export async function createProduct(productData: {
             description: productData.description,
             price: productData.price,
             category: productData.category,
-            duration_months: productData.duration_months || null
+            duration_months: productData.duration_months || null,
+            qr_image_url: productData.qr_image_url || null
         })
 
     if (error) throw error
@@ -68,6 +70,7 @@ export async function updateProduct(id: string, productData: {
     category: string
     is_active: boolean
     duration_months?: number | null
+    qr_image_url?: string | null
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -81,7 +84,8 @@ export async function updateProduct(id: string, productData: {
             price: productData.price,
             category: productData.category,
             is_active: productData.is_active,
-            duration_months: productData.duration_months ?? null
+            duration_months: productData.duration_months ?? null,
+            qr_image_url: productData.qr_image_url !== undefined ? productData.qr_image_url : undefined
         })
         .eq('id', id)
         .eq('user_id', user.id)

@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight } from 'lucide-react'
+import { Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight, ChevronDown, ChevronUp, HelpCircle, Zap, MessageSquare, ShoppingCart } from 'lucide-react'
 import { getFlows, createFlow, deleteFlow, updateFlow, seedSalesFlow, type ConversationFlow } from './actions'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -18,6 +18,7 @@ export default function FlowsPage() {
     const [newFlowName, setNewFlowName] = useState('')
     const [newFlowDesc, setNewFlowDesc] = useState('')
     const [isPending, startTransition] = useTransition()
+    const [showHelp, setShowHelp] = useState(false)
 
     useEffect(() => { loadFlows() }, [])
 
@@ -89,6 +90,44 @@ export default function FlowsPage() {
                         <Plus size={18} /> Nuevo Flujo
                     </Button>
                 </div>
+            </div>
+
+            {/* Info Card */}
+            <div style={{ borderRadius: 14, border: '1px solid rgba(6,182,212,0.25)', background: 'rgba(6,182,212,0.04)', overflow: 'hidden' }}>
+                <button
+                    onClick={() => setShowHelp(v => !v)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                >
+                    <HelpCircle size={16} style={{ color: '#06b6d4', flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontWeight: 600, fontSize: '0.85rem', color: '#0F172A' }}>¿Qué son los Flujos? — Haz clic para aprender</span>
+                    {showHelp ? <ChevronUp size={16} style={{ color: '#06b6d4' }} /> : <ChevronDown size={16} style={{ color: '#06b6d4' }} />}
+                </button>
+                {showHelp && (
+                    <div style={{ padding: '0 18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <p style={{ fontSize: '0.83rem', color: 'rgba(15,23,42,0.65)', lineHeight: 1.6, marginTop: 0 }}>
+                            Los flujos son <strong>conversaciones guiadas paso a paso</strong> que tu bot sigue automáticamente.
+                            Cuando un cliente escribe una palabra clave o selecciona una opción, el flujo se activa y
+                            lo lleva por un camino definido: preguntas, respuestas, botones, acciones y más.
+                        </p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                            {[
+                                { icon: <ShoppingCart size={18} />, title: 'Flujo de Ventas', desc: 'Guía al cliente desde el interés hasta la compra automáticamente.' },
+                                { icon: <MessageSquare size={18} />, title: 'Flujo de Soporte', desc: 'Responde preguntas frecuentes y escala solo si es necesario.' },
+                                { icon: <Zap size={18} />, title: 'Flujo de Renovación', desc: 'Recuerda al cliente su vencimiento y facilita el pago.' },
+                            ].map((item, i) => (
+                                <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 10, padding: '12px 14px' }}>
+                                    <div style={{ color: '#06b6d4', marginBottom: 6 }}>{item.icon}</div>
+                                    <p style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0F172A', marginBottom: 4 }}>{item.title}</p>
+                                    <p style={{ fontSize: '0.72rem', color: 'rgba(15,23,42,0.50)', lineHeight: 1.5 }}>{item.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ background: 'rgba(6,182,212,0.08)', borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: 'rgba(15,23,42,0.65)' }}>
+                            <strong>💡 Diferencia con Disparadores:</strong> Los Disparadores ejecutan una acción puntual (enviar un mensaje, cambiar estado).
+                            Los Flujos crean conversaciones completas con múltiples pasos y bifurcaciones.
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Search */}
