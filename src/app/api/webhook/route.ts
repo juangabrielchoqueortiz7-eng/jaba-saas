@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
+import ConditionEvaluator, { EvaluationContext } from '@/lib/trigger-conditions'
 
 // Token de verificación que configuraste en .env.local.
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN
@@ -719,58 +720,152 @@ export async function POST(request: Request) {
                 // Buscar disparadores activos para este usuario
                 const { data: triggers } = !skipTriggers ? await supabaseAdmin
                     .from('triggers')
-                    .select('*, trigger_conditions(*), trigger_actions(*)')
+                    .select('*, trigger_condition_groups(id, operator, group_order, conditions:trigger_conditions(*)), trigger_actions(*)')
                     .eq('user_id', tenantUserId)
                     .eq('is_active', true) : { data: null }
 
                 if (triggers && triggers.length > 0) {
                     for (const trigger of triggers) {
-                        let matches = true;
+                        try {
+                            // Get chat metadata for context building
+                            const { data: chatData } = await supabaseAdmin
+                                .from('chats')
+                                .select('id, created_at, tags, status, last_message_time')
+                                .eq('id', chatId)
+                                .single()
 
-                        // Evaluar condiciones
-                        for (const cond of trigger.trigger_conditions) {
-                            if (cond.type === 'contains_words') {
-                                if (!messageText.toLowerCase().includes(cond.value.toLowerCase())) matches = false;
-                            } else if (cond.type === 'equals') {
-                                if (messageText.toLowerCase() !== cond.value.toLowerCase()) matches = false;
-                            }
-                            // Agregar más tipos de condiciones según sea necesario
-                        }
+                            // Get message count and last message time
+                            const { count: messageCount } = await supabaseAdmin
+                                .from('messages')
+                                .select('*', { count: 'exact' })
+                                .eq('chat_id', chatId)
 
-                        if (matches && trigger.trigger_conditions.length > 0) {
-                            console.log(`[Trigger] Activado: ${trigger.name}`);
-                            const { sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppMessage } = await import('@/lib/whatsapp');
+                            const { data: lastMessage } = await supabaseAdmin
+                                .from('messages')
+                                .select('created_at')
+                                .eq('chat_id', chatId)
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle()
 
-                            for (const action of trigger.trigger_actions) {
-                                if (action.type === 'send_message') {
-                                    const msgContent = action.payload.message || '';
-                                    // Si el payload tiene botones, enviamos botones, si no, texto plano
-                                    if (action.payload.buttons) {
-                                        await sendWhatsAppButtons(phoneNumber, msgContent, action.payload.buttons, tenantToken, phoneId);
-                                        await supabaseAdmin.from('messages').insert({
-                                            chat_id: chatId, is_from_me: true,
-                                            content: msgContent + '\n[Botones enviados]', status: 'delivered'
-                                        });
-                                    } else if (action.payload.sections) {
-                                        await sendWhatsAppList(phoneNumber, msgContent, action.payload.buttonText || 'Ver opciones', action.payload.sections, tenantToken, phoneId);
-                                        await supabaseAdmin.from('messages').insert({
-                                            chat_id: chatId, is_from_me: true,
-                                            content: msgContent + '\n[Lista interactiva enviada]', status: 'delivered'
-                                        });
-                                    } else {
-                                        await sendWhatsAppMessage(phoneNumber, msgContent, tenantToken, phoneId);
-                                        await supabaseAdmin.from('messages').insert({
-                                            chat_id: chatId, is_from_me: true,
-                                            content: msgContent, status: 'delivered'
-                                        });
+                            // Get subscription info if exists
+                            const { data: subscription } = await supabaseAdmin
+                                .from('subscriptions')
+                                .select('*')
+                                .eq('numero', phoneNumber)
+                                .eq('user_id', tenantUserId)
+                                .maybeSingle()
+
+                            // Build evaluation context
+                            const context: EvaluationContext = {
+                                messageText: messageText,
+                                messageTimestamp: messageObject.timestamp ? new Date(parseInt(messageObject.timestamp) * 1000) : new Date(),
+                                chatId: chatId,
+                                chatCreatedAt: chatData?.created_at ? new Date(chatData.created_at) : new Date(),
+                                chatTags: chatData?.tags || [],
+                                chatStatus: chatData?.status || 'lead',
+                                chatLastMessageTime: lastMessage?.created_at ? new Date(lastMessage.created_at) : undefined,
+                                chatMessageCount: messageCount || 0,
+                                chatCustomFields: {
+                                    // Map custom fields from chat metadata if needed
+                                },
+                                subscriptionStatus: subscription?.estado || undefined,
+                                subscriptionExpiresAt: subscription?.vencimiento ? new Date(subscription.vencimiento) : undefined,
+                                evaluateIntent: async (text: string) => {
+                                    // Use AI to evaluate intent (pregunta, queja, oferta, otro)
+                                    const { generateAIResponse } = await import('@/lib/ai')
+                                    try {
+                                        const prompt = `Classify this message into one intent: "pregunta" (question), "queja" (complaint), "oferta" (offer), or "otro" (other). Respond with only the intent word.\n\nMessage: "${text}"`
+                                        const intent = await generateAIResponse(prompt)
+                                        const cleanIntent = intent.toLowerCase().trim().match(/(pregunta|queja|oferta|otro)/)?.[1] || 'otro'
+                                        return cleanIntent
+                                    } catch {
+                                        return 'otro'
                                     }
                                 }
-                                // Implementar más acciones: update_status, add_tag, etc.
                             }
 
-                            // Si se ejecutó un disparador, podemos decidir si queremos que la IA también responda o no.
-                            // Por ahora, si hay un trigger exacto, detenemos el flujo hacia la IA.
-                            return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                            // Convert old-style conditions to groups if needed
+                            let groups = trigger.trigger_condition_groups || []
+
+                            // Fallback: if using old condition structure, migrate on-the-fly
+                            if (!groups || groups.length === 0) {
+                                if (trigger.trigger_conditions && trigger.trigger_conditions.length > 0) {
+                                    groups = [{
+                                        id: 'migrated-group',
+                                        operator: 'AND',
+                                        group_order: 0,
+                                        conditions: trigger.trigger_conditions
+                                    }]
+                                }
+                            }
+
+                            // Evaluate all condition groups
+                            if (groups.length > 0) {
+                                const evaluationResult = await ConditionEvaluator.evaluateAllConditionGroups(groups as any, context)
+
+                                if (evaluationResult.matched) {
+                                    console.log(`[Trigger] Activado: ${trigger.name}`, evaluationResult.reason);
+                                    const { sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppMessage } = await import('@/lib/whatsapp');
+
+                                    for (const action of trigger.trigger_actions || []) {
+                                        if (action.type === 'send_message') {
+                                            const msgContent = action.payload.message || '';
+                                            // Si el payload tiene botones, enviamos botones, si no, texto plano
+                                            if (action.payload.buttons) {
+                                                await sendWhatsAppButtons(phoneNumber, msgContent, action.payload.buttons, tenantToken, phoneId);
+                                                await supabaseAdmin.from('messages').insert({
+                                                    chat_id: chatId, is_from_me: true,
+                                                    content: msgContent + '\n[Botones enviados]', status: 'delivered'
+                                                });
+                                            } else if (action.payload.sections) {
+                                                await sendWhatsAppList(phoneNumber, msgContent, action.payload.buttonText || 'Ver opciones', action.payload.sections, tenantToken, phoneId);
+                                                await supabaseAdmin.from('messages').insert({
+                                                    chat_id: chatId, is_from_me: true,
+                                                    content: msgContent + '\n[Lista interactiva enviada]', status: 'delivered'
+                                                });
+                                            } else {
+                                                await sendWhatsAppMessage(phoneNumber, msgContent, tenantToken, phoneId);
+                                                await supabaseAdmin.from('messages').insert({
+                                                    chat_id: chatId, is_from_me: true,
+                                                    content: msgContent, status: 'delivered'
+                                                });
+                                            }
+                                        }
+                                        // Implementar más acciones: update_status, add_tag, etc.
+                                    }
+
+                                    // Log execution
+                                    try {
+                                        await supabaseAdmin.from('trigger_executions').insert({
+                                            trigger_id: trigger.id,
+                                            chat_id: chatId,
+                                            status: 'success',
+                                            conditions_met: true,
+                                            conditions_evaluated: groups.flat().length,
+                                            actions_executed: trigger.trigger_actions?.length || 0
+                                        })
+                                    } catch {
+                                        // Silently fail if table doesn't exist yet
+                                    }
+
+                                    // Si se ejecutó un disparador, detenemos el flujo hacia la IA
+                                    return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                                }
+                            }
+                        } catch (err) {
+                            console.error(`[Trigger] Error evaluating trigger ${trigger.name}:`, err)
+                            try {
+                                await supabaseAdmin.from('trigger_executions').insert({
+                                    trigger_id: trigger.id,
+                                    chat_id: chatId,
+                                    status: 'failed',
+                                    conditions_met: false,
+                                    errors: [String(err)]
+                                })
+                            } catch {
+                                // Silently fail if table doesn't exist yet
+                            }
                         }
                     }
                 }

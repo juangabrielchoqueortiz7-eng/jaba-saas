@@ -1,0 +1,29 @@
+=== DIAGNOSTICO DE MENSAJES ===
+
+CHATS ACTIVOS (24h): 8
+  Juan Gabriel (***3341) unread=25 time=2026-03-30T23:29:09.904+00:00 uid=a36b9a2d
+    last_msg: "hola"
+  alejandra.justiniano.r0990@hotmail.com (***1901) unread=0 time=2026-03-30T23:11:06.946+00:00 uid=a36b9a2d
+    last_msg: "renovara su suscripcion de canva pro?"
+  201900846@est.umss.edu (***8737) unread=0 time=2026-03-30T13:42:20.803+00:00 uid=a36b9a2d
+    last_msg: "📤 Recordatorio de renovación enviado"
+  camaquepanozod@gmail.com (***2782) unread=0 time=2026-03-30T13:42:15.5+00:00 uid=a36b9a2d
+    last_msg: "📤 Recordatorio de renovación enviado"
+  edsonantonio1806@gmail.com (***0376) unread=0 time=2026-03-30T13:42:10.43+00:00 uid=a36b9a2d
+    last_msg: "📤 Recordatorio de renovación enviado"
+  vickysalta26@hotmail.com (***1028) unread=0 time=2026-03-30T13:42:05.03+00:00 uid=a36b9a2d
+    last_msg: "📤 Recordatorio de renovación enviado"
+  marielareyespaz@gmail.com (***2032) unread=0 time=2026-03-30T13:41:59.666+00:00 uid=a36b9a2d
+    last_msg: "📤 Recordatorio de renovación enviado"
+  gomezjimeneznadiapatricia@gmail.com (***9938) unread=0 time=2026-03-30T13:41:54.435+00:00 uid=a36b9a2d
+    last_msg: "📤 Recordatorio de renovación enviado"
+
+MENSAJES ENTRANTES (24h): 0
+
+TENDENCIA ENTRANTES (3 dias):
+
+CREDENCIALES: 1
+  bot=JABA CHAT phoneId=1017996884730043 ai=active uid=a36b9a2d
+
+TOTALES: 386 chats, 4584 mensajes
+HUERFANOS (sin user_id): 4

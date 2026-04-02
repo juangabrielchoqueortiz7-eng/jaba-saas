@@ -1,0 +1,104 @@
+=== DIAGNOSTICO PROFUNDO ===
+
+Chat JG encontrado por nombre:
+{
+  "id": "15e37f99-ba0d-4bd9-9874-56c43a30f724",
+  "phone_number": "59167193341",
+  "contact_name": "Juan Gabriel",
+  "last_message": "hola",
+  "last_message_time": "2026-03-30T23:29:09.904+00:00",
+  "unread_count": 25,
+  "created_at": "2026-02-20T06:08:08.582919+00:00",
+  "user_id": "a36b9a2d-e388-4d4f-afa3-cc7df7afd81c",
+  "last_message_status": "sent",
+  "tags": [
+    "pago"
+  ],
+  "bsuid_user_id": null,
+  "archived": false
+}
+
+TODOS los mensajes recientes (2 dias): 27
+  2026-03-30T23:29:09.831998+00:00 [BOT] chat=15e37f99 "hola"
+  2026-03-30T23:11:06.890365+00:00 [BOT] chat=b3eb6e0c "renovara su suscripcion de canva pro?"
+  2026-03-30T23:10:57.244258+00:00 [BOT] chat=b3eb6e0c "hola buenas noches"
+  2026-03-30T13:42:28.011158+00:00 [BOT] chat=b3eb6e0c "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:42:26.060269+00:00 [BOT] chat=b3eb6e0c "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-30T13:42:22.709219+00:00 [BOT] chat=412c063e "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:42:20.744024+00:00 [BOT] chat=412c063e "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-30T13:42:17.456979+00:00 [BOT] chat=f0294eed "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:42:15.453836+00:00 [BOT] chat=f0294eed "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-30T13:42:12.245959+00:00 [BOT] chat=aeaca98d "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:42:10.38049+00:00 [BOT] chat=aeaca98d "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-30T13:42:07.012103+00:00 [BOT] chat=9bd7e795 "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:42:04.974643+00:00 [BOT] chat=9bd7e795 "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-30T13:42:01.553817+00:00 [BOT] chat=8cca1168 "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:41:59.607161+00:00 [BOT] chat=8cca1168 "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-30T13:41:56.087777+00:00 [BOT] chat=db2aed86 "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:41:54.376895+00:00 [BOT] chat=db2aed86 "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-30T13:41:50.778886+00:00 [BOT] chat=db2aed86 "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:41:48.265738+00:00 [BOT] chat=db2aed86 "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-29T22:44:25.891213+00:00 [BOT] chat=313e6830 "📋 Lista de Planes (Remarketing) Enviada"
+  2026-03-29T22:44:24.236451+00:00 [BOT] chat=313e6830 "🔔 *Último aviso sobre tu cuenta de Canva Pro*
+
+Ho"
+  2026-03-29T22:44:21.050999+00:00 [BOT] chat=313e6830 "📋 Lista de Planes (Remarketing) Enviada"
+  2026-03-29T22:44:18.844278+00:00 [BOT] chat=313e6830 "🔔 *Último aviso sobre tu cuenta de Canva Pro*
+
+Ho"
+  2026-03-29T13:33:13.009823+00:00 [BOT] chat=313e6830 "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-29T13:33:11.259613+00:00 [BOT] chat=313e6830 "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+  2026-03-29T13:33:07.695501+00:00 [BOT] chat=313e6830 "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-29T13:33:04.784816+00:00 [BOT] chat=313e6830 "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"
+
+CHATS recientes vs MENSAJES:
+  Juan Gabriel | chat_time=2026-03-30T23:29:09.904+00:00 | msgs_24h=1 | unread=25 | last="hola"
+  alejandra.justiniano.r0990@hotmail.com | chat_time=2026-03-30T23:11:06.946+00:00 | msgs_24h=4 | unread=0 | last="renovara su suscripcion de canva pro?"
+  201900846@est.umss.edu | chat_time=2026-03-30T13:42:20.803+00:00 | msgs_24h=2 | unread=0 | last="📤 Recordatorio de renovación enviado"
+  camaquepanozod@gmail.com | chat_time=2026-03-30T13:42:15.5+00:00 | msgs_24h=2 | unread=0 | last="📤 Recordatorio de renovación enviado"
+  edsonantonio1806@gmail.com | chat_time=2026-03-30T13:42:10.43+00:00 | msgs_24h=2 | unread=0 | last="📤 Recordatorio de renovación enviado"
+  vickysalta26@hotmail.com | chat_time=2026-03-30T13:42:05.03+00:00 | msgs_24h=2 | unread=0 | last="📤 Recordatorio de renovación enviado"
+  marielareyespaz@gmail.com | chat_time=2026-03-30T13:41:59.666+00:00 | msgs_24h=2 | unread=0 | last="📤 Recordatorio de renovación enviado"
+  gomezjimeneznadiapatricia@gmail.com | chat_time=2026-03-30T13:41:54.435+00:00 | msgs_24h=4 | unread=0 | last="📤 Recordatorio de renovación enviado"
+
+NOTA: Verificar Realtime en Supabase Dashboard > Database > Replication

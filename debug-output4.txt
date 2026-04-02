@@ -1,0 +1,35 @@
+=== DIAGNOSTICO FINAL ===
+
+Chat alejandra (b3eb6e0c-8888-4542-9d9b-b7fb03f30d7f) - msgs ultimos 7 dias: 4
+  2026-03-30T13:42:26.060269+00:00 [BOT] [wa:YES] "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos asegurarnos d"
+  2026-03-30T13:42:28.011158+00:00 [BOT] [wa:NO] "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs 19
+• Plan "
+  2026-03-30T23:10:57.244258+00:00 [BOT] [wa:NO] "hola buenas noches"
+  2026-03-30T23:11:06.890365+00:00 [BOT] [wa:NO] "renovara su suscripcion de canva pro?"
+
+--- JG "hola" del 30 marzo ---
+Mensajes JG del 30 marzo: 1
+  {"created_at":"2026-03-30T23:29:09.831998+00:00","is_from_me":true,"content":"hola","whatsapp_message_id":null,"media_url":null,"status":"delivered"}
+
+--- Ultimo mensaje con whatsapp_message_id ---
+  2026-03-30T13:42:26.060269+00:00 [BOT] wa_id=wamid.HBgLNTkxNzU1Mz... "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Qu"
+  2026-03-30T13:42:20.744024+00:00 [BOT] wa_id=wamid.HBgLNTkxNjc0Nz... "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Qu"
+  2026-03-30T13:42:15.453836+00:00 [BOT] wa_id=wamid.HBgLNTkxNjQ0ND... "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Qu"
+  2026-03-30T13:42:10.38049+00:00 [BOT] wa_id=wamid.HBgLNTkxNzI0Nz... "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Qu"
+  2026-03-30T13:42:04.974643+00:00 [BOT] wa_id=wamid.HBgLNTkxNjU3Nz... "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Qu"
+
+Ultimo mes: 1097 mensajes con wa_id, 1752 sin wa_id

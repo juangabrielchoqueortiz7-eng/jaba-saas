@@ -1,0 +1,9 @@
+=== CHECK CONSTRAINTS + TRIGGERS ===
+
+
+RPC exec_sql not available. Trying alternative...
+
+TEST: Insert with whatsapp_message_id...
+  OK: id=6b2d59a4-8d4b-49dc-bada-7737f688b638 is_from_me=false wa_id=test_wamid_1774924323733
+  DUPLICATE wa_id ERROR: duplicate key value violates unique constraint "messages_whatsapp_message_id_key" | code: 23505
+  Cleaned up test records

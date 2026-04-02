@@ -1,0 +1,69 @@
+=== DIAGNOSTICO: is_from_me ===
+
+Mensajes del chat JG (ultimos 30):
+  2026-03-30T23:29:09.831998+00:00 [BOT] "hola" wa_id=null status=delivered
+  2026-03-21T03:24:05.615918+00:00 [BOT] "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs " wa_id=null status=delivered
+  2026-03-21T03:24:05.615918+00:00 [BOT] "" wa_id=null status=delivered
+  2026-03-21T03:24:04.24481+00:00 [BOT] "¡Claro que sí, amigo! Con todo gusto te ayudo con " wa_id=null status=delivered
+  2026-03-21T03:23:49.597351+00:00 [USER] "Necesito canva pro" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQ0QwOUU2RjU5QjY3QzI4MjA2ODFFQTI2N0NBMDhCMgA= status=delivered
+  2026-03-21T03:23:28.696014+00:00 [BOT] "¡Hola, amigo! Qué bueno verte de nuevo por aquí. �" wa_id=null status=sent
+  2026-03-21T03:23:05.494016+00:00 [USER] "Hola" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQ0ZCRUFBOUY0RDM3M0ZGMEY5OUJGNEYwRUY4NkY4MwA= status=delivered
+  2026-03-21T01:55:18.521625+00:00 [BOT] "¡Claro que sí! Aquí tienes las cuentas disponibles" wa_id=null status=sent
+  2026-03-21T01:55:13.520775+00:00 [BOT] "📋 *Cuentas disponibles:*
+
+• f.choque@e.usfa.edu.b" wa_id=null status=delivered
+  2026-03-21T01:54:48.892524+00:00 [USER] "Hola" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQ0QzNTBBN0I0MEVCRDg3MTFEMjEzMUJGQzcwMDNFQQA= status=delivered
+  2026-03-07T04:22:01.679334+00:00 [BOT] "¡Claro que sí! Aquí tienes las cuentas disponibles" wa_id=null status=sent
+  2026-03-07T04:22:00.664642+00:00 [BOT] "📋 *Cuentas disponibles:*
+
+• f.choque@e.usfa.edu.b" wa_id=null status=delivered
+  2026-03-07T04:21:47.500915+00:00 [USER] "Hola quiero renovar" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQ0VGRUU3MzVEOTkzNDA0N0UwOUZGQ0NERjRERjhDRAA= status=delivered
+  2026-03-07T03:52:32.73865+00:00 [BOT] "✅ *¡Pago recibido y renovación completada!* 🎉
+
+✅ " wa_id=null status=delivered
+  2026-03-07T03:52:29.199898+00:00 [USER] "📷 Imagen" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQzQyNjUxRUNFQTBDNUM1MEVBMzAwQTA0RDk3MjREMgA= status=delivered
+  2026-03-07T03:52:09.283252+00:00 [BOT] "¡Tienes toda la razón, amigo! Mil disculpas, se me" wa_id=null status=sent
+  2026-03-07T03:52:08.603346+00:00 [BOT] "💳 QR de pago - Plan Bronce - 3 Meses (Bs 39)" wa_id=null status=delivered
+  2026-03-07T03:51:52.221349+00:00 [USER] "Ya te di" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQzQzNTg1QTVFOTY1RUVFNTlBMzgzRTFGQjcwOEM5MQA= status=delivered
+  2026-03-07T03:51:23.308913+00:00 [BOT] "¡Excelente elección! Has seleccionado *Plan Bronce" wa_id=null status=delivered
+  2026-03-07T03:51:22.273911+00:00 [USER] "Plan Bronce - 3 Meses" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQzlCMTA3NDdGODNGNUQyQkUxMzM4NkRCMEEwNzk1MAA= status=delivered
+  2026-03-07T03:51:10.815884+00:00 [BOT] "" wa_id=null status=delivered
+  2026-03-07T03:51:10.815884+00:00 [BOT] "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs " wa_id=null status=delivered
+  2026-03-07T03:51:09.705718+00:00 [BOT] "¡Perfecto, amigo! Anotado.
+
+Vamos a renovar la cue" wa_id=null status=delivered
+  2026-03-07T03:50:54.91376+00:00 [USER] "El segundo" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQ0UwMDNGMDIyMEU3N0FGOTc4QjhGOEYyRUM1NUZEMgA= status=delivered
+  2026-03-07T03:50:42.023185+00:00 [BOT] "¡Uy, perdón amigo! Tienes toda la razón, se me fue" wa_id=null status=sent
+  2026-03-07T03:50:19.764508+00:00 [USER] "No veo" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQzhBMkQ4Q0RDNTk3OUJEQzdGMzU0MEUxMEEyQUZGQwA= status=delivered
+  2026-03-07T03:50:07.954342+00:00 [BOT] "¡Claro que sí, amigo! Con todo gusto.
+
+Dime, ¿cuál" wa_id=null status=sent
+  2026-03-07T03:49:52.419586+00:00 [USER] "Hola quiero renovar otra cuenta" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQzJCODMyN0IxN0UwMkE4MEJEODc4OURFN0Y0MDRDMgA= status=delivered
+  2026-03-07T03:38:46.181502+00:00 [BOT] "¡Con gusto te confirmo, amigo!
+
+Tu plan para la cu" wa_id=null status=sent
+  2026-03-07T03:38:25.055559+00:00 [USER] "¿Hasta que fecha tendré ahora?" wa_id=wamid.HBgLNTkxNjcxOTMzNDEVAgASGCBBQ0JGNTBGMUU0NzVBMTAxNjNDOTM1M0Q0RjkxQzFDRAA= status=delivered
+
+Resumen: 11 del usuario, 19 del bot
+
+--- TEST INSERT ---
+Insertado: id=5f96252d-f048-4f09-942b-38fe0d60e19d is_from_me=false
+Lectura: id=5f96252d-f048-4f09-942b-38fe0d60e19d is_from_me=false
+Test limpiado
+
+--- TABLA COLUMNS ---
+No se pudo obtener defaults (la RPC podria no existir)
+
+Mensajes de alejandra.justiniano.r0990@hotmail.com (ultimos 10):
+  2026-03-30T23:11:06.890365+00:00 [BOT] "renovara su suscripcion de canva pro?"
+  2026-03-30T23:10:57.244258+00:00 [BOT] "hola buenas noches"
+  2026-03-30T13:42:28.011158+00:00 [BOT] "📋 *Planes Enviados:*
+
+• Plan Básico - 1 Mes — Bs "
+  2026-03-30T13:42:26.060269+00:00 [BOT] "*¡Hola! 👋 Te saludamos desde Jaba.*
+
+Queremos ase"

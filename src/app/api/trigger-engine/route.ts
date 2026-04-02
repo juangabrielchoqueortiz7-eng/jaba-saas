@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from '@/lib/whatsapp'
+import ConditionEvaluator, { EvaluationContext } from '@/lib/trigger-conditions'
 import dayjs from 'dayjs'
 
 // Helpers para ocultar datos sensibles en logs
@@ -59,7 +60,7 @@ async function processTimeTriggers() {
 
     const { data: triggers, error } = await supabaseAdmin
         .from('triggers')
-        .select('*, trigger_actions (*), trigger_conditions (*)')
+        .select('*, trigger_actions (*), trigger_condition_groups(id, operator, group_order, conditions:trigger_conditions(*))')
         .eq('type', 'time')
         .eq('is_active', true)
 
@@ -89,7 +90,7 @@ async function processTimeTriggers() {
             for (const chat of candidateChats) {
                 const { data: lastMsg } = await supabaseAdmin
                     .from('messages')
-                    .select('is_from_me, created_at')
+                    .select('is_from_me, created_at, content')
                     .eq('chat_id', chat.id)
                     .order('created_at', { ascending: false })
                     .limit(1)
@@ -99,24 +100,93 @@ async function processTimeTriggers() {
                 const msgAge = Date.now() - new Date(lastMsg.created_at).getTime()
                 if (msgAge > 24 * 60 * 60 * 1000) continue
 
-                // Check conditions
-                if (trigger.trigger_conditions?.length > 0) {
-                    const met = trigger.trigger_conditions.every((cond: any) => {
-                        if (cond.type === 'has_tag') {
-                            const tags = chat.tags || []
-                            return cond.operator === 'equals' ? tags.includes(cond.value) : !tags.includes(cond.value)
-                        }
-                        return true
-                    })
-                    if (!met) continue
+                // Build evaluation context for this chat
+                const { data: chatData } = await supabaseAdmin
+                    .from('chats')
+                    .select('*')
+                    .eq('id', chat.id)
+                    .single()
+
+                const { count: messageCount } = await supabaseAdmin
+                    .from('messages')
+                    .select('*', { count: 'exact' })
+                    .eq('chat_id', chat.id)
+
+                const { data: subscription } = await supabaseAdmin
+                    .from('subscriptions')
+                    .select('*')
+                    .eq('numero', chat.phone_number)
+                    .eq('user_id', trigger.user_id)
+                    .maybeSingle()
+
+                const context: EvaluationContext = {
+                    messageText: lastMsg?.content || '',
+                    messageTimestamp: new Date(lastMsg?.created_at || Date.now()),
+                    chatId: chat.id,
+                    chatCreatedAt: chatData?.created_at ? new Date(chatData.created_at) : new Date(),
+                    chatTags: chat.tags || [],
+                    chatStatus: chatData?.status || 'lead',
+                    chatLastMessageTime: lastMsg?.created_at ? new Date(lastMsg.created_at) : undefined,
+                    chatMessageCount: messageCount || 0,
+                    chatCustomFields: chatData?.custom_fields || {},
+                    subscriptionStatus: subscription?.estado || undefined,
+                    subscriptionExpiresAt: subscription?.vencimiento ? new Date(subscription.vencimiento) : undefined,
+                }
+
+                // Check conditions using new evaluator
+                let groups = trigger.trigger_condition_groups || []
+
+                // Fallback for old condition structure
+                if ((!groups || groups.length === 0) && trigger.trigger_conditions?.length > 0) {
+                    groups = [{
+                        id: 'migrated-group',
+                        operator: 'AND',
+                        group_order: 0,
+                        conditions: trigger.trigger_conditions
+                    }]
+                }
+
+                if (groups.length > 0) {
+                    const evaluationResult = await ConditionEvaluator.evaluateAllConditionGroups(groups as any, context)
+                    if (!evaluationResult.matched) continue
                 }
 
                 // Execute actions
-                for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
-                    await executeAction(action, chat, creds)
-                    await delay(1000)
+                try {
+                    for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
+                        await executeAction(action, chat, creds)
+                        await delay(1000)
+                    }
+
+                    // Log execution
+                    try {
+                        await supabaseAdmin.from('trigger_executions').insert({
+                            trigger_id: trigger.id,
+                            chat_id: chat.id,
+                            status: 'success',
+                            conditions_met: true,
+                            conditions_evaluated: groups.length,
+                            actions_executed: trigger.trigger_actions?.length || 0
+                        })
+                    } catch {
+                        // Silently fail if table doesn't exist yet
+                    }
+
+                    results.executed++
+                } catch (err) {
+                    console.error(`[Time Trigger] Error executing actions for ${trigger.name}:`, err)
+                    try {
+                        await supabaseAdmin.from('trigger_executions').insert({
+                            trigger_id: trigger.id,
+                            chat_id: chat.id,
+                            status: 'failed',
+                            conditions_met: true,
+                            errors: [String(err)]
+                        })
+                    } catch {
+                        // Silently fail if table doesn't exist yet
+                    }
                 }
-                results.executed++
             }
         } catch (err) {
             console.error(`[Trigger Engine] Time trigger ${trigger.name} error:`, err)
@@ -222,20 +292,49 @@ async function processScheduledTriggers() {
             for (const sub of filteredSubs) {
                 const chat = chatByPhone[sub.numero]
                 const contactName = chat?.contact_name || ''
-                const enrichedSub = { ...sub, contact_name: contactName }
 
-                for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
-                    await executeAction(action, {
-                        phone_number: sub.numero,
-                        contact_name: contactName,
-                        tags: chat?.tags || [],
-                        vencimiento: sub.vencimiento,
-                        correo: sub.correo,
-                        servicio: sub.servicio,
-                    }, creds)
-                    await delay(500)
+                try {
+                    for (const action of (trigger.trigger_actions || []).sort((a: any, b: any) => a.action_order - b.action_order)) {
+                        await executeAction(action, {
+                            phone_number: sub.numero,
+                            contact_name: contactName,
+                            tags: chat?.tags || [],
+                            vencimiento: sub.vencimiento,
+                            correo: sub.correo,
+                            servicio: sub.servicio,
+                        }, creds)
+                        await delay(500)
+                    }
+
+                    // Log execution
+                    try {
+                        await supabaseAdmin.from('trigger_executions').insert({
+                            trigger_id: trigger.id,
+                            chat_id: chat?.id,
+                            status: 'success',
+                            conditions_met: true,
+                            conditions_evaluated: 0,
+                            actions_executed: trigger.trigger_actions?.length || 0
+                        })
+                    } catch {
+                        // Silently fail if table doesn't exist yet
+                    }
+
+                    results.executed++
+                } catch (err) {
+                    console.error(`[Scheduled Trigger] Error executing actions for ${trigger.name}:`, err)
+                    try {
+                        await supabaseAdmin.from('trigger_executions').insert({
+                            trigger_id: trigger.id,
+                            chat_id: chat?.id,
+                            status: 'failed',
+                            conditions_met: true,
+                            errors: [String(err)]
+                        })
+                    } catch {
+                        // Silently fail if table doesn't exist yet
+                    }
                 }
-                results.executed++
             }
         } catch (err) {
             console.error(`[Trigger Engine] Scheduled trigger ${trigger.name} error:`, err)
