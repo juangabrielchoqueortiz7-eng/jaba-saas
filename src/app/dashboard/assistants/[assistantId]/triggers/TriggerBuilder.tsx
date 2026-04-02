@@ -211,7 +211,16 @@ export default function TriggerBuilder({ assistantId, triggerId }: TriggerBuilde
         return detectTemplateVars(tpl.components)
     }
 
-    if (isLoading) return <div className="p-8 text-[#0F172A]">Cargando disparador...</div>
+    if (isLoading) return (
+        <div className="p-8 max-w-7xl mx-auto space-y-6 animate-pulse">
+            <div className="h-8 w-48 bg-black/[0.06] rounded-md" />
+            <div className="space-y-4">
+                <div className="h-12 bg-black/[0.06] rounded-lg" />
+                <div className="h-32 bg-black/[0.06] rounded-lg" />
+                <div className="h-12 bg-black/[0.06] rounded-lg" />
+            </div>
+        </div>
+    )
 
     return (
         <div className="p-8 max-w-7xl mx-auto text-[#0F172A]">

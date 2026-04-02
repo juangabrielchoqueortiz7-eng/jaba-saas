@@ -263,12 +263,28 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                         <p><strong>Error:</strong> {errorMsg}</p>
                     </div>
                 )}
-                {loading && <p className="text-center text-[#0F172A]/30 mt-6 text-sm">Cargando...</p>}
+                {loading && (
+                    <div className="space-y-2 px-3 mt-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 rounded-lg animate-pulse">
+                                <div className="w-10 h-10 rounded-full bg-black/[0.06] flex-shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-3.5 bg-black/[0.06] rounded w-28" />
+                                    <div className="h-3 bg-black/[0.04] rounded w-44" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {!loading && chats.length === 0 && (
-                    <p className="text-center text-[#0F172A]/30 mt-6 px-4 text-sm">
-                        No hay chats aún. Envía un mensaje a tu número de WhatsApp para empezar.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                        <div className="w-16 h-16 rounded-full bg-[#25D366]/10 flex items-center justify-center mb-4">
+                            <Search size={24} className="text-[#25D366]/50" />
+                        </div>
+                        <p className="text-sm font-medium text-[#0F172A]/50">No hay chats aún</p>
+                        <p className="text-xs text-[#0F172A]/30 mt-1 max-w-[200px]">Envía un mensaje a tu número de WhatsApp para empezar</p>
+                    </div>
                 )}
 
                 {filteredChats.map((chat) => (

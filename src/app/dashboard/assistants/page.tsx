@@ -37,7 +37,7 @@ export default async function AssistantsPage() {
                         <div key={asst.id} style={{
                             display: 'flex', alignItems: 'center', gap: 18,
                             background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)',
-                            borderRadius: 20, padding: '18px 22px', position: 'relative', overflow: 'hidden',
+                            borderRadius: 16, padding: '18px 22px', position: 'relative', overflow: 'hidden',
                             boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
                         }}>
                             <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: isActive ? 'radial-gradient(circle, rgba(37,211,102,0.12) 0%, transparent 70%)' : 'none', pointerEvents: 'none' }} />

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useChat } from '@/context/ChatContext';
+import { Skeleton, TableSkeleton, CardSkeleton } from '@/components/ui/skeleton';
 
 dayjs.extend(customParseFormat);
 
@@ -488,9 +489,15 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             {/* Mobile View: Cards */}
             <div className="block md:hidden space-y-4">
                 {isLoading ? (
-                    <div className="text-center py-10 text-[#0F172A]/40">Cargando...</div>
+                    <div className="space-y-3">
+                        {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
+                    </div>
                 ) : paginatedData.length === 0 ? (
-                    <div className="text-center py-10 text-[#0F172A]/40">No hay registros</div>
+                    <div className="flex flex-col items-center justify-center py-14 text-[#0F172A]/40">
+                        <Users size={40} className="mb-3 text-[#0F172A]/15" />
+                        <p className="text-sm font-medium">Sin suscripciones</p>
+                        <p className="text-xs mt-1">Agrega tu primera suscripción para empezar</p>
+                    </div>
                 ) : (
                     paginatedData.map(sub => (
                         <SubscriptionCard
@@ -568,12 +575,14 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                         </thead>
                         <tbody className="divide-y divide-slate-800">
                             {isLoading ? (
-                                <tr>
-                                    <td colSpan={7} className="text-center py-10 text-[#0F172A]/35">Cargando...</td>
-                                </tr>
+                                <TableSkeleton rows={5} cols={7} />
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-10 text-[#0F172A]/35">No hay registros</td>
+                                    <td colSpan={7} className="text-center py-14">
+                                        <Users size={40} className="mx-auto mb-3 text-[#0F172A]/15" />
+                                        <p className="text-sm font-medium text-[#0F172A]/40">Sin suscripciones</p>
+                                        <p className="text-xs text-[#0F172A]/30 mt-1">Agrega tu primera suscripción para empezar</p>
+                                    </td>
                                 </tr>
                             ) : (
                                 paginatedData.map(sub => {

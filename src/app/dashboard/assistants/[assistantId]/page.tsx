@@ -161,7 +161,7 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                     <div style={{
                         background: '#ffffff',
                         border: `1px solid ${isActive ? 'rgba(16,185,129,0.22)' : 'rgba(0,0,0,0.08)'}`,
-                        borderRadius: 18, padding: '20px 22px',
+                        borderRadius: 16, padding: '20px 22px',
                         boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
                     }}>
                         <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(15,23,42,0.40)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Estado del bot</p>
