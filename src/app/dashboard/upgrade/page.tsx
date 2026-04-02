@@ -63,7 +63,7 @@ export default async function UpgradePage() {
             <div style={{
                 background: overLimit ? 'rgba(244,63,94,0.06)' : nearLimit ? 'rgba(251,191,36,0.06)' : '#ffffff',
                 border: `1px solid ${overLimit ? 'rgba(244,63,94,0.2)' : nearLimit ? 'rgba(251,191,36,0.2)' : 'rgba(0,0,0,0.08)'}`,
-                borderRadius: '1.25rem',
+                borderRadius: 16,
                 padding: '1.5rem',
                 marginBottom: '2rem',
             }}>
@@ -123,7 +123,7 @@ export default async function UpgradePage() {
                         <div key={plan.id} style={{
                             background: isHighlight ? 'rgba(37,211,102,0.05)' : '#ffffff',
                             border: `1px solid ${isHighlight ? 'rgba(37,211,102,0.25)' : isCurrent ? 'rgba(37,211,102,0.15)' : 'rgba(0,0,0,0.08)'}`,
-                            borderRadius: '1.25rem',
+                            borderRadius: 16,
                             padding: '1.5rem',
                             position: 'relative',
                             display: 'flex',

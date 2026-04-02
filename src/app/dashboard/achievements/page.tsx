@@ -76,7 +76,7 @@ export default async function AchievementsPage() {
                         <div key={a.id} style={{
                             background: '#ffffff',
                             border: `1px solid ${completed ? a.border : 'rgba(0,0,0,0.08)'}`,
-                            borderRadius: 22,
+                            borderRadius: 16,
                             padding: '28px 24px',
                             position: 'relative', overflow: 'hidden',
                             transition: 'all 0.3s ease',

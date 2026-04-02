@@ -61,7 +61,7 @@ export default async function AdminAccountsPage() {
             </div>
 
             {/* Tabla principal */}
-            <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 18, overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Users size={16} style={{ color: '#10b981' }} />
                     <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Cuentas con asistente</h2>
@@ -131,7 +131,7 @@ export default async function AdminAccountsPage() {
 
             {/* Sin bot */}
             {usersWithoutBot.length > 0 && (
-                <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 18, overflow: 'hidden' }}>
+                <div style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, overflow: 'hidden' }}>
                     <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                         <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
                             Registrados sin asistente <span style={{ color: 'rgba(148,163,184,0.4)', fontWeight: 400 }}>({usersWithoutBot.length})</span>

@@ -137,7 +137,7 @@ export default function SubscriptionsPage() {
     }, [subscriptions]);
 
     return (
-        <div className="flex flex-col h-full p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col h-full p-3 sm:p-6 space-y-4 sm:space-y-6 animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">Gestor de Suscripciones</h1>

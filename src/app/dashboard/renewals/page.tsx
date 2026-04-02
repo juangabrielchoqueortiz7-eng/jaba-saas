@@ -168,7 +168,7 @@ export default function RenewalsPage() {
     })
 
     return (
-        <div className="p-8 max-w-7xl mx-auto min-h-screen">
+        <div className="p-8 max-w-7xl mx-auto min-h-screen animate-fade-in">
             <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-[#0F172A] flex items-center gap-3">

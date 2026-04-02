@@ -38,7 +38,7 @@ function highlightText(text: string, highlight: string) {
         <>
             {parts.map((part, i) =>
                 part.toLowerCase() === highlight.toLowerCase()
-                    ? <mark key={i} className="bg-[#25D366]/30 text-white rounded-sm px-0.5">{part}</mark>
+                    ? <mark key={i} className="bg-[#25D366]/30 text-[#0F172A] rounded-sm px-0.5">{part}</mark>
                     : part
             )}
         </>
@@ -74,16 +74,16 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                                 const [namePart, pricePart] = plan.split(' — ')
                                 return (
                                     <div key={i} className="flex items-center justify-between bg-white/[0.04] rounded-lg px-2 py-1.5">
-                                        <span className="text-white text-xs font-medium truncate flex-1">{namePart}</span>
+                                        <span className="text-[#0F172A] text-xs font-medium truncate flex-1">{namePart}</span>
                                         {pricePart && <span className="text-[#25D366] text-xs font-bold ml-2 shrink-0">{pricePart.split(' ·')[0]}</span>}
                                     </div>
                                 )
                             })}
                         </div>
-                        <p className="text-[10px] text-white/30 mt-2">👆 El cliente lo recibió como botones interactivos</p>
+                        <p className="text-[10px] text-[#0F172A]/40 mt-2">👆 El cliente lo recibió como botones interactivos</p>
                     </div>
                     <div className="px-2 pb-1 flex justify-end">
-                        <span className="text-[10px] text-white/30">{timestamp}</span>
+                        <span className="text-[10px] text-[#0F172A]/30">{timestamp}</span>
                     </div>
                 </div>
             </div>
@@ -132,7 +132,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                     <div className="relative">
                         {!imageLoaded && (
                             <div className="flex items-center justify-center w-full h-48 bg-black">
-                                <ImageIcon size={32} className="text-white/30 animate-pulse" />
+                                <ImageIcon size={32} className="text-[#0F172A]/30 animate-pulse" />
                             </div>
                         )}
                         <img
@@ -151,7 +151,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
                 {/* === IMAGE FALLBACK === */}
                 {mediaUrl && detectedType === 'image' && imageError && (
-                    <div className="flex items-center gap-2 px-3 py-3 text-white/30">
+                    <div className="flex items-center gap-2 px-3 py-3 text-[#0F172A]/40">
                         <ImageIcon size={18} />
                         <span className="text-xs">Imagen no disponible</span>
                     </div>
@@ -164,7 +164,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                             onClick={toggleAudio}
                             className={cn(
                                 "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                                isMine ? "bg-[#25D366] hover:bg-[#1fad52]" : "bg-white/[0.10] hover:bg-white/[0.15]"
+                                isMine ? "bg-[#25D366] hover:bg-[#1fad52]" : "bg-black/[0.06] hover:bg-black/[0.10]"
                             )}
                         >
                             {isPlaying ? (
@@ -173,7 +173,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                                     <span className="w-1 h-4 bg-black rounded-sm" />
                                 </span>
                             ) : (
-                                <Play size={16} className={cn("ml-0.5", isMine ? "text-black" : "text-white")} />
+                                <Play size={16} className={cn("ml-0.5", isMine ? "text-black" : "text-[#0F172A]")} />
                             )}
                         </button>
                         <div className="flex-1 min-w-0">
@@ -187,13 +187,13 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                                 {Array.from({ length: 30 }).map((_, i) => (
                                     <div
                                         key={i}
-                                        className={cn("rounded-full w-0.5", isMine ? "bg-white/40" : "bg-white/20")}
+                                        className={cn("rounded-full w-0.5", isMine ? "bg-[#25D366]/50" : "bg-[#0F172A]/20")}
                                         style={{ height: `${6 + Math.sin(i * 0.7) * 6 + Math.cos(i * 1.3) * 3}px` }}
                                     />
                                 ))}
                             </div>
                         </div>
-                        <Mic size={12} className="flex-shrink-0 text-white/30" />
+                        <Mic size={12} className="flex-shrink-0 text-[#0F172A]/30" />
                     </div>
                 )}
 
@@ -219,13 +219,13 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                     >
                         <div className={cn(
                             "w-10 h-10 rounded-lg flex items-center justify-center",
-                            isMine ? "bg-[#25D366]" : "bg-white/[0.10]"
+                            isMine ? "bg-[#25D366]" : "bg-black/[0.06]"
                         )}>
-                            <FileText size={20} className={isMine ? "text-black" : "text-white"} />
+                            <FileText size={20} className={isMine ? "text-black" : "text-[#0F172A]"} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-white">{content || 'Documento'}</p>
-                            <p className="text-[10px] text-white/30">Toca para abrir</p>
+                            <p className="text-sm font-medium truncate text-[#0F172A]">{content || 'Documento'}</p>
+                            <p className="text-[10px] text-[#0F172A]/40">Toca para abrir</p>
                         </div>
                     </a>
                 )}
@@ -233,23 +233,23 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                 {/* Text content */}
                 {content && detectedType !== 'document' && (
                     <div className={cn(mediaUrl && detectedType !== 'audio' ? "px-3 py-2" : "")}>
-                        <p className="whitespace-pre-wrap break-words text-[14px] leading-[19px] text-white">
+                        <p className="whitespace-pre-wrap break-words text-[14px] leading-[19px] text-[#0F172A]">
                             {searchHighlight ? highlightText(content, searchHighlight) : content}
                         </p>
                     </div>
                 )}
 
                 {/* Timestamp & status */}
-                <div className="text-[11px] flex items-center justify-end gap-1 px-2 pb-1 text-white/30">
+                <div className="text-[11px] flex items-center justify-end gap-1 px-2 pb-1 text-[#0F172A]/35">
                     <span>{timestamp}</span>
                     {isMine && (
                         <span className="flex items-center ml-0.5">
                             {status === 'read' ? (
                                 <CheckCheck size={16} className="text-[#25D366]" />
                             ) : status === 'delivered' ? (
-                                <CheckCheck size={16} className="text-white/30" />
+                                <CheckCheck size={16} className="text-[#0F172A]/30" />
                             ) : (
-                                <Check size={16} className="text-white/30" />
+                                <Check size={16} className="text-[#0F172A]/30" />
                             )}
                         </span>
                     )}

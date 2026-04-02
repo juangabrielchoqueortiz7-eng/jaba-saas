@@ -172,7 +172,7 @@ export default function OrdersPage() {
     }
 
     return (
-        <div className="p-6 max-w-[1600px] mx-auto min-h-screen">
+        <div className="p-6 max-w-[1600px] mx-auto min-h-screen animate-fade-in">
             {/* Header */}
             <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

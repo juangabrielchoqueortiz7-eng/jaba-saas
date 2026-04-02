@@ -546,7 +546,7 @@ export default function SettingsPage() {
     )
 
     return (
-        <div className="container mx-auto p-6 max-w-5xl space-y-6">
+        <div className="container mx-auto p-6 max-w-5xl space-y-6 animate-fade-in">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold flex items-center gap-3 text-[#0F172A]">
                     <Settings2 className="w-8 h-8 text-[#25D366]" />

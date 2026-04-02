@@ -218,7 +218,7 @@ export default async function HomePage() {
             </div>
 
             {/* ── KPI CARDS ROW ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 28 }}>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 mb-7">
                 {[
                     { Icon: MessageSquare, label: 'Chats hoy',            value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`,           color: GREEN },
                     { Icon: Users,         label: 'Suscripciones activas', value: totalActivas,          sub: `${vencidas.length} vencidas sin renovar`,  color: GREEN },
@@ -241,7 +241,7 @@ export default async function HomePage() {
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 28, alignItems: 'start' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-7 items-start">
 
                 {/* ── COLUMNA IZQUIERDA ── */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -256,7 +256,7 @@ export default async function HomePage() {
                                     Ver todas <ArrowRight size={12} />
                                 </Link>
                             </h2>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {Object.entries(porServicio).map(([svc, data]) => {
                                     return (
                                         <div key={svc} style={{ padding: '16px 18px', borderRadius: 12, background: '#ffffff', border: '1px solid rgba(0,0,0,0.07)', borderTop: `2px solid ${GREEN}`, position: 'relative', overflow: 'hidden' }}>
@@ -410,14 +410,14 @@ export default async function HomePage() {
                                                 <MessageSquare size={15} style={{ color: GREEN }} />
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
-                                                <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', marginBottom: 2 }}>
+                                                <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
                                                     {chat.contact_name || chat.phone_number}
                                                 </p>
-                                                <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <p style={{ fontSize: '0.7rem', color: 'rgba(15,23,42,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {chat.last_message || '—'}
                                                 </p>
                                             </div>
-                                            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{time}</span>
+                                            <span style={{ fontSize: '0.65rem', color: 'rgba(15,23,42,0.25)', flexShrink: 0 }}>{time}</span>
                                         </Link>
                                     )
                                 })}
@@ -440,13 +440,13 @@ export default async function HomePage() {
                                     ].map((s, i) => (
                                         <div key={i} style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 10, background: s.bg }}>
                                             <div style={{ fontSize: '1.3rem', fontWeight: 800, color: s.color }}>{s.val}</div>
-                                            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{s.label}</div>
+                                            <div style={{ fontSize: '0.65rem', color: 'rgba(15,23,42,0.35)', marginTop: 2 }}>{s.label}</div>
                                         </div>
                                     ))}
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                                     {recentNotifs!.slice(0, 5).map((n, i) => (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: i < 4 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
                                             <span style={{
                                                 fontSize: '0.6rem', fontWeight: 700, padding: '2px 6px', borderRadius: 5,
                                                 background: n.status === 'sent' ? 'rgba(37,211,102,0.10)' : 'rgba(239,68,68,0.10)',
@@ -454,10 +454,10 @@ export default async function HomePage() {
                                             }}>
                                                 {n.status === 'sent' ? '✓' : '✗'}
                                             </span>
-                                            <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.50)', flex: 1 }}>
+                                            <span style={{ fontSize: '0.72rem', color: 'rgba(15,23,42,0.50)', flex: 1 }}>
                                                 {NOTIF_LABEL[n.message_type] || n.message_type}
                                             </span>
-                                            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', fontFamily: 'monospace' }}>
+                                            <span style={{ fontSize: '0.65rem', color: 'rgba(15,23,42,0.25)', fontFamily: 'monospace' }}>
                                                 {n.phone_number?.slice(-8)}
                                             </span>
                                         </div>
@@ -473,7 +473,7 @@ export default async function HomePage() {
                             <TrendingUp size={16} style={{ color: GREEN }} />
                             <span style={{ color: '#0F172A' }}>Accesos rápidos</span>
                         </h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div className="grid grid-cols-2 gap-2">
                             {[
                                 { Icon: MessageSquare, label: 'Chats',          href: '/dashboard/chats' },
                                 { Icon: Users,         label: 'Suscripciones',  href: '/dashboard/subscriptions' },
@@ -483,8 +483,8 @@ export default async function HomePage() {
                                 <Link key={i} href={item.href} style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
                                     padding: '11px 14px', borderRadius: 10, background: '#ffffff',
-                                    border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none',
-                                    fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.75)',
+                                    border: '1px solid rgba(0,0,0,0.07)', textDecoration: 'none',
+                                    fontSize: '0.82rem', fontWeight: 600, color: 'rgba(15,23,42,0.75)',
                                 }}>
                                     <item.Icon size={16} style={{ color: GREEN, flexShrink: 0 }} />
                                     {item.label}

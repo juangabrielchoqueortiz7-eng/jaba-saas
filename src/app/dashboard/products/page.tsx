@@ -133,7 +133,7 @@ export default function ProductsPage() {
     ]
 
     return (
-        <div className="p-8 max-w-7xl mx-auto text-[#0F172A]">
+        <div className="p-8 max-w-7xl mx-auto text-[#0F172A] animate-fade-in">
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Productos y Servicios</h1>
