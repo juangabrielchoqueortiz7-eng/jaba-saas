@@ -83,7 +83,8 @@ export async function getTrigger(id: string) {
         .select(`
             *,
             trigger_actions (*),
-            trigger_conditions (*)
+            trigger_conditions (*),
+            trigger_condition_groups (id, operator, group_order, conditions:trigger_conditions(*))
         `)
         .eq('id', id)
         .eq('user_id', user.id)
@@ -98,18 +99,30 @@ export async function getTrigger(id: string) {
     if (data.trigger_actions) {
         data.trigger_actions.sort((a: any, b: any) => a.action_order - b.action_order)
     }
+
+    // If we have condition groups, flatten conditions from the first group and expose conditionsLogic
+    if ((data as any).trigger_condition_groups?.length > 0) {
+        const group = (data as any).trigger_condition_groups[0]
+        ;(data as any).conditions_logic = group.operator || 'AND'
+        // Prefer conditions from groups
+        if (group.conditions?.length > 0) {
+            ;(data as any).trigger_conditions = group.conditions
+        }
+    }
+
     return data
 }
 
 export async function saveTrigger(
-    assistantId: string, // Not used in DB but useful for revalidation path if needed context
+    assistantId: string,
     triggerData: {
         id?: string,
         name: string,
         type: 'logic' | 'flow' | 'time' | 'manual' | 'scheduled',
         description: string,
-        actions: { type: string, payload: any }[],
-        conditions?: { type: string, operator: string, value: string }[]
+        actions: { type: string, payload: any, action_order?: number, delay_seconds?: number }[],
+        conditions?: { type: string, condition_type?: string, operator: string, value: string, payload?: any }[],
+        conditionsLogic?: 'AND' | 'OR',
     }
 ) {
     const supabase = await createClient()
@@ -120,7 +133,6 @@ export async function saveTrigger(
 
     // 1. Upsert Trigger
     if (triggerId) {
-        // Update
         const { error } = await supabase
             .from('triggers')
             .update({
@@ -133,7 +145,6 @@ export async function saveTrigger(
             .eq('user_id', user.id)
         if (error) throw error
     } else {
-        // Insert
         const { data, error } = await supabase
             .from('triggers')
             .insert({
@@ -150,19 +161,16 @@ export async function saveTrigger(
 
     if (!triggerId) throw new Error('Failed to save trigger')
 
-    // 2. Manage Actions (Full replacement strategy for simplicity)
-    // First delete existing actions if updating
-    if (triggerData.id) {
-        await supabase.from('trigger_actions').delete().eq('trigger_id', triggerId)
-    }
+    // 2. Manage Actions (full replacement)
+    await supabase.from('trigger_actions').delete().eq('trigger_id', triggerId)
 
-    // Then insert new ones
     if (triggerData.actions.length > 0) {
         const actionsToInsert = triggerData.actions.map((action, index) => ({
             trigger_id: triggerId,
             type: action.type,
             payload: action.payload,
-            action_order: index
+            action_order: action.action_order ?? index,
+            delay_seconds: action.delay_seconds ?? 0,
         }))
 
         const { error: actionsError } = await supabase
@@ -170,27 +178,63 @@ export async function saveTrigger(
             .insert(actionsToInsert)
 
         if (actionsError) throw actionsError
-        if (actionsError) throw actionsError
     }
 
-    // 3. Manage Conditions
-    if (triggerData.id) {
-        await supabase.from('trigger_conditions').delete().eq('trigger_id', triggerId)
+    // 3. Manage Conditions (full replacement)
+    // Delete legacy conditions
+    await supabase.from('trigger_conditions').delete().eq('trigger_id', triggerId)
+
+    // Delete existing condition groups (and their cascaded conditions)
+    const { data: existingGroups } = await supabase
+        .from('trigger_condition_groups')
+        .select('id')
+        .eq('trigger_id', triggerId)
+
+    if (existingGroups?.length) {
+        const groupIds = existingGroups.map((g: any) => g.id)
+        // Delete conditions linked to these groups first
+        await supabase.from('trigger_conditions').delete().in('group_id', groupIds)
+        await supabase.from('trigger_condition_groups').delete().eq('trigger_id', triggerId)
     }
 
     if (triggerData.conditions && triggerData.conditions.length > 0) {
-        const conditionsToInsert = triggerData.conditions.map((cond, index) => ({
-            trigger_id: triggerId,
-            type: cond.type,
-            operator: cond.operator,
-            value: cond.value
-        }))
+        const logic = triggerData.conditionsLogic || 'AND'
 
-        const { error: condError } = await supabase
-            .from('trigger_conditions')
-            .insert(conditionsToInsert)
+        // Try new group-based system first
+        const { data: groupData, error: groupError } = await supabase
+            .from('trigger_condition_groups')
+            .insert({
+                trigger_id: triggerId,
+                operator: logic,
+                group_order: 0,
+            })
+            .select()
+            .single()
 
-        if (condError) throw condError
+        if (!groupError && groupData) {
+            // Insert conditions linked to group
+            const conditionsToInsert = triggerData.conditions.map((cond) => ({
+                trigger_id: triggerId,
+                group_id: groupData.id,
+                type: cond.condition_type || cond.type,
+                condition_type: cond.condition_type || cond.type,
+                operator: cond.operator,
+                value: cond.value,
+                payload: cond.payload || {},
+            }))
+            await supabase.from('trigger_conditions').insert(conditionsToInsert)
+        } else {
+            // Fallback: insert legacy conditions (no group)
+            const conditionsToInsert = triggerData.conditions.map((cond) => ({
+                trigger_id: triggerId,
+                type: cond.condition_type || cond.type,
+                condition_type: cond.condition_type || cond.type,
+                operator: cond.operator,
+                value: cond.value,
+                payload: cond.payload || {},
+            }))
+            await supabase.from('trigger_conditions').insert(conditionsToInsert)
+        }
     }
 
     revalidatePath(`/dashboard/assistants/${assistantId}/triggers`)

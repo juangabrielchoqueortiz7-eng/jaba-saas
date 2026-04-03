@@ -18,6 +18,7 @@ interface MetaTemplate {
 interface BroadcastModalProps {
     metaTemplates: MetaTemplate[]
     onClose: () => void
+    inline?: boolean
 }
 
 type AudienceType = 'service' | 'tag' | 'all'
@@ -35,7 +36,7 @@ function getBodyText(components: MetaTemplate['components']): string {
 
 type SendResult = { sent: number; failed: number; total: number; errors: string[] }
 
-export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModalProps) {
+export default function BroadcastModal({ metaTemplates, onClose, inline = false }: BroadcastModalProps) {
     const approved = metaTemplates.filter(t => t.status === 'APPROVED')
 
     const [templateName, setTemplateName] = useState('')
@@ -113,14 +114,12 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
         }
     }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
-
+    const content = (
+        <>
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-white/80">
+                <div className={`flex items-center justify-between p-5 border-b border-slate-200 ${inline ? 'bg-white rounded-t-2xl' : 'bg-white/80'}`}>
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
                             <Send size={18} />
                         </div>
                         <div>
@@ -128,9 +127,11 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                             <p className="text-xs text-slate-500">Envía una plantilla Meta a múltiples contactos a la vez</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors p-1">
-                        <X size={20} />
-                    </button>
+                    {!inline && (
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors p-1">
+                            <X size={20} />
+                        </button>
+                    )}
                 </div>
 
                 {/* ── STEP: CONFIG ── */}
@@ -141,7 +142,7 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                         <div className="space-y-2">
                             <Label className="text-[#0F172A] font-semibold">1. Plantilla Meta</Label>
                             {approved.length === 0 ? (
-                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-900/20 border border-amber-800/40 text-amber-400 text-xs">
+                                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
                                     <AlertTriangle size={14} className="shrink-0" />
                                     No tienes plantillas aprobadas en Meta. Crea una y espera su aprobación.
                                 </div>
@@ -247,16 +248,18 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                         </div>
 
                         {/* Advertencia */}
-                        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-900/15 border border-amber-800/30 text-xs text-amber-400">
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
                             <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                             <span>Este envío usa las plantillas aprobadas de Meta y funciona aunque el cliente no haya escrito en las últimas 24h. No se puede deshacer una vez iniciado.</span>
                         </div>
 
                         {/* Actions */}
                         <div className="flex justify-end gap-3 pt-2">
-                            <Button onClick={onClose} className="bg-transparent hover:bg-slate-100 text-slate-500">
-                                Cancelar
-                            </Button>
+                            {!inline && (
+                                <Button onClick={onClose} className="bg-transparent hover:bg-slate-100 text-slate-500">
+                                    Cancelar
+                                </Button>
+                            )}
                             <Button
                                 onClick={handlePreview}
                                 disabled={!templateName || loadingPreview || (audienceType === 'tag' && !audienceValue)}
@@ -369,12 +372,29 @@ export default function BroadcastModal({ metaTemplates, onClose }: BroadcastModa
                             <Button onClick={() => { setStep('config'); setResult(null); setTemplateName(''); }} className="bg-transparent hover:bg-slate-100 text-slate-500">
                                 Nuevo envío
                             </Button>
-                            <Button onClick={onClose} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                                Cerrar
-                            </Button>
+                            {!inline && (
+                                <Button onClick={onClose} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                                    Cerrar
+                                </Button>
+                            )}
                         </div>
                     </div>
                 )}
+        </>
+    )
+
+    if (inline) {
+        return (
+            <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                {content}
+            </div>
+        )
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+                {content}
             </div>
         </div>
     )

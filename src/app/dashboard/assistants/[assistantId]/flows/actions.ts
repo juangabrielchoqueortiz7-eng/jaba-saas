@@ -203,6 +203,66 @@ export async function saveFlowCanvas(
 }
 
 // ========================
+// CREATE FROM TEMPLATE
+// ========================
+
+export async function createFlowFromTemplate(
+    name: string,
+    description: string,
+    templateNodes: { type: string; label: string; position_x: number; position_y: number; config: any }[],
+    templateEdges: { sourceIndex: number; targetIndex: number; source_handle: string; label: string }[]
+): Promise<string | null> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data: flow, error: flowErr } = await supabase.from('conversation_flows').insert({
+        user_id: user.id,
+        name,
+        description,
+        is_active: false,
+        priority: 0
+    }).select().single()
+
+    if (flowErr || !flow) throw flowErr || new Error('Error creando flujo')
+
+    // Generate real UUIDs for each node
+    const nodeIds = templateNodes.map(() => crypto.randomUUID())
+
+    const nodes = templateNodes.map((n, i) => ({
+        id: nodeIds[i],
+        flow_id: flow.id,
+        type: n.type,
+        label: n.label,
+        position_x: n.position_x,
+        position_y: n.position_y,
+        config: n.config,
+    }))
+
+    if (nodes.length > 0) {
+        const { error } = await supabase.from('flow_nodes').insert(nodes)
+        if (error) throw error
+    }
+
+    const edges = templateEdges.map(e => ({
+        id: crypto.randomUUID(),
+        flow_id: flow.id,
+        source_node_id: nodeIds[e.sourceIndex],
+        target_node_id: nodeIds[e.targetIndex],
+        source_handle: e.source_handle,
+        label: e.label,
+    }))
+
+    if (edges.length > 0) {
+        const { error } = await supabase.from('flow_edges').insert(edges)
+        if (error) throw error
+    }
+
+    revalidatePath('/dashboard/assistants')
+    return flow.id
+}
+
+// ========================
 // SEED: FLUJO DE VENTAS
 // ========================
 

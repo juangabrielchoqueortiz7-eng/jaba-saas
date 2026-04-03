@@ -3,22 +3,22 @@
 import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight, ChevronDown, ChevronUp, HelpCircle, Zap, MessageSquare, ShoppingCart } from 'lucide-react'
-import { getFlows, createFlow, deleteFlow, updateFlow, seedSalesFlow, type ConversationFlow } from './actions'
+import { getFlows, deleteFlow, updateFlow, type ConversationFlow } from './actions'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import FlowTemplates from './FlowTemplates'
 
 export default function FlowsPage() {
     const params = useParams()
+    const router = useRouter()
     const assistantId = params.assistantId as string
     const [flows, setFlows] = useState<ConversationFlow[]>([])
     const [search, setSearch] = useState('')
-    const [isCreating, setIsCreating] = useState(false)
-    const [newFlowName, setNewFlowName] = useState('')
-    const [newFlowDesc, setNewFlowDesc] = useState('')
     const [isPending, startTransition] = useTransition()
     const [showHelp, setShowHelp] = useState(false)
+    const [showTemplates, setShowTemplates] = useState(false)
 
     useEffect(() => { loadFlows() }, [])
 
@@ -27,19 +27,8 @@ export default function FlowsPage() {
         setFlows(data)
     }
 
-    const handleCreate = async () => {
-        if (!newFlowName.trim()) return
-        startTransition(async () => {
-            await createFlow(newFlowName, newFlowDesc)
-            setNewFlowName('')
-            setNewFlowDesc('')
-            setIsCreating(false)
-            loadFlows()
-        })
-    }
-
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Eliminar este flujo? Se borrarán todos los nodos y conexiones.')) return
+        if (!confirm('Eliminar este flujo? Se borrarán todos los nodos y conexiones.')) return
         startTransition(async () => {
             await deleteFlow(id)
             loadFlows()
@@ -59,183 +48,148 @@ export default function FlowsPage() {
     )
 
     return (
-        <div className="space-y-6">
+        <div className="p-8 max-w-7xl mx-auto text-[#0F172A] space-y-6">
+            {/* Templates Modal */}
+            {showTemplates && (
+                <FlowTemplates
+                    assistantId={assistantId}
+                    onStartBlank={() => {
+                        setShowTemplates(false)
+                        router.push(`/dashboard/assistants/${assistantId}/flows/new`)
+                    }}
+                    onClose={() => setShowTemplates(false)}
+                />
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#0F172A' }}>
-                        Flujos Conversacionales
-                    </h1>
-                    <p style={{ color: 'rgba(15,23,42,0.45)', marginTop: 4 }}>
-                        Crea y gestiona flujos de conversación visuales para tu bot
-                    </p>
+                    <h1 className="text-3xl font-bold text-[#0F172A]">Flujos Conversacionales</h1>
+                    <p className="text-slate-400 text-sm mt-1">Crea y gestiona flujos de conversación visuales para tu bot</p>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    <Button
-                        onClick={async () => {
-                            startTransition(async () => {
-                                const flowId = await seedSalesFlow()
-                                if (flowId) loadFlows()
-                            })
-                        }}
-                        disabled={isPending}
-                        style={{ background: 'rgba(6,182,212,0.12)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.3)', borderRadius: 12, padding: '10px 16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.85rem' }}
-                    >
-                        🚀 Crear Flujo de Ventas
-                    </Button>
-                    <Button
-                        onClick={() => setIsCreating(true)}
-                        style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-                    >
-                        <Plus size={18} /> Nuevo Flujo
-                    </Button>
-                </div>
+                <Button
+                    onClick={() => setShowTemplates(true)}
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 rounded-xl px-5 py-2.5 font-semibold"
+                >
+                    <Plus size={18} /> Nuevo Flujo
+                </Button>
             </div>
 
             {/* Info Card */}
-            <div style={{ borderRadius: 14, border: '1px solid rgba(6,182,212,0.25)', background: 'rgba(6,182,212,0.04)', overflow: 'hidden' }}>
+            <div className="rounded-[14px] border border-cyan-500/25 bg-cyan-500/[0.04] overflow-hidden">
                 <button
                     onClick={() => setShowHelp(v => !v)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                    className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-none cursor-pointer text-left"
                 >
-                    <HelpCircle size={16} style={{ color: '#06b6d4', flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontWeight: 600, fontSize: '0.85rem', color: '#0F172A' }}>¿Qué son los Flujos? — Haz clic para aprender</span>
-                    {showHelp ? <ChevronUp size={16} style={{ color: '#06b6d4' }} /> : <ChevronDown size={16} style={{ color: '#06b6d4' }} />}
+                    <HelpCircle size={16} className="text-cyan-600 shrink-0" />
+                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son los Flujos? — Haz clic para aprender</span>
+                    {showHelp ? <ChevronUp size={16} className="text-cyan-600" /> : <ChevronDown size={16} className="text-cyan-600" />}
                 </button>
                 {showHelp && (
-                    <div style={{ padding: '0 18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <p style={{ fontSize: '0.83rem', color: 'rgba(15,23,42,0.65)', lineHeight: 1.6, marginTop: 0 }}>
+                    <div className="px-5 pb-5 space-y-4">
+                        <p className="text-sm text-[#0F172A]/65 leading-relaxed">
                             Los flujos son <strong>conversaciones guiadas paso a paso</strong> que tu bot sigue automáticamente.
                             Cuando un cliente escribe una palabra clave o selecciona una opción, el flujo se activa y
                             lo lleva por un camino definido: preguntas, respuestas, botones, acciones y más.
                         </p>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                        <div className="grid grid-cols-3 gap-3">
                             {[
                                 { icon: <ShoppingCart size={18} />, title: 'Flujo de Ventas', desc: 'Guía al cliente desde el interés hasta la compra automáticamente.' },
                                 { icon: <MessageSquare size={18} />, title: 'Flujo de Soporte', desc: 'Responde preguntas frecuentes y escala solo si es necesario.' },
                                 { icon: <Zap size={18} />, title: 'Flujo de Renovación', desc: 'Recuerda al cliente su vencimiento y facilita el pago.' },
                             ].map((item, i) => (
-                                <div key={i} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 10, padding: '12px 14px' }}>
-                                    <div style={{ color: '#06b6d4', marginBottom: 6 }}>{item.icon}</div>
-                                    <p style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0F172A', marginBottom: 4 }}>{item.title}</p>
-                                    <p style={{ fontSize: '0.72rem', color: 'rgba(15,23,42,0.50)', lineHeight: 1.5 }}>{item.desc}</p>
+                                <div key={i} className="bg-white border border-black/[0.07] rounded-xl p-3">
+                                    <div className="text-cyan-600 mb-2">{item.icon}</div>
+                                    <p className="font-bold text-xs text-[#0F172A] mb-1">{item.title}</p>
+                                    <p className="text-[11px] text-[#0F172A]/50 leading-relaxed">{item.desc}</p>
                                 </div>
                             ))}
                         </div>
-                        <div style={{ background: 'rgba(6,182,212,0.08)', borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: 'rgba(15,23,42,0.65)' }}>
-                            <strong>💡 Diferencia con Disparadores:</strong> Los Disparadores ejecutan una acción puntual (enviar un mensaje, cambiar estado).
-                            Los Flujos crean conversaciones completas con múltiples pasos y bifurcaciones.
+                        <div className="bg-cyan-500/[0.08] rounded-lg px-4 py-3 text-xs text-[#0F172A]/65">
+                            <strong>Diferencia con Disparadores:</strong> Los Disparadores ejecutan una acción puntual (enviar un mensaje, cambiar estado).
+                            Los Flujos crean conversaciones completas con múltiples pasos y bifurcaciones. Puedes vincular un disparador para que inicie un flujo.
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Search */}
-            <div style={{ position: 'relative' }}>
-                <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+            <div className="relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <Input
                     placeholder="Buscar flujos..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    style={{ paddingLeft: 40, background: '#ffffff', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, color: '#0F172A' }}
+                    className="pl-10 bg-white border-black/[0.08] rounded-xl text-[#0F172A]"
                 />
             </div>
 
-            {/* Create Form */}
-            {isCreating && (
-                <Card style={{ background: '#ffffff', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 16 }}>
-                    <CardContent style={{ padding: 24 }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <Input
-                                placeholder="Nombre del flujo (ej: Bienvenida, Renovación)"
-                                value={newFlowName}
-                                onChange={e => setNewFlowName(e.target.value)}
-                                style={{ background: '#F7F8FA', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10, color: '#0F172A' }}
-                            />
-                            <Input
-                                placeholder="Descripción (opcional)"
-                                value={newFlowDesc}
-                                onChange={e => setNewFlowDesc(e.target.value)}
-                                style={{ background: '#F7F8FA', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10, color: '#0F172A' }}
-                            />
-                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                    <Button
-                                        onClick={() => setIsCreating(false)}
-                                        style={{ borderRadius: 10, borderColor: 'rgba(0,0,0,0.08)', color: '#94a3b8', background: 'transparent' }}>
-                                    Cancelar
-                                </Button>
-                                <Button onClick={handleCreate} disabled={isPending || !newFlowName.trim()}
-                                    style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600 }}>
-                                    {isPending ? 'Creando...' : 'Crear Flujo'}
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
             {/* Flows List */}
             {filtered.length === 0 ? (
-                <Card style={{ background: '#F7F8FA', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, textAlign: 'center', padding: '48px 24px' }}>
-                    <GitBranch size={48} style={{ color: '#4b5563', margin: '0 auto 16px' }} />
-                    <p style={{ color: '#64748b', fontSize: '1.1rem' }}>No hay flujos creados</p>
-                    <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: 4 }}>Crea tu primer flujo conversacional para automatizar las respuestas de tu bot</p>
-                </Card>
+                <div className="bg-[#F7F8FA] border border-black/[0.08] rounded-2xl text-center py-12 px-6">
+                    <GitBranch size={48} className="text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 text-lg">No hay flujos creados</p>
+                    <p className="text-slate-400 text-sm mt-1 mb-5">Crea tu primer flujo conversacional para automatizar las respuestas de tu bot</p>
+                    <Button
+                        onClick={() => setShowTemplates(true)}
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 rounded-xl px-6 py-2.5 font-semibold mx-auto"
+                    >
+                        <Plus size={18} /> Crear mi primer flujo
+                    </Button>
+                </div>
             ) : (
-                <div style={{ display: 'grid', gap: 16 }}>
+                <div className="grid gap-4">
                     {filtered.map(flow => (
-                        <Card key={flow.id} style={{
-                            background: '#ffffff',
-                            border: flow.is_active ? '1px solid rgba(37,211,102,0.4)' : '1px solid rgba(0,0,0,0.08)',
-                            borderRadius: 16,
-                            transition: 'all 0.2s',
-                            cursor: 'default'
-                        }}>
-                            <CardContent style={{ padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
-                                    <div style={{
-                                        width: 48, height: 48, borderRadius: 12,
-                                        background: flow.is_active ? 'rgba(6,182,212,0.12)' : 'rgba(100,116,139,0.15)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        border: flow.is_active ? '1px solid rgba(6,182,212,0.3)' : '1px solid rgba(0,0,0,0.08)'
-                                    }}>
-                                        <GitBranch size={22} style={{ color: flow.is_active ? '#22c55e' : '#64748b' }} />
+                        <Card
+                            key={flow.id}
+                            className={`bg-white rounded-2xl transition-all ${
+                                flow.is_active
+                                    ? 'border-green-400/40'
+                                    : 'border-black/[0.08]'
+                            }`}
+                        >
+                            <CardContent className="p-5 flex items-center justify-between">
+                                <div className="flex items-center gap-4 flex-1">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${
+                                        flow.is_active
+                                            ? 'bg-cyan-500/10 border-cyan-500/30'
+                                            : 'bg-slate-100 border-black/[0.08]'
+                                    }`}>
+                                        <GitBranch size={22} className={flow.is_active ? 'text-green-500' : 'text-slate-400'} />
                                     </div>
                                     <div>
-                                        <h3 style={{ fontWeight: 600, color: '#0F172A', fontSize: '1.05rem' }}>{flow.name}</h3>
-                                        {flow.description && <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: 2 }}>{flow.description}</p>}
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
-                                            <span style={{
-                                                fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                                                background: flow.is_active ? 'rgba(6,182,212,0.12)' : 'rgba(100,116,139,0.15)',
-                                                color: flow.is_active ? '#22c55e' : '#64748b',
-                                                border: flow.is_active ? '1px solid rgba(6,182,212,0.2)' : '1px solid rgba(0,0,0,0.08)'
-                                            }}>
-                                                {flow.is_active ? '● Activo' : '○ Inactivo'}
+                                        <h3 className="font-semibold text-[#0F172A] text-base">{flow.name}</h3>
+                                        {flow.description && <p className="text-slate-400 text-sm mt-0.5">{flow.description}</p>}
+                                        <div className="flex gap-2 items-center mt-1.5">
+                                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
+                                                flow.is_active
+                                                    ? 'bg-green-50 text-green-600 border-green-200'
+                                                    : 'bg-slate-50 text-slate-400 border-black/[0.06]'
+                                            }`}>
+                                                {flow.is_active ? 'Activo' : 'Inactivo'}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <div className="flex gap-2 items-center">
                                     <Button
                                         onClick={() => handleToggleActive(flow)}
                                         title={flow.is_active ? 'Desactivar' : 'Activar'}
-                                        style={{ borderRadius: 10, padding: '8px', color: flow.is_active ? '#22c55e' : '#64748b', background: 'transparent' }}
+                                        className={`h-9 w-9 p-0 bg-transparent ${flow.is_active ? 'text-green-500 hover:bg-green-50' : 'text-slate-400 hover:bg-slate-100'}`}
                                     >
                                         {flow.is_active ? <Power size={18} /> : <PowerOff size={18} />}
                                     </Button>
 
                                     <Link href={`/dashboard/assistants/${assistantId}/flows/${flow.id}`}>
-                                        <Button
-                                            style={{ borderRadius: 10, padding: '8px 16px', color: '#25D366', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', background: 'transparent' }}>
+                                        <Button className="bg-transparent text-cyan-600 hover:bg-cyan-50 gap-1.5 text-sm rounded-xl px-3">
                                             Editar <ArrowRight size={14} />
                                         </Button>
                                     </Link>
 
                                     <Button
                                         onClick={() => handleDelete(flow.id)}
-                                        style={{ borderRadius: 10, padding: '8px', color: '#ef4444', background: 'transparent' }}
+                                        className="h-9 w-9 p-0 bg-transparent text-red-400 hover:text-red-600 hover:bg-red-50"
                                     >
                                         <Trash2 size={18} />
                                     </Button>
