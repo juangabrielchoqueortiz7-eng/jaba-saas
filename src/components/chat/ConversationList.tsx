@@ -129,11 +129,11 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
 
     return (
         <div className="w-full border-r border-black/[0.08] bg-white flex flex-col h-full">
-            {/* Header */}
-            <div className="p-4 border-b border-black/[0.08] bg-[#F7F8FA]">
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-bold text-[#0F172A]">Chats</h2>
-                    <button className="bg-[#25D366] hover:bg-[#128C7E] text-white p-2 rounded-full transition-colors">
+            {/* Header — WhatsApp style */}
+            <div className="border-b border-black/[0.08]" style={{ background: '#F0F2F5' }}>
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                    <h2 className="text-[17px] font-bold text-[#111B21]">Chats</h2>
+                    <button className="bg-[#25D366] hover:bg-[#128C7E] text-white p-2 rounded-full transition-colors shadow-sm">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
@@ -164,13 +164,13 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
 
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0F172A]/30" size={15} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#111B21]/35" size={15} />
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-white border border-black/[0.08] rounded-xl py-2 pl-9 pr-4 text-sm text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-[#25D366] transition-all placeholder:text-[#0F172A]/30"
-                            placeholder="Buscar chats..."
+                            className="w-full bg-white rounded-full py-2 pl-9 pr-4 text-sm text-[#111B21] focus:outline-none focus:ring-1 focus:ring-[#25D366]/50 transition-all placeholder:text-[#111B21]/35 border-0 shadow-sm"
+                            placeholder="Buscar o empezar un chat..."
                         />
                     </div>
                     <div className="relative">
@@ -298,38 +298,49 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                             setContextMenu({ chatId: chat.id, x: e.clientX, y: e.clientY, archived: !!chat.archived })
                         }}
                         className={cn(
-                            "px-4 py-3 cursor-pointer border-b border-black/[0.04] transition-colors hover:bg-black/[0.03]",
-                            activeChatId === chat.id && "bg-[#F0FDF4]"
+                            "px-4 py-3 cursor-pointer transition-colors relative",
+                            activeChatId === chat.id
+                                ? "bg-[#F0F2F5]"
+                                : "hover:bg-[#F5F6F6]"
                         )}
+                        style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}
                     >
+                        {/* Active indicator */}
+                        {activeChatId === chat.id && (
+                            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#25D366] rounded-r-full" />
+                        )}
+
                         <div className="flex gap-3">
-                            {/* Avatar */}
-                            <div className="w-11 h-11 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold shrink-0 text-base">
-                                {chat.contact_name ? chat.contact_name.charAt(0).toUpperCase() : '#'}
+                            {/* Avatar — gradient like WA */}
+                            <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-base shadow-sm"
+                                style={{ background: avatarColor(chat.contact_name || chat.phone_number) }}
+                            >
+                                {(chat.contact_name || chat.phone_number || '#').charAt(0).toUpperCase()}
                             </div>
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-start mb-0.5">
-                                    <h3 className="font-semibold text-[#0F172A] truncate text-[14px]">
+                                <div className="flex justify-between items-baseline mb-0.5">
+                                    <h3 className="font-semibold text-[#111B21] truncate text-[15px]">
                                         {chat.contact_name || chat.phone_number}
                                     </h3>
                                     <span className={cn(
-                                        "text-[11px] whitespace-nowrap ml-2",
-                                        chat.unread_count > 0 ? "text-[#25D366]" : "text-[#0F172A]/30"
+                                        "text-[12px] whitespace-nowrap ml-2 shrink-0",
+                                        chat.unread_count > 0 ? "text-[#25D366] font-semibold" : "text-[#111B21]/40"
                                     )}>
                                         {formatChatListTime(chat.last_message_time)}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     {getStatusIcon(chat.last_message_status)}
-                                    <p className="text-[13px] text-[#0F172A]/55 truncate">{chat.last_message}</p>
+                                    <p className="text-[13px] text-[#111B21]/50 truncate">{chat.last_message || '\u00A0'}</p>
                                 </div>
 
                                 {/* CRM Tags */}
                                 {chat.tags && chat.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-1.5">
-                                        {chat.tags.slice(0, 3).map(tag => {
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {chat.tags.slice(0, 2).map(tag => {
                                             const tagConfig = CRM_TAGS[tag]
                                             if (!tagConfig) return null
                                             return (
@@ -345,8 +356,8 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                                                 </span>
                                             )
                                         })}
-                                        {chat.tags.length > 3 && (
-                                            <span className="text-[10px] text-[#0F172A]/30">+{chat.tags.length - 3}</span>
+                                        {chat.tags.length > 2 && (
+                                            <span className="text-[10px] text-[#111B21]/30">+{chat.tags.length - 2}</span>
                                         )}
                                     </div>
                                 )}
@@ -354,9 +365,9 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
 
                             {/* Unread badge */}
                             {chat.unread_count > 0 && (
-                                <div className="flex flex-col justify-center">
-                                    <div className="min-w-5 h-5 px-1 bg-[#25D366] rounded-full flex items-center justify-center text-[11px] font-bold text-white">
-                                        {chat.unread_count}
+                                <div className="flex flex-col items-center justify-center gap-1 shrink-0">
+                                    <div className="min-w-[20px] h-5 px-1.5 bg-[#25D366] rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-sm">
+                                        {chat.unread_count > 99 ? '99+' : chat.unread_count}
                                     </div>
                                 </div>
                             )}
@@ -366,4 +377,21 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
             </div>
         </div>
     )
+}
+
+// Deterministic avatar color based on name/phone
+function avatarColor(name: string): string {
+    const colors = [
+        'linear-gradient(135deg,#f97316,#ea580c)',
+        'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+        'linear-gradient(135deg,#06b6d4,#0891b2)',
+        'linear-gradient(135deg,#10b981,#059669)',
+        'linear-gradient(135deg,#f59e0b,#d97706)',
+        'linear-gradient(135deg,#ef4444,#dc2626)',
+        'linear-gradient(135deg,#ec4899,#db2777)',
+        'linear-gradient(135deg,#3b82f6,#2563eb)',
+    ]
+    let hash = 0
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+    return colors[Math.abs(hash) % colors.length]
 }

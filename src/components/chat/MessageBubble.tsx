@@ -1,17 +1,18 @@
 
 import { cn } from '@/lib/utils'
-import { Check, CheckCheck, Image as ImageIcon, FileText, Play, Mic, Trash2 } from 'lucide-react'
+import { Check, CheckCheck, Image as ImageIcon, FileText, Play, Mic, Trash2, AlertCircle, RotateCcw } from 'lucide-react'
 import { useState, useRef } from 'react'
 
 interface MessageBubbleProps {
     content: string
     isMine: boolean
     timestamp: string
-    status?: 'sent' | 'delivered' | 'read'
+    status?: 'sent' | 'delivered' | 'read' | 'failed'
     mediaUrl?: string | null
     mediaType?: string | null
     onImageClick?: (url: string) => void
     onDelete?: () => void
+    onRetry?: () => void
     searchHighlight?: string
 }
 
@@ -27,10 +28,6 @@ function parsePlanLines(content: string): string[] {
         .map(line => line.replace('• ', '').trim())
 }
 
-function isReminderTemplateMessage(content: string) {
-    return content?.includes('[Template: recordatorio_renovacion_v1')
-}
-
 function highlightText(text: string, highlight: string) {
     if (!highlight) return <>{text}</>
     const parts = text.split(new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
@@ -38,14 +35,41 @@ function highlightText(text: string, highlight: string) {
         <>
             {parts.map((part, i) =>
                 part.toLowerCase() === highlight.toLowerCase()
-                    ? <mark key={i} className="bg-[#25D366]/30 text-[#0F172A] rounded-sm px-0.5">{part}</mark>
+                    ? <mark key={i} className="bg-yellow-200 text-[#111B21] rounded-sm px-0.5">{part}</mark>
                     : part
             )}
         </>
     )
 }
 
-export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType, onImageClick, onDelete, searchHighlight }: MessageBubbleProps) {
+// Parse WhatsApp-style formatting: *bold*, _italic_, ~strikethrough~
+function parseWhatsAppFormatting(text: string) {
+    const parts: React.ReactNode[] = []
+    const regex = /(\*[^*]+\*|_[^_]+_|~[^~]+~|`[^`]+`)/g
+    let lastIdx = 0
+    let match
+
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+            parts.push(text.slice(lastIdx, match.index))
+        }
+        const raw = match[0]
+        if (raw.startsWith('*') && raw.endsWith('*')) {
+            parts.push(<strong key={match.index} className="font-semibold">{raw.slice(1, -1)}</strong>)
+        } else if (raw.startsWith('_') && raw.endsWith('_')) {
+            parts.push(<em key={match.index}>{raw.slice(1, -1)}</em>)
+        } else if (raw.startsWith('~') && raw.endsWith('~')) {
+            parts.push(<s key={match.index}>{raw.slice(1, -1)}</s>)
+        } else if (raw.startsWith('`') && raw.endsWith('`')) {
+            parts.push(<code key={match.index} className="bg-black/[0.08] rounded px-1 text-[12px] font-mono">{raw.slice(1, -1)}</code>)
+        }
+        lastIdx = match.index + raw.length
+    }
+    if (lastIdx < text.length) parts.push(text.slice(lastIdx))
+    return parts.length > 0 ? <>{parts}</> : <>{text}</>
+}
+
+export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType, onImageClick, onDelete, onRetry, searchHighlight }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false)
     const [imageLoaded, setImageLoaded] = useState(false)
     const [showMenu, setShowMenu] = useState(false)
@@ -53,37 +77,37 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
     const [isPlaying, setIsPlaying] = useState(false)
 
     const detectedType = mediaType || (mediaUrl ? detectMediaType(mediaUrl, content) : null)
+    const isFailed = status === 'failed'
 
     // === PLAN LIST CARD ===
     if (isPlanListMessage(content)) {
         const plans = parsePlanLines(content)
         return (
-            <div className={cn('flex w-full mb-2 group relative', isMine ? 'justify-end' : 'justify-start')}>
+            <div className={cn('flex w-full mb-1.5 group relative', isMine ? 'justify-end' : 'justify-start')}>
                 <div className={cn(
-                    'rounded-xl overflow-hidden border',
-                    isMine
-                        ? 'bg-[#F0FDF4] border-l-2 border-l-[#25D366] border-black/[0.06]'
-                        : 'bg-white border-black/[0.08]'
+                    'rounded-2xl overflow-hidden shadow-sm',
+                    isMine ? 'bg-[#DCF8C6] rounded-tr-sm' : 'bg-white rounded-tl-sm'
                 )} style={{ minWidth: 220, maxWidth: '65%' }}>
                     <div className="px-3 pt-2.5 pb-1">
                         <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-[#25D366] text-xs font-bold uppercase tracking-wide">📋 Lista de Planes Enviada</span>
+                            <span className="text-[#075E54] text-xs font-bold uppercase tracking-wide">📋 Lista de Planes Enviada</span>
                         </div>
                         <div className="space-y-1">
                             {plans.map((plan, i) => {
                                 const [namePart, pricePart] = plan.split(' — ')
                                 return (
-                                    <div key={i} className="flex items-center justify-between bg-white/[0.04] rounded-lg px-2 py-1.5">
-                                        <span className="text-[#0F172A] text-xs font-medium truncate flex-1">{namePart}</span>
+                                    <div key={i} className="flex items-center justify-between bg-black/[0.04] rounded-lg px-2 py-1.5">
+                                        <span className="text-[#111B21] text-xs font-medium truncate flex-1">{namePart}</span>
                                         {pricePart && <span className="text-[#25D366] text-xs font-bold ml-2 shrink-0">{pricePart.split(' ·')[0]}</span>}
                                     </div>
                                 )
                             })}
                         </div>
-                        <p className="text-[10px] text-[#0F172A]/40 mt-2">👆 El cliente lo recibió como botones interactivos</p>
+                        <p className="text-[10px] text-[#111B21]/40 mt-2">👆 El cliente lo recibió como botones interactivos</p>
                     </div>
-                    <div className="px-2 pb-1 flex justify-end">
-                        <span className="text-[10px] text-[#0F172A]/30">{timestamp}</span>
+                    <div className="px-3 pb-1.5 flex items-center justify-end gap-1">
+                        <span className="text-[11px] text-[#111B21]/45">{timestamp}</span>
+                        {isMine && <StatusIcon status={status} />}
                     </div>
                 </div>
             </div>
@@ -92,54 +116,70 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
     const toggleAudio = () => {
         if (!audioRef.current) return
-        if (audioRef.current.paused) {
-            audioRef.current.play()
-            setIsPlaying(true)
-        } else {
-            audioRef.current.pause()
-            setIsPlaying(false)
-        }
+        if (audioRef.current.paused) { audioRef.current.play(); setIsPlaying(true) }
+        else { audioRef.current.pause(); setIsPlaying(false) }
     }
 
     return (
         <div
-            className={cn("flex w-full mb-0.5 group relative", isMine ? "justify-end" : "justify-start")}
+            className={cn("flex w-full mb-0.5 group relative items-end", isMine ? "justify-end" : "justify-start")}
             onMouseLeave={() => setShowMenu(false)}
         >
             {/* Context menu (delete) */}
             {isMine && onDelete && showMenu && (
                 <button
-                    onClick={() => { onDelete(); setShowMenu(false); }}
-                    className="absolute right-[calc(65%+8px)] top-1 z-10 bg-white text-[#0F172A]/55 hover:text-red-400 border border-black/[0.08] rounded-lg px-2 py-1 text-xs flex items-center gap-1 shadow-lg transition-colors"
+                    onClick={() => { onDelete(); setShowMenu(false) }}
+                    className="absolute right-[calc(65%+10px)] top-1 z-10 bg-white text-[#111B21]/55 hover:text-red-500 border border-black/[0.1] rounded-xl px-2.5 py-1.5 text-xs flex items-center gap-1.5 shadow-lg transition-colors"
                 >
-                    <Trash2 size={12} />
+                    <Trash2 size={11} />
                     Eliminar
                 </button>
             )}
 
+            {/* Bubble */}
             <div
                 className={cn(
-                    "max-w-[65%] rounded-xl shadow-sm overflow-hidden relative border",
+                    "max-w-[65%] relative overflow-visible",
+                    isMine ? "rounded-2xl rounded-tr-sm" : "rounded-2xl rounded-tl-sm",
                     isMine
-                        ? "bg-[#F0FDF4] border-l-2 border-l-[#25D366] border-black/[0.06]"
-                        : "bg-white border-black/[0.08]",
+                        ? isFailed ? "bg-red-50 shadow-sm" : "bg-[#DCF8C6] shadow-sm"
+                        : "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.13)]",
                     mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-2"
                 )}
                 onMouseEnter={() => isMine && setShowMenu(true)}
             >
+                {/* Bubble tail */}
+                {isMine ? (
+                    <div
+                        className="absolute top-0 -right-[7px] w-0 h-0"
+                        style={{
+                            borderTop: `8px solid ${isFailed ? '#fef2f2' : '#DCF8C6'}`,
+                            borderLeft: '8px solid transparent',
+                        }}
+                    />
+                ) : (
+                    <div
+                        className="absolute top-0 -left-[7px] w-0 h-0"
+                        style={{
+                            borderTop: '8px solid white',
+                            borderRight: '8px solid transparent',
+                        }}
+                    />
+                )}
+
                 {/* === IMAGE === */}
                 {mediaUrl && detectedType === 'image' && !imageError && (
-                    <div className="relative">
+                    <div className="relative rounded-t-xl overflow-hidden">
                         {!imageLoaded && (
-                            <div className="flex items-center justify-center w-full h-48 bg-black">
-                                <ImageIcon size={32} className="text-[#0F172A]/30 animate-pulse" />
+                            <div className="flex items-center justify-center w-full h-48 bg-black/[0.05]">
+                                <ImageIcon size={28} className="text-[#111B21]/20 animate-pulse" />
                             </div>
                         )}
                         <img
                             src={mediaUrl}
                             alt="Imagen"
                             className={cn(
-                                "max-w-full max-h-[400px] object-contain cursor-pointer hover:opacity-90 transition-opacity",
+                                "max-w-full max-h-[400px] object-contain cursor-pointer hover:opacity-95 transition-opacity",
                                 !imageLoaded && "hidden"
                             )}
                             onLoad={() => setImageLoaded(true)}
@@ -151,7 +191,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
                 {/* === IMAGE FALLBACK === */}
                 {mediaUrl && detectedType === 'image' && imageError && (
-                    <div className="flex items-center gap-2 px-3 py-3 text-[#0F172A]/40">
+                    <div className="flex items-center gap-2 px-3 py-3 text-[#111B21]/40">
                         <ImageIcon size={18} />
                         <span className="text-xs">Imagen no disponible</span>
                     </div>
@@ -159,53 +199,55 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
 
                 {/* === AUDIO === */}
                 {mediaUrl && detectedType === 'audio' && (
-                    <div className="flex items-center gap-3 min-w-[220px] px-3 py-2">
-                        <button
-                            onClick={toggleAudio}
-                            className={cn(
-                                "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                                isMine ? "bg-[#25D366] hover:bg-[#1fad52]" : "bg-black/[0.06] hover:bg-black/[0.10]"
-                            )}
-                        >
-                            {isPlaying ? (
-                                <span className="flex gap-0.5">
-                                    <span className="w-1 h-4 bg-black rounded-sm" />
-                                    <span className="w-1 h-4 bg-black rounded-sm" />
-                                </span>
-                            ) : (
-                                <Play size={16} className={cn("ml-0.5", isMine ? "text-black" : "text-[#0F172A]")} />
-                            )}
-                        </button>
+                    <div className="flex items-center gap-3 min-w-[220px] px-3 py-2.5">
+                        {/* Avatar circle */}
+                        <div className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                            isMine ? "bg-[#25D366]/20" : "bg-[#111B21]/08"
+                        )}>
+                            <Mic size={16} className={isMine ? "text-[#25D366]" : "text-[#111B21]/50"} />
+                        </div>
                         <div className="flex-1 min-w-0">
-                            <audio
-                                ref={audioRef}
-                                src={mediaUrl}
-                                onEnded={() => setIsPlaying(false)}
-                                className="hidden"
-                            />
-                            <div className="flex items-center gap-0.5 h-6">
-                                {Array.from({ length: 30 }).map((_, i) => (
+                            <audio ref={audioRef} src={mediaUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
+                            {/* Waveform */}
+                            <div className="flex items-center gap-0.5 h-8 mb-0.5">
+                                {Array.from({ length: 32 }).map((_, i) => (
                                     <div
                                         key={i}
-                                        className={cn("rounded-full w-0.5", isMine ? "bg-[#25D366]/50" : "bg-[#0F172A]/20")}
+                                        className={cn(
+                                            "rounded-full w-[2px] transition-all",
+                                            isPlaying
+                                                ? (i % 3 === 0 ? "bg-[#25D366]" : "bg-[#25D366]/50")
+                                                : (isMine ? "bg-[#075E54]/30" : "bg-[#111B21]/20")
+                                        )}
                                         style={{ height: `${6 + Math.sin(i * 0.7) * 6 + Math.cos(i * 1.3) * 3}px` }}
                                     />
                                 ))}
                             </div>
                         </div>
-                        <Mic size={12} className="flex-shrink-0 text-[#0F172A]/30" />
+                        <button
+                            onClick={toggleAudio}
+                            className={cn(
+                                "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
+                                isMine ? "bg-[#075E54] hover:bg-[#054d3f]" : "bg-[#25D366] hover:bg-[#1fad52]"
+                            )}
+                        >
+                            {isPlaying ? (
+                                <span className="flex gap-0.5">
+                                    <span className="w-[3px] h-4 bg-white rounded-sm" />
+                                    <span className="w-[3px] h-4 bg-white rounded-sm" />
+                                </span>
+                            ) : (
+                                <Play size={16} className="text-white ml-0.5" />
+                            )}
+                        </button>
                     </div>
                 )}
 
                 {/* === VIDEO === */}
                 {mediaUrl && detectedType === 'video' && (
-                    <div className="relative">
-                        <video
-                            src={mediaUrl}
-                            controls
-                            className="max-w-full max-h-[400px] rounded-xl"
-                            preload="metadata"
-                        />
+                    <div className="relative rounded-t-xl overflow-hidden">
+                        <video src={mediaUrl} controls className="max-w-full max-h-[400px]" preload="metadata" />
                     </div>
                 )}
 
@@ -215,17 +257,17 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                         href={mediaUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/[0.04] transition-colors"
+                        className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] transition-colors rounded-2xl"
                     >
                         <div className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center",
-                            isMine ? "bg-[#25D366]" : "bg-black/[0.06]"
+                            "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                            isMine ? "bg-[#075E54]/15" : "bg-[#25D366]/15"
                         )}>
-                            <FileText size={20} className={isMine ? "text-black" : "text-[#0F172A]"} />
+                            <FileText size={20} className="text-[#075E54]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-[#0F172A]">{content || 'Documento'}</p>
-                            <p className="text-[10px] text-[#0F172A]/40">Toca para abrir</p>
+                            <p className="text-sm font-medium truncate text-[#111B21]">{content || 'Documento'}</p>
+                            <p className="text-[10px] text-[#111B21]/40 mt-0.5">Toca para abrir</p>
                         </div>
                     </a>
                 )}
@@ -233,30 +275,52 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                 {/* Text content */}
                 {content && detectedType !== 'document' && (
                     <div className={cn(mediaUrl && detectedType !== 'audio' ? "px-3 py-2" : "")}>
-                        <p className="whitespace-pre-wrap break-words text-[14px] leading-[19px] text-[#0F172A]">
-                            {searchHighlight ? highlightText(content, searchHighlight) : content}
+                        <p className="whitespace-pre-wrap break-words text-[14px] leading-[20px] text-[#111B21]">
+                            {searchHighlight
+                                ? highlightText(content, searchHighlight)
+                                : parseWhatsAppFormatting(content)}
                         </p>
                     </div>
                 )}
 
+                {/* Failed notice */}
+                {isFailed && (
+                    <div className="px-3 pb-1 flex items-center gap-1.5">
+                        <AlertCircle size={12} className="text-red-500 shrink-0" />
+                        <span className="text-[11px] text-red-500">No entregado</span>
+                        {onRetry && (
+                            <button
+                                onClick={onRetry}
+                                className="ml-1 text-[11px] text-[#25D366] hover:underline flex items-center gap-0.5"
+                            >
+                                <RotateCcw size={10} /> Reintentar
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 {/* Timestamp & status */}
-                <div className="text-[11px] flex items-center justify-end gap-1 px-2 pb-1 text-[#0F172A]/35">
-                    <span>{timestamp}</span>
-                    {isMine && (
-                        <span className="flex items-center ml-0.5">
-                            {status === 'read' ? (
-                                <CheckCheck size={16} className="text-[#25D366]" />
-                            ) : status === 'delivered' ? (
-                                <CheckCheck size={16} className="text-[#0F172A]/30" />
-                            ) : (
-                                <Check size={16} className="text-[#0F172A]/30" />
-                            )}
-                        </span>
-                    )}
+                <div className={cn(
+                    "flex items-center justify-end gap-1 pb-1.5 pr-2",
+                    (mediaUrl && detectedType !== 'audio') ? "absolute bottom-1 right-1 bg-black/20 rounded-full px-1.5" : "pt-0.5"
+                )}>
+                    <span className={cn(
+                        "text-[11px]",
+                        (mediaUrl && detectedType !== 'audio') ? "text-white/90" : "text-[#111B21]/45"
+                    )}>{timestamp}</span>
+                    {isMine && <StatusIcon status={status} overlay={!!(mediaUrl && detectedType !== 'audio')} />}
                 </div>
             </div>
         </div>
     )
+}
+
+function StatusIcon({ status, overlay }: { status?: string; overlay?: boolean }) {
+    const color = overlay ? "text-white/90" : undefined
+    if (status === 'read') return <CheckCheck size={16} className={color || "text-[#53BDEB]"} />
+    if (status === 'delivered') return <CheckCheck size={16} className={color || "text-[#111B21]/40"} />
+    if (status === 'failed') return <AlertCircle size={14} className="text-red-500" />
+    return <Check size={16} className={color || "text-[#111B21]/40"} />
 }
 
 function detectMediaType(url: string, content: string): string {

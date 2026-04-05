@@ -428,15 +428,17 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
     if (!activeChatId) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-white text-[#0F172A]/30 relative overflow-hidden">
+            <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden" style={{ background: '#EFEAE2' }}>
+                {/* Subtle WA pattern */}
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23000\' fill-opacity=\'1\'%3E%3Cpath d=\'M20 20c0-5.5-4.5-10-10-10S0 14.5 0 20s4.5 10 10 10 10-4.5 10-10zm10 0c0 5.5 4.5 10 10 10s10-4.5 10-10-4.5-10-10-10-10 4.5-10 10z\'/%3E%3C/g%3E%3C/svg%3E")' }} />
                 <div className="z-10 text-center">
-                    <div className="bg-[#F7F8FA] border border-black/[0.08] p-6 rounded-full inline-flex mb-6 text-[#0F172A]/20">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-16 h-16">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    <div className="bg-white/60 backdrop-blur-sm p-8 rounded-full inline-flex mb-5 shadow-sm">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-14 h-14 text-[#25D366]/40">
+                            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.06L2 22l4.94-1.37C8.42 21.5 10.15 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm5.07 13.41c-.21.58-1.22 1.11-1.68 1.17-.43.06-.97.08-1.56-.1-.36-.11-.82-.26-1.41-.51-2.47-1.07-4.08-3.58-4.21-3.75-.13-.17-1.03-1.37-1.03-2.61 0-1.24.65-1.85.88-2.1.23-.25.5-.31.67-.31l.48.01c.15 0 .36-.06.56.43l.72 1.96c.06.16.1.35.02.56l-.27.5-.41.43c-.13.13-.27.27-.12.54.16.27.69 1.14 1.48 1.85.99.87 1.83 1.17 2.1 1.3.27.13.43.11.59-.07l.41-.5c.25-.32.49-.25.82-.15l1.69.88c.25.13.42.19.47.3.06.11.06.63-.15 1.21z"/>
                         </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-[#0F172A]">Selecciona una conversación</h3>
-                    <p className="mt-2 text-[#0F172A]/30 max-w-sm mx-auto text-sm">Elige un chat de la lista para ver el historial y responder.</p>
+                    <h3 className="text-base font-semibold text-[#111B21]/70">Selecciona una conversación</h3>
+                    <p className="mt-1.5 text-[#111B21]/40 max-w-xs mx-auto text-sm">Elige un chat de la lista para ver el historial y responder.</p>
                 </div>
             </div>
         )
@@ -547,20 +549,20 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 </div>
             )}
 
-            {/* Header */}
-            <div className="border-b border-black/[0.08] bg-[#F7F8FA] shrink-0">
-                <div className="h-14 flex items-center justify-between px-4 gap-2">
+            {/* Header — WhatsApp style */}
+            <div className="shrink-0" style={{ background: '#F0F2F5', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                <div className="h-[60px] flex items-center justify-between px-4 gap-2">
                     {/* Avatar + info — clickeable para abrir sidebar */}
                     <button
                         onClick={() => setShowContactInfo(v => !v)}
-                        className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90 transition-opacity"
                     >
-                        <div className="w-9 h-9 rounded-full bg-[#25D366] flex items-center justify-center text-black font-bold text-sm shrink-0">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
                             {chatDetails?.contact_name?.charAt(0)?.toUpperCase() || '#'}
                         </div>
                         <div className="min-w-0">
-                            <h3 className="font-semibold text-[#0F172A] text-sm truncate">{chatDetails?.contact_name || 'Desconocido'}</h3>
-                            <span className="text-xs text-[#0F172A]/30">{chatDetails?.phone_number}</span>
+                            <h3 className="font-semibold text-[#111B21] text-[15px] truncate leading-tight">{chatDetails?.contact_name || 'Desconocido'}</h3>
+                            <span className="text-xs text-[#111B21]/45 font-normal">{chatDetails?.phone_number}</span>
                         </div>
                     </button>
 
@@ -622,16 +624,16 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                 onClick={handleResendPlans}
                                 disabled={isResendingPlans}
                                 title="Reenviar lista de planes"
-                                className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-medium transition-all ${isResendingPlans
-                                    ? 'bg-emerald-600/20 text-emerald-300 cursor-wait'
-                                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all ${isResendingPlans
+                                    ? 'bg-[#25D366]/10 text-[#25D366] cursor-wait'
+                                    : 'bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075E54]'
                                     }`}
                             >
                                 <span>{isResendingPlans ? '⏳' : '📋'}</span>
                                 <span className="hidden lg:inline text-[11px]">{isResendingPlans ? 'Enviando...' : 'Planes'}</span>
                             </button>
                             {resendPlansResult && (
-                                <div className="absolute top-10 right-0 bg-[#F7F8FA] text-xs text-[#0F172A] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
+                                <div className="absolute top-10 right-0 bg-white text-xs text-[#111B21] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
                                     {resendPlansResult}
                                 </div>
                             )}
@@ -643,16 +645,16 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                 onClick={handleSendReminder}
                                 disabled={isSendingReminder}
                                 title="Reenviar recordatorio de renovación"
-                                className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-medium transition-all ${isSendingReminder
-                                    ? 'bg-amber-600/20 text-amber-300 cursor-wait'
-                                    : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20'
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all ${isSendingReminder
+                                    ? 'bg-amber-500/10 text-amber-600 cursor-wait'
+                                    : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700'
                                     }`}
                             >
                                 <Bell size={13} className={isSendingReminder ? 'animate-bounce' : ''} />
                                 <span className="hidden lg:inline text-[11px]">{isSendingReminder ? 'Enviando...' : 'Recordatorio'}</span>
                             </button>
                             {reminderResult && (
-                                <div className="absolute top-10 right-0 bg-[#F7F8FA] text-xs text-[#0F172A] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
+                                <div className="absolute top-10 right-0 bg-white text-xs text-[#111B21] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
                                     {reminderResult}
                                 </div>
                             )}
@@ -661,19 +663,19 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         {/* Buscar */}
                         <button
                             onClick={() => { setIsSearchOpen(v => !v); setMessageSearch('') }}
-                            className={cn("p-2 rounded-xl transition-colors", isSearchOpen ? "bg-[#25D366]/10 text-[#25D366]" : "text-[#0F172A]/55 hover:text-[#0F172A] hover:bg-black/[0.04]")}
+                            className={cn("p-2 rounded-full transition-colors", isSearchOpen ? "text-[#25D366]" : "text-[#111B21]/50 hover:text-[#111B21] hover:bg-black/[0.05]")}
                             title="Buscar en mensajes"
                         >
-                            <Search size={16} />
+                            <Search size={18} />
                         </button>
 
                         {/* Info contacto */}
                         <button
                             onClick={() => setShowContactInfo(v => !v)}
-                            className={cn("p-2 rounded-xl transition-colors", showContactInfo ? "bg-[#25D366]/10 text-[#25D366]" : "text-[#0F172A]/55 hover:text-[#0F172A] hover:bg-black/[0.04]")}
+                            className={cn("p-2 rounded-full transition-colors", showContactInfo ? "text-[#25D366]" : "text-[#111B21]/50 hover:text-[#111B21] hover:bg-black/[0.05]")}
                             title="Info del contacto"
                         >
-                            <Info size={16} />
+                            <Info size={18} />
                         </button>
                     </div>
                 </div>
@@ -701,22 +703,34 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 )}
             </div>
 
-            {/* Messages Area */}
+            {/* Messages Area — WhatsApp wallpaper */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5 bg-[#F7F8FA]"
+                className="flex-1 overflow-y-auto px-3 py-4"
+                style={{
+                    background: '#EFEAE2',
+                    backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Cpath d=\'M10 10 Q20 0 30 10 Q40 20 50 10 Q60 0 70 10\' fill=\'none\' stroke=\'%2300000008\' stroke-width=\'1\'/%3E%3C/svg%3E")',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgba(0,0,0,0.15) transparent',
+                }}
             >
-                {loading && <p className="text-center text-xs text-[#0F172A]/30">Cargando mensajes...</p>}
+                {loading && (
+                    <div className="flex justify-center py-8">
+                        <div className="bg-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs text-[#111B21]/50 shadow-sm">
+                            Cargando mensajes...
+                        </div>
+                    </div>
+                )}
 
                 {displayMessages.filter(m => !m._deleted).map((msg, index) => {
                     const visibleMessages = displayMessages.filter(m => !m._deleted)
                     const prevMsg = index > 0 ? visibleMessages[index - 1] : null
                     const showDateSeparator = !prevMsg || isDifferentDay(prevMsg.created_at, msg.created_at)
                     return (
-                        <div key={msg.id}>
+                        <div key={msg.id} className="mb-0.5">
                             {showDateSeparator && (
                                 <div className="flex items-center justify-center my-4">
-                                    <div className="bg-[#F7F8FA] border border-black/[0.08] text-[#0F172A]/30 text-[11px] px-3 py-1 rounded-full shadow-sm">
+                                    <div className="bg-white/80 backdrop-blur-sm text-[#111B21]/55 text-[12px] px-4 py-1 rounded-full shadow-sm font-medium">
                                         {formatDateSeparator(msg.created_at)}
                                     </div>
                                 </div>
@@ -790,7 +804,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             )}
 
             {/* Input Area */}
-            <div className="px-3 py-2.5 bg-[#F7F8FA] border-t border-black/[0.08] shrink-0 relative">
+            <div className="px-3 py-2.5 shrink-0 relative" style={{ background: '#F0F2F5' }}>
                 {/* Quick Replies Popup */}
                 {showQRPopup && (
                     <div className="absolute bottom-full left-3 right-3 mb-1 bg-white border border-black/[0.08] rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto">
@@ -848,32 +862,32 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 ) : (
                     <div className="flex items-center gap-1.5">
                         <button
-                            className={cn("p-2 rounded-xl transition-colors", showEmojiPicker ? "text-[#25D366]" : "text-[#0F172A]/30 hover:text-[#0F172A] hover:bg-black/[0.04]")}
+                            className={cn("p-2 rounded-full transition-colors", showEmojiPicker ? "text-[#25D366]" : "text-[#111B21]/40 hover:text-[#111B21] hover:bg-black/[0.05]")}
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         >
-                            <Smile size={20} />
+                            <Smile size={22} />
                         </button>
 
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx" />
                         <button
-                            className={cn("p-2 rounded-xl transition-colors", isUploading ? "text-[#25D366] animate-pulse" : "text-[#0F172A]/30 hover:text-[#0F172A] hover:bg-black/[0.04]")}
+                            className={cn("p-2 rounded-full transition-colors", isUploading ? "text-[#25D366] animate-pulse" : "text-[#111B21]/40 hover:text-[#111B21] hover:bg-black/[0.05]")}
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
                             title="Adjuntar archivo"
                         >
-                            <Paperclip size={20} />
+                            <Paperclip size={22} />
                         </button>
                         <button
-                            className="p-2 rounded-xl text-[#0F172A]/30 hover:text-[#25D366] hover:bg-black/[0.04] transition-colors"
+                            className="p-2 rounded-full text-[#111B21]/40 hover:text-[#25D366] hover:bg-black/[0.05] transition-colors"
                             onClick={() => setShowQRModal(true)}
                             title="Respuestas rápidas (o escribe /)"
                         >
-                            <Zap size={20} />
+                            <Zap size={22} />
                         </button>
 
                         <input
-                            className="flex-1 bg-black/[0.05] border border-black/[0.08] rounded-xl px-4 py-2.5 text-[#0F172A] text-sm focus:outline-none focus:ring-1 focus:ring-[#25D366] placeholder:text-[#0F172A]/30 min-w-0"
-                            placeholder="Escribe un mensaje... (/ para respuestas rápidas)"
+                            className="flex-1 bg-white border-0 rounded-full px-4 py-2.5 text-[#111B21] text-sm focus:outline-none shadow-sm placeholder:text-[#111B21]/35 min-w-0"
+                            placeholder="Escribe un mensaje..."
                             value={newMessage}
                             onChange={(e) => {
                                 const val = e.target.value
