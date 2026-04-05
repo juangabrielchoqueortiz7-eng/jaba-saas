@@ -1505,27 +1505,30 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                 // Para Vercel Hobby, un timeout de 8-10s es arriesgado porque la función se apaga. 
                 // Usaremos 5 segundos seguros para concadenar mensajes rápidos.
 
-                // Buffer DB-backed: capturamos el tiempo antes de esperar.
-                // Si llega un mensaje más nuevo mientras esperamos, ese handler procesará con todo el contexto.
-                const bufferStartTime = new Date().toISOString()
-                console.log(`[Buffer] Mensaje de ${redactPhone(phoneNumber)} esperando 3s por mensajes adicionales...`)
+                // Buffer DB-backed: comparamos por ID de mensaje, no por timestamp.
+                // Esto evita el bug de precisión: si dos mensajes llegan casi al mismo tiempo,
+                // ambos se guardan en DB ANTES de que cualquier handler capture su "bufferStartTime",
+                // haciendo que ambos crean que son el handler más reciente.
+                // Con ID comparison: solo el último mensaje guardado en DB (por created_at DESC) procede.
+                const myMsgId = savedMsgId
+                console.log(`[Buffer] Mensaje ${myMsgId} de ${redactPhone(phoneNumber)} esperando 4s por mensajes adicionales...`)
 
                 await new Promise(resolve => {
                     const timer = setTimeout(async () => {
-                        // Verificar si llegó un mensaje más reciente mientras esperábamos
+                        // Verificar si hay un mensaje más reciente que el nuestro
                         try {
-                            const { data: newerMsg } = await supabaseAdmin
+                            const { data: latestMsg } = await supabaseAdmin
                                 .from('messages')
                                 .select('id')
                                 .eq('chat_id', chatId)
                                 .eq('is_from_me', false)
-                                .gt('created_at', bufferStartTime)
+                                .order('created_at', { ascending: false })
                                 .limit(1)
                                 .maybeSingle()
 
-                            if (newerMsg) {
+                            if (latestMsg && latestMsg.id !== myMsgId) {
                                 // Hay un mensaje más reciente — ese handler procesará con el historial completo
-                                console.log(`[Buffer] Nuevo mensaje detectado para ${redactPhone(phoneNumber)}, cediendo al handler más reciente`)
+                                console.log(`[Buffer] Mensaje más reciente detectado (${latestMsg.id} > ${myMsgId}), cediendo`)
                                 resolve(true)
                                 return
                             }
@@ -2382,7 +2385,7 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                         // Siempre resolver la promesa para que Vercel termine
                         resolve(true);
 
-                    }, 3000); // 3s de espera para agrupar mensajes rápidos del cliente
+                    }, 4000); // 4s de espera para agrupar mensajes rápidos del cliente
                 });
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 })
