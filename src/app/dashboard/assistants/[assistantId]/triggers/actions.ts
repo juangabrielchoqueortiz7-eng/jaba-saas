@@ -155,11 +155,11 @@ export async function saveTrigger(
             })
             .select()
             .single()
-        if (error) throw error
+        if (error) throw new Error(`Error al crear disparador: ${error.message} (code: ${error.code})`)
         triggerId = data.id
     }
 
-    if (!triggerId) throw new Error('Failed to save trigger')
+    if (!triggerId) throw new Error('No se pudo obtener el ID del disparador')
 
     // 2. Manage Actions (full replacement)
     await supabase.from('trigger_actions').delete().eq('trigger_id', triggerId)
@@ -177,7 +177,7 @@ export async function saveTrigger(
             .from('trigger_actions')
             .insert(actionsToInsert)
 
-        if (actionsError) throw actionsError
+        if (actionsError) throw new Error(`Error al guardar acciones: ${actionsError.message} (code: ${actionsError.code})`)
     }
 
     // 3. Manage Conditions (full replacement)

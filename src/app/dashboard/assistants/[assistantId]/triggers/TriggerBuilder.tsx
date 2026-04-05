@@ -1228,9 +1228,10 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           conditionsLogic,
         })
         router.push(`/dashboard/assistants/${assistantId}/triggers`)
-      } catch (error) {
-        console.error(error)
-        alert('Error al guardar el disparador')
+      } catch (error: any) {
+        console.error('[TriggerBuilder] Save error:', error)
+        const msg = error?.message || error?.toString() || 'Error desconocido'
+        alert(`Error al guardar el disparador:\n\n${msg}`)
       }
     })
   }
