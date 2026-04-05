@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Paperclip, Smile, MoreVertical, Mic, X, Bell, Image as ImageIcon, Tag, Zap, Search, Info } from 'lucide-react'
+import { Send, Paperclip, Smile, MoreVertical, Mic, X, Bell, Image as ImageIcon, Tag, Zap, Search, Info, ChevronDown, CornerUpLeft } from 'lucide-react'
 import { MessageBubble } from './MessageBubble'
 import { ContactInfoSidebar } from './ContactInfoSidebar'
 import { createClient } from '@/utils/supabase/client'
@@ -20,6 +20,8 @@ interface Message {
     media_url?: string | null
     media_type?: string | null
     _deleted?: boolean
+    _quoted_content?: string | null
+    _quoted_is_mine?: boolean
 }
 
 interface ChatDetails {
@@ -49,6 +51,12 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     const [showContactInfo, setShowContactInfo] = useState(false)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [messageSearch, setMessageSearch] = useState('')
+
+    // Reply, typing indicator, scroll button
+    const [replyingTo, setReplyingTo] = useState<{ id: string; content: string; isMine: boolean } | null>(null)
+    const [botIsTyping, setBotIsTyping] = useState(false)
+    const [showScrollBtn, setShowScrollBtn] = useState(false)
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     // Quick replies
     const QR_KEY = 'jaba_quick_replies'
@@ -142,6 +150,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 filter: `chat_id=eq.${activeChatId}`
             }, (payload) => {
                 const newMsg = payload.new as Message
+                if (!newMsg.is_from_me) setBotIsTyping(false)
                 setMessages((prev) => {
                     if (prev.some(m => m.id === newMsg.id)) return prev
                     const filtered = prev.filter(m => {
@@ -175,19 +184,44 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
         }, 100)
     }
 
+    const handleScroll = useCallback(() => {
+        if (!scrollRef.current) return
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+        setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 120)
+    }, [])
+
+    const adjustTextareaHeight = useCallback(() => {
+        const el = textareaRef.current
+        if (!el) return
+        el.style.height = 'auto'
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    }, [])
+
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !activeChatId) return
+
+        const quotedContent = replyingTo?.content ?? null
+        const quotedIsMine = replyingTo?.isMine ?? false
 
         const tempMsg: Message = {
             id: Date.now().toString(),
             content: newMessage,
             is_from_me: true,
             created_at: new Date().toISOString(),
-            status: 'sent'
+            status: 'sent',
+            _quoted_content: quotedContent,
+            _quoted_is_mine: quotedIsMine,
         }
         setMessages(prev => [...prev, tempMsg])
         setNewMessage('')
+        setReplyingTo(null)
+        setBotIsTyping(true)
         scrollToBottom()
+
+        // Reset textarea height
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto'
+        }
 
         try {
             await fetch('/api/chat/send', {
@@ -704,51 +738,78 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             </div>
 
             {/* Messages Area — WhatsApp wallpaper */}
-            <div
-                ref={scrollRef}
-                className="flex-1 overflow-y-auto px-3 py-4"
-                style={{
-                    background: '#EFEAE2',
-                    backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Cpath d=\'M10 10 Q20 0 30 10 Q40 20 50 10 Q60 0 70 10\' fill=\'none\' stroke=\'%2300000008\' stroke-width=\'1\'/%3E%3C/svg%3E")',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: 'rgba(0,0,0,0.15) transparent',
-                }}
-            >
-                {loading && (
-                    <div className="flex justify-center py-8">
-                        <div className="bg-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs text-[#111B21]/50 shadow-sm">
-                            Cargando mensajes...
+            <div className="flex-1 relative min-h-0">
+                <div
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className="h-full overflow-y-auto px-3 py-4"
+                    style={{
+                        background: '#EFEAE2',
+                        backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Cpath d=\'M10 10 Q20 0 30 10 Q40 20 50 10 Q60 0 70 10\' fill=\'none\' stroke=\'%2300000008\' stroke-width=\'1\'/%3E%3C/svg%3E")',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'rgba(0,0,0,0.15) transparent',
+                    }}
+                >
+                    {loading && (
+                        <div className="flex justify-center py-8">
+                            <div className="bg-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs text-[#111B21]/50 shadow-sm">
+                                Cargando mensajes...
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {displayMessages.filter(m => !m._deleted).map((msg, index) => {
-                    const visibleMessages = displayMessages.filter(m => !m._deleted)
-                    const prevMsg = index > 0 ? visibleMessages[index - 1] : null
-                    const showDateSeparator = !prevMsg || isDifferentDay(prevMsg.created_at, msg.created_at)
-                    return (
-                        <div key={msg.id} className="mb-0.5">
-                            {showDateSeparator && (
-                                <div className="flex items-center justify-center my-4">
-                                    <div className="bg-white/80 backdrop-blur-sm text-[#111B21]/55 text-[12px] px-4 py-1 rounded-full shadow-sm font-medium">
-                                        {formatDateSeparator(msg.created_at)}
+                    {displayMessages.filter(m => !m._deleted).map((msg, index) => {
+                        const visibleMessages = displayMessages.filter(m => !m._deleted)
+                        const prevMsg = index > 0 ? visibleMessages[index - 1] : null
+                        const showDateSeparator = !prevMsg || isDifferentDay(prevMsg.created_at, msg.created_at)
+                        return (
+                            <div key={msg.id} className="mb-0.5">
+                                {showDateSeparator && (
+                                    <div className="flex items-center justify-center my-4">
+                                        <div className="bg-white/80 backdrop-blur-sm text-[#111B21]/55 text-[12px] px-4 py-1 rounded-full shadow-sm font-medium">
+                                            {formatDateSeparator(msg.created_at)}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                            <MessageBubble
-                                content={msg.content}
-                                isMine={msg.is_from_me}
-                                timestamp={formatMessageTime(msg.created_at)}
-                                status={msg.is_from_me ? (msg.status || 'sent') : undefined}
-                                mediaUrl={msg.media_url}
-                                mediaType={msg.media_type}
-                                onImageClick={(url) => setLightboxUrl(url)}
-                                onDelete={msg.is_from_me ? () => handleDeleteMessage(msg.id) : undefined}
-                                searchHighlight={messageSearch || undefined}
-                            />
+                                )}
+                                <MessageBubble
+                                    content={msg.content}
+                                    isMine={msg.is_from_me}
+                                    timestamp={formatMessageTime(msg.created_at)}
+                                    status={msg.is_from_me ? (msg.status || 'sent') : undefined}
+                                    mediaUrl={msg.media_url}
+                                    mediaType={msg.media_type}
+                                    onImageClick={(url) => setLightboxUrl(url)}
+                                    onDelete={msg.is_from_me ? () => handleDeleteMessage(msg.id) : undefined}
+                                    onReply={() => setReplyingTo({ id: msg.id, content: msg.content, isMine: msg.is_from_me })}
+                                    searchHighlight={messageSearch || undefined}
+                                    quotedContent={msg._quoted_content}
+                                    quotedIsMine={msg._quoted_is_mine}
+                                />
+                            </div>
+                        )
+                    })}
+
+                    {/* Typing indicator */}
+                    {botIsTyping && (
+                        <div className="flex w-full mb-0.5 justify-start px-1">
+                            <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.13)] flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full bg-[#111B21]/30 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-[#111B21]/30 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <div className="w-2 h-2 rounded-full bg-[#111B21]/30 animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
                         </div>
-                    )
-                })}
+                    )}
+                </div>
+
+                {/* Scroll to bottom button */}
+                {showScrollBtn && (
+                    <button
+                        onClick={() => scrollToBottom()}
+                        className="absolute bottom-3 right-4 z-10 bg-white border border-black/[0.08] rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                    >
+                        <ChevronDown size={18} className="text-[#111B21]/60" />
+                    </button>
+                )}
             </div>
 
             {/* Quick Replies Modal */}
@@ -805,6 +866,20 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
             {/* Input Area */}
             <div className="px-3 py-2.5 shrink-0 relative" style={{ background: '#F0F2F5' }}>
+                {/* Reply preview */}
+                {replyingTo && (
+                    <div className="mb-2 flex items-center gap-2">
+                        <div className="flex-1 bg-white/80 border-l-[3px] border-[#25D366] rounded-lg px-3 py-1.5 flex items-start justify-between gap-2 min-w-0">
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-semibold text-[#25D366]">{replyingTo.isMine ? 'Tú' : 'Cliente'}</p>
+                                <p className="text-xs text-[#111B21]/60 truncate">{replyingTo.content}</p>
+                            </div>
+                            <button onClick={() => setReplyingTo(null)} className="text-[#111B21]/30 hover:text-[#111B21]/60 shrink-0 mt-0.5">
+                                <X size={14} />
+                            </button>
+                        </div>
+                    </div>
+                )}
                 {/* Quick Replies Popup */}
                 {showQRPopup && (
                     <div className="absolute bottom-full left-3 right-3 mb-1 bg-white border border-black/[0.08] rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto">
@@ -885,13 +960,17 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                             <Zap size={22} />
                         </button>
 
-                        <input
-                            className="flex-1 bg-white border-0 rounded-full px-4 py-2.5 text-[#111B21] text-sm focus:outline-none shadow-sm placeholder:text-[#111B21]/35 min-w-0"
+                        <textarea
+                            ref={textareaRef}
+                            rows={1}
+                            className="flex-1 bg-white border-0 rounded-2xl px-4 py-2.5 text-[#111B21] text-sm focus:outline-none shadow-sm placeholder:text-[#111B21]/35 min-w-0 resize-none overflow-hidden leading-[20px]"
+                            style={{ minHeight: 42, maxHeight: 120 }}
                             placeholder="Escribe un mensaje..."
                             value={newMessage}
                             onChange={(e) => {
                                 const val = e.target.value
                                 setNewMessage(val)
+                                adjustTextareaHeight()
                                 if (val.startsWith('/')) {
                                     setQrFilter(val.slice(1))
                                     setShowQRPopup(true)
@@ -907,7 +986,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                     if (e.key === 'Enter') { e.preventDefault(); applyQR(filteredQR[selectedQRIndex]); return }
                                     if (e.key === 'Escape') { setShowQRPopup(false); return }
                                 }
-                                if (e.key === 'Enter' && !e.shiftKey && !showQRPopup) handleSendMessage()
+                                if (e.key === 'Enter' && !e.shiftKey && !showQRPopup) { e.preventDefault(); handleSendMessage() }
                             }}
                         />
 
