@@ -1,7 +1,10 @@
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { AssistantNotFound } from '@/components/dashboard/AssistantNotFound'
 import { redirect } from 'next/navigation'
-import { MessageSquare, Mic, Calendar, BarChart2 } from 'lucide-react'
+import { MessageSquare, Mic, Calendar, BarChart2, BrainCircuit, Package, ArrowRight, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+import { isOverLimit, isNearLimit } from '@/lib/plans'
 
 export default async function AssistantDashboardPage({ params }: { params: Promise<{ assistantId: string }> }) {
     const supabase = await createClient()
@@ -16,6 +19,19 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
         .single()
 
     if (!credentials) return <AssistantNotFound />
+
+    const serviceKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+    const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey!)
+    const { data: planProfile } = await admin
+        .from('user_profiles')
+        .select('conversations_balance, conversations_total')
+        .eq('id', user.id)
+        .maybeSingle()
+
+    const convBalance = planProfile?.conversations_balance ?? null
+    const convTotal = planProfile?.conversations_total ?? 500
+    const planOverLimit = convBalance !== null && isOverLimit(convBalance)
+    const planNearLimit = convBalance !== null && !planOverLimit && isNearLimit(convBalance, convTotal)
 
     const { count: totalChats } = await supabase
         .from('chats').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
@@ -42,7 +58,7 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
     })
 
     const maxVal = Math.max(...chartData.map(d => d.count), 5)
-    const LIMIT_CHATS = 500
+    const LIMIT_CHATS = convTotal
     const LIMIT_AUDIOS = 100
     const isActive = credentials?.ai_status === 'active'
 
@@ -82,6 +98,65 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                         {isActive ? 'Asistente activo' : 'Asistente inactivo'}
                     </span>
                 </div>
+            </div>
+
+            {/* ── PLAN ALERT ── */}
+            {(planOverLimit || planNearLimit) && (
+                <Link href="/dashboard/recharges" style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 18px', borderRadius: 12, marginBottom: 20,
+                    background: planOverLimit ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
+                    border: `1px solid ${planOverLimit ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}`,
+                    textDecoration: 'none',
+                }}>
+                    <AlertTriangle size={16} style={{ color: planOverLimit ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.83rem', fontWeight: 600, color: planOverLimit ? '#ef4444' : '#b45309', flex: 1 }}>
+                        {planOverLimit
+                            ? 'Tu plan está agotado — el bot no puede responder. Recarga ahora.'
+                            : `Te quedan pocas conversaciones (${convBalance} restantes). Considera recargar.`}
+                    </span>
+                    <ArrowRight size={14} style={{ color: planOverLimit ? '#ef4444' : '#f59e0b' }} />
+                </Link>
+            )}
+
+            {/* ── ACCIONES RÁPIDAS ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+                {[
+                    { icon: <BrainCircuit size={20} />, title: 'Entrenar IA', desc: 'Personaliza cómo responde tu bot', href: `/dashboard/assistants/${assistantId}/training`, color: '#8b5cf6' },
+                    { icon: <MessageSquare size={20} />, title: 'Conversaciones', desc: 'Ver chats de tus clientes', href: '/dashboard/chats', color: '#25D366' },
+                    { icon: <Package size={20} />, title: 'Catálogo', desc: 'Gestionar productos y precios', href: '/dashboard/products', color: '#f59e0b' },
+                ].map((action, i) => (
+                    <Link key={i} href={action.href} style={{ textDecoration: 'none' }}>
+                        <div style={{
+                            background: '#ffffff',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            borderRadius: 12,
+                            padding: '14px 16px',
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            cursor: 'pointer',
+                            transition: 'box-shadow 0.15s',
+                            boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
+                        }}
+                        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)'}
+                        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 6px rgba(0,0,0,0.04)'}
+                        >
+                            <div style={{
+                                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                                background: `${action.color}18`,
+                                border: `1px solid ${action.color}30`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: action.color,
+                            }}>
+                                {action.icon}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>{action.title}</p>
+                                <p style={{ fontSize: '0.72rem', color: 'rgba(15,23,42,0.45)', margin: 0, marginTop: 1 }}>{action.desc}</p>
+                            </div>
+                            <ArrowRight size={14} style={{ color: 'rgba(15,23,42,0.25)', flexShrink: 0 }} />
+                        </div>
+                    </Link>
+                ))}
             </div>
 
             {/* ── STAT CARDS ── */}

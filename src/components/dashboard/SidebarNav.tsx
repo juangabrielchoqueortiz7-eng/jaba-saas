@@ -26,11 +26,13 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
     if (disabled) {
         return (
             <div
+                title="Crea un asistente primero para desbloquear"
                 className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium opacity-30 cursor-not-allowed select-none"
                 style={{ color: 'rgba(15,23,42,0.40)' }}
             >
                 {icon}
                 <span className="flex-1">{label}</span>
+                <span className="text-[10px]">🔒</span>
             </div>
         )
     }

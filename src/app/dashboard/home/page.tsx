@@ -323,20 +323,35 @@ export default async function HomePage() {
                             <Sparkles size={16} style={{ color: GREEN }} />
                             <span style={{ color: '#0F172A' }}>{allDone ? '¡Configuración completa! 🎉' : `Primeros pasos — ${completedSteps}/${steps.length}`}</span>
                         </h2>
-                        {allDone ? (
-                            <div style={{
-                                padding: '20px 24px', borderRadius: 16, background: 'rgba(37,211,102,0.06)',
-                                border: '1px solid rgba(37,211,102,0.20)', display: 'flex', alignItems: 'center', gap: 16,
-                            }}>
-                                <Rocket size={32} style={{ color: GREEN, flexShrink: 0 }} />
-                                <div>
-                                    <p style={{ fontWeight: 700, color: '#128C7E', fontSize: '0.95rem' }}>¡Tu asistente está completamente operativo!</p>
-                                    <p style={{ fontSize: '0.78rem', color: 'rgba(15,23,42,0.50)', marginTop: 4 }}>
-                                        Tus clientes están siendo atendidos automáticamente. Revisa las métricas de arriba para monitorear tu desempeño.
-                                    </p>
+                        {allDone ? (() => {
+                            // Determinar próxima acción prioritaria
+                            const nextAction = planOverLimit
+                                ? { color: '#ef4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.22)', icon: '🚨', title: 'Plan agotado — el bot no puede responder', desc: 'Recarga tu saldo ahora para reactivar la atención automática a tus clientes.', href: '/dashboard/recharges', cta: 'Recargar ahora' }
+                                : planNearLimit
+                                ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.22)', icon: '⚡', title: `Te quedan pocas conversaciones (${convBalance} restantes)`, desc: 'Considera recargar para no interrumpir el servicio a tus clientes.', href: '/dashboard/recharges', cta: 'Ver recargas' }
+                                : vencenHoy.length > 0
+                                ? { color: '#ef4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.22)', icon: '⚠️', title: `${vencenHoy.length} suscripción${vencenHoy.length > 1 ? 'es vencen' : ' vence'} hoy`, desc: 'Renuévalas antes de que el cliente pierda acceso al servicio.', href: '/dashboard/subscriptions', cta: 'Ver suscripciones' }
+                                : vencen7d.length > 0
+                                ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.22)', icon: '📅', title: `${vencen7d.length} suscripción${vencen7d.length > 1 ? 'es vencen' : ' vence'} esta semana`, desc: 'Avisa a tus clientes o renueva antes de que venzan.', href: '/dashboard/subscriptions', cta: 'Ver vencimientos' }
+                                : notifsFallidas > 0
+                                ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.22)', icon: '📩', title: `${notifsFallidas} notificación${notifsFallidas > 1 ? 'es fallaron' : ' falló'} esta semana`, desc: 'Algunos clientes no recibieron sus recordatorios. Revisa los detalles.', href: '/dashboard/home', cta: 'Revisar' }
+                                : { color: GREEN, bg: 'rgba(37,211,102,0.06)', border: 'rgba(37,211,102,0.20)', icon: '🎉', title: 'Todo al día — ¡excelente!', desc: 'Tu bot está activo y las suscripciones están al día. Sigue monitoreando desde aquí.', href: null, cta: null }
+
+                            return (
+                                <div style={{ padding: '20px 24px', borderRadius: 16, background: nextAction.bg, border: `1px solid ${nextAction.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+                                    <span style={{ fontSize: 28, flexShrink: 0 }}>{nextAction.icon}</span>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontWeight: 700, color: nextAction.color, fontSize: '0.9rem', margin: 0 }}>{nextAction.title}</p>
+                                        <p style={{ fontSize: '0.78rem', color: 'rgba(15,23,42,0.50)', marginTop: 4, margin: '4px 0 0' }}>{nextAction.desc}</p>
+                                    </div>
+                                    {nextAction.href && nextAction.cta && (
+                                        <Link href={nextAction.href} style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, background: nextAction.color, color: '#fff', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                            {nextAction.cta} →
+                                        </Link>
+                                    )}
                                 </div>
-                            </div>
-                        ) : (
+                            )
+                        })() : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {steps.map((step, i) => (
                                     <div key={i} style={{
