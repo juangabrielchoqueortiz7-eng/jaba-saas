@@ -52,9 +52,8 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [messageSearch, setMessageSearch] = useState('')
 
-    // Reply, typing indicator, scroll button
+    // Reply, scroll button
     const [replyingTo, setReplyingTo] = useState<{ id: string; content: string; isMine: boolean } | null>(null)
-    const [botIsTyping, setBotIsTyping] = useState(false)
     const [showScrollBtn, setShowScrollBtn] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -150,7 +149,6 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 filter: `chat_id=eq.${activeChatId}`
             }, (payload) => {
                 const newMsg = payload.new as Message
-                if (!newMsg.is_from_me) setBotIsTyping(false)
                 setMessages((prev) => {
                     if (prev.some(m => m.id === newMsg.id)) return prev
                     const filtered = prev.filter(m => {
@@ -215,7 +213,6 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
         setMessages(prev => [...prev, tempMsg])
         setNewMessage('')
         setReplyingTo(null)
-        setBotIsTyping(true)
         scrollToBottom()
 
         // Reset textarea height
@@ -789,16 +786,6 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         )
                     })}
 
-                    {/* Typing indicator */}
-                    {botIsTyping && (
-                        <div className="flex w-full mb-0.5 justify-start px-1">
-                            <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.13)] flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full bg-[#111B21]/30 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <div className="w-2 h-2 rounded-full bg-[#111B21]/30 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <div className="w-2 h-2 rounded-full bg-[#111B21]/30 animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Scroll to bottom button */}

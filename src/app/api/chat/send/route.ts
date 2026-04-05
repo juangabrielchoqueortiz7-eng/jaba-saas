@@ -54,14 +54,16 @@ export async function POST(request: Request) {
 
         console.log(`[Send] WhatsApp API Response:`, JSON.stringify(whatsappResponse).substring(0, 200))
 
-        // 4. Insert into Database
+        // 4. Insert into Database (guardamos wamid para recibir updates de status de Meta)
+        const wamid = whatsappResponse?.messages?.[0]?.id
         const { error: insertError } = await supabase
             .from('messages')
             .insert({
                 chat_id: chatId,
                 content: content,
                 is_from_me: true,
-                status: 'delivered'
+                status: 'sent',
+                ...(wamid && { whatsapp_message_id: wamid })
             })
 
         if (insertError) {

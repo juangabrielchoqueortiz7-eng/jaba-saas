@@ -21,6 +21,26 @@ const supabaseAdmin = createClient(
 function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
 function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
 
+// Helper: enviar mensaje de WhatsApp + guardar en DB con wamid para recibir status updates (entregado/leído)
+async function sendAndSave(
+    phoneNumber: string, content: string, chatId: string,
+    token: string, phoneId: string,
+    extra?: Record<string, unknown>
+) {
+    const { sendWhatsAppMessage: _send } = await import('@/lib/whatsapp')
+    const result = await _send(phoneNumber, content, token, phoneId)
+    const wamid = result?.messages?.[0]?.id ?? null
+    await supabaseAdmin.from('messages').insert({
+        chat_id: chatId,
+        is_from_me: true,
+        content,
+        status: 'sent',
+        ...(wamid ? { whatsapp_message_id: wamid } : {}),
+        ...(extra ?? {})
+    })
+    return result
+}
+
 // Productos se cargan dinámicamente desde la DB para cada tenant
 
 // --- GLOBAL MESSAGE BUFFER ---
@@ -2352,28 +2372,25 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                                 }
                             } else {
                                 // --- FLUJO DE RESPUESTA DE TEXTO ---
-                                await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
-                            }
+                                const sendResult = await sendWhatsAppMessage(phoneNumber, aiResponseText, tenantToken, phoneId)
+                                const sentWaId = sendResult?.messages?.[0]?.id ?? null
 
-                            // Guardar mensaje de IA en DB
-                            if (chatId) {
-                                // Capturar el WhatsApp message ID de la respuesta de la API para tracking de status
-                                let sentWaId: string | null = null
-                                // El resultado del último sendWhatsAppMessage se retorna como data con messages[0].id
-                                // Para capturarlo, necesitamos guardar la respuesta del send
+                                // Guardar mensaje de IA en DB con wamid para recibir updates de status
+                                if (chatId) {
+                                    await supabaseAdmin.from('messages').insert({
+                                        chat_id: chatId,
+                                        is_from_me: true,
+                                        content: aiResponseText,
+                                        status: 'sent',
+                                        ...(sentWaId ? { whatsapp_message_id: sentWaId } : {})
+                                    })
 
-                                await supabaseAdmin.from('messages').insert({
-                                    chat_id: chatId,
-                                    is_from_me: true,
-                                    content: aiResponseText,
-                                    status: 'sent'
-                                })
-
-                                await supabaseAdmin.from('chats').update({
-                                    last_message: aiResponseText.substring(0, 100),
-                                    last_message_time: new Date().toISOString(),
-                                    last_message_status: 'sent'
-                                }).eq('id', chatId)
+                                    await supabaseAdmin.from('chats').update({
+                                        last_message: aiResponseText.substring(0, 100),
+                                        last_message_time: new Date().toISOString(),
+                                        last_message_status: 'sent'
+                                    }).eq('id', chatId)
+                                }
                             }
 
                             console.log(`[AI] Respondió a ${redactPhone(phoneNumber)}: "${aiResponseText.substring(0, 50)}..."`)
