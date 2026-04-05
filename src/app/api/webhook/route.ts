@@ -1478,8 +1478,8 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                 // 3. CEREBRO IA (GEMINI) - AQUÍ OCURRE LA MAGIA 🧠✨
                 // =================================================================================
 
-                // Solo respondemos con IA a mensajes de TEXTO, AUDIO y ahora INTERACTIVO (si no fue capturado arriba)
-                if (messageType !== 'text' && messageType !== 'audio' && messageType !== 'interactive') {
+                // Solo respondemos con IA a mensajes de TEXTO, AUDIO, INTERACTIVO y DOCUMENTO (PDF de comprobante)
+                if (messageType !== 'text' && messageType !== 'audio' && messageType !== 'interactive' && messageType !== 'document') {
                     console.log(`[AI] Skipping AI response for message type: ${messageType}`)
                     return new NextResponse('EVENT_RECEIVED', { status: 200 })
                 }
@@ -1505,38 +1505,37 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                 // Para Vercel Hobby, un timeout de 8-10s es arriesgado porque la función se apaga. 
                 // Usaremos 5 segundos seguros para concadenar mensajes rápidos.
 
-                const bufferKey = `${tenantUserId}_${chatId}`;
-                let currentBuffer = messageBuffer.get(bufferKey);
-
-                if (currentBuffer) {
-                    // Si ya había mensajes, limpiamos el timer viejo y concatenamos
-                    if (currentBuffer.timer) clearTimeout(currentBuffer.timer);
-                    currentBuffer.text += `\n${messageText}`;
-                } else {
-                    // Crear nuevo buffer
-                    currentBuffer = { text: messageText, timer: null };
-                }
-
-                // Asignamos el nuevo buffer al map
-                messageBuffer.set(bufferKey, currentBuffer);
-
-                // Promisify the AI process to still return a NextResponse *after* processing or backgrounding
-                // In serverless, background processes might be killed, so we must `await` the timeout to ensure execution.
-                console.log(`[Buffer] Mensaje de ${redactPhone(phoneNumber)} pausado por 6s para juntar más texto... (Actual: "${currentBuffer.text.replace(/\n/g, ' ')}")`)
+                // Buffer DB-backed: capturamos el tiempo antes de esperar.
+                // Si llega un mensaje más nuevo mientras esperamos, ese handler procesará con todo el contexto.
+                const bufferStartTime = new Date().toISOString()
+                console.log(`[Buffer] Mensaje de ${redactPhone(phoneNumber)} esperando 3s por mensajes adicionales...`)
 
                 await new Promise(resolve => {
                     const timer = setTimeout(async () => {
-                        // Al expirar el tiempo, procesamos el buffer acumulado
-                        const finalBuffer = messageBuffer.get(bufferKey);
-                        messageBuffer.delete(bufferKey); // Limpiar buffer
+                        // Verificar si llegó un mensaje más reciente mientras esperábamos
+                        try {
+                            const { data: newerMsg } = await supabaseAdmin
+                                .from('messages')
+                                .select('id')
+                                .eq('chat_id', chatId)
+                                .eq('is_from_me', false)
+                                .gt('created_at', bufferStartTime)
+                                .limit(1)
+                                .maybeSingle()
 
-                        if (!finalBuffer) {
-                            resolve(true);
-                            return;
+                            if (newerMsg) {
+                                // Hay un mensaje más reciente — ese handler procesará con el historial completo
+                                console.log(`[Buffer] Nuevo mensaje detectado para ${redactPhone(phoneNumber)}, cediendo al handler más reciente`)
+                                resolve(true)
+                                return
+                            }
+                        } catch (checkErr) {
+                            console.error('[Buffer] Error verificando mensajes nuevos:', checkErr)
                         }
 
-                        const finalMessageText = finalBuffer.text;
-                        console.log(`[Buffer] Ejecutando IA para ${redactPhone(phoneNumber)} con texto consolidado: "${finalMessageText.replace(/\n/g, ' ')}"`)
+                        // Somos el handler más reciente — la IA leerá todo el historial de DB
+                        const finalMessageText = messageText
+                        console.log(`[Buffer] Handler final para ${redactPhone(phoneNumber)}, ejecutando IA con historial completo`)
 
                         try {
                             // D. Generar Respuesta con Gemini (con Function Calling para ventas)
@@ -1944,10 +1943,32 @@ ${customTrainingSection}`
                                 }
                             }
 
+                            // E. Si es documento PDF, leerlo con Gemini inline data
+                            let pdfInlineData: { mimeType: string; data: string } | null = null
+                            if (messageType === 'document' && savedMediaUrl) {
+                                try {
+                                    const pdfResp = await fetch(savedMediaUrl)
+                                    const pdfBuffer = await pdfResp.arrayBuffer()
+                                    const mimeType = messageObject.document?.mime_type || 'application/pdf'
+                                    pdfInlineData = {
+                                        mimeType,
+                                        data: Buffer.from(pdfBuffer).toString('base64')
+                                    }
+                                    aiInputText = `El cliente adjuntó un documento. Por favor analiza su contenido y responde en consecuencia. ${messageText}`
+                                    console.log(`[AI] Documento PDF cargado para análisis inline: ${savedMediaUrl}`)
+                                } catch (pdfErr) {
+                                    console.error('[AI] Error cargando PDF para Gemini:', pdfErr)
+                                    aiInputText = `El cliente envió un documento adjunto (${messageText}). No pude leer el archivo.`
+                                }
+                            }
+
                             const geminiResult = await model.generateContent({
-                                contents: [
-                                    { role: 'user', parts: [{ text: aiInputText }] }
-                                ]
+                                contents: [{
+                                    role: 'user',
+                                    parts: pdfInlineData
+                                        ? [{ inlineData: pdfInlineData }, { text: aiInputText }]
+                                        : [{ text: aiInputText }]
+                                }]
                             })
 
                             const response = geminiResult.response
@@ -2361,7 +2382,7 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                         // Siempre resolver la promesa para que Vercel termine
                         resolve(true);
 
-                    }, 0); // Buffer eliminado — no persiste en serverless, solo retrasaba la respuesta
+                    }, 3000); // 3s de espera para agrupar mensajes rápidos del cliente
                 });
 
                 return new NextResponse('EVENT_RECEIVED', { status: 200 })
