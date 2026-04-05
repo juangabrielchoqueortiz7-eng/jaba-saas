@@ -136,8 +136,12 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
         fetchMessages()
 
-        // Reset unread count when opening chat
-        supabase.from('chats').update({ unread_count: 0 }).eq('id', activeChatId)
+        // Marcar mensajes como leídos en WhatsApp (el cliente ve las palomitas azules)
+        fetch('/api/chat/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId: activeChatId })
+        }).catch(() => {}) // silencioso, no es crítico
 
         // Solo Realtime — sin polling de 3s
         const channel = supabase
