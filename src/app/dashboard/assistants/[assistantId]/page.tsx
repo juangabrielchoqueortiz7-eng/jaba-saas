@@ -133,13 +133,8 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                             borderRadius: 12,
                             padding: '14px 16px',
                             display: 'flex', alignItems: 'center', gap: 12,
-                            cursor: 'pointer',
-                            transition: 'box-shadow 0.15s',
                             boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
-                        }}
-                        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)'}
-                        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 6px rgba(0,0,0,0.04)'}
-                        >
+                        }}>
                             <div style={{
                                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
                                 background: `${action.color}18`,
