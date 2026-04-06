@@ -53,9 +53,11 @@ export async function POST(request: Request) {
         // Obtener credenciales de WhatsApp del usuario
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id')
+            .select('access_token, phone_number_id, currency_symbol')
             .eq('user_id', user.id)
             .single()
+
+        const currency = (creds as any)?.currency_symbol || 'Bs';
 
         if (action === 'approve') {
             // =============================================
@@ -130,14 +132,14 @@ export async function POST(request: Request) {
             // 4. Obtener nombre del negocio para mensaje genérico
             const { data: businessProfile } = await supabaseAdmin
                 .from('whatsapp_credentials')
-                .select('bot_name, service_name')
+                .select('bot_name, service_name, currency_symbol')
                 .eq('user_id', user.id)
                 .single();
             const businessName = businessProfile?.service_name || businessProfile?.bot_name || 'nuestro servicio';
 
             // 5. Enviar mensaje genérico al cliente por WhatsApp
             if (creds?.access_token && creds?.phone_number_id && renewal.phone_number) {
-                const confirmMsg = `✅ *¡Renovación aprobada!* 🎉\n\nTu acceso para *${renewal.customer_email || renewal.phone_number}* ha sido renovado con éxito en *${businessName}*.\n\n📋 *Detalle de tu renovación:*\n• Plan: ${renewal.plan_name}\n• Monto: Bs ${renewal.amount}\n• Vigencia hasta: *${renewal.new_expiration}*\n\n¡Gracias por seguir confiando en nosotros! Si necesitas ayuda, estamos aquí. 😊`;
+                const confirmMsg = `✅ *¡Renovación aprobada!* 🎉\n\nTu acceso para *${renewal.customer_email || renewal.phone_number}* ha sido renovado con éxito en *${businessName}*.\n\n📋 *Detalle de tu renovación:*\n• Plan: ${renewal.plan_name}\n• Monto: ${currency} ${renewal.amount}\n• Vigencia hasta: *${renewal.new_expiration}*\n\n¡Gracias por seguir confiando en nosotros! Si necesitas ayuda, estamos aquí. 😊`;
 
                 await sendWhatsAppMessage(
                     renewal.phone_number,
@@ -194,7 +196,7 @@ export async function POST(request: Request) {
 
             // Enviar mensaje al cliente
             if (creds?.access_token && creds?.phone_number_id && renewal.phone_number) {
-                const rejectMsg = `⚠️ *Pago no verificado*\n\nHola, revisamos tu comprobante para el plan *${renewal.plan_name}* pero no pudimos verificar el pago.\n\nPor favor, revisa que:\n• El monto sea correcto (Bs ${renewal.amount})\n• La captura sea legible y corresponda al pago actual\n\nSi ya realizaste el pago, vuelve a enviar tu comprobante. ¡Estamos aquí para ayudarte! 💬`
+                const rejectMsg = `⚠️ *Pago no verificado*\n\nHola, revisamos tu comprobante para el plan *${renewal.plan_name}* pero no pudimos verificar el pago.\n\nPor favor, revisa que:\n• El monto sea correcto (${currency} ${renewal.amount})\n• La captura sea legible y corresponda al pago actual\n\nSi ya realizaste el pago, vuelve a enviar tu comprobante. ¡Estamos aquí para ayudarte! 💬`
 
                 await sendWhatsAppMessage(
                     renewal.phone_number,

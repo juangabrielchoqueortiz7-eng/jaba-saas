@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
@@ -292,6 +292,11 @@ export default function SettingsPage() {
     const [promoUploading, setPromoUploading] = useState(false)
     const [promoDragging, setPromoDragging] = useState(false)
 
+    // Business Config Fields (Etapa 1 & 2)
+    const [timezone, setTimezone] = useState('America/La_Paz')
+    const [currencySymbol, setCurrencySymbol] = useState('Bs')
+    const [paymentMethods, setPaymentMethods] = useState('')
+
     // Connection Fields
     const [phoneNumberId, setPhoneNumberId] = useState('')
     const [wabaId, setWabaId] = useState('')
@@ -373,6 +378,11 @@ export default function SettingsPage() {
                 setPromoImageUrl(data.promo_image_url || '')
                 setPromoLocalPreview(data.promo_image_url || '')
 
+                // Business Config
+                setTimezone(data.timezone || 'America/La_Paz')
+                setCurrencySymbol(data.currency_symbol || 'Bs')
+                setPaymentMethods(data.payment_methods || '')
+
                 // AI Config
                 setAiStatus(data.ai_status || 'active')
                 setResponseDelay(data.response_delay_seconds ?? 5)
@@ -437,6 +447,11 @@ export default function SettingsPage() {
                 service_name: serviceName || null,
                 service_description: serviceDescription || null,
                 promo_image_url: promoImageUrl || null,
+
+                // Business Config
+                timezone: timezone || 'America/La_Paz',
+                currency_symbol: currencySymbol || 'Bs',
+                payment_methods: paymentMethods || null,
 
                 // New AI Fields
                 ai_status: aiStatus,
@@ -687,6 +702,97 @@ export default function SettingsPage() {
                                     />
                                     <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         Descripción breve de lo que ofreces. Se usará en el saludo del bot cuando un nuevo cliente escribe.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* ── Configuración del Negocio ── */}
+                            <div className="pt-4 pb-2">
+                                <h3 className="text-lg font-semibold text-[#0F172A] flex items-center gap-2">
+                                    <Globe className="w-5 h-5 text-[#25D366]" />
+                                    Configuración del Negocio
+                                </h3>
+                                <p className="text-sm text-[#0F172A]/40 mt-1">Estos datos se usan en los mensajes automáticos, recordatorios e IA.</p>
+                            </div>
+
+                            {/* Timezone */}
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="timezone" className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                    <Globe className="w-4 h-4 text-blue-500" /> Zona horaria
+                                </Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <select
+                                        id="timezone"
+                                        value={timezone}
+                                        onChange={e => setTimezone(e.target.value)}
+                                        className="h-11 w-full rounded-md border border-black/[0.08] bg-[#F7F8FA] px-3 text-sm text-[#0F172A] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                    >
+                                        <option value="America/La_Paz">Bolivia (UTC-4)</option>
+                                        <option value="America/Lima">Peru (UTC-5)</option>
+                                        <option value="America/Bogota">Colombia (UTC-5)</option>
+                                        <option value="America/Santiago">Chile (UTC-3/-4)</option>
+                                        <option value="America/Argentina/Buenos_Aires">Argentina (UTC-3)</option>
+                                        <option value="America/Mexico_City">Mexico (UTC-6)</option>
+                                        <option value="America/Sao_Paulo">Brasil (UTC-3)</option>
+                                        <option value="America/Guayaquil">Ecuador (UTC-5)</option>
+                                        <option value="America/Caracas">Venezuela (UTC-4)</option>
+                                        <option value="America/Asuncion">Paraguay (UTC-3/-4)</option>
+                                        <option value="America/Montevideo">Uruguay (UTC-3)</option>
+                                        <option value="America/Panama">Panama (UTC-5)</option>
+                                        <option value="America/New_York">US Eastern (UTC-5/-4)</option>
+                                        <option value="America/Los_Angeles">US Pacific (UTC-8/-7)</option>
+                                        <option value="Europe/Madrid">Espana (UTC+1/+2)</option>
+                                    </select>
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
+                                        Los recordatorios y horarios de envio se calculan segun esta zona horaria.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Currency Symbol */}
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="currencySymbol" className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4 text-green-500" /> Moneda
+                                </Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <select
+                                        id="currencySymbol"
+                                        value={currencySymbol}
+                                        onChange={e => setCurrencySymbol(e.target.value)}
+                                        className="h-11 w-full rounded-md border border-black/[0.08] bg-[#F7F8FA] px-3 text-sm text-[#0F172A] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                    >
+                                        <option value="Bs">Bs - Boliviano</option>
+                                        <option value="S/">S/ - Sol peruano</option>
+                                        <option value="$">$ - Dolar / Peso</option>
+                                        <option value="CLP">CLP - Peso chileno</option>
+                                        <option value="ARS">ARS - Peso argentino</option>
+                                        <option value="MXN">MXN - Peso mexicano</option>
+                                        <option value="R$">R$ - Real brasileno</option>
+                                        <option value="COP">COP - Peso colombiano</option>
+                                        <option value="EUR">EUR - Euro</option>
+                                        <option value="USD">USD - Dolar americano</option>
+                                    </select>
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
+                                        Se muestra junto a los precios en mensajes automaticos, recordatorios y catalogo.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Payment Methods */}
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="paymentMethods" className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                    <CreditCard className="w-4 h-4 text-purple-500" /> Metodos de pago
+                                </Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <textarea
+                                        id="paymentMethods"
+                                        value={paymentMethods}
+                                        onChange={e => setPaymentMethods(e.target.value)}
+                                        placeholder="Ej: QR bancario (BancoSol, Banco Union), Transferencia, Tigo Money"
+                                        className="min-h-[80px] w-full rounded-md border border-black/[0.08] bg-[#F7F8FA] px-3 py-2 text-sm shadow-sm text-[#0F172A] placeholder:text-[#0F172A]/35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                    />
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
+                                        La IA usara esta informacion cuando un cliente pregunte como pagar. Escribe todos los metodos que aceptas.
                                     </p>
                                 </div>
                             </div>

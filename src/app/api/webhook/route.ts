@@ -17,6 +17,15 @@ const supabaseAdmin = createClient(
     SERVICE_ROLE_KEY
 )
 
+// Helper: obtener fecha/hora actual en la zona horaria del tenant
+function getTenantNow(tz: string = 'America/La_Paz'): Date {
+    return new Date(new Date().toLocaleString("en-US", { timeZone: tz }))
+}
+function getTenantToday(tz: string = 'America/La_Paz'): Date {
+    const now = getTenantNow(tz)
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
 // Helpers para ocultar datos sensibles en logs
 function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
 function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
@@ -139,7 +148,7 @@ export async function POST(request: Request) {
     }
 
     // --- HELPER FUNCTIONS ---
-    async function confirmOrder(productId: string, chatId: string, phoneNumber: string, contactName: string, tenantUserId: string) {
+    async function confirmOrder(productId: string, chatId: string, phoneNumber: string, contactName: string, tenantUserId: string, tenantCurrency: string = 'Bs') {
         // Cargar producto desde la DB
         const { data: product } = await supabaseAdmin
             .from('products')
@@ -164,11 +173,11 @@ export async function POST(request: Request) {
 
         if (orderError) return { error: orderError.message };
 
-        console.log(`[SALES] Pedido creado: ${product.name} (Bs ${product.price}) para ${contactName}`);
+        console.log(`[SALES] Pedido creado: ${product.name} (${tenantCurrency} ${product.price}) para ${contactName}`);
 
         // Log en el chat para visibilidad
         await supabaseAdmin.from('chats').update({
-            last_message: `✅ Nuevo pedido: ${product.name} (Bs ${product.price})`
+            last_message: `✅ Nuevo pedido: ${product.name} (${tenantCurrency} ${product.price})`
         }).eq('id', chatId);
 
         return { success: true, product };
@@ -216,7 +225,7 @@ export async function POST(request: Request) {
                 // Simplificamos la query para evitar problemas de tipos o sintaxis .or()
                 const { data: credentialsList, error: credError } = await supabaseAdmin
                     .from('whatsapp_credentials')
-                    .select('user_id, access_token, bot_name, service_name, service_description, promo_image_url')
+                    .select('user_id, access_token, bot_name, service_name, service_description, promo_image_url, timezone, currency_symbol, payment_methods')
                     .eq('phone_number_id', String(phoneId))
 
                 const credentials = credentialsList?.[0] || null
@@ -238,6 +247,9 @@ export async function POST(request: Request) {
                 const tenantServiceDesc = (credentials as any).service_description || `el servicio de ${tenantServiceName}`
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
                 const tenantPromoImage = (credentials as any).promo_image_url || `${baseUrl}/prices_promo.jpg`
+                const tenantTimezone = (credentials as any).timezone || 'America/La_Paz'
+                const tenantCurrency = (credentials as any).currency_symbol || 'Bs'
+                const tenantPaymentMethods = (credentials as any).payment_methods || 'QR bancario'
                 // ---------------------------
 
                 const messageObject = value.messages[0]
@@ -545,11 +557,11 @@ export async function POST(request: Request) {
                                     console.log(`[AUTO-RENEWAL] Monto detectado: Bs ${detectedAmount}, esperado: Bs ${expectedAmount}`);
 
                                     if (detectedAmount >= expectedAmount) {
-                                        verificationNote = `✅ Monto verificado: Bs ${detectedAmount}`;
+                                        verificationNote = `✅ Monto verificado: ${tenantCurrency} ${detectedAmount}`;
                                     } else if (detectedAmount > 0 && detectedAmount < expectedAmount) {
                                         // SOLO bloquear si detectamos un monto MENOR al esperado
                                         amountVerified = false;
-                                        verificationNote = `⚠️ Monto no coincide: Bs ${detectedAmount} (esperado: Bs ${expectedAmount})`;
+                                        verificationNote = `⚠️ Monto no coincide: ${tenantCurrency} ${detectedAmount} (esperado: ${tenantCurrency} ${expectedAmount})`;
                                     } else {
                                         verificationNote = '✅ Comprobante recibido';
                                     }
@@ -644,8 +656,8 @@ export async function POST(request: Request) {
                             }
 
                             // ===== CALCULAR FECHA DESDE VENCIMIENTO ACTUAL (NO DESDE HOY) =====
-                            const todayBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
-                            const today = new Date(todayBolivia.getFullYear(), todayBolivia.getMonth(), todayBolivia.getDate());
+                            const todayTenant = getTenantNow(tenantTimezone);
+                            const today = getTenantToday(tenantTimezone);
                             let baseDate = today;
 
                             if (targetSub?.vencimiento) {
@@ -709,7 +721,7 @@ export async function POST(request: Request) {
 
                             // Enviar confirmación por WhatsApp
                             const { sendWhatsAppMessage: sendWAMsg } = await import('@/lib/whatsapp');
-                            const confirmMsg = `✅ *¡Pago recibido y renovación completada!* 🎉\n\n${verificationNote}\n\nTu acceso para *${orderEmail || targetSub?.correo || ''}* ha sido renovado.\n\n📋 *Detalle:*\n• Plan: ${pendingOrder.plan_name || planProduct?.name}\n• Monto: Bs ${pendingOrder.amount}\n• Vigencia hasta: *${newExpiration}*\n\n¡Gracias por confiar en nosotros! 😊`;
+                            const confirmMsg = `✅ *¡Pago recibido y renovación completada!* 🎉\n\n${verificationNote}\n\nTu acceso para *${orderEmail || targetSub?.correo || ''}* ha sido renovado.\n\n📋 *Detalle:*\n• Plan: ${pendingOrder.plan_name || planProduct?.name}\n• Monto: ${tenantCurrency} ${pendingOrder.amount}\n• Vigencia hasta: *${newExpiration}*\n\n¡Gracias por confiar en nosotros! 😊`;
 
                             await sendWAMsg(phoneNumber, confirmMsg, tenantToken, phoneId);
 
@@ -942,7 +954,7 @@ export async function POST(request: Request) {
                             const rows = products.map((p: any) => ({
                                 id: `renew_plan_${p.id}`,
                                 title: p.name.substring(0, 24),
-                                description: `Bs ${p.price} - ${p.description || 'Renovación'}`.substring(0, 72)
+                                description: `${tenantCurrency} ${p.price} - ${p.description || 'Renovación'}`.substring(0, 72)
                             }));
 
                             const listMessage = {
@@ -978,11 +990,11 @@ export async function POST(request: Request) {
                     const productId = interactiveData.id.replace('product_', '');
                     console.log(`[Sales] Producto seleccionado vía interactivo: ${productId}`);
 
-                    const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
+                    const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId, tenantCurrency);
 
                     if (result.success && result.product) {
                         const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
-                        let responseText = `¡Excelente elección! Has seleccionado *${result.product.name}* (Bs ${result.product.price}).\n\n`;
+                        let responseText = `¡Excelente elección! Has seleccionado *${result.product.name}* (${tenantCurrency} ${result.product.price}).\n\n`;
                         responseText += `Para continuar, por favor *escríbeme tu correo electrónico*:`;
 
                         await sendWhatsAppMessage(phoneNumber, responseText, tenantToken, phoneId);
@@ -1070,7 +1082,7 @@ export async function POST(request: Request) {
                     if (isInactiveClient && customerEmail) {
                         const confirmMsg = `✅ *¡Plan seleccionado!*\n\n` +
                             `Hemos encontrado tu cuenta registrada: *${customerEmail}*\n\n` +
-                            `¿Es esta la cuenta que deseas renovar con el plan *${product.name}* (Bs ${product.price})?\n\n` +
+                            `¿Es esta la cuenta que deseas renovar con el plan *${product.name}* (${tenantCurrency} ${product.price})?\n\n` +
                             `Si es correcto, continúa con el pago a continuación. Si no es tu cuenta, escríbenos el correo correcto.`;
                         await sendWhatsAppMessage(phoneNumber, confirmMsg, tenantToken, phoneId);
                         await supabaseAdmin.from('messages').insert({
@@ -1099,13 +1111,13 @@ export async function POST(request: Request) {
                         return new NextResponse('EVENT_RECEIVED', { status: 200 });
                     }
 
-                    console.log(`[Renewal] Orden creada: ${product.name} (Bs ${product.price}) para ${customerEmail ? redactEmail(customerEmail) : redactPhone(phoneNumber)} (inactivo: ${isInactiveClient})`);
+                    console.log(`[Renewal] Orden creada: ${product.name} (${tenantCurrency} ${product.price}) para ${customerEmail ? redactEmail(customerEmail) : redactPhone(phoneNumber)} (inactivo: ${isInactiveClient})`);
 
                     // Solo enviar QR directamente si el cliente está ACTIVO (o es nuevo sin correo)
                     // Para inactivos ya se envió el mensaje de confirmación arriba
                     if (!isInactiveClient) {
                         const renewMsg = `✅ *¡Plan seleccionado!*\n\n` +
-                            `Has elegido *${product.name}* (Bs ${product.price}) para renovar tu cuenta *${customerEmail || phoneNumber}*.\n\n` +
+                            `Has elegido *${product.name}* (${tenantCurrency} ${product.price}) para renovar tu cuenta *${customerEmail || phoneNumber}*.\n\n` +
                             `💳 Realiza el pago con el siguiente QR y envíanos la foto del comprobante por este medio:`;
 
                         await sendWhatsAppMessage(phoneNumber, renewMsg, tenantToken, phoneId);
@@ -1113,7 +1125,7 @@ export async function POST(request: Request) {
                         if (product.qr_image_url) {
                             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
                             const qrUrl = product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl}${product.qr_image_url}`;
-                            await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (Bs ${product.price})`, tenantToken, phoneId);
+                            await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (${tenantCurrency} ${product.price})`, tenantToken, phoneId);
                         }
 
                         const baseUrl2 = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
@@ -1131,10 +1143,10 @@ export async function POST(request: Request) {
                         // Para inactivos: enviar QR después del mensaje de confirmación
                         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
                         const qrUrl = product.qr_image_url.startsWith('http') ? product.qr_image_url : `${baseUrl}${product.qr_image_url}`;
-                        await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (Bs ${product.price})`, tenantToken, phoneId);
+                        await sendWhatsAppImage(phoneNumber, qrUrl, `QR de pago - ${product.name} (${tenantCurrency} ${product.price})`, tenantToken, phoneId);
                         await supabaseAdmin.from('messages').insert({
                             chat_id: chatId, is_from_me: true,
-                            content: `QR de pago - ${product.name} (Bs ${product.price})`,
+                            content: `QR de pago - ${product.name} (${tenantCurrency} ${product.price})`,
                             media_url: qrUrl, media_type: 'image', status: 'delivered'
                         });
                     }
@@ -1159,9 +1171,8 @@ export async function POST(request: Request) {
                     if (activeOrder) {
                         // Verificar que la imagen sea reciente (de hoy)
                         const now = new Date()
-                        const boliviaOffset = -4 * 60 // UTC-4
-                        const boliviaTime = new Date(now.getTime() + (now.getTimezoneOffset() + boliviaOffset) * 60000)
-                        const todayStr = boliviaTime.toISOString().split('T')[0]
+                        const tenantNow = getTenantNow(tenantTimezone)
+                        const todayStr = tenantNow.toISOString().split('T')[0]
 
                         console.log(`[Sales] Comprobante recibido. Fecha actual (Bolivia): ${todayStr}`);
 
@@ -1210,7 +1221,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                         if (extractedAmount !== null && extractedAmount < activeOrder.amount) {
                             const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
-                            const warningMsg = `⚠️ *Monto Incorrecto*\n\nGracias por enviar el comprobante, pero el sistema detecta que el pago indica *Bs ${extractedAmount}*, mientras que el *${activeOrder.plan_name || activeOrder.product}* tiene un costo de *Bs ${activeOrder.amount}*.\n\nPor favor, revisa el pago o si subiste la captura correcta. Tu pedido sigue en espera.`;
+                            const warningMsg = `⚠️ *Monto Incorrecto*\n\nGracias por enviar el comprobante, pero el sistema detecta que el pago indica *${tenantCurrency} ${extractedAmount}*, mientras que el *${activeOrder.plan_name || activeOrder.product}* tiene un costo de *${tenantCurrency} ${activeOrder.amount}*.\n\nPor favor, revisa el pago o si subiste la captura correcta. Tu pedido sigue en espera.`;
                             await sendWhatsAppMessage(phoneNumber, warningMsg, tenantToken, phoneId);
 
                             await supabaseAdmin.from('messages').insert({
@@ -1232,7 +1243,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 ...(activeOrder.metadata || {}),
                                 receipt_image_url: savedMediaUrl,
                                 receipt_date: todayStr,
-                                receipt_time: boliviaTime.toTimeString().slice(0, 8)
+                                receipt_time: tenantNow.toTimeString().slice(0, 8)
                             }
                         }).eq('id', activeOrder.id).eq('status', 'pending_payment').select('id');
 
@@ -1263,8 +1274,8 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // PASO 2: Calcular nueva fecha correctamente:
                             // - Si la sub sigue vigente → extender desde el vencimiento actual
                             // - Si ya venció → extender desde hoy
-                            const todayBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
-                            const today = new Date(todayBolivia.getFullYear(), todayBolivia.getMonth(), todayBolivia.getDate());
+                            const todayTenant = getTenantNow(tenantTimezone);
+                            const today = getTenantToday(tenantTimezone);
 
                             // Obtener duration_months del producto (fuente de verdad)
                             const { data: productData } = await supabaseAdmin
@@ -1413,8 +1424,8 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // MENSAJE DE CONFIRMACIÓN al cliente
                             // ============================================================
                             const successMsg = subUpdated
-                                ? `✅ *¡Renovación completada!* 🎉\n\nTu acceso para *${activeOrder.customer_email || sub?.correo || phoneNumber}* en *${bizName}* ha sido renovado con éxito.\n\n📋 *Detalle:*\n• Plan: ${activeOrder.plan_name}\n• Monto: Bs ${activeOrder.amount}\n• Vigencia hasta: *${newExpStr}*\n\n¡Gracias por tu preferencia! 😊`
-                                : `📩 *¡Comprobante recibido!*\n\nGracias por tu pago del plan *${activeOrder.plan_name}* (Bs ${activeOrder.amount}). Tu cuenta está siendo procesada y te confirmaremos en breve. ⏳`;
+                                ? `✅ *¡Renovación completada!* 🎉\n\nTu acceso para *${activeOrder.customer_email || sub?.correo || phoneNumber}* en *${bizName}* ha sido renovado con éxito.\n\n📋 *Detalle:*\n• Plan: ${activeOrder.plan_name}\n• Monto: ${tenantCurrency} ${activeOrder.amount}\n• Vigencia hasta: *${newExpStr}*\n\n¡Gracias por tu preferencia! 😊`
+                                : `📩 *¡Comprobante recibido!*\n\nGracias por tu pago del plan *${activeOrder.plan_name}* (${tenantCurrency} ${activeOrder.amount}). Tu cuenta está siendo procesada y te confirmaremos en breve. ⏳`;
 
                             await sendWhatsAppMessage(phoneNumber, successMsg, tenantToken, phoneId);
 
@@ -1441,7 +1452,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                         }
 
                         // --- FLUJO NORMAL (no renovación) ---
-                        const confirmationMsg = `✅ *¡Comprobante recibido!*\n\nEstamos verificando tu pago para el *${activeOrder.plan_name || activeOrder.product}* (Bs ${activeOrder.amount}).\n\nEn breve recibirás el acceso en tu correo electrónico: *${activeOrder.customer_email || '(no registrado)'}*\n\n¡Gracias por tu preferencia! 🙌`;
+                        const confirmationMsg = `✅ *¡Comprobante recibido!*\n\nEstamos verificando tu pago para el *${activeOrder.plan_name || activeOrder.product}* (${tenantCurrency} ${activeOrder.amount}).\n\nEn breve recibirás el acceso en tu correo electrónico: *${activeOrder.customer_email || '(no registrado)'}*\n\n¡Gracias por tu preferencia! 🙌`;
 
                         await sendWhatsAppMessage(phoneNumber, confirmationMsg, tenantToken, phoneId);
 
@@ -1644,8 +1655,8 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             let subscriptionStatusLabel = '';
                             if (existingSub?.vencimiento) {
                                 // Fecha actual en Bolivia (UTC-4)
-                                const nowBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
-                                const todayBolivia = new Date(nowBolivia.getFullYear(), nowBolivia.getMonth(), nowBolivia.getDate());
+                                const nowTz = getTenantNow(tenantTimezone);
+                                const todayTz = getTenantToday(tenantTimezone);
 
                                 // Parsear vencimiento DD/MM/YYYY o YYYY-MM-DD
                                 let expDate: Date | null = null;
@@ -1658,7 +1669,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 }
 
                                 if (expDate) {
-                                    const diffDays = Math.ceil((expDate.getTime() - todayBolivia.getTime()) / (1000 * 60 * 60 * 24));
+                                    const diffDays = Math.ceil((expDate.getTime() - todayTz.getTime()) / (1000 * 60 * 60 * 24));
                                     if (diffDays < 0) {
                                         subscriptionStatusLabel = `❌ VENCIDA hace ${Math.abs(diffDays)} días (venció el ${existingSub.vencimiento})`;
                                     } else if (diffDays === 0) {
@@ -1680,8 +1691,8 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 console.log(`[AI] Cliente detectado: ${redactPhone(phoneNumber)} → ${totalCnt} suscripciones (${activeCnt} activas)`);
 
                                 // Construir lista de TODAS las cuentas para el contexto con DÍAS PRECALCULADOS
-                                const nowBol = new Date(Date.now() - 4 * 60 * 60 * 1000);
-                                const todayBol = new Date(nowBol.getFullYear(), nowBol.getMonth(), nowBol.getDate());
+                                const nowBol = getTenantNow(tenantTimezone);
+                                const todayBol = getTenantToday(tenantTimezone);
                                 const allAccountsList = allSubs.map((s, i) => {
                                     let diasInfo = '';
                                     if (s.vencimiento) {
@@ -1736,7 +1747,7 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
                                             await sendWhatsAppImage(
                                                 phoneNumber,
                                                 orderProduct.qr_image_url,
-                                                `📱 *QR de Pago*\n\nPlan: *${activeOrder.plan_name}*\nMonto: *Bs ${activeOrder.amount}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
+                                                `📱 *QR de Pago*\n\nPlan: *${activeOrder.plan_name}*\nMonto: *${tenantCurrency} ${activeOrder.amount}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
                                                 tenantToken,
                                                 phoneId
                                             );
@@ -1770,7 +1781,7 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
                                         const rows = tenantProducts.slice(0, 10).map(p => ({
                                             id: `plan_${p.id}`,
                                             title: p.name.substring(0, 24),
-                                            description: `Bs ${p.price}${p.description ? ' - ' + p.description.substring(0, 48) : ''}`
+                                            description: `${tenantCurrency} ${p.price}${p.description ? ' - ' + p.description.substring(0, 48) : ''}`
                                         }));
 
                                         try {
@@ -1819,18 +1830,18 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
                                 if (activeOrder.status === 'pending_email') {
                                     if (existingSub?.correo) {
                                         // Cliente existente: no pedir correo, usamos el que ya tenemos
-                                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Este cliente YA tiene correo registrado: ${existingSub.correo}. Ejecuta "process_email" con ese correo INMEDIATAMENTE sin preguntarle.`
+                                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (${tenantCurrency} ${activeOrder.amount}). Este cliente YA tiene correo registrado: ${existingSub.correo}. Ejecuta "process_email" con ese correo INMEDIATAMENTE sin preguntarle.`
                                     } else {
-                                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). \nTu tarea: SI el cliente acaba de enviar un correo electrónico válido, DEBES ejecutar la herramienta "process_email" con ese correo. \nDe lo contrario, recuérdale amable y brevemente que necesitas su correo electrónico para enviarle el acceso.`
+                                        orderContext = `\n[PEDIDO ACTIVO] El cliente eligió "${activeOrder.plan_name}" (${tenantCurrency} ${activeOrder.amount}). \nTu tarea: SI el cliente acaba de enviar un correo electrónico válido, DEBES ejecutar la herramienta "process_email" con ese correo. \nDe lo contrario, recuérdale amable y brevemente que necesitas su correo electrónico para enviarle el acceso.`
                                     }
                                 } else if (activeOrder.status === 'pending_payment') {
-                                    orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y ya se le envió el QR de pago para "${activeOrder.plan_name}" (Bs ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago por este medio, no ofrezcas planes.`
+                                    orderContext = `\n[PEDIDO ACTIVO] El cliente ya proporcionó su email (${activeOrder.customer_email}) y ya se le envió el QR de pago para "${activeOrder.plan_name}" (${tenantCurrency} ${activeOrder.amount}). Tu tarea: Recordarle amablemente que envíe la foto del comprobante de pago por este medio, no ofrezcas planes.`
                                 }
                             }
 
                             // Construir system prompt de SUPER VENTAS
                             const planList = (tenantProducts || []).map((p, i) =>
-                                `${i + 1}. *${p.name}* — *Bs ${p.price}*${p.description ? ' (' + p.description + ')' : ''}`
+                                `${i + 1}. *${p.name}* — *${tenantCurrency} ${p.price}*${p.description ? ' (' + p.description + ')' : ''}`
                             ).join('\n')
                             const idMapping = (tenantProducts || []).map(p =>
                                 `"${p.name}" = "${p.id}"`
@@ -1851,7 +1862,7 @@ INFORMACIÓN INTERNA DE CATÁLOGO (Solo ofrécelo si el cliente muestra verdader
 PLANES DISPONIBLES:
 ${planList}
 
-MÉTODOS DE PAGO: QR bancario (BancoSol, Banco Unión, BNB, Tigo Money)
+MÉTODOS DE PAGO: ${tenantPaymentMethods}
 
 SERVICIOS INTEGRADOS:
 1. "send_welcome_menu": Una herramienta interactiva que envía un catálogo visual de los planes por WhatsApp. ÚSALA ÚNICAMENTE cuando el cliente explícitamente diga que quiere ver los planes, precios, o esté listo para comprar un paquete. NO la uses para saludar.
@@ -2048,7 +2059,7 @@ ${customTrainingSection}`
                                                 rows: (tenantProducts || []).slice(0, 10).map(p => ({
                                                     id: `product_${p.id}`,
                                                     title: p.name.substring(0, 24),
-                                                    description: `Bs ${p.price} - ${p.description || ''}`.substring(0, 72)
+                                                    description: `${tenantCurrency} ${p.price} - ${p.description || ''}`.substring(0, 72)
                                                 }))
                                             }
                                         ]
@@ -2063,7 +2074,7 @@ ${customTrainingSection}`
                                         )
 
                                         // Guardar en DB para historial
-                                        const planListContent = (tenantProducts || []).map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
+                                        const planListContent = (tenantProducts || []).map(p => `• ${p.name} — ${tenantCurrency} ${p.price}`).join('\n')
                                         await supabaseAdmin.from('messages').insert([
                                             { chat_id: chatId, is_from_me: true, content: '', media_url: tenantPromoImage, media_type: 'image', status: 'delivered' },
                                             { chat_id: chatId, is_from_me: true, content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente puede elegir tocando "Ver Planes"`, status: 'delivered' }
@@ -2129,7 +2140,7 @@ ${customTrainingSection}`
 
                                     if (name === 'confirm_plan' && callArgs?.plan_id) {
                                         const productId = callArgs.plan_id as string
-                                        const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId);
+                                        const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId, tenantCurrency);
                                         if (result.success && result.product) {
                                             actionExecuted = true;
 
@@ -2183,7 +2194,7 @@ ${customTrainingSection}`
                                                         await sendWhatsAppImage(
                                                             phoneNumber,
                                                             absQrUrl,
-                                                            `📱 *QR de Pago*\n\nPlan: *${result.product.name}*\nMonto: *Bs ${result.product.price}*\nCuenta: *${selectedEmail}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
+                                                            `📱 *QR de Pago*\n\nPlan: *${result.product.name}*\nMonto: *${tenantCurrency} ${result.product.price}*\nCuenta: *${selectedEmail}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
                                                             tenantToken,
                                                             phoneId
                                                         );
@@ -2191,12 +2202,12 @@ ${customTrainingSection}`
                                                 }
 
                                                 if (!aiResponseText.trim()) {
-                                                    aiResponseText = `¡Excelente elección! 🚀 *${result.product.name}* por *Bs ${result.product.price}* para la cuenta *${selectedEmail}*.`;
+                                                    aiResponseText = `¡Excelente elección! 🚀 *${result.product.name}* por *${tenantCurrency} ${result.product.price}* para la cuenta *${selectedEmail}*.`;
                                                 }
                                             } else {
                                                 // Cliente NUEVO sin correo registrado → pedir email
                                                 if (!aiResponseText.trim()) {
-                                                    aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *Bs ${result.product.price}*.\n\nPara continuar, necesito tu *correo electrónico*. El acceso a *${tenantServiceName}* se enviará directamente a tu email. 📧`
+                                                    aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *${tenantCurrency} ${result.product.price}*.\n\nPara continuar, necesito tu *correo electrónico*. El acceso a *${tenantServiceName}* se enviará directamente a tu email. 📧`
                                                 }
                                             }
                                         } else if (result.success) {
@@ -2256,7 +2267,7 @@ ${customTrainingSection}`
                                                         const qrResult = await sendWhatsAppImage(
                                                             phoneNumber,
                                                             absQrUrl,
-                                                            `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *Bs ${orderProduct.price}*\n\nRealiza tu pago y envíame la foto del comprobante aquí 📸`,
+                                                            `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *${tenantCurrency} ${orderProduct.price}*\n\nRealiza tu pago y envíame la foto del comprobante aquí 📸`,
                                                             tenantToken,
                                                             phoneId
                                                         )
@@ -2273,7 +2284,7 @@ ${customTrainingSection}`
                                                         const qrMsgPayload: any = {
                                                             chat_id: chatId,
                                                             is_from_me: true,
-                                                            content: `💳 QR de pago - ${orderProduct.name} (Bs ${orderProduct.price})`,
+                                                            content: `💳 QR de pago - ${orderProduct.name} (${tenantCurrency} ${orderProduct.price})`,
                                                             status: 'delivered'
                                                         }
                                                         try {
@@ -2295,7 +2306,7 @@ ${customTrainingSection}`
                                                     if (qrSent) {
                                                         aiResponseText = `✅ ¡Email registrado! Tu invitación a *${tenantServiceName}* se activará en *${email}*.
 
-Te he enviado el *QR de pago* aquí arriba ☝️ para tu *${orderProduct?.name || pendingOrder.plan_name}* (*Bs ${orderProduct?.price || pendingOrder.amount}*).
+Te he enviado el *QR de pago* aquí arriba ☝️ para tu *${orderProduct?.name || pendingOrder.plan_name}* (*${tenantCurrency} ${orderProduct?.price || pendingOrder.amount}*).
 
 Una vez realices el pago, envíame la foto del comprobante por este chat. 📸`
                                                     } else {

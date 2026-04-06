@@ -30,12 +30,10 @@ function parseDate(dateStr: string): Date | null {
     return isNaN(d.getTime()) ? null : d
 }
 
-// Obtener saludo según hora de Bolivia (UTC-4)
-function getBoliviaGreeting(): string {
-    const now = new Date()
-    const boliviaOffset = -4 * 60 // UTC-4
-    const boliviaTime = new Date(now.getTime() + (now.getTimezoneOffset() + boliviaOffset) * 60000)
-    const hour = boliviaTime.getHours()
+// Obtener saludo según hora del tenant
+function getTenantGreeting(tz: string = 'America/La_Paz'): string {
+    const tenantTime = new Date(new Date().toLocaleString("en-US", { timeZone: tz }))
+    const hour = tenantTime.getHours()
 
     if (hour >= 6 && hour < 12) return 'Buenos días'
     if (hour >= 12 && hour < 19) return 'Buenas tardes'
@@ -157,8 +155,6 @@ async function processUrgency() {
         return results
     }
 
-    const greeting = getBoliviaGreeting()
-
     // Group by user
     const userGroups: Record<string, typeof candidates> = {}
     for (const sub of candidates) {
@@ -169,7 +165,7 @@ async function processUrgency() {
     for (const [userId, userSubs] of Object.entries(userGroups)) {
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, bot_name, service_name')
+            .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol')
             .eq('user_id', userId)
             .single()
 
@@ -198,12 +194,16 @@ async function processUrgency() {
             .eq('is_active', true)
             .order('sort_order', { ascending: true })
 
+        const tenantCurrency = (creds as any)?.currency_symbol || 'Bs'
+        const tenantTz = (creds as any)?.timezone || 'America/La_Paz'
+        const greeting = getTenantGreeting(tenantTz)
+
         const listSections = products && products.length > 0 ? [{
             title: 'Planes Disponibles',
             rows: products.map(p => ({
                 id: `renew_plan_${p.id}`,
                 title: p.name.substring(0, 24),
-                description: `Bs ${p.price}`
+                description: `${tenantCurrency} ${p.price}`
             }))
         }] : []
 
@@ -230,15 +230,15 @@ De lo contrario, tu cuenta será suspendida y tu contenido quedará inaccesible 
 
 Ref: ${sub.equipo || ''}`
 
-                // URL base para la imagen de precios
+                // URL de imagen de precios desde config del tenant
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-                const imageUrl = `${baseUrl}/prices_promo.jpg`
+                const imageUrl = (creds as any)?.promo_image_url || `${baseUrl}/prices_promo.jpg`
 
                 // Seleccionar template según servicio del suscriptor
                 const templateConfig = (settings as any)?.template_config || {}
-                const servicio = (sub.servicio || 'CANVA') as string
+                const servicio = (sub.servicio || serviceName || 'Servicio') as string
                 const templateName = templateConfig?.[servicio]?.urgency
-                    || templateConfig?.['CANVA']?.urgency
+                    || (Object.values(templateConfig || {}) as any[])?.[0]?.urgency
                     || 'ultimo_aviso_renovacion_v1'
 
                 // Enviar TEMPLATE de Meta (requerido para clientes fuera de ventana 24h)

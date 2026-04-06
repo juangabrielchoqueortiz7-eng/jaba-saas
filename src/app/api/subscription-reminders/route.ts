@@ -157,7 +157,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
     // Obtener credenciales WhatsApp del usuario
     const { data: creds } = await supabaseAdmin
         .from('whatsapp_credentials')
-        .select('access_token, phone_number_id, bot_name, service_name')
+        .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol')
         .eq('user_id', userId)
         .single()
 
@@ -188,7 +188,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
         .order('sort_order', { ascending: true })
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-    const imageUrl = `${baseUrl}/prices_promo.jpg`
+    const imageUrl = (creds as any)?.promo_image_url || `${baseUrl}/prices_promo.jpg`
     const fullPhone = withPrefix
 
     // ✅ Enviar template de recordatorio (funciona fuera de la ventana 24h)
@@ -248,7 +248,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
                 rows: products.map(p => ({
                     id: `renew_plan_${p.id}`,
                     title: p.name.substring(0, 24),
-                    description: `Bs ${p.price}`
+                    description: `${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`
                 }))
             }]
             const listResult = await sendWhatsAppList(
@@ -263,7 +263,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
 
             // Si la lista SÍ se envió (cliente dentro de 24h), guardarla como tarjeta visual
             if (listSent && chatId) {
-                const planListContent = products.map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
+                const planListContent = products.map(p => `• ${p.name} — ${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`).join('\n')
                 await supabaseAdmin.from('messages').insert({
                     chat_id: chatId,
                     is_from_me: true,
@@ -349,8 +349,9 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         if (!expDate) return false
 
         // Check if expiring exactly today
-        const boliviaTime = new Date(new Date().toLocaleString("en-US", { timeZone: "America/La_Paz" }));
-        const todayStr = boliviaTime.toISOString().split('T')[0];
+        // Note: uses America/La_Paz as default for initial filtering; per-tenant timezone is applied later
+        const tenantTime = new Date(new Date().toLocaleString("en-US", { timeZone: "America/La_Paz" }));
+        const todayStr = tenantTime.toISOString().split('T')[0];
         const expDateStr = expDate.toISOString().split('T')[0];
         
         return todayStr === expDateStr
@@ -376,7 +377,7 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         // Get WhatsApp credentials for this user
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, bot_name, service_name')
+            .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol')
             .eq('user_id', userId)
             .single()
 
@@ -420,7 +421,7 @@ async function processReminders(specificUserId?: string, force: boolean = false)
             rows: products.map(p => ({
                 id: `renew_plan_${p.id}`,
                 title: p.name.substring(0, 24),
-                description: `Bs ${p.price}`
+                description: `${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`
             }))
         }] : []
 
@@ -480,15 +481,15 @@ Ref: {equipo}`
                     .replace(/{equipo}/g, sub.equipo || '')
                     .replace(/{planes}/g, plansText)
 
-                // URL base para la imagen de precios (necesaria para el template)
+                // URL de imagen de precios desde config del tenant
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-                const imageUrl = `${baseUrl}/prices_promo.jpg`
+                const imageUrl = (creds as any)?.promo_image_url || `${baseUrl}/prices_promo.jpg`
 
                 // Seleccionar template según servicio del suscriptor
                 const templateConfig = (settings as any)?.template_config || {}
-                const servicio = (sub.servicio || 'CANVA') as string
+                const servicio = (sub.servicio || serviceName || 'Servicio') as string
                 const templateName = templateConfig?.[servicio]?.reminder
-                    || templateConfig?.['CANVA']?.reminder
+                    || (Object.values(templateConfig || {}) as any[])?.[0]?.reminder
                     || 'recordatorio_renovacion_v1'
 
                 // Send TEMPLATE message (requerido para clientes fuera de ventana 24h)
@@ -556,7 +557,7 @@ Ref: {equipo}`
 
                         // Guardar lista interactiva en el panel con formato correcto para tarjeta visual
                         if (chatId && products && products.length > 0) {
-                            const planListContent = products.map(p => `• ${p.name} — Bs ${p.price}`).join('\n')
+                            const planListContent = products.map(p => `• ${p.name} — ${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`).join('\n')
                             await supabaseAdmin.from('messages').insert({
                                 chat_id: chatId,
                                 is_from_me: true,
