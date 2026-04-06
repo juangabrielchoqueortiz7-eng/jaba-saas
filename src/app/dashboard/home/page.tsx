@@ -92,7 +92,7 @@ export default async function HomePage() {
 
     const porServicio: Record<string, { total: number; vencen7: number }> = {}
     for (const sub of activeSubs ?? []) {
-        const svc = sub.servicio || 'CANVA'
+        const svc = sub.servicio || 'Servicio'
         if (!porServicio[svc]) porServicio[svc] = { total: 0, vencen7: 0 }
         porServicio[svc].total++
         if (diffDays(sub.vencimiento) <= 7 && diffDays(sub.vencimiento) >= 0) porServicio[svc].vencen7++
@@ -297,7 +297,7 @@ export default async function HomePage() {
                                             border: urgent ? '1px solid rgba(220,38,38,0.25)' : '1px solid rgba(0,0,0,0.07)',
                                         }}>
                                             <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: SVC_COLOR.bg, color: SVC_COLOR.color }}>
-                                                {sub.servicio || 'CANVA'}
+                                                {sub.servicio || 'Servicio'}
                                             </span>
                                             <span style={{ fontSize: '0.8rem', color: '#0F172A', flex: 1, fontFamily: 'monospace' }}>
                                                 {sub.correo || sub.numero}

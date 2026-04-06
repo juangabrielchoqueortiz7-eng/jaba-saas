@@ -186,7 +186,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
             if (filtersState.correo && !sub.correo?.toLowerCase().includes(filtersState.correo.toLowerCase())) return false;
             if (filtersState.vencimiento && !sub.vencimiento?.toLowerCase().includes(filtersState.vencimiento.toLowerCase())) return false;
             if (filtersState.equipo && !sub.equipo?.toLowerCase().includes(filtersState.equipo.toLowerCase())) return false;
-            if (filtersState.servicio && (sub.servicio || 'CANVA') !== filtersState.servicio) return false;
+            if (filtersState.servicio && (sub.servicio || '') !== filtersState.servicio) return false;
 
             return true;
         }).sort((a, b) => {
@@ -250,19 +250,19 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     };
 
     const getServicioBadge = (servicio: string) => {
-        switch ((servicio || 'CANVA').toUpperCase()) {
+        switch ((servicio || 'Servicio').toUpperCase()) {
             case 'CHATGPT':
                 return { label: 'ChatGPT', className: 'bg-teal-900/40 text-teal-400 border-teal-800/60' };
             case 'GEMINI':
                 return { label: 'Gemini', className: 'bg-blue-900/40 text-blue-400 border-blue-800/60' };
             default:
-                return { label: 'Canva', className: 'bg-violet-900/40 text-[#4ade80] border-violet-800/60' };
+                return { label: servicio || 'Servicio', className: 'bg-violet-900/40 text-[#4ade80] border-violet-800/60' };
         }
     };
 
     const goToChat = async (sub: Subscription) => {
         const phone = sub.numero.replace(/\D/g, '');
-        const fullPhone = (phone.length === 8 && (phone.startsWith('6') || phone.startsWith('7'))) ? '591' + phone : phone;
+        const fullPhone = phone.length <= 10 ? '591' + phone : phone;
         const withoutPrefix = fullPhone.startsWith('591') ? fullPhone.slice(3) : fullPhone;
 
         if (!fullPhone) {
@@ -453,9 +453,12 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
                         </SelectTrigger>
                         <SelectContent className="bg-[#F7F8FA] border-black/[0.08]">
                             <SelectItem value="ALL" className="text-[#0F172A]/65 focus:bg-white focus:text-[#0F172A]">Todos los Servicios</SelectItem>
-                            <SelectItem value="CANVA" className="text-[#4ade80] focus:bg-white focus:text-[#0F172A]">🎨 Canva</SelectItem>
-                            <SelectItem value="CHATGPT" className="text-teal-400 focus:bg-white focus:text-[#0F172A]">🤖 ChatGPT</SelectItem>
-                            <SelectItem value="GEMINI" className="text-blue-400 focus:bg-white focus:text-[#0F172A]">✨ Gemini</SelectItem>
+                            <SelectItem value="CANVA" className="text-[#4ade80] focus:bg-white focus:text-[#0F172A]">Canva</SelectItem>
+                            <SelectItem value="CHATGPT" className="text-teal-400 focus:bg-white focus:text-[#0F172A]">ChatGPT</SelectItem>
+                            <SelectItem value="GEMINI" className="text-blue-400 focus:bg-white focus:text-[#0F172A]">Gemini</SelectItem>
+                            <SelectItem value="NETFLIX" className="text-red-400 focus:bg-white focus:text-[#0F172A]">Netflix</SelectItem>
+                            <SelectItem value="SPOTIFY" className="text-green-400 focus:bg-white focus:text-[#0F172A]">Spotify</SelectItem>
+                            <SelectItem value="OTRO" className="text-gray-400 focus:bg-white focus:text-[#0F172A]">Otro</SelectItem>
                         </SelectContent>
                     </Select>
 

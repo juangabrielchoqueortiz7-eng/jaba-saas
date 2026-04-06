@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     // Obtener credenciales WhatsApp del usuario
     const { data: creds } = await supabaseAdmin
         .from('whatsapp_credentials')
-        .select('access_token, phone_number_id')
+        .select('access_token, phone_number_id, country_code')
         .eq('user_id', user.id)
         .single()
 
@@ -66,9 +66,10 @@ export async function POST(request: Request) {
         const { data: subs } = await query
 
         // Obtener nombres desde chats
+        const broadcastCC = (creds as any)?.country_code || '591'
         const phones = (subs || []).map(s => {
             const clean = s.numero.replace(/\D/g, '')
-            return clean.startsWith('591') ? clean : '591' + clean
+            return clean.startsWith(broadcastCC) ? clean : broadcastCC + clean
         })
 
         const { data: chats } = await supabaseAdmin
@@ -80,14 +81,15 @@ export async function POST(request: Request) {
         const nameByPhone = Object.fromEntries((chats || []).map(c => [c.phone_number, c.contact_name || '']))
 
         contacts = (subs || []).map(sub => {
+            const cc = (creds as any)?.country_code || '591'
             const clean = sub.numero.replace(/\D/g, '')
-            const phone = clean.startsWith('591') ? clean : '591' + clean
+            const phone = clean.startsWith(cc) ? clean : cc + clean
             return {
                 phone,
                 nombre: nameByPhone[phone] || '',
                 correo: sub.correo || '',
                 vencimiento: sub.vencimiento || '',
-                servicio: sub.servicio || 'CANVA',
+                servicio: sub.servicio || 'Servicio',
             }
         }).filter(c => c.phone.length >= 10)
 

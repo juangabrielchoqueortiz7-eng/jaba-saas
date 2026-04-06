@@ -5,10 +5,10 @@ import { Subscription } from '@/types/subscription';
 import { Copy, MessageCircle, Trash2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 
 const getServicioBadge = (servicio: string) => {
-    switch ((servicio || 'CANVA').toUpperCase()) {
+    switch ((servicio || 'Servicio').toUpperCase()) {
         case 'CHATGPT': return { label: 'ChatGPT', className: 'bg-teal-900/40 text-teal-400 border-teal-800/60' };
         case 'GEMINI': return { label: 'Gemini', className: 'bg-blue-900/40 text-blue-400 border-blue-800/60' };
-        default: return { label: 'Canva', className: 'bg-violet-900/40 text-[#4ade80] border-violet-800/60' };
+        default: return { label: servicio || 'Servicio', className: 'bg-violet-900/40 text-[#4ade80] border-violet-800/60' };
     }
 };
 
@@ -63,7 +63,7 @@ export default function SubscriptionCard({
             {/* Email */}
             <div className="mb-3">
                 <label className="text-xs text-[#0F172A]/35 font-semibold uppercase">
-                    {(sub.servicio || 'CANVA') === 'CANVA' ? 'Correo' : 'Correo de la Cuenta'}
+                    Correo de la Cuenta
                 </label>
                 <div className="flex items-center gap-2">
                     <input

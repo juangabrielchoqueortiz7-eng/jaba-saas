@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         // Obtener credenciales de WhatsApp del usuario
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, currency_symbol')
+            .select('access_token, phone_number_id, currency_symbol, country_code')
             .eq('user_id', user.id)
             .single()
 
@@ -81,7 +81,8 @@ export async function POST(request: Request) {
                 console.log(`[Renewal Approve] ✅ Suscripción ${renewal.subscription_id} actualizada: ${renewal.old_expiration} → ${renewal.new_expiration} (ACTIVO)`);
             } else {
                 // Si no tenemos subscription_id, buscar por número de teléfono
-                const cleanPhone = renewal.phone_number.replace(/^591/, '');
+                const tenantCC = (creds as any)?.country_code || '591';
+                const cleanPhone = renewal.phone_number.replace(new RegExp(`^${tenantCC}`), '');
                 const { data: foundSub } = await supabaseAdmin
                     .from('subscriptions')
                     .select('id')

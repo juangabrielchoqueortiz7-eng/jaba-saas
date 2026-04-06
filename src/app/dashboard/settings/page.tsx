@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
@@ -292,10 +292,11 @@ export default function SettingsPage() {
     const [promoUploading, setPromoUploading] = useState(false)
     const [promoDragging, setPromoDragging] = useState(false)
 
-    // Business Config Fields (Etapa 1 & 2)
+    // Business Config Fields (Etapa 1-4)
     const [timezone, setTimezone] = useState('America/La_Paz')
     const [currencySymbol, setCurrencySymbol] = useState('Bs')
     const [paymentMethods, setPaymentMethods] = useState('')
+    const [countryCode, setCountryCode] = useState('591')
 
     // Connection Fields
     const [phoneNumberId, setPhoneNumberId] = useState('')
@@ -382,6 +383,7 @@ export default function SettingsPage() {
                 setTimezone(data.timezone || 'America/La_Paz')
                 setCurrencySymbol(data.currency_symbol || 'Bs')
                 setPaymentMethods(data.payment_methods || '')
+                setCountryCode(data.country_code || '591')
 
                 // AI Config
                 setAiStatus(data.ai_status || 'active')
@@ -452,6 +454,7 @@ export default function SettingsPage() {
                 timezone: timezone || 'America/La_Paz',
                 currency_symbol: currencySymbol || 'Bs',
                 payment_methods: paymentMethods || null,
+                country_code: countryCode || '591',
 
                 // New AI Fields
                 ai_status: aiStatus,
@@ -745,6 +748,39 @@ export default function SettingsPage() {
                                     </select>
                                     <p className="text-sm text-[#0F172A]/40 leading-relaxed">
                                         Los recordatorios y horarios de envio se calculan segun esta zona horaria.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Country Code */}
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="countryCode" className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-orange-500" /> Codigo de pais
+                                </Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <select
+                                        id="countryCode"
+                                        value={countryCode}
+                                        onChange={e => setCountryCode(e.target.value)}
+                                        className="h-11 w-full rounded-md border border-black/[0.08] bg-[#F7F8FA] px-3 text-sm text-[#0F172A] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                    >
+                                        <option value="591">+591 Bolivia</option>
+                                        <option value="51">+51 Peru</option>
+                                        <option value="57">+57 Colombia</option>
+                                        <option value="56">+56 Chile</option>
+                                        <option value="54">+54 Argentina</option>
+                                        <option value="52">+52 Mexico</option>
+                                        <option value="55">+55 Brasil</option>
+                                        <option value="593">+593 Ecuador</option>
+                                        <option value="58">+58 Venezuela</option>
+                                        <option value="595">+595 Paraguay</option>
+                                        <option value="598">+598 Uruguay</option>
+                                        <option value="507">+507 Panama</option>
+                                        <option value="1">+1 Estados Unidos / Canada</option>
+                                        <option value="34">+34 Espana</option>
+                                    </select>
+                                    <p className="text-sm text-[#0F172A]/40 leading-relaxed">
+                                        Se usa para formatear numeros de telefono al enviar mensajes automaticos.
                                     </p>
                                 </div>
                             </div>

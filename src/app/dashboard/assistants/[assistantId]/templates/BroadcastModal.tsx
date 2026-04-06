@@ -42,7 +42,7 @@ export default function BroadcastModal({ metaTemplates, onClose, inline = false 
     const [templateName, setTemplateName] = useState('')
     const [variables, setVariables] = useState<string[]>([])
     const [audienceType, setAudienceType] = useState<AudienceType>('service')
-    const [audienceValue, setAudienceValue] = useState('CANVA')
+    const [audienceValue, setAudienceValue] = useState('')
 
     const [previewCount, setPreviewCount] = useState<number | null>(null)
     const [previewContacts, setPreviewContacts] = useState<any[]>([])
@@ -211,7 +211,7 @@ export default function BroadcastModal({ metaTemplates, onClose, inline = false 
                                         key={opt.val}
                                         onClick={() => {
                                             setAudienceType(opt.val)
-                                            setAudienceValue(opt.val === 'service' ? 'CANVA' : '')
+                                            setAudienceValue('')
                                         }}
                                         className={`p-3 rounded-xl border text-left transition-all ${audienceType === opt.val
                                             ? 'border-indigo-500 bg-indigo-50 text-[#0F172A]'
@@ -233,6 +233,9 @@ export default function BroadcastModal({ metaTemplates, onClose, inline = false 
                                         <SelectItem value="CANVA">Canva</SelectItem>
                                         <SelectItem value="CHATGPT">ChatGPT</SelectItem>
                                         <SelectItem value="GEMINI">Gemini</SelectItem>
+                                        <SelectItem value="NETFLIX">Netflix</SelectItem>
+                                        <SelectItem value="SPOTIFY">Spotify</SelectItem>
+                                        <SelectItem value="OTRO">Otro</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}

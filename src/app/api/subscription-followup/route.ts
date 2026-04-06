@@ -31,11 +31,11 @@ function parseDate(dateStr: string): Date | null {
 }
 
 // Buscar o crear chat para que los mensajes aparezcan en el panel
-async function findOrCreateChat(phoneNumber: string, userId: string, contactName?: string): Promise<string | null> {
+async function findOrCreateChat(phoneNumber: string, userId: string, contactName?: string, countryCode: string = '591'): Promise<string | null> {
     try {
         const cleanNum = phoneNumber.replace(/\D/g, '')
-        const withPrefix = cleanNum.startsWith('591') ? cleanNum : '591' + cleanNum
-        const withoutPrefix = cleanNum.startsWith('591') ? cleanNum.slice(3) : cleanNum
+        const withPrefix = cleanNum.startsWith(countryCode) ? cleanNum : countryCode + cleanNum
+        const withoutPrefix = cleanNum.startsWith(countryCode) ? cleanNum.slice(countryCode.length) : cleanNum
 
         const { data: existingChat } = await supabaseAdmin
             .from('chats')
@@ -156,7 +156,7 @@ async function processFollowups() {
         // Get WhatsApp credentials
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol')
+            .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol, country_code')
             .eq('user_id', userId)
             .single()
 
@@ -185,6 +185,7 @@ async function processFollowups() {
             .eq('is_active', true)
             .order('sort_order', { ascending: true })
 
+        const tenantCC = (creds as any)?.country_code || '591'
         const listSections = products && products.length > 0 ? [{
             title: 'Planes Disponibles',
             rows: products.map(p => ({
@@ -197,8 +198,7 @@ async function processFollowups() {
         for (const sub of userSubs) {
             try {
                 const phone = sub.numero.replace(/\D/g, '')
-                const fullPhone = (phone.length === 8 && (phone.startsWith('6') || phone.startsWith('7')))
-                    ? '591' + phone : phone
+                const fullPhone = !phone.startsWith(tenantCC) ? tenantCC + phone : phone
 
                 const serviceName = (creds as any)?.service_name || (creds as any)?.bot_name || 'nuestro servicio'
 

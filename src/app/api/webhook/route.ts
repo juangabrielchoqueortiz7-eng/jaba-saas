@@ -225,7 +225,7 @@ export async function POST(request: Request) {
                 // Simplificamos la query para evitar problemas de tipos o sintaxis .or()
                 const { data: credentialsList, error: credError } = await supabaseAdmin
                     .from('whatsapp_credentials')
-                    .select('user_id, access_token, bot_name, service_name, service_description, promo_image_url, timezone, currency_symbol, payment_methods')
+                    .select('user_id, access_token, bot_name, service_name, service_description, promo_image_url, timezone, currency_symbol, payment_methods, country_code')
                     .eq('phone_number_id', String(phoneId))
 
                 const credentials = credentialsList?.[0] || null
@@ -250,6 +250,7 @@ export async function POST(request: Request) {
                 const tenantTimezone = (credentials as any).timezone || 'America/La_Paz'
                 const tenantCurrency = (credentials as any).currency_symbol || 'Bs'
                 const tenantPaymentMethods = (credentials as any).payment_methods || 'QR bancario'
+                const tenantCountryCode = (credentials as any).country_code || '591'
                 // ---------------------------
 
                 const messageObject = value.messages[0]
@@ -547,14 +548,14 @@ export async function POST(request: Request) {
                                                 data: imgBase64
                                             }
                                         },
-                                        `Analiza esta imagen de un comprobante de pago boliviano. Extrae SOLO el monto total pagado en Bolivianos (Bs). Responde ÚNICAMENTE con el número, sin texto adicional. Si no puedes leer el monto, responde "0". Ejemplos: "39", "69", "170", "0"`
+                                        `Analiza esta imagen de un comprobante de pago. Extrae SOLO el monto total pagado. Responde ÚNICAMENTE con el número, sin texto adicional. Si no puedes leer el monto, responde "0". Ejemplos: "39", "69", "170", "0"`
                                     ]);
 
                                     const amountText = visionResult.response.text().trim().replace(/[^0-9.]/g, '');
                                     detectedAmount = parseFloat(amountText) || 0;
                                     const expectedAmount = parseFloat(String(pendingOrder.amount)) || 0;
 
-                                    console.log(`[AUTO-RENEWAL] Monto detectado: Bs ${detectedAmount}, esperado: Bs ${expectedAmount}`);
+                                    console.log(`[AUTO-RENEWAL] Monto detectado: ${tenantCurrency} ${detectedAmount}, esperado: ${tenantCurrency} ${expectedAmount}`);
 
                                     if (detectedAmount >= expectedAmount) {
                                         verificationNote = `✅ Monto verificado: ${tenantCurrency} ${detectedAmount}`;

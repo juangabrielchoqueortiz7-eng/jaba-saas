@@ -32,12 +32,12 @@ function parseDate(dateStr: string): Date | null {
 }
 
 // Buscar o crear chat para que los mensajes aparezcan en el panel
-async function findOrCreateChat(phoneNumber: string, userId: string, contactName?: string): Promise<string | null> {
+async function findOrCreateChat(phoneNumber: string, userId: string, contactName?: string, countryCode: string = '591'): Promise<string | null> {
     try {
         // Intentar con múltiples formatos de número
         const cleanNum = phoneNumber.replace(/\D/g, '')
-        const withPrefix = cleanNum.startsWith('591') ? cleanNum : '591' + cleanNum
-        const withoutPrefix = cleanNum.startsWith('591') ? cleanNum.slice(3) : cleanNum
+        const withPrefix = cleanNum.startsWith(countryCode) ? cleanNum : countryCode + cleanNum
+        const withoutPrefix = cleanNum.startsWith(countryCode) ? cleanNum.slice(countryCode.length) : cleanNum
 
         // Buscar chat existente con cualquier formato del número
         const { data: existingChat } = await supabaseAdmin
@@ -157,7 +157,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
     // Obtener credenciales WhatsApp del usuario
     const { data: creds } = await supabaseAdmin
         .from('whatsapp_credentials')
-        .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol')
+        .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol, country_code')
         .eq('user_id', userId)
         .single()
 
@@ -166,9 +166,10 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
     }
 
     // Buscar suscripción del cliente por teléfono
+    const tenantCC = (creds as any)?.country_code || '591'
     const cleanNum = phoneNumber.replace(/\D/g, '')
-    const withPrefix = cleanNum.startsWith('591') ? cleanNum : '591' + cleanNum
-    const withoutPrefix = cleanNum.startsWith('591') ? cleanNum.slice(3) : cleanNum
+    const withPrefix = cleanNum.startsWith(tenantCC) ? cleanNum : tenantCC + cleanNum
+    const withoutPrefix = cleanNum.startsWith(tenantCC) ? cleanNum.slice(tenantCC.length) : cleanNum
 
     const { data: sub } = await supabaseAdmin
         .from('subscriptions')
@@ -348,13 +349,11 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         const expDate = parseDate(sub.vencimiento)
         if (!expDate) return false
 
-        // Check if expiring exactly today
-        // Note: uses America/La_Paz as default for initial filtering; per-tenant timezone is applied later
-        const tenantTime = new Date(new Date().toLocaleString("en-US", { timeZone: "America/La_Paz" }));
-        const todayStr = tenantTime.toISOString().split('T')[0];
+        // Check if expiring today or already expired (grace period)
+        // Note: initial filter is broad; per-tenant timezone is applied later in the user group loop
         const expDateStr = expDate.toISOString().split('T')[0];
-        
-        return todayStr === expDateStr
+        const nowStr = new Date().toISOString().split('T')[0];
+        return expDateStr <= nowStr
     })
 
     results.total = candidates.length
@@ -377,7 +376,7 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         // Get WhatsApp credentials for this user
         const { data: creds } = await supabaseAdmin
             .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol')
+            .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol, country_code')
             .eq('user_id', userId)
             .single()
 
@@ -411,8 +410,10 @@ async function processReminders(specificUserId?: string, force: boolean = false)
             .order('sort_order', { ascending: true })
 
         // Build plans text
+        const tenantCurrency = (creds as any)?.currency_symbol || 'Bs'
+        const tenantCC = (creds as any)?.country_code || '591'
         const plansText = (products || []).map(p =>
-            `• ${p.name} - ${p.price} Bs`
+            `• ${p.name} - ${tenantCurrency} ${p.price}`
         ).join('\n')
 
         // Build WhatsApp list sections for interactive plan selection
@@ -458,8 +459,7 @@ Ref: {equipo}`
         for (const sub of userSubs) {
             try {
                 const phone = sub.numero.replace(/\D/g, '')
-                const fullPhone = (phone.length === 8 && (phone.startsWith('6') || phone.startsWith('7')))
-                    ? '591' + phone : phone
+                const fullPhone = !phone.startsWith(tenantCC) ? tenantCC + phone : phone
 
                 // Choose message based on status
                 const expDate = parseDate(sub.vencimiento)

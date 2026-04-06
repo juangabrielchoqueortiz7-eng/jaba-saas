@@ -63,14 +63,13 @@ export default function TemplatesPage() {
     // Config state
     const [settings, setSettings] = useState<any>(null)
     const [isSavingSettings, setIsSavingSettings] = useState(false)
-    type ServiceKey = 'CANVA' | 'CHATGPT' | 'GEMINI'
+    type ServiceKey = string
     type PhaseConfig = { reminder: string; followup: string; urgency: string }
     type TemplateConfig = Record<ServiceKey, PhaseConfig>
-    const EMPTY_CONFIG: TemplateConfig = {
-        CANVA: { reminder: '', followup: '', urgency: '' },
-        CHATGPT: { reminder: '', followup: '', urgency: '' },
-        GEMINI: { reminder: '', followup: '', urgency: '' },
-    }
+    const DEFAULT_SERVICES = ['CANVA', 'CHATGPT', 'GEMINI', 'NETFLIX', 'SPOTIFY', 'OTRO']
+    const EMPTY_CONFIG: TemplateConfig = Object.fromEntries(
+        DEFAULT_SERVICES.map(s => [s, { reminder: '', followup: '', urgency: '' }])
+    )
     const [templateConfig, setTemplateConfig] = useState<TemplateConfig>(EMPTY_CONFIG)
     const [isSavingConfig, setIsSavingConfig] = useState(false)
     const [configSaved, setConfigSaved] = useState(false)
@@ -511,14 +510,10 @@ export default function TemplatesPage() {
                                     </div>
                                 </div>
                             </div>
-                            {(['CANVA', 'CHATGPT', 'GEMINI'] as ServiceKey[]).map(service => (
+                            {DEFAULT_SERVICES.map(service => (
                                 <div key={service} className="grid grid-cols-4 gap-3 items-center">
                                     <div className="flex items-center gap-2">
-                                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                            service === 'CANVA' ? 'bg-violet-50 text-violet-600' :
-                                            service === 'CHATGPT' ? 'bg-emerald-50 text-emerald-600' :
-                                            'bg-blue-50 text-blue-600'
-                                        }`}>{service}</span>
+                                        <span className="text-xs font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600">{service}</span>
                                     </div>
                                     {(['reminder', 'followup', 'urgency'] as (keyof PhaseConfig)[]).map(phase => (
                                         <Select

@@ -1098,7 +1098,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
     send_days: 'expiration',
     audience_type: 'service',
-    audience_value: 'CANVA',
+    audience_value: '',
   })
 
   // Load flows + templates
@@ -1401,7 +1401,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                       onValueChange={v => setScheduleConfig(prev => ({
                         ...prev,
                         audience_type: v as ScheduleConfig['audience_type'],
-                        audience_value: v === 'service' ? 'CANVA' : ''
+                        audience_value: ''
                       }))}
                     >
                       <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm mt-1">

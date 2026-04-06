@@ -30,7 +30,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
         vencimiento: dayjs().add(1, 'month').format('YYYY-MM-DD'),
         estado: 'ACTIVO',
         equipo: '',
-        servicio: 'CANVA',
+        servicio: '',
         password: ''
     });
 
@@ -133,7 +133,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                 servicio: formData.servicio,
                 user_id: user.id
             };
-            if (formData.servicio !== 'CANVA' && formData.password) {
+            if (formData.password) {
                 newSub.password = formData.password;
             }
 
@@ -155,7 +155,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                 vencimiento: dayjs().add(1, 'month').format('YYYY-MM-DD'),
                 estado: 'ACTIVO',
                 equipo: '',
-                servicio: 'CANVA',
+                servicio: '',
                 password: ''
             });
 
@@ -229,9 +229,12 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                                     <SelectValue placeholder="Servicio" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
-                                    <SelectItem value="CANVA">🎨 Canva</SelectItem>
-                                    <SelectItem value="CHATGPT">🤖 ChatGPT</SelectItem>
-                                    <SelectItem value="GEMINI">✨ Gemini</SelectItem>
+                                    <SelectItem value="CANVA">Canva</SelectItem>
+                                    <SelectItem value="CHATGPT">ChatGPT</SelectItem>
+                                    <SelectItem value="GEMINI">Gemini</SelectItem>
+                                    <SelectItem value="NETFLIX">Netflix</SelectItem>
+                                    <SelectItem value="SPOTIFY">Spotify</SelectItem>
+                                    <SelectItem value="OTRO">Otro</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -249,7 +252,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
 
                         <div className="space-y-2">
                             <Label htmlFor="correo" className="text-[#0F172A]/65">
-                                {formData.servicio === 'CANVA' ? 'Correo del Cliente' : 'Correo de la Cuenta'} <span className="text-red-400">*</span>
+                                Correo de la Cuenta <span className="text-red-400">*</span>
                             </Label>
                             <Input
                                 id="correo"
@@ -257,12 +260,12 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                                 required
                                 value={formData.correo}
                                 onChange={(e) => handleChange('correo', e.target.value)}
-                                placeholder={formData.servicio === 'CANVA' ? 'cliente@ejemplo.com' : 'cuenta@tudominio.com'}
+                                placeholder="cuenta@ejemplo.com"
                                 className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] focus:ring-[#25D366]"
                             />
                         </div>
 
-                        {formData.servicio !== 'CANVA' && (
+                        {formData.servicio && (
                             <div className="space-y-2">
                                 <Label htmlFor="password" className="text-[#0F172A]/65">Contraseña de la Cuenta</Label>
                                 <div className="relative">
