@@ -202,12 +202,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/flows` : '#'}
-                    icon={<GitBranch size={17} />} label="Flujos"
+                    icon={<GitBranch size={17} />} label="Conversaciones"
                     active={includes('/flows')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/triggers` : '#'}
-                    icon={<Zap size={17} />} label="Disparadores"
+                    icon={<Zap size={17} />} label="Automatizaciones"
                     active={includes('/triggers')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem

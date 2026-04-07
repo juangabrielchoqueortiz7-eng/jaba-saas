@@ -80,84 +80,84 @@ interface TriggerBuilderProps {
 
 const CONDITION_CATEGORIES = [
   {
-    label: '💬 Texto del mensaje',
+    label: '💬 Cuando el cliente escribe...',
     items: [
-      { value: 'text_contains', label: 'Contiene palabras' },
-      { value: 'text_regex', label: 'Coincide con Regex' },
-      { value: 'text_matches_intent', label: 'Intención detectada (IA)' },
+      { value: 'text_contains', label: 'El mensaje contiene ciertas palabras' },
+      { value: 'text_matches_intent', label: 'La IA detecta una intención (pregunta, queja, etc.)' },
+      { value: 'text_regex', label: '⚙️ Avanzado: patrón de texto (regex)' },
     ]
   },
   {
-    label: '💬 Chat',
+    label: '👤 Según el estado del cliente...',
     items: [
-      { value: 'last_message_time', label: 'Tiempo sin respuesta (min)' },
-      { value: 'message_count', label: 'Cantidad de mensajes' },
-      { value: 'message_rate', label: 'Mensajes por hora' },
-      { value: 'has_tag', label: 'Tiene etiqueta' },
-      { value: 'not_tag', label: 'NO tiene etiqueta' },
-      { value: 'chat_status', label: 'Estado del chat' },
-      { value: 'custom_field', label: 'Campo personalizado' },
-      { value: 'creation_date', label: 'Días desde creación' },
+      { value: 'last_message_time', label: 'Minutos sin responder' },
+      { value: 'message_count', label: 'Cantidad de mensajes enviados' },
+      { value: 'has_tag', label: 'El cliente tiene una etiqueta' },
+      { value: 'not_tag', label: 'El cliente NO tiene una etiqueta' },
+      { value: 'chat_status', label: 'Tipo de cliente (lead, cliente, VIP...)' },
+      { value: 'creation_date', label: 'Días desde que se registró' },
+      { value: 'message_rate', label: 'Frecuencia de mensajes (por hora)' },
+      { value: 'custom_field', label: '⚙️ Avanzado: campo personalizado' },
     ]
   },
   {
-    label: '🕐 Tiempo',
+    label: '🕐 Según el día u hora...',
     items: [
-      { value: 'day_of_week', label: 'Día de la semana' },
-      { value: 'hour_range', label: 'Rango de hora' },
+      { value: 'day_of_week', label: 'Solo ciertos días de la semana' },
+      { value: 'hour_range', label: 'Solo en cierto horario' },
     ]
   },
   {
-    label: '💳 Suscripción',
+    label: '💳 Según la suscripción...',
     items: [
-      { value: 'expiration_days', label: 'Días para vencer' },
-      { value: 'subscription_status', label: 'Estado de suscripción' },
+      { value: 'expiration_days', label: 'Días que faltan para que venza' },
+      { value: 'subscription_status', label: 'Estado de la suscripción (activo, vencido...)' },
     ]
   },
 ]
 
 const ACTION_CATEGORIES = [
   {
-    label: '💬 Mensajes',
+    label: '💬 Enviar un mensaje al cliente',
     items: [
-      { value: 'send_text', label: 'Enviar texto' },
-      { value: 'send_text_ai', label: 'Respuesta IA personalizada' },
-      { value: 'send_media', label: 'Enviar imagen / archivo' },
-      { value: 'send_template', label: 'Plantilla Meta (aprobada)' },
-      { value: 'send_interactive', label: 'Botones / Lista interactiva' },
+      { value: 'send_text', label: 'Enviar un texto' },
+      { value: 'send_text_ai', label: 'Que la IA responda automáticamente' },
+      { value: 'send_media', label: 'Enviar imagen, video o archivo' },
+      { value: 'send_template', label: 'Enviar plantilla de WhatsApp aprobada' },
+      { value: 'send_interactive', label: 'Enviar botones o menú de opciones' },
     ]
   },
   {
-    label: '🏷️ Metadata del chat',
+    label: '🏷️ Organizar al cliente',
     items: [
-      { value: 'add_tag', label: 'Agregar etiqueta' },
-      { value: 'remove_tag', label: 'Quitar etiqueta' },
-      { value: 'set_status', label: 'Cambiar estado' },
-      { value: 'update_field', label: 'Actualizar campo personalizado' },
+      { value: 'add_tag', label: 'Ponerle una etiqueta' },
+      { value: 'remove_tag', label: 'Quitarle una etiqueta' },
+      { value: 'set_status', label: 'Cambiar su tipo (lead, cliente, VIP...)' },
+      { value: 'update_field', label: '⚙️ Avanzado: actualizar campo personalizado' },
     ]
   },
   {
-    label: '🔔 Notificaciones',
+    label: '🔔 Avisarte a ti o a otro sistema',
     items: [
-      { value: 'notify_admin', label: 'Notificar al admin' },
-      { value: 'notify_webhook', label: 'Webhook externo (CRM, Slack…)' },
+      { value: 'notify_admin', label: 'Enviarte una notificación' },
+      { value: 'notify_webhook', label: 'Enviar datos a otra app (Zapier, Slack, CRM...)' },
     ]
   },
   {
-    label: '⚙️ Control',
+    label: '⚙️ Control del bot',
     items: [
-      { value: 'start_flow', label: 'Iniciar flujo conversacional' },
-      { value: 'pause', label: 'Pausa (delay entre acciones)' },
+      { value: 'start_flow', label: 'Iniciar una conversación guiada (flujo)' },
+      { value: 'pause', label: 'Esperar unos segundos antes del siguiente paso' },
     ]
   },
 ]
 
 const OPERATORS_NUMERIC: { value: string; label: string }[] = [
-  { value: 'greater_than', label: 'Mayor que (>)' },
-  { value: 'greater_equal', label: 'Mayor o igual (≥)' },
-  { value: 'less_than', label: 'Menor que (<)' },
-  { value: 'less_equal', label: 'Menor o igual (≤)' },
-  { value: 'equals', label: 'Igual a (=)' },
+  { value: 'greater_than', label: 'Más de' },
+  { value: 'greater_equal', label: 'Más de o igual a' },
+  { value: 'less_than', label: 'Menos de' },
+  { value: 'less_equal', label: 'Menos de o igual a' },
+  { value: 'equals', label: 'Exactamente' },
 ]
 
 const OPERATORS_TEXT: { value: string; label: string }[] = [
@@ -170,37 +170,37 @@ const OPERATORS_TEXT: { value: string; label: string }[] = [
 ]
 
 const CONDITION_LABELS: Record<ConditionType, string> = {
-  text_contains: 'Contiene palabras',
-  text_regex: 'Regex',
-  text_matches_intent: 'Intención IA',
-  last_message_time: 'Sin respuesta (min)',
-  message_count: 'Cantidad mensajes',
-  message_rate: 'Mensajes/hora',
-  has_tag: 'Tiene etiqueta',
-  not_tag: 'No tiene etiqueta',
-  chat_status: 'Estado del chat',
-  custom_field: 'Campo custom',
-  creation_date: 'Días creado',
-  day_of_week: 'Día de semana',
-  hour_range: 'Rango de hora',
+  text_contains: 'Mensaje contiene...',
+  text_regex: 'Patrón avanzado (regex)',
+  text_matches_intent: 'Intención del cliente (IA)',
+  last_message_time: 'Minutos sin responder',
+  message_count: 'Cantidad de mensajes',
+  message_rate: 'Frecuencia de mensajes',
+  has_tag: 'Tiene la etiqueta...',
+  not_tag: 'NO tiene la etiqueta...',
+  chat_status: 'Tipo de cliente',
+  custom_field: 'Campo personalizado',
+  creation_date: 'Días desde registro',
+  day_of_week: 'Día de la semana',
+  hour_range: 'Horario permitido',
   expiration_days: 'Días para vencer',
-  subscription_status: 'Estado suscripción',
+  subscription_status: 'Estado de suscripción',
 }
 
 const ACTION_LABELS: Record<ActionType, string> = {
-  send_text: 'Enviar texto',
-  send_text_ai: 'Respuesta IA',
-  send_media: 'Enviar archivo',
-  send_template: 'Plantilla Meta',
-  send_interactive: 'Botones / Lista',
-  add_tag: 'Agregar etiqueta',
-  remove_tag: 'Quitar etiqueta',
-  set_status: 'Cambiar estado',
-  update_field: 'Campo personalizado',
-  notify_admin: 'Notificar admin',
-  notify_webhook: 'Webhook externo',
-  start_flow: 'Iniciar flujo',
-  pause: 'Pausa',
+  send_text: 'Enviar un texto',
+  send_text_ai: 'Respuesta automática con IA',
+  send_media: 'Enviar imagen/archivo',
+  send_template: 'Plantilla de WhatsApp',
+  send_interactive: 'Botones / menú de opciones',
+  add_tag: 'Ponerle etiqueta',
+  remove_tag: 'Quitarle etiqueta',
+  set_status: 'Cambiar tipo de cliente',
+  update_field: 'Actualizar campo',
+  notify_admin: 'Notificarte',
+  notify_webhook: 'Enviar a otra app',
+  start_flow: 'Iniciar conversación guiada',
+  pause: 'Esperar antes del siguiente paso',
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -290,11 +290,11 @@ function VariablePicker({ onInsert }: { onInsert: (variable: string) => void }) 
         className="text-[10px] flex items-center gap-1 text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-1 rounded transition-colors"
       >
         <Zap size={10} />
-        Variables {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+        Insertar datos {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
       </button>
       {open && (
         <div className="absolute top-full left-0 z-50 mt-1 bg-white border border-black/[0.08] rounded-xl shadow-lg p-3 w-72 max-h-64 overflow-y-auto">
-          <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-wider font-semibold">Clic para insertar</p>
+          <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-wider font-semibold">Haz clic para insertar datos del cliente automáticamente</p>
           {['Contacto', 'Suscripción', 'Fecha', 'Legacy'].map(ns => {
             const vars = allVars.filter(v => v.ns === ns)
             if (!vars.length) return null
@@ -397,7 +397,7 @@ function ConditionEditor({
         {/* ── text_matches_intent ── */}
         {ct === 'text_matches_intent' && (
           <div className="space-y-1">
-            <Label className="text-xs text-slate-400">La IA detectará la intención del mensaje:</Label>
+            <Label className="text-xs text-slate-400">¿Qué tipo de mensaje quieres detectar?</Label>
             <Select value={condition.value} onValueChange={v => onUpdate(index, { value: v })}>
               <SelectTrigger className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs">
                 <SelectValue />
@@ -410,7 +410,7 @@ function ConditionEditor({
               </SelectContent>
             </Select>
             <p className="text-[10px] text-amber-500/80 flex items-center gap-1 mt-1">
-              <Info size={10} /> Usa llamada a IA — solo para triggers lógicos
+              <Info size={10} /> La IA analiza cada mensaje para detectar la intención del cliente
             </p>
           </div>
         )}
@@ -524,7 +524,7 @@ function ConditionEditor({
         {/* ── day_of_week ── */}
         {ct === 'day_of_week' && (
           <div className="space-y-2">
-            <Label className="text-xs text-slate-400">Días activos (selecciona uno o más):</Label>
+            <Label className="text-xs text-slate-400">¿Qué días de la semana? (selecciona uno o más)</Label>
             <div className="flex flex-wrap gap-1">
               {[
                 { key: 'monday', label: 'Lun' },
@@ -562,7 +562,7 @@ function ConditionEditor({
         {/* ── hour_range ── */}
         {ct === 'hour_range' && (
           <div className="space-y-1">
-            <Label className="text-xs text-slate-400">Rango horario (formato HH:MM-HH:MM):</Label>
+            <Label className="text-xs text-slate-400">¿En qué horario? (ej: 09:00 a 18:00)</Label>
             <Input
               className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs"
               placeholder="09:00-18:00"
@@ -662,11 +662,11 @@ function ActionEditor({
         <div className="space-y-3">
           <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded text-[10px] text-amber-500 flex gap-1 items-start">
             <Info size={10} className="mt-0.5 shrink-0" />
-            La IA generará una respuesta según tu instrucción usando el contexto del mensaje recibido.
+            La IA leerá el mensaje del cliente y generará una respuesta inteligente según las instrucciones que escribas abajo.
           </div>
           <div className="space-y-1">
             <div className="flex justify-between">
-              <Label className="text-xs text-slate-400">Instrucción para la IA *</Label>
+              <Label className="text-xs text-slate-400">¿Cómo debe responder la IA? *</Label>
               <VariablePicker onInsert={v => insertVariable(v, 'instruction')} />
             </div>
             <Textarea
@@ -735,7 +735,7 @@ function ActionEditor({
         <div className="space-y-3">
           {metaTemplates.length === 0 ? (
             <p className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-              No hay plantillas aprobadas en Meta. Configura el WABA ID en Ajustes y crea una plantilla con estado APPROVED.
+              No tienes plantillas aprobadas en WhatsApp. Ve a Ajustes, configura tu cuenta de WhatsApp Business, y luego crea una plantilla desde la sección Plantillas.
             </p>
           ) : (
             <>
@@ -977,7 +977,7 @@ function ActionEditor({
         <div className="space-y-3">
           <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded text-[10px] text-blue-400 flex gap-1">
             <Webhook size={10} className="mt-0.5 shrink-0" />
-            Envía un POST a tu CRM, Slack, Make, Zapier u otro servicio externo.
+            Envía los datos del cliente a otra aplicación como Zapier, Slack, Make o tu CRM.
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-2">
@@ -1060,7 +1060,7 @@ function ActionEditor({
       {at !== 'pause' && (
         <div className="pt-3 mt-3 border-t border-black/[0.06] flex items-center gap-2">
           <Clock size={12} className="text-slate-400" />
-          <Label className="text-[10px] text-slate-400 whitespace-nowrap">Esperar antes:</Label>
+          <Label className="text-[10px] text-slate-400 whitespace-nowrap">Esperar antes de este paso:</Label>
           <Input
             type="number"
             min={0}
@@ -1231,7 +1231,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
       } catch (error: any) {
         console.error('[TriggerBuilder] Save error:', error)
         const msg = error?.message || error?.toString() || 'Error desconocido'
-        alert(`Error al guardar el disparador:\n\n${msg}`)
+        alert(`Error al guardar la automatización:\n\n${msg}`)
       }
     })
   }
@@ -1258,9 +1258,9 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-[#0F172A]">
-              {triggerId ? 'Editar Disparador' : 'Nuevo Disparador'}
+              {triggerId ? 'Editar Automatización' : 'Nueva Automatización'}
             </h1>
-            <p className="text-slate-400 text-sm">Automatización avanzada</p>
+            <p className="text-slate-400 text-sm">Configura qué hace tu bot automáticamente</p>
           </div>
         </div>
         <Button onClick={handleSave} disabled={isPending} className="bg-green-600 hover:bg-green-700 text-white gap-2">
@@ -1273,8 +1273,8 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
       <div className="flex items-center gap-2 mb-6 bg-white rounded-xl border border-black/[0.08] p-3">
         {[
           { num: 1, label: 'Información básica', section: 'config' as const, active: true },
-          { num: 2, label: `Condiciones (${conditions.length})`, section: 'conditions' as const, active: activeTab === 'conditions' },
-          { num: 3, label: `Acciones (${actions.length})`, section: 'actions' as const, active: activeTab === 'actions' },
+          { num: 2, label: `¿Cuándo se activa? (${conditions.length})`, section: 'conditions' as const, active: activeTab === 'conditions' },
+          { num: 3, label: `¿Qué hace? (${actions.length})`, section: 'actions' as const, active: activeTab === 'actions' },
         ].map((step, i) => (
           <button
             key={step.num}
@@ -1325,16 +1325,16 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Tipo de disparador</Label>
+                <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">¿Cómo se activa?</Label>
                 <Select value={type} onValueChange={v => setType(v as TriggerType)}>
                   <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="logic">🧠 Lógica (palabras clave)</SelectItem>
-                    <SelectItem value="time">⏰ Tiempo (sin respuesta)</SelectItem>
-                    <SelectItem value="flow">🔄 Iniciar flujo</SelectItem>
-                    <SelectItem value="scheduled">📅 Programado (suscripciones)</SelectItem>
+                    <SelectItem value="logic">🧠 Cuando el cliente escribe algo (palabras clave)</SelectItem>
+                    <SelectItem value="time">⏰ Cuando pasa tiempo sin respuesta</SelectItem>
+                    <SelectItem value="flow">🔄 Iniciar una conversación guiada</SelectItem>
+                    <SelectItem value="scheduled">📅 En un día programado (ej: vencimiento)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1342,13 +1342,13 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
               {type === 'logic' && (
                 <div className="space-y-1 animate-in fade-in">
                   <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider flex items-center gap-1">
-                    Descripción lógica
+                    ¿Cuándo debe activarse?
                     <span className="text-[9px] text-yellow-500 bg-yellow-500/10 px-1 py-0.5 rounded">IA</span>
                   </Label>
                   <Textarea
                     value={description}
                     onChange={e => setDescription(e.target.value)}
-                    placeholder="¿Cuándo debe activarse? Ej: Cliente envía comprobante de pago"
+                    placeholder="Describe con tus palabras cuándo se activa. Ej: Cuando un cliente envía un comprobante de pago"
                     className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-24 resize-none text-sm"
                   />
                 </div>
@@ -1356,7 +1356,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
 
               {type === 'time' && (
                 <div className="space-y-1 animate-in fade-in">
-                  <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Minutos sin respuesta</Label>
+                  <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">¿Cuántos minutos sin respuesta?</Label>
                   <Input
                     type="number" min={1} max={10080}
                     value={timeMinutes}
@@ -1373,7 +1373,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
 
               {type === 'flow' && (
                 <div className="space-y-1 animate-in fade-in">
-                  <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Flujo a ejecutar</Label>
+                  <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">¿Qué conversación guiada iniciar?</Label>
                   <Select value={selectedFlowId} onValueChange={setSelectedFlowId}>
                     <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                       <SelectValue placeholder="Selecciona un flujo..." />
@@ -1392,7 +1392,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                 <div className="space-y-3 animate-in fade-in">
                   <div className="flex gap-2 p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-400">
                     <Calendar size={13} className="shrink-0 mt-0.5" />
-                    <span>Se ejecuta automáticamente una vez al día. Activa <strong>Plantilla Meta</strong> en Acciones.</span>
+                    <span>Se ejecuta automáticamente una vez al día. En la sección "¿Qué hace?" agrega una <strong>Plantilla de WhatsApp</strong>.</span>
                   </div>
                   <div>
                     <Label className="text-xs text-slate-400 flex items-center gap-1"><Users size={12} /> Audiencia</Label>

@@ -144,7 +144,7 @@ const nodeTypes: NodeTypes = {
 // ========================
 
 const nodeTypeCatalog = [
-    { type: 'trigger', label: 'Disparador', icon: Zap, desc: 'Inicia el flujo con una palabra clave' },
+    { type: 'trigger', label: 'Inicio', icon: Zap, desc: 'Inicia la conversación con una palabra clave' },
     { type: 'message', label: 'Mensaje', icon: MessageSquare, desc: 'Envía un mensaje de texto' },
     { type: 'buttons', label: 'Botones', icon: MousePointerClick, desc: 'Envía botones interactivos' },
     { type: 'list', label: 'Lista', icon: ListOrdered, desc: 'Envía lista desplegable' },
@@ -683,7 +683,7 @@ export default function FlowEditorPage() {
         // Validación básica
         const triggerNodes = nodes.filter(n => n.data.nodeType === 'trigger')
         if (triggerNodes.length === 0) {
-            setSaveStatus('❌ Agrega al menos un nodo Disparador para activar el flujo')
+            setSaveStatus('❌ Agrega al menos un nodo de Inicio para activar la conversación')
             setTimeout(() => setSaveStatus(''), 4000)
             return
         }
@@ -692,7 +692,7 @@ export default function FlowEditorPage() {
             return cfg.trigger_type === 'keyword' && (!cfg.keywords || cfg.keywords.length === 0)
         })
         if (emptyTrigger) {
-            setSaveStatus('❌ El nodo Disparador necesita al menos una palabra clave')
+            setSaveStatus('❌ El nodo de Inicio necesita al menos una palabra clave')
             setTimeout(() => setSaveStatus(''), 4000)
             return
         }

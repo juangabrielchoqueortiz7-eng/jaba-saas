@@ -26,9 +26,9 @@ const getTypeIcon = (type: string) => {
 
 const getTypeLabel = (type: string) => {
     switch (type) {
-        case 'logic': return 'Lógica'
-        case 'time': return 'Tiempo'
-        case 'flow': return 'Flujo'
+        case 'logic': return 'Palabra clave'
+        case 'time': return 'Por inactividad'
+        case 'flow': return 'Inicia un flujo'
         case 'scheduled': return 'Programado'
         default: return type
     }
@@ -80,7 +80,7 @@ function LogsModal({ triggerId, triggerName, onClose }: { triggerId: string; tri
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.07]">
                     <div>
-                        <h2 className="font-bold text-[#0F172A] text-base">Historial de ejecuciones</h2>
+                        <h2 className="font-bold text-[#0F172A] text-base">Historial — ¿cuándo se activó?</h2>
                         <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{triggerName}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -124,7 +124,7 @@ function LogsModal({ triggerId, triggerName, onClose }: { triggerId: string; tri
                                     <p className="text-lg font-bold text-indigo-600">
                                         {Math.round((stats.successful / stats.total) * 100)}%
                                     </p>
-                                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Tasa éxito</p>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Éxito</p>
                                 </div>
                             </>
                         )}
@@ -141,7 +141,7 @@ function LogsModal({ triggerId, triggerName, onClose }: { triggerId: string; tri
                         <div className="flex flex-col items-center justify-center py-16 gap-3">
                             <History size={32} className="text-slate-200" />
                             <p className="text-sm text-slate-400">Sin ejecuciones registradas todavía</p>
-                            <p className="text-xs text-slate-300">Las ejecuciones aparecerán aquí cuando el disparador se active</p>
+                            <p className="text-xs text-slate-300">El historial aparecerá aquí cuando la automatización se active</p>
                         </div>
                     ) : (
                         executions.map(exec => (
@@ -252,7 +252,7 @@ export default function TriggersPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('¿Eliminar este disparador?')) return
+        if (!confirm('¿Seguro que quieres eliminar esta automatización?')) return
         startTransition(async () => {
             await deleteTrigger(id)
             await loadTriggers()
@@ -299,13 +299,13 @@ export default function TriggersPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Disparadores</h1>
-                    <p className="text-[rgba(15,23,42,0.45)]">Automatiza acciones basadas en eventos o lógica inteligente.</p>
+                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Automatizaciones</h1>
+                    <p className="text-[rgba(15,23,42,0.45)]">Reglas que hacen que tu bot actúe solo, sin que tú hagas nada.</p>
                 </div>
                 <Link href={`/dashboard/assistants/${assistantId}/triggers/new`}>
                     <Button className="bg-[#eab308] hover:bg-[#ca8a04] text-white gap-2">
                         <Plus size={20} />
-                        Nuevo Disparador
+                        Nueva Automatización
                     </Button>
                 </Link>
             </div>
@@ -317,21 +317,21 @@ export default function TriggersPage() {
                     className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-none cursor-pointer text-left"
                 >
                     <HelpCircle size={16} className="text-[#ca8a04] flex-shrink-0" />
-                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son los Disparadores? — Haz clic para aprender</span>
+                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son las Automatizaciones? — Haz clic para aprender</span>
                     {showHelp ? <ChevronUp size={16} className="text-[#ca8a04]" /> : <ChevronDown size={16} className="text-[#ca8a04]" />}
                 </button>
                 {showHelp && (
                     <div className="px-5 pb-5 space-y-4">
                         <p className="text-sm text-[#0F172A]/65 leading-relaxed">
-                            Los disparadores monitorizan <strong>condiciones específicas</strong> y ejecutan acciones automáticas cuando se cumplen.
-                            Por ejemplo: si un cliente lleva 30 minutos sin responder, enviarle un recordatorio automáticamente.
+                            Una automatización es una <strong>regla de "si pasa X, haz Y"</strong> que funciona sola las 24 horas.
+                            Ejemplo: si un cliente lleva 30 minutos sin responder → el bot le envía un recordatorio automáticamente.
                         </p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {[
-                                { icon: <Zap size={16} className="text-yellow-500" />, title: 'Lógico', desc: 'Se activa por palabras clave o condiciones del chat.' },
-                                { icon: <Clock size={16} className="text-blue-500" />, title: 'Tiempo', desc: 'Se activa si no hay respuesta en X minutos.' },
-                                { icon: <Calendar size={16} className="text-indigo-500" />, title: 'Programado', desc: 'Se activa en una fecha/hora específica.' },
-                                { icon: <Workflow size={16} className="text-purple-500" />, title: 'Flujo', desc: 'Inicia un flujo conversacional completo.' },
+                                { icon: <Zap size={16} className="text-yellow-500" />, title: 'Por palabra clave', desc: 'Se activa cuando el cliente escribe ciertas palabras. Ej: "precio", "ayuda".' },
+                                { icon: <Clock size={16} className="text-blue-500" />, title: 'Por inactividad', desc: 'Se activa si el cliente no responde en X minutos.' },
+                                { icon: <Calendar size={16} className="text-indigo-500" />, title: 'Programado', desc: 'Se activa en un día específico. Ej: día de vencimiento.' },
+                                { icon: <Workflow size={16} className="text-purple-500" />, title: 'Inicia un flujo', desc: 'Inicia una conversación guiada paso a paso.' },
                             ].map((item, i) => (
                                 <div key={i} className="bg-white border border-black/[0.07] rounded-xl p-3">
                                     <div className="mb-2">{item.icon}</div>
@@ -341,7 +341,7 @@ export default function TriggersPage() {
                             ))}
                         </div>
                         <div className="bg-[#fef9c3] border border-[#eab308]/30 rounded-lg px-4 py-3 text-xs text-[#0F172A]/65">
-                            <strong>📋 ¿Cómo crear uno?</strong> Haz clic en "Nuevo Disparador", elige una plantilla o empieza desde cero, define condiciones y acciones. Actívalo y listo.
+                            <strong>📋 ¿Cómo crear una?</strong> Haz clic en "Nueva Automatización", elige una plantilla rápida o créala desde cero. Solo necesitas decirle: <em>¿cuándo se activa?</em> y <em>¿qué hace?</em> Luego actívala con el interruptor y listo.
                         </div>
                     </div>
                 )}
@@ -352,7 +352,7 @@ export default function TriggersPage() {
                 <div className="rounded-[14px] border border-[#eab308]/20 bg-[#fefce8]/60 p-5">
                     <div className="flex items-center gap-2 mb-3">
                         <Zap size={16} className="text-[#ca8a04]" />
-                        <span className="font-semibold text-sm text-[#0F172A]">Plantillas populares — empieza en 1 clic</span>
+                        <span className="font-semibold text-sm text-[#0F172A]">Plantillas listas para usar — empieza en 1 clic ✨</span>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
@@ -379,7 +379,7 @@ export default function TriggersPage() {
                 <Input
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    placeholder="Buscar disparadores..."
+                    placeholder="Buscar automatizaciones..."
                     className="pl-10 bg-white border-black/[0.08] text-[#0F172A] w-full max-w-md"
                 />
             </div>
@@ -393,9 +393,9 @@ export default function TriggersPage() {
                                 <th className="p-4 w-12 text-center">#</th>
                                 <th className="p-4">Nombre</th>
                                 <th className="p-4">Tipo</th>
-                                <th className="p-4 text-center">Acciones</th>
-                                <th className="p-4 text-center">Estado</th>
-                                <th className="p-4">Última ejecución</th>
+                                <th className="p-4 text-center">Pasos</th>
+                                <th className="p-4 text-center">Activa</th>
+                                <th className="p-4">Última vez</th>
                                 <th className="p-4 text-right">Opciones</th>
                             </tr>
                         </thead>
@@ -403,7 +403,7 @@ export default function TriggersPage() {
                             {filtered.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="p-8 text-center text-slate-500">
-                                        No hay disparadores creados.
+                                        No hay automatizaciones creadas. ¡Crea tu primera regla automática!
                                     </td>
                                 </tr>
                             ) : (

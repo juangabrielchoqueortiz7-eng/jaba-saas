@@ -64,8 +64,8 @@ export default function FlowsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#0F172A]">Flujos Conversacionales</h1>
-                    <p className="text-slate-400 text-sm mt-1">Crea y gestiona flujos de conversación visuales para tu bot</p>
+                    <h1 className="text-3xl font-bold text-[#0F172A]">Conversaciones Guiadas</h1>
+                    <p className="text-slate-400 text-sm mt-1">Diseña conversaciones paso a paso que tu bot sigue automáticamente</p>
                 </div>
                 <Button
                     onClick={() => setShowTemplates(true)}
@@ -82,15 +82,15 @@ export default function FlowsPage() {
                     className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-none cursor-pointer text-left"
                 >
                     <HelpCircle size={16} className="text-cyan-600 shrink-0" />
-                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son los Flujos? — Haz clic para aprender</span>
+                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son las Conversaciones Guiadas? — Haz clic para aprender</span>
                     {showHelp ? <ChevronUp size={16} className="text-cyan-600" /> : <ChevronDown size={16} className="text-cyan-600" />}
                 </button>
                 {showHelp && (
                     <div className="px-5 pb-5 space-y-4">
                         <p className="text-sm text-[#0F172A]/65 leading-relaxed">
-                            Los flujos son <strong>conversaciones guiadas paso a paso</strong> que tu bot sigue automáticamente.
-                            Cuando un cliente escribe una palabra clave o selecciona una opción, el flujo se activa y
-                            lo lleva por un camino definido: preguntas, respuestas, botones, acciones y más.
+                            Un flujo es una <strong>conversación diseñada por ti, paso a paso</strong>, que tu bot sigue automáticamente.
+                            Cuando un cliente escribe una palabra clave (ej: "comprar"), el bot inicia la conversación guiada:
+                            le hace preguntas, le muestra botones, recoge datos y lo lleva hasta la compra o la solución.
                         </p>
                         <div className="grid grid-cols-3 gap-3">
                             {[
@@ -106,8 +106,8 @@ export default function FlowsPage() {
                             ))}
                         </div>
                         <div className="bg-cyan-500/[0.08] rounded-lg px-4 py-3 text-xs text-[#0F172A]/65">
-                            <strong>Diferencia con Disparadores:</strong> Los Disparadores ejecutan una acción puntual (enviar un mensaje, cambiar estado).
-                            Los Flujos crean conversaciones completas con múltiples pasos y bifurcaciones. Puedes vincular un disparador para que inicie un flujo.
+                            <strong>¿Cuál es la diferencia con las Automatizaciones?</strong> Una automatización hace UNA acción (ej: enviar un mensaje).
+                            Una conversación guiada es más poderosa: crea conversaciones completas con preguntas, respuestas y opciones. Puedes usar una automatización para iniciar un flujo.
                         </div>
                     </div>
                 )}
@@ -128,8 +128,8 @@ export default function FlowsPage() {
             {filtered.length === 0 ? (
                 <div className="bg-[#F7F8FA] border border-black/[0.08] rounded-2xl text-center py-12 px-6">
                     <GitBranch size={48} className="text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 text-lg">No hay flujos creados</p>
-                    <p className="text-slate-400 text-sm mt-1 mb-5">Crea tu primer flujo conversacional para automatizar las respuestas de tu bot</p>
+                    <p className="text-slate-500 text-lg">No hay conversaciones guiadas</p>
+                    <p className="text-slate-400 text-sm mt-1 mb-5">Crea tu primera conversación paso a paso para que tu bot guíe a los clientes automáticamente</p>
                     <Button
                         onClick={() => setShowTemplates(true)}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 rounded-xl px-6 py-2.5 font-semibold mx-auto"
