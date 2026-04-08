@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { getUsersToExecuteNow } from '@/lib/db/scheduling'
 
 // Helpers para ocultar datos sensibles en logs
 function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
@@ -71,7 +72,9 @@ async function findOrCreateChat(phoneNumber: string, userId: string, contactName
 }
 
 // =============================================
-// GET: Llamado por Vercel Cron (9AM Bolivia)
+// GET: Llamado por Vercel Cron (13:00 UTC)
+// NOTA: Se ejecuta siempre a las 13:00 UTC, pero solo procesa usuarios
+// cuya zona horaria local coincida con su hora configurada de recordatorio
 // =============================================
 export async function GET(request: Request) {
     // Verificar CRON_SECRET
@@ -83,12 +86,24 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Cron Reminders] Starting automated reminder job...')
+    console.log('[Cron Reminders] Starting automated reminder job at', new Date().toISOString())
 
     try {
-        const result = await processReminders()
+        // Obtener usuarios que deben ejecutar reminders AHORA según su zona horaria configurada
+        const usersToExecute = await getUsersToExecuteNow('reminder')
+
+        if (usersToExecute.length === 0) {
+            console.log('[Cron Reminders] No users with reminder_hour matching current time in their timezone')
+            return NextResponse.json({ sent: 0, failed: 0, skipped: 0, userCount: 0 })
+        }
+
+        console.log(`[Cron Reminders] Found ${usersToExecute.length} users to execute reminders for`)
+
+        // Procesar reminders solo para los usuarios que coinciden
+        const specificUserIds = usersToExecute.map(u => u.user_id)
+        const result = await processReminders(specificUserIds)
         console.log(`[Cron Reminders] Done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`)
-        return NextResponse.json(result)
+        return NextResponse.json({ ...result, usersProcessed: usersToExecute.length })
     } catch (error) {
         console.error('[Cron Reminders] Fatal error:', error)
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
@@ -142,7 +157,7 @@ export async function POST(request: Request) {
     console.log(`[Manual Reminders] Triggered by user ${user.id}${force ? ' (FORCE/BROADCAST)' : ''}`)
 
     try {
-        const result = await processReminders(user.id, force)
+        const result = await processReminders([user.id], force)
         return NextResponse.json(result)
     } catch (error) {
         console.error('[Manual Reminders] Error:', error)
@@ -302,7 +317,7 @@ async function sendSingleReminder(phoneNumber: string, userId: string) {
 // =============================================
 // Core Logic: Procesar y enviar recordatorios
 // =============================================
-async function processReminders(specificUserId?: string, force: boolean = false) {
+async function processReminders(specificUserIds?: string[], force: boolean = false) {
     const today = new Date()
     const results = { sent: 0, failed: 0, skipped: 0, total: 0 }
 
@@ -317,8 +332,12 @@ async function processReminders(specificUserId?: string, force: boolean = false)
         query = query.eq('notified', false)
     }
 
-    if (specificUserId) {
-        query = query.eq('user_id', specificUserId)
+    // Si se pasan user IDs específicos (desde cron con timezone), filtrar por esos
+    if (specificUserIds && specificUserIds.length > 0) {
+        query = query.in('user_id', specificUserIds)
+    } else if (specificUserIds && specificUserIds.length === 0) {
+        // Si se pasan user IDs pero la lista está vacía, no procesar nada
+        return results
     }
 
     const { data: subscriptions, error: subError } = await query

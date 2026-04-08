@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { getUsersToExecuteNow } from '@/lib/db/scheduling'
 
 // Helpers para ocultar datos sensibles en logs
 function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
@@ -77,7 +78,10 @@ async function findOrCreateChat(phoneNumber: string, userId: string, contactName
 }
 
 // =============================================
-// GET: Cron - Último aviso de urgencia (2 días después del remarketing)
+// GET: Cron 13:00 UTC (9AM Bolivia, día siguiente)
+// Último aviso de urgencia (~48 horas después del reminder)
+// NOTA: Se ejecuta siempre a las 13:00 UTC, pero solo procesa usuarios
+// cuya zona horaria local coincida con su hora configurada de urgency
 // =============================================
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
@@ -87,29 +91,51 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Cron Urgency] Starting urgency reminder job...')
+    console.log('[Cron Urgency] Starting urgency reminder job at', new Date().toISOString())
 
     try {
-        const result = await processUrgency()
+        // Obtener usuarios que deben ejecutar urgency AHORA según su zona horaria configurada
+        const usersToExecute = await getUsersToExecuteNow('urgency')
+
+        if (usersToExecute.length === 0) {
+            console.log('[Cron Urgency] No users with urgency_hour matching current time in their timezone')
+            return NextResponse.json({ sent: 0, failed: 0, skipped: 0, userCount: 0 })
+        }
+
+        console.log(`[Cron Urgency] Found ${usersToExecute.length} users to execute urgency for`)
+
+        // Procesar urgency solo para los usuarios que coinciden
+        const specificUserIds = usersToExecute.map(u => u.user_id)
+        const result = await processUrgency(specificUserIds)
         console.log(`[Cron Urgency] Done: ${result.sent} sent, ${result.failed} failed`)
-        return NextResponse.json(result)
+        return NextResponse.json({ ...result, usersProcessed: usersToExecute.length })
     } catch (error) {
         console.error('[Cron Urgency] Fatal error:', error)
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }
 
-async function processUrgency() {
+async function processUrgency(specificUserIds?: string[]) {
     const results = { sent: 0, failed: 0, skipped: 0, total: 0 }
 
     // Buscar suscripciones que ya recibieron reminder + followup pero NO urgency
-    const { data: subscriptions, error } = await supabaseAdmin
+    let query = supabaseAdmin
         .from('subscriptions')
         .select('*')
         .eq('estado', 'ACTIVO')
         .eq('notified', true)
         .eq('followup_sent', true)
         .eq('urgency_sent', false)
+
+    // Si se pasan user IDs específicos (desde cron con timezone), filtrar por esos
+    if (specificUserIds && specificUserIds.length > 0) {
+        query = query.in('user_id', specificUserIds)
+    } else if (specificUserIds && specificUserIds.length === 0) {
+        // Si se pasan user IDs pero la lista está vacía, no procesar nada
+        return results
+    }
+
+    const { data: subscriptions, error } = await query
 
     if (error) {
         console.error('[Urgency] Error fetching:', error)
