@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Clock } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
@@ -279,7 +279,7 @@ export default function SettingsPage() {
     }
 
     // Tabs state
-    const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'chat' | 'scheduling'>('general')
+    const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'chat'>('general')
 
     // Form Fields
     const [botName, setBotName] = useState('Mi Asistente')
@@ -615,13 +615,6 @@ export default function SettingsPage() {
                 <TabButton id="general" label="General" icon={Bot} />
                 <TabButton id="ai" label="Inteligencia Artificial (IA)" icon={BrainCircuit} />
                 <TabButton id="chat" label="Conexión (Chat)" icon={MessageSquare} />
-                <button
-                    onClick={() => window.location.href = '/dashboard/settings/scheduling'}
-                    className="flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors border-b-2 border-transparent text-[#0F172A]/40 hover:text-[#0F172A] hover:bg-[#F0F0F0]"
-                >
-                    <Clock className="w-4 h-4" />
-                    Programación
-                </button>
             </div>
 
             {/* Tabs Content */}

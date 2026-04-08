@@ -3,15 +3,18 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import {
     Plus, Search, FileText, Bell, BellOff, RefreshCw, CheckCircle2, XCircle,
-    Clock, AlertCircle, Settings2, Save, Send, Copy, MessageSquare, Zap, Image, Video, FileIcon
+    Clock, AlertCircle, Settings2, Save, Send, Copy, MessageSquare, Zap, Image, Video, FileIcon, Globe
 } from 'lucide-react'
 import { getSubscriptionSettings, updateSubscriptionSettings } from './actions'
 import MetaTemplateBuilder from './MetaTemplateBuilder'
 import SimpleTemplateWizard from './SimpleTemplateWizard'
 import BroadcastModal from './BroadcastModal'
 import { toast } from 'sonner'
+import { createClient } from '@/utils/supabase/client'
+import { COMMON_TIMEZONES } from '@/lib/timezone-utils'
 
 type MetaTemplate = {
     id: string
@@ -272,7 +275,17 @@ export default function TemplatesPage() {
     const [isSavingConfig, setIsSavingConfig] = useState(false)
     const [configSaved, setConfigSaved] = useState(false)
 
-    useEffect(() => { loadMetaTemplates(); loadSettings() }, [])
+    // Scheduling config state
+    const [schedConfig, setSchedConfig] = useState({
+        timezone: 'America/La_Paz',
+        reminder_hour: 9,
+        followup_hour: 18,
+        urgency_hour: 9,
+    })
+    const [isSavingSchedConfig, setIsSavingSchedConfig] = useState(false)
+    const [schedConfigSaved, setSchedConfigSaved] = useState(false)
+
+    useEffect(() => { loadMetaTemplates(); loadSettings(); loadSchedConfig() }, [])
 
     const loadMetaTemplates = async () => {
         setMetaLoading(true); setMetaError(null)
@@ -314,6 +327,41 @@ export default function TemplatesPage() {
 
     const setServiceTemplate = (service: ServiceKey, phase: keyof PhaseConfig, value: string) => {
         setTemplateConfig(prev => ({ ...prev, [service]: { ...prev[service], [phase]: value } }))
+    }
+
+    const loadSchedConfig = async () => {
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            const { data } = await supabase
+                .from('scheduling_config')
+                .select('*')
+                .eq('user_id', user.id)
+                .single()
+            if (data) setSchedConfig({
+                timezone: data.timezone || 'America/La_Paz',
+                reminder_hour: data.reminder_hour ?? 9,
+                followup_hour: data.followup_hour ?? 18,
+                urgency_hour: data.urgency_hour ?? 9,
+            })
+        } catch { /* sin config previa, usa defaults */ }
+    }
+
+    const saveSchedConfig = async () => {
+        setIsSavingSchedConfig(true)
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('No user')
+            const { error } = await supabase
+                .from('scheduling_config')
+                .upsert({ user_id: user.id, ...schedConfig }, { onConflict: 'user_id' })
+            if (error) throw error
+            setSchedConfigSaved(true)
+            setTimeout(() => setSchedConfigSaved(false), 2500)
+        } catch { toast.error('Error al guardar los horarios') }
+        finally { setIsSavingSchedConfig(false) }
     }
 
     const toggleNotifications = async (checked: boolean) => {
@@ -524,6 +572,73 @@ export default function TemplatesPage() {
                             </div>
                             <div className="px-5 pb-4 bg-slate-50 border-t border-black/[0.06]">
                                 <p className="text-xs text-slate-400">Los mensajes se envían automáticamente según el horario del servidor. Solo aplica a suscripciones próximas a vencer.</p>
+                            </div>
+                        </div>
+
+                        {/* Scheduling config */}
+                        <div className="bg-white rounded-2xl border border-black/[0.08] shadow-sm overflow-hidden">
+                            <div className="p-5 flex items-center justify-between border-b border-black/[0.06]">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                                        <Clock size={18} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-[#0F172A]">Horarios de envío</h3>
+                                        <p className="text-sm text-slate-500">Configura a qué hora se envía cada tipo de recordatorio en tu zona horaria.</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={saveSchedConfig}
+                                    disabled={isSavingSchedConfig}
+                                    className="bg-[#0F172A] hover:bg-[#1E293B] text-white gap-2 text-sm rounded-xl shrink-0"
+                                >
+                                    <Save size={14} />
+                                    {isSavingSchedConfig ? 'Guardando...' : schedConfigSaved ? '✓ Guardado' : 'Guardar'}
+                                </Button>
+                            </div>
+                            <div className="p-5 space-y-5">
+                                {/* Timezone */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                                        <Globe size={12} /> Zona horaria
+                                    </label>
+                                    <Select value={schedConfig.timezone} onValueChange={v => setSchedConfig(p => ({ ...p, timezone: v }))}>
+                                        <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm h-10 rounded-lg">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {COMMON_TIMEZONES.map(tz => (
+                                                <SelectItem key={tz.value} value={tz.value} className="text-sm">{tz.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {/* Hours grid */}
+                                <div className="grid grid-cols-3 gap-4">
+                                    {([
+                                        { key: 'reminder_hour', label: 'Recordatorio', desc: '1er aviso', color: 'text-blue-600 bg-blue-50' },
+                                        { key: 'followup_hour', label: 'Remarketing', desc: '6PM por defecto', color: 'text-amber-600 bg-amber-50' },
+                                        { key: 'urgency_hour', label: 'Último aviso', desc: '2do día', color: 'text-red-600 bg-red-50' },
+                                    ] as const).map(({ key, label, desc, color }) => (
+                                        <div key={key} className="bg-[#F7F8FA] rounded-xl p-4 border border-black/[0.06]">
+                                            <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold mb-3 ${color}`}>
+                                                <Clock size={11} /> {label}
+                                            </div>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={23}
+                                                value={schedConfig[key]}
+                                                onChange={e => setSchedConfig(p => ({ ...p, [key]: parseInt(e.target.value) || 0 }))}
+                                                className="bg-white border-black/[0.08] text-[#0F172A] text-center text-lg font-bold h-10 rounded-lg"
+                                            />
+                                            <p className="text-[11px] text-slate-400 mt-2 text-center">{desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-[11px] text-slate-400">
+                                    Las horas se expresan en formato 24h según tu zona horaria. El cron se ejecuta diariamente y solo envía a usuarios cuya hora local coincide.
+                                </p>
                             </div>
                         </div>
 
