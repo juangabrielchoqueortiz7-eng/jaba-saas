@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Send, User, Bot, Sparkles, Save, Check, Loader2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Send, User, Bot, Sparkles, Save, Check, Loader2, Wand2, ChevronDown, ChevronUp, Code } from 'lucide-react'
 import { useParams } from 'next/navigation'
 
 import { simulateChatAction } from '../../actions'
@@ -29,6 +30,51 @@ REGLAS:
 - Si el cliente pregunta algo que no sabes, dile que un agente humano le contactará pronto
 - Responde de forma concisa y clara`
 
+// ── Structured Form Helper ─────────────────────────────────────────────────
+
+interface FormFields {
+  assistantName: string
+  businessName: string
+  businessType: string
+  schedule: string
+  location: string
+  products: string
+  tone: string
+  rules: string
+}
+
+const EMPTY_FORM: FormFields = {
+  assistantName: '', businessName: '', businessType: '',
+  schedule: '', location: '', products: '', tone: 'amable', rules: '',
+}
+
+function generatePromptFromForm(f: FormFields): string {
+  const lines: string[] = []
+  lines.push(`Eres ${f.assistantName || '[Nombre del Asistente]'}, asistente virtual de ${f.businessName || '[Tu Negocio]'} por WhatsApp.`)
+  lines.push('')
+  lines.push('Tu objetivo es atender a los clientes de manera amable, rápida y profesional.')
+  lines.push('')
+  lines.push('INFORMACIÓN DEL NEGOCIO:')
+  lines.push(`- Nombre: ${f.businessName || '[Tu Negocio]'}`)
+  if (f.businessType) lines.push(`- Rubro: ${f.businessType}`)
+  if (f.schedule) lines.push(`- Horario: ${f.schedule}`)
+  if (f.location) lines.push(`- Ubicación: ${f.location}`)
+  if (f.products) {
+    lines.push('')
+    lines.push('SERVICIOS/PRODUCTOS:')
+    f.products.split('\n').filter(Boolean).forEach(p => lines.push(`- ${p.replace(/^-\s*/, '')}`))
+  }
+  lines.push('')
+  lines.push('REGLAS:')
+  lines.push(`- Responde siempre de forma ${f.tone || 'amable'} y profesional`)
+  lines.push('- Si el cliente pregunta algo que no sabes, dile que un agente humano le contactará pronto')
+  lines.push('- Responde de forma concisa y clara')
+  if (f.rules) {
+    f.rules.split('\n').filter(Boolean).forEach(r => lines.push(`- ${r.replace(/^-\s*/, '')}`))
+  }
+  return lines.join('\n')
+}
+
 export default function TrainingPage() {
     const params = useParams()
     const assistantId = params.assistantId as string
@@ -38,6 +84,8 @@ export default function TrainingPage() {
     const [saveSuccess, setSaveSuccess] = useState(false)
     const [hasChanges, setHasChanges] = useState(false)
     const [savedPrompt, setSavedPrompt] = useState('')
+    const [mode, setMode] = useState<'form' | 'code'>('form')
+    const [form, setForm] = useState<FormFields>(EMPTY_FORM)
 
     // Simulator State
     const [simulatedMessages, setSimulatedMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([])
@@ -135,10 +183,29 @@ export default function TrainingPage() {
                     <div>
                         <h1 className="text-2xl font-bold text-[#0F172A]">Entrenamiento</h1>
                         <p className="text-sm text-slate-500 mt-1">
-                            Describe tu negocio, productos y reglas. La IA responderá según este prompt.
+                            Configura cómo responde tu asistente de IA a tus clientes.
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* Mode toggle */}
+                        <div className="flex items-center bg-[#F7F8FA] rounded-lg p-0.5 border border-black/[0.06]">
+                            <button
+                                onClick={() => setMode('form')}
+                                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    mode === 'form' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            >
+                                <Wand2 size={12} /> Formulario
+                            </button>
+                            <button
+                                onClick={() => setMode('code')}
+                                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    mode === 'code' ? 'bg-white text-[#0F172A] shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            >
+                                <Code size={12} /> Avanzado
+                            </button>
+                        </div>
                         {hasChanges && (
                             <span className="text-xs text-amber-400 bg-amber-400/10 px-2 py-1 rounded">
                                 Sin guardar
@@ -165,20 +232,152 @@ export default function TrainingPage() {
                     </div>
                 </div>
 
-                <div className="flex-1 bg-white rounded-xl shadow-sm border border-black/[0.08] flex flex-col overflow-hidden relative">
-                    <textarea
-                        className="flex-1 w-full p-6 text-slate-300 font-mono text-sm leading-relaxed resize-none bg-transparent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder={PLACEHOLDER_PROMPT}
-                        spellCheck={false}
-                    />
+                {/* ── FORM MODE ── */}
+                {mode === 'form' && (
+                    <div className="flex-1 bg-white rounded-xl shadow-sm border border-black/[0.08] flex flex-col overflow-y-auto">
+                        <div className="p-6 space-y-5">
+                            <div className="p-3 bg-indigo-50 border border-indigo-200/60 rounded-lg text-xs text-indigo-600">
+                                Completa los campos y el prompt se generará automáticamente. Puedes cambiar al modo "Avanzado" para editarlo manualmente.
+                            </div>
 
-                    {/* Character Counter */}
-                    <div className="absolute bottom-4 right-4 text-xs font-mono text-slate-500 bg-white/80 px-2 py-1 rounded border border-black/[0.08]">
-                        {prompt.length}/40000
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-slate-500 font-semibold">Nombre del asistente</Label>
+                                    <Input
+                                        placeholder="Ej: Sofi, Asistente JABA"
+                                        className="bg-[#F7F8FA] border-black/[0.08]"
+                                        value={form.assistantName}
+                                        onChange={e => {
+                                            const next = { ...form, assistantName: e.target.value }
+                                            setForm(next)
+                                            setPrompt(generatePromptFromForm(next))
+                                        }}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-slate-500 font-semibold">Nombre de tu negocio</Label>
+                                    <Input
+                                        placeholder="Ej: Spa Bella, TechStore"
+                                        className="bg-[#F7F8FA] border-black/[0.08]"
+                                        value={form.businessName}
+                                        onChange={e => {
+                                            const next = { ...form, businessName: e.target.value }
+                                            setForm(next)
+                                            setPrompt(generatePromptFromForm(next))
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-slate-500 font-semibold">Tipo de negocio</Label>
+                                    <Input
+                                        placeholder="Ej: Spa, Restaurante, Tienda de ropa"
+                                        className="bg-[#F7F8FA] border-black/[0.08]"
+                                        value={form.businessType}
+                                        onChange={e => {
+                                            const next = { ...form, businessType: e.target.value }
+                                            setForm(next)
+                                            setPrompt(generatePromptFromForm(next))
+                                        }}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-slate-500 font-semibold">Horario de atención</Label>
+                                    <Input
+                                        placeholder="Ej: Lunes a Viernes 9:00-18:00"
+                                        className="bg-[#F7F8FA] border-black/[0.08]"
+                                        value={form.schedule}
+                                        onChange={e => {
+                                            const next = { ...form, schedule: e.target.value }
+                                            setForm(next)
+                                            setPrompt(generatePromptFromForm(next))
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <Label className="text-xs text-slate-500 font-semibold">Ubicación (opcional)</Label>
+                                <Input
+                                    placeholder="Ej: Av. Arce #123, La Paz, Bolivia"
+                                    className="bg-[#F7F8FA] border-black/[0.08]"
+                                    value={form.location}
+                                    onChange={e => {
+                                        const next = { ...form, location: e.target.value }
+                                        setForm(next)
+                                        setPrompt(generatePromptFromForm(next))
+                                    }}
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <Label className="text-xs text-slate-500 font-semibold">Productos o servicios (uno por línea)</Label>
+                                <textarea
+                                    className="w-full p-3 text-sm bg-[#F7F8FA] border border-black/[0.08] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 min-h-[100px]"
+                                    placeholder={"Corte de cabello — 50 Bs\nMasaje relajante — 120 Bs\nManicure — 30 Bs"}
+                                    value={form.products}
+                                    onChange={e => {
+                                        const next = { ...form, products: e.target.value }
+                                        setForm(next)
+                                        setPrompt(generatePromptFromForm(next))
+                                    }}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-slate-500 font-semibold">Tono de respuesta</Label>
+                                    <select
+                                        className="w-full h-10 px-3 text-sm bg-[#F7F8FA] border border-black/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                        value={form.tone}
+                                        onChange={e => {
+                                            const next = { ...form, tone: e.target.value }
+                                            setForm(next)
+                                            setPrompt(generatePromptFromForm(next))
+                                        }}
+                                    >
+                                        <option value="amable">Amable y profesional</option>
+                                        <option value="formal">Formal y serio</option>
+                                        <option value="casual">Casual y cercano</option>
+                                        <option value="divertido">Divertido y relajado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <Label className="text-xs text-slate-500 font-semibold">Reglas adicionales (opcional, una por línea)</Label>
+                                <textarea
+                                    className="w-full p-3 text-sm bg-[#F7F8FA] border border-black/[0.08] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 min-h-[80px]"
+                                    placeholder={"No dar descuentos sin autorización\nSiempre preguntar el nombre del cliente\nOfrecer WhatsApp Business para consultas"}
+                                    value={form.rules}
+                                    onChange={e => {
+                                        const next = { ...form, rules: e.target.value }
+                                        setForm(next)
+                                        setPrompt(generatePromptFromForm(next))
+                                    }}
+                                />
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {/* ── CODE MODE (Advanced) ── */}
+                {mode === 'code' && (
+                    <div className="flex-1 bg-white rounded-xl shadow-sm border border-black/[0.08] flex flex-col overflow-hidden relative">
+                        <textarea
+                            className="flex-1 w-full p-6 text-slate-700 font-mono text-sm leading-relaxed resize-none bg-transparent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder={PLACEHOLDER_PROMPT}
+                            spellCheck={false}
+                        />
+                        <div className="absolute bottom-4 right-4 text-xs font-mono text-slate-500 bg-white/80 px-2 py-1 rounded border border-black/[0.08]">
+                            {prompt.length}/40000
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Right Column: Chat Simulator */}

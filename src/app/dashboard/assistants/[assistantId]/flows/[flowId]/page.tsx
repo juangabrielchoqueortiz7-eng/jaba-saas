@@ -144,15 +144,15 @@ const nodeTypes: NodeTypes = {
 // ========================
 
 const nodeTypeCatalog = [
-    { type: 'trigger', label: 'Inicio', icon: Zap, desc: 'Inicia la conversación con una palabra clave' },
-    { type: 'message', label: 'Mensaje', icon: MessageSquare, desc: 'Envía un mensaje de texto' },
-    { type: 'buttons', label: 'Botones', icon: MousePointerClick, desc: 'Envía botones interactivos' },
-    { type: 'list', label: 'Lista', icon: ListOrdered, desc: 'Envía lista desplegable' },
-    { type: 'condition', label: 'Condición', icon: GitBranch, desc: 'Evalúa una condición' },
-    { type: 'ai_response', label: 'IA', icon: Bot, desc: 'Delega a la inteligencia artificial' },
-    { type: 'action', label: 'Acción', icon: Zap, desc: 'Ejecuta una acción del sistema' },
-    { type: 'wait_input', label: 'Esperar', icon: Clock, desc: 'Espera respuesta del usuario' },
-    { type: 'delay', label: 'Pausa', icon: Clock, desc: 'Espera X segundos' },
+    { type: 'trigger', label: 'Inicio', icon: Zap, desc: 'Cuando el cliente escribe una palabra clave' },
+    { type: 'message', label: 'Enviar mensaje', icon: MessageSquare, desc: 'Envía un texto al cliente' },
+    { type: 'buttons', label: 'Enviar botones', icon: MousePointerClick, desc: 'El cliente elige entre opciones' },
+    { type: 'list', label: 'Enviar menú', icon: ListOrdered, desc: 'Menú desplegable con opciones' },
+    { type: 'wait_input', label: 'Esperar respuesta', icon: Clock, desc: 'Espera que el cliente escriba algo' },
+    { type: 'condition', label: 'Si / Entonces', icon: GitBranch, desc: 'Toma decisiones según la respuesta' },
+    { type: 'ai_response', label: 'Respuesta IA', icon: Bot, desc: 'La IA genera una respuesta automática' },
+    { type: 'action', label: 'Acción', icon: Zap, desc: 'Poner etiqueta, enviar imagen, etc.' },
+    { type: 'delay', label: 'Pausa', icon: Clock, desc: 'Espera unos segundos antes de continuar' },
 ]
 
 // ========================
@@ -182,12 +182,12 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
             padding: 20, overflowY: 'auto', zIndex: 50, backdropFilter: 'blur(12px)'
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1rem' }}>Configurar Nodo</h3>
+                <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1rem' }}>Configurar paso</h3>
                 <Button onClick={onClose} style={{ color: '#94a3b8', padding: 4, background: 'transparent' }}>✕</Button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Etiqueta</label>
+                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Nombre de este paso</label>
                 <Input
                     value={label}
                     onChange={e => updateLabel(e.target.value)}
@@ -752,7 +752,7 @@ export default function FlowEditorPage() {
                 </div>
 
                 <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, padding: '4px 8px' }}>
-                    Nodos
+                    Arrastra o haz clic para agregar
                 </div>
 
                 {nodeTypeCatalog.map(item => {
