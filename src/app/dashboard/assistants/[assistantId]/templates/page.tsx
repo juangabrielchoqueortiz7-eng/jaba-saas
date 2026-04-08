@@ -720,7 +720,7 @@ export default function TemplatesPage() {
                                                 <SelectContent>
                                                     <SelectItem value="_none" className="text-slate-400 text-sm">— Sin plantilla (mensaje por defecto) —</SelectItem>
                                                     {approved.length === 0 && (
-                                                        <SelectItem value="_empty" disabled className="text-slate-400 text-xs">No hay plantillas aprobadas aún</SelectItem>
+                                                        <div className="px-3 py-2 text-xs text-slate-400">No hay plantillas aprobadas aún</div>
                                                     )}
                                                     {approved.map(t => (
                                                         <SelectItem key={t.id} value={t.name} className="text-sm">
