@@ -179,7 +179,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             <div className="px-3">
                 <SectionLabel label="Comunicación" />
                 <NavItem href="/dashboard/chats"
-                    icon={<MessageSquare size={17} />} label="Conversaciones"
+                    icon={<MessageSquare size={17} />} label="Flujos"
                     active={startsWith('/dashboard/chats')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem href="/dashboard/orders"
@@ -194,7 +194,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
             {/* ── AUTOMATIZACIÓN ── */}
             <div className="px-3">
-                <SectionLabel label="Automatización" />
+                <SectionLabel label="Disparadores" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/training` : '#'}
                     icon={<BrainCircuit size={17} />} label="Entrenamiento IA"
@@ -202,12 +202,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/flows` : '#'}
-                    icon={<GitBranch size={17} />} label="Conversaciones"
+                    icon={<GitBranch size={17} />} label="Flujos"
                     active={includes('/flows')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
                     href={hasAssistant ? `/dashboard/assistants/${activeId}/triggers` : '#'}
-                    icon={<Zap size={17} />} label="Automatizaciones"
+                    icon={<Zap size={17} />} label="Disparadores"
                     active={includes('/triggers')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem

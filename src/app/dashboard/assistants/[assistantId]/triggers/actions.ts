@@ -233,7 +233,8 @@ export async function saveTrigger(
                 value: cond.value,
                 payload: cond.payload || {},
             }))
-            await supabase.from('trigger_conditions').insert(conditionsToInsert)
+            const { error: condErr } = await supabase.from('trigger_conditions').insert(conditionsToInsert)
+            if (condErr) throw new Error(`Error al guardar condiciones: ${condErr.message}`)
         }
     }
 

@@ -160,9 +160,12 @@ export async function saveFlowCanvas(
 
     if (!flow) throw new Error('Flow not found')
 
-    // Delete existing nodes and edges (cascade will handle edges via FK)
-    await supabase.from('flow_edges').delete().eq('flow_id', flowId)
-    await supabase.from('flow_nodes').delete().eq('flow_id', flowId)
+    // Delete existing nodes and edges (edges first due to FK constraints)
+    const { error: delEdgeErr } = await supabase.from('flow_edges').delete().eq('flow_id', flowId)
+    if (delEdgeErr) throw new Error(`Error al limpiar conexiones anteriores: ${delEdgeErr.message}`)
+
+    const { error: delNodeErr } = await supabase.from('flow_nodes').delete().eq('flow_id', flowId)
+    if (delNodeErr) throw new Error(`Error al limpiar nodos anteriores: ${delNodeErr.message}`)
 
     // Insert new nodes
     if (nodes.length > 0) {
@@ -171,12 +174,12 @@ export async function saveFlowCanvas(
             flow_id: flowId,
             type: n.type,
             label: n.label,
-            position_x: n.position_x,
-            position_y: n.position_y,
+            position_x: Math.max(-5000, Math.min(5000, n.position_x)),
+            position_y: Math.max(-5000, Math.min(5000, n.position_y)),
             config: n.config
         }))
         const { error: nodeErr } = await supabase.from('flow_nodes').insert(nodeRows)
-        if (nodeErr) throw nodeErr
+        if (nodeErr) throw new Error(`Error al guardar los pasos del flujo: ${nodeErr.message}`)
     }
 
     // Insert new edges
@@ -190,7 +193,7 @@ export async function saveFlowCanvas(
             label: e.label
         }))
         const { error: edgeErr } = await supabase.from('flow_edges').insert(edgeRows)
-        if (edgeErr) throw edgeErr
+        if (edgeErr) throw new Error(`Error al guardar las conexiones del flujo: ${edgeErr.message}`)
     }
 
     // Update flow timestamp

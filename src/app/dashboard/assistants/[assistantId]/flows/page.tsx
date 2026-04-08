@@ -64,7 +64,7 @@ export default function FlowsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#0F172A]">Conversaciones Guiadas</h1>
+                    <h1 className="text-3xl font-bold text-[#0F172A]">Flujos</h1>
                     <p className="text-slate-400 text-sm mt-1">Diseña conversaciones paso a paso que tu bot sigue automáticamente</p>
                 </div>
                 <Button
@@ -82,7 +82,7 @@ export default function FlowsPage() {
                     className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-none cursor-pointer text-left"
                 >
                     <HelpCircle size={16} className="text-cyan-600 shrink-0" />
-                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son las Conversaciones Guiadas? — Haz clic para aprender</span>
+                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son las Flujos? — Haz clic para aprender</span>
                     {showHelp ? <ChevronUp size={16} className="text-cyan-600" /> : <ChevronDown size={16} className="text-cyan-600" />}
                 </button>
                 {showHelp && (
@@ -106,7 +106,7 @@ export default function FlowsPage() {
                             ))}
                         </div>
                         <div className="bg-cyan-500/[0.08] rounded-lg px-4 py-3 text-xs text-[#0F172A]/65">
-                            <strong>¿Cuál es la diferencia con las Automatizaciones?</strong> Una automatización hace UNA acción (ej: enviar un mensaje).
+                            <strong>¿Cuál es la diferencia con las Disparadores?</strong> Una automatización hace UNA acción (ej: enviar un mensaje).
                             Una conversación guiada es más poderosa: crea conversaciones completas con preguntas, respuestas y opciones. Puedes usar una automatización para iniciar un flujo.
                         </div>
                     </div>

@@ -223,7 +223,7 @@ export default async function HomePage() {
                     { Icon: MessageSquare, label: 'Chats hoy',            value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`,           color: GREEN },
                     { Icon: Users,         label: 'Suscripciones activas', value: totalActivas,          sub: `${vencidas.length} vencidas sin renovar`,  color: GREEN },
                     { Icon: AlertTriangle, label: 'Vencen esta semana',    value: vencen7d.length,       sub: `${vencenHoy.length} vencen hoy`,           color: vencen7d.length > 0 ? '#d97706' : 'rgba(15,23,42,0.30)' },
-                    { Icon: Zap,           label: 'Automatizaciones activas',  value: activeTriggers ?? 0,   sub: 'reglas automáticas funcionando',                  color: GREEN },
+                    { Icon: Zap,           label: 'Disparadores activos',  value: activeTriggers ?? 0,   sub: 'reglas automáticas funcionando',                  color: GREEN },
                     { Icon: Send,          label: 'Notificaciones (7d)',   value: notifsEnviadas,        sub: `${notifsFallidas} fallidas`,               color: GREEN },
                     { Icon: Bot,           label: 'Asistente IA',          value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? GREEN : 'rgba(15,23,42,0.30)' },
                 ].map((stat, i) => (
@@ -492,7 +492,7 @@ export default async function HomePage() {
                             {[
                                 { Icon: MessageSquare, label: 'Chats',          href: '/dashboard/chats' },
                                 { Icon: Users,         label: 'Suscripciones',  href: '/dashboard/subscriptions' },
-                                { Icon: Zap,           label: 'Automatizaciones',   href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants' },
+                                { Icon: Zap,           label: 'Disparadores',   href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants' },
                                 { Icon: FileText,      label: 'Plantillas Meta', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants' },
                             ].map((item, i) => (
                                 <Link key={i} href={item.href} style={{

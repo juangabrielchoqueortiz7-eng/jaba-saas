@@ -152,6 +152,14 @@ async function completeFlowState(chatId: string) {
         .update({ status: 'completed', updated_at: new Date().toISOString() })
         .eq('chat_id', chatId)
         .eq('status', 'active')
+
+    // Clean up old completed states (older than 7 days) to prevent unbounded growth
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    await supabaseAdmin
+        .from('chat_flow_state')
+        .delete()
+        .eq('status', 'completed')
+        .lt('updated_at', sevenDaysAgo)
 }
 
 // ========================

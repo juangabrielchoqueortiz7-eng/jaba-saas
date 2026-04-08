@@ -48,15 +48,28 @@ const nodeColors: Record<string, { bg: string; border: string; icon: string }> =
     delay: { bg: 'rgba(100,116,139,0.15)', border: '#64748b', icon: '⏱️' },
 }
 
+function isNodeConfigured(nodeType: string, config: any): boolean {
+    if (!config) return false
+    if (nodeType === 'trigger') return config.trigger_type !== 'keyword' || (config.keywords?.length > 0)
+    if (nodeType === 'message') return !!config.text?.trim()
+    if (nodeType === 'buttons') return !!config.text?.trim() && config.buttons?.length > 0
+    if (nodeType === 'list') return !!config.body?.trim() && config.rows?.length > 0
+    if (nodeType === 'condition') return !!config.value?.trim()
+    if (nodeType === 'wait_input') return !!config.variable_name?.trim()
+    if (nodeType === 'action') return !!config.action_type
+    return true
+}
+
 function FlowNode({ data, selected }: { data: any; selected: boolean }) {
     const colors = nodeColors[data.nodeType] || nodeColors.message
     const isCondition = data.nodeType === 'condition'
     const isTrigger = data.nodeType === 'trigger'
+    const configured = isNodeConfigured(data.nodeType, data.config)
 
     return (
         <div style={{
             background: colors.bg,
-            border: `2px solid ${selected ? '#fff' : colors.border}`,
+            border: `2px solid ${selected ? '#fff' : configured ? colors.border : '#ef4444'}`,
             borderRadius: 12,
             padding: '12px 16px',
             minWidth: 180,
@@ -86,7 +99,12 @@ function FlowNode({ data, selected }: { data: any; selected: boolean }) {
             <div style={{ color: '#e2e8f0', fontSize: '0.85rem', fontWeight: 500 }}>
                 {data.label || 'Sin configurar'}
             </div>
-            {data.preview && (
+            {!configured && (
+                <div style={{ fontSize: '0.68rem', color: '#ef4444', marginTop: 4, fontWeight: 600 }}>
+                    ⚠ Haz clic para configurar
+                </div>
+            )}
+            {data.preview && configured && (
                 <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
                     {data.preview}
                 </div>
@@ -242,21 +260,21 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {/* TRIGGER CONFIG */}
                 {nodeType === 'trigger' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Tipo de disparador</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Cómo se activa este flujo?</label>
                         <select
                             value={config.trigger_type || 'keyword'}
                             onChange={e => updateConfig('trigger_type', e.target.value)}
                             style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
                         >
-                            <option value="keyword">Palabra clave</option>
-                            <option value="button_id">ID de botón</option>
-                            <option value="message_type">Tipo de mensaje</option>
-                            <option value="event">Evento</option>
+                            <option value="keyword">📝 Palabra o frase clave (recomendado)</option>
+                            <option value="button_id">🔘 Respuesta a un botón</option>
+                            <option value="message_type">📎 Tipo de mensaje (imagen, audio, etc.)</option>
+                            <option value="event">⚡ Evento del sistema</option>
                         </select>
 
                         {config.trigger_type === 'keyword' && (
                             <>
-                                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Palabras clave (separadas por coma)</label>
+                                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué palabras activan este flujo? (separadas por coma)</label>
                                 <Input
                                     value={(config.keywords || []).join(', ')}
                                     onChange={e => updateConfig('keywords', e.target.value.split(',').map((k: string) => k.trim()).filter(Boolean))}
@@ -268,9 +286,9 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                                     onChange={e => updateConfig('match_mode', e.target.value)}
                                     style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
                                 >
-                                    <option value="contains">Contiene</option>
-                                    <option value="exact">Exacto</option>
-                                    <option value="starts_with">Empieza con</option>
+                                    <option value="contains">Cuando el mensaje contiene la palabra</option>
+                                    <option value="exact">Cuando el mensaje es exactamente igual</option>
+                                    <option value="starts_with">Cuando el mensaje empieza con</option>
                                 </select>
                             </>
                         )}
@@ -361,7 +379,7 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                             rows={3}
                             style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Texto del botón para abrir lista</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Texto del botón que abre el menú</label>
                         <Input
                             value={config.button_text || ''}
                             onChange={e => updateConfig('button_text', e.target.value)}
@@ -433,19 +451,19 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {/* CONDITION CONFIG */}
                 {nodeType === 'condition' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Tipo de condición</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué debe revisar?</label>
                         <select
                             value={config.condition_type || 'contains'}
                             onChange={e => updateConfig('condition_type', e.target.value)}
                             style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
                         >
-                            <option value="contains">Mensaje contiene</option>
-                            <option value="equals">Mensaje es exactamente</option>
-                            <option value="message_type">Tipo de mensaje es</option>
-                            <option value="has_variable">Variable existe</option>
-                            <option value="interactive_id">ID interactivo es</option>
+                            <option value="contains">El mensaje contiene la palabra</option>
+                            <option value="equals">El mensaje es exactamente</option>
+                            <option value="message_type">El tipo de mensaje es (imagen, audio...)</option>
+                            <option value="has_variable">Si una variable tiene valor</option>
+                            <option value="interactive_id">El cliente respondió al botón con ID</option>
                         </select>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Valor</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué valor comparar?</label>
                         <Input
                             value={config.value || ''}
                             onChange={e => updateConfig('value', e.target.value)}
@@ -461,7 +479,7 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {/* WAIT INPUT CONFIG */}
                 {nodeType === 'wait_input' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Nombre de variable</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Cómo llamar a la respuesta del cliente?</label>
                         <Input
                             value={config.variable_name || ''}
                             onChange={e => updateConfig('variable_name', e.target.value)}
@@ -477,7 +495,7 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {/* DELAY CONFIG */}
                 {nodeType === 'delay' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Segundos de espera</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Cuántos segundos esperar antes de continuar?</label>
                         <Input
                             type="number"
                             value={config.seconds || 2}
@@ -492,15 +510,15 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {/* ACTION CONFIG */}
                 {nodeType === 'action' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Tipo de acción</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué acción ejecutar?</label>
                         <select
                             value={config.action_type || 'add_tag'}
                             onChange={e => updateConfig('action_type', e.target.value)}
                             style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
                         >
-                            <option value="add_tag">Agregar etiqueta CRM</option>
-                            <option value="remove_tag">Quitar etiqueta CRM</option>
-                            <option value="send_image">Enviar imagen</option>
+                            <option value="add_tag">🏷️ Poner etiqueta al cliente</option>
+                            <option value="remove_tag">🏷️ Quitarle etiqueta al cliente</option>
+                            <option value="send_image">🖼️ Enviar una imagen</option>
                         </select>
                         {(config.action_type === 'add_tag' || config.action_type === 'remove_tag') && (
                             <Input
@@ -653,18 +671,24 @@ export default function FlowEditorPage() {
     const addNode = (type: string) => {
         nodeIdCounter.current += 1
         const id = crypto.randomUUID()
+        // Place new nodes in a predictable vertical stack centered on the canvas
+        const xCenter = 300
+        const yOffset = nodeIdCounter.current * 160
         const newNode: Node = {
             id,
             type: 'flowNode',
-            position: { x: 250 + Math.random() * 200, y: 100 + nodeIdCounter.current * 120 },
+            position: { x: xCenter, y: yOffset },
             data: {
                 label: nodeTypeCatalog.find(n => n.type === type)?.label || type,
                 nodeType: type,
                 config: type === 'trigger' ? { trigger_type: 'keyword', keywords: [], match_mode: 'contains' } : {},
                 preview: '',
+                isNew: true,
             },
         }
         setNodes(nds => [...nds, newNode])
+        // Auto-open config panel for this node
+        setSelectedNode(newNode)
     }
 
     const handleNodeClick = (_: any, node: Node) => {
@@ -766,7 +790,9 @@ export default function FlowEditorPage() {
             setTimeout(() => setSaveStatus(''), 3000)
         } catch (err: any) {
             console.error('Error saving:', err)
-            setSaveStatus('❌ Error al guardar')
+            const msg = err?.message || 'Error desconocido'
+            setSaveStatus(`❌ ${msg}`)
+            setTimeout(() => setSaveStatus(''), 6000)
         } finally {
             setIsSaving(false)
         }
@@ -826,6 +852,40 @@ export default function FlowEditorPage() {
 
             {/* Canvas */}
             <div style={{ flex: 1, position: 'relative' }}>
+                {/* Onboarding overlay — shown when canvas is empty */}
+                {nodes.length === 0 && (
+                    <div style={{
+                        position: 'absolute', inset: 0, zIndex: 10, display: 'flex',
+                        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        pointerEvents: 'none',
+                    }}>
+                        <div style={{
+                            background: 'rgba(15,15,30,0.85)', border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: 16, padding: '28px 36px', maxWidth: 420, textAlign: 'center',
+                            backdropFilter: 'blur(12px)',
+                        }}>
+                            <div style={{ fontSize: '2rem', marginBottom: 12 }}>🗺️</div>
+                            <p style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>
+                                Tu flujo está vacío
+                            </p>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.6, marginBottom: 16 }}>
+                                Construye tu flujo en 3 pasos:
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left' }}>
+                                {[
+                                    { step: '1', text: 'Haz clic en "Inicio" en el panel izquierdo para agregar el primer paso' },
+                                    { step: '2', text: 'Agrega pasos de "Enviar mensaje", "Enviar botones", etc.' },
+                                    { step: '3', text: 'Conecta los pasos arrastrando desde el círculo inferior de un nodo al superior del siguiente' },
+                                ].map(s => (
+                                    <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                        <span style={{ background: '#25D366', color: '#000', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0 }}>{s.step}</span>
+                                        <span style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5 }}>{s.text}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}

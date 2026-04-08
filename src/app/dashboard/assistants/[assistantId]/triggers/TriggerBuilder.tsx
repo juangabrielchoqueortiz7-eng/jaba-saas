@@ -1307,7 +1307,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-[#0F172A]">
-              {triggerId ? 'Editar Automatización' : 'Nueva Automatización'}
+              {triggerId ? 'Editar Disparador' : 'Nuevo Disparador'}
             </h1>
             <p className="text-slate-400 text-sm">Configura qué hace tu bot automáticamente</p>
           </div>

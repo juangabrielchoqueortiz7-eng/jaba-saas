@@ -246,7 +246,7 @@ export default function TriggerTemplates({ onSelectTemplate, onStartBlank }: Tri
     <div className="p-8 max-w-7xl mx-auto text-slate-700">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Nueva Automatización</h1>
+        <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Nuevo Disparador</h1>
         <p className="text-[rgba(15,23,42,0.45)]">
           Elige una plantilla lista para usar, o crea una desde cero.
         </p>

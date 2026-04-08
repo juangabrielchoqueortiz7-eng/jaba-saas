@@ -299,13 +299,13 @@ export default function TriggersPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Automatizaciones</h1>
+                    <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Disparadores</h1>
                     <p className="text-[rgba(15,23,42,0.45)]">Reglas que hacen que tu bot actúe solo, sin que tú hagas nada.</p>
                 </div>
                 <Link href={`/dashboard/assistants/${assistantId}/triggers/new`}>
                     <Button className="bg-[#eab308] hover:bg-[#ca8a04] text-white gap-2">
                         <Plus size={20} />
-                        Nueva Automatización
+                        Nuevo Disparador
                     </Button>
                 </Link>
             </div>
@@ -317,7 +317,7 @@ export default function TriggersPage() {
                     className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-none cursor-pointer text-left"
                 >
                     <HelpCircle size={16} className="text-[#ca8a04] flex-shrink-0" />
-                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son las Automatizaciones? — Haz clic para aprender</span>
+                    <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son las Disparadores? — Haz clic para aprender</span>
                     {showHelp ? <ChevronUp size={16} className="text-[#ca8a04]" /> : <ChevronDown size={16} className="text-[#ca8a04]" />}
                 </button>
                 {showHelp && (
@@ -341,7 +341,7 @@ export default function TriggersPage() {
                             ))}
                         </div>
                         <div className="bg-[#fef9c3] border border-[#eab308]/30 rounded-lg px-4 py-3 text-xs text-[#0F172A]/65">
-                            <strong>📋 ¿Cómo crear una?</strong> Haz clic en "Nueva Automatización", elige una plantilla rápida o créala desde cero. Solo necesitas decirle: <em>¿cuándo se activa?</em> y <em>¿qué hace?</em> Luego actívala con el interruptor y listo.
+                            <strong>📋 ¿Cómo crear una?</strong> Haz clic en "Nuevo Disparador", elige una plantilla rápida o créala desde cero. Solo necesitas decirle: <em>¿cuándo se activa?</em> y <em>¿qué hace?</em> Luego actívala con el interruptor y listo.
                         </div>
                     </div>
                 )}
