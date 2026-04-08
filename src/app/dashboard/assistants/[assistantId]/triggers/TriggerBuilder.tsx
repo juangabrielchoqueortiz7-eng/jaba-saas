@@ -317,11 +317,19 @@ function CardPickerModal({
 
 function VariablePicker({ onInsert }: { onInsert: (variable: string) => void }) {
   const [open, setOpen] = useState(false)
-  const allVars = [
-    ...AVAILABLE_VARIABLES.contact.map(v => ({ ...v, ns: 'Contacto' })),
-    ...AVAILABLE_VARIABLES.subscription.map(v => ({ ...v, ns: 'Suscripción' })),
-    ...AVAILABLE_VARIABLES.date.map(v => ({ ...v, ns: 'Fecha' })),
-    ...AVAILABLE_VARIABLES.legacy.slice(0, 3).map(v => ({ ...v, ns: 'Legacy' })),
+  const groups = [
+    {
+      ns: 'Datos del cliente',
+      vars: AVAILABLE_VARIABLES.contact,
+    },
+    {
+      ns: 'Datos de la suscripción',
+      vars: AVAILABLE_VARIABLES.subscription,
+    },
+    {
+      ns: 'Fecha y hora',
+      vars: AVAILABLE_VARIABLES.date,
+    },
   ]
 
   return (
@@ -329,36 +337,33 @@ function VariablePicker({ onInsert }: { onInsert: (variable: string) => void }) 
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="text-[10px] flex items-center gap-1 text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-1 rounded transition-colors"
+        className="text-[10px] flex items-center gap-1 text-indigo-500 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 px-2.5 py-1 rounded-full transition-colors font-semibold"
       >
         <Zap size={10} />
-        Insertar datos {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+        + Insertar dato {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
       </button>
       {open && (
-        <div className="absolute top-full left-0 z-50 mt-1 bg-white border border-black/[0.08] rounded-xl shadow-lg p-3 w-72 max-h-64 overflow-y-auto">
-          <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-wider font-semibold">Haz clic para insertar datos del cliente automáticamente</p>
-          {['Contacto', 'Suscripción', 'Fecha', 'Legacy'].map(ns => {
-            const vars = allVars.filter(v => v.ns === ns)
-            if (!vars.length) return null
-            return (
-              <div key={ns} className="mb-2">
-                <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">{ns}</p>
-                <div className="flex flex-wrap gap-1">
-                  {vars.map(v => (
-                    <button
-                      key={v.key}
-                      type="button"
-                      title={`${v.label} — ej: ${v.example}`}
-                      className="text-[10px] font-mono bg-[#F7F8FA] hover:bg-indigo-50 text-indigo-600 border border-indigo-200/60 px-1.5 py-0.5 rounded transition-colors"
-                      onClick={() => { onInsert(v.key); setOpen(false) }}
-                    >
-                      {v.key}
-                    </button>
-                  ))}
-                </div>
+        <div className="absolute top-full right-0 z-50 mt-1 bg-white border border-black/[0.08] rounded-xl shadow-xl p-4 w-80 max-h-72 overflow-y-auto">
+          <p className="text-[10px] text-slate-400 mb-3 font-semibold">Haz clic en un dato para agregarlo al mensaje:</p>
+          {groups.map(g => (
+            <div key={g.ns} className="mb-3">
+              <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5 font-bold">{g.ns}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {g.vars.map(v => (
+                  <button
+                    key={v.key}
+                    type="button"
+                    title={`Ejemplo: ${v.example}`}
+                    className="flex items-center gap-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-full transition-colors font-medium"
+                    onClick={() => { onInsert(v.key); setOpen(false) }}
+                  >
+                    {v.label}
+                    <span className="text-[9px] text-indigo-400 font-normal">ej: {v.example}</span>
+                  </button>
+                ))}
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -692,7 +697,7 @@ function ActionEditor({
           </div>
           <Textarea
             className="min-h-[80px] text-xs bg-[#F7F8FA] border-black/[0.08] resize-none"
-            placeholder="Ej: Hola {{contact.name}}, tu suscripción vence el {{subscription.expires_at}} 📅"
+            placeholder="Ej: Hola Juan, tu suscripción vence el 31/12/2025 📅  (usa + Insertar dato para personalizar)"
             value={action.payload.message || ''}
             onChange={e => updatePayload('message', e.target.value)}
           />
@@ -713,7 +718,7 @@ function ActionEditor({
             </div>
             <Textarea
               className="min-h-[70px] text-xs bg-[#F7F8FA] border-black/[0.08] resize-none"
-              placeholder="Ej: Responde como agente de soporte técnico. Sé cordial y ofrece soluciones. El cliente es {{contact.name}}."
+              placeholder="Ej: Responde como agente de soporte técnico. Sé cordial y ofrece soluciones al cliente."
               value={action.payload.instruction || ''}
               onChange={e => updatePayload('instruction', e.target.value)}
             />
@@ -764,7 +769,7 @@ function ActionEditor({
             </div>
             <Input
               className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]"
-              placeholder="Ej: Catálogo de {{contact.name}} actualizado al {{date.today}}"
+              placeholder="Ej: Catálogo actualizado — (usa + Insertar dato para personalizar)"
               value={action.payload.caption || ''}
               onChange={e => updatePayload('caption', e.target.value)}
             />
@@ -843,10 +848,10 @@ function ActionEditor({
                     metaTemplates.find(t => t.name === action.payload.template_name)?.components || []
                   ) }).map((_, vi) => (
                     <div key={vi} className="flex items-center gap-2">
-                      <span className="text-xs text-indigo-400 font-mono w-10 shrink-0">{`{{${vi + 1}}}`}</span>
+                      <span className="text-xs text-indigo-400 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full shrink-0">Variable {vi + 1}</span>
                       <Input
                         className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]"
-                        placeholder={`Valor p/ {{${vi + 1}}} — ej: {{contact.name}}`}
+                        placeholder={`Ej: Juan García, 31/12/2025...`}
                         value={(action.payload.variables || [])[vi] || ''}
                         onChange={e => {
                           const vars = [...(action.payload.variables || [])]
@@ -873,7 +878,7 @@ function ActionEditor({
             </div>
             <Textarea
               className="min-h-[60px] text-xs bg-[#F7F8FA] border-black/[0.08] resize-none"
-              placeholder="Ej: ¿En qué podemos ayudarte hoy, {{contact.name}}?"
+              placeholder="¿En qué podemos ayudarte hoy?"
               value={action.payload.body || ''}
               onChange={e => updatePayload('body', e.target.value)}
             />
@@ -976,7 +981,7 @@ function ActionEditor({
             </div>
             <Input
               className="h-9 text-xs bg-[#F7F8FA] border-black/[0.08] mt-1"
-              placeholder="ej: premium, {{contact.status}}"
+              placeholder="ej: premium, activo"
               value={action.payload.value || ''}
               onChange={e => updatePayload('value', e.target.value)}
             />
@@ -994,7 +999,7 @@ function ActionEditor({
             </div>
             <Input
               className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]"
-              placeholder="Ej: Alerta — {{contact.name}} necesita atención"
+              placeholder="Ej: Cliente necesita atención urgente"
               value={action.payload.title || ''}
               onChange={e => updatePayload('title', e.target.value)}
             />
@@ -1006,7 +1011,7 @@ function ActionEditor({
             </div>
             <Textarea
               className="h-14 text-xs bg-[#F7F8FA] border-black/[0.08] resize-none"
-              placeholder="Detalle de la alerta con variables {{contact.name}}, {{subscription.service}}..."
+              placeholder="Ej: El cliente tiene una consulta urgente. Usa + Insertar dato para personalizar."
               value={action.payload.message || ''}
               onChange={e => updatePayload('message', e.target.value)}
             />
@@ -1047,7 +1052,7 @@ function ActionEditor({
             </div>
           </div>
           <p className="text-[10px] text-slate-400">
-            El payload incluye automáticamente: chat_id, phone_number, contact_name, message_text, tags y timestamp.
+            El sistema envía automáticamente: nombre, teléfono, mensaje y etiquetas del cliente.
           </p>
         </div>
       )}
@@ -1524,21 +1529,38 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           <Card className="bg-white border-black/[0.08]">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1">
-                <Zap size={11} className="text-indigo-400" /> Variables disponibles
+                <Zap size={11} className="text-indigo-400" /> Datos que puedes usar en mensajes
               </p>
-              <div className="space-y-2">
+              <p className="text-[10px] text-slate-400 mb-3">Usa el botón "+ Insertar dato" en cualquier mensaje para agregarlos automáticamente.</p>
+              <div className="space-y-3">
                 {[
-                  { key: '{{contact.name}}', label: 'Nombre' },
-                  { key: '{{subscription.service}}', label: 'Servicio' },
-                  { key: '{{subscription.expires_at}}', label: 'Vencimiento' },
-                  { key: '{{subscription.days_remaining}}', label: 'Días restantes' },
-                  { key: '{{date.today}}', label: 'Hoy' },
-                ].map(v => (
-                  <div key={v.key} className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400">{v.label}</span>
-                    <code className="text-[10px] font-mono bg-[#F7F8FA] text-indigo-500 px-1.5 py-0.5 rounded border border-indigo-100/60">
-                      {v.key}
-                    </code>
+                  { label: '👤 Datos del cliente', items: [
+                    { label: 'Nombre', example: 'Juan García' },
+                    { label: 'Teléfono', example: '+59170000000' },
+                    { label: 'Correo', example: 'juan@email.com' },
+                  ]},
+                  { label: '💳 Suscripción', items: [
+                    { label: 'Servicio', example: 'Netflix' },
+                    { label: 'Fecha de vencimiento', example: '31/12/2025' },
+                    { label: 'Días restantes', example: '7' },
+                  ]},
+                  { label: '📅 Fecha', items: [
+                    { label: 'Hoy', example: '02/04/2025' },
+                  ]},
+                ].map(group => (
+                  <div key={group.label}>
+                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5 font-bold">{group.label}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {group.items.map(item => (
+                        <span
+                          key={item.label}
+                          title={`Ejemplo: ${item.example}`}
+                          className="text-[11px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-full"
+                        >
+                          {item.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

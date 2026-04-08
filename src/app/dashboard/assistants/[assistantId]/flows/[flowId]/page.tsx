@@ -159,6 +159,45 @@ const nodeTypeCatalog = [
 // CONFIG PANEL
 // ========================
 
+// Friendly variable chips for the flow editor
+const FLOW_VARIABLES = [
+    { label: 'Nombre', key: '{{contact.name}}' },
+    { label: 'Teléfono', key: '{{contact.phone}}' },
+    { label: 'Servicio', key: '{{subscription.service}}' },
+    { label: 'Vencimiento', key: '{{subscription.expires_at}}' },
+    { label: 'Días restantes', key: '{{subscription.days_remaining}}' },
+    { label: 'Hoy', key: '{{date.today}}' },
+]
+
+function FlowVariableButtons({ onInsert }: { onInsert: (key: string) => void }) {
+    return (
+        <div style={{ marginTop: 4, marginBottom: 4 }}>
+            <p style={{ color: '#64748b', fontSize: '0.68rem', marginBottom: 6, fontWeight: 600 }}>
+                + Insertar dato del cliente:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {FLOW_VARIABLES.map(v => (
+                    <button
+                        key={v.key}
+                        type="button"
+                        title={v.key}
+                        onClick={() => onInsert(v.key)}
+                        style={{
+                            background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+                            color: '#a5b4fc', borderRadius: 20, padding: '3px 10px',
+                            fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600, transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.3)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.15)' }}
+                    >
+                        {v.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (config: any, label: string) => void; onClose: () => void }) {
     const [config, setConfig] = useState<any>(node.data.config || {})
     const [label, setLabel] = useState<string>((node.data.label as string) || '')
@@ -168,6 +207,11 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
         const newConfig = { ...config, [key]: value }
         setConfig(newConfig)
         onUpdate(newConfig, label)
+    }
+
+    const appendToField = (fieldKey: string, value: string) => {
+        const current = config[fieldKey] || ''
+        updateConfig(fieldKey, current + value)
     }
 
     const updateLabel = (val: string) => {
@@ -249,16 +293,14 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {nodeType === 'message' && (
                     <>
                         <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje</label>
+                        <FlowVariableButtons onInsert={v => appendToField('text', v)} />
                         <textarea
                             value={config.text || ''}
                             onChange={e => updateConfig('text', e.target.value)}
-                            placeholder="¡Hola {{contact_name}}! Bienvenido a {{service_name}}"
+                            placeholder="¡Hola! Bienvenido. Haz clic en los botones de arriba para personalizar con el nombre del cliente, fecha, etc."
                             rows={4}
                             style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
-                        <p style={{ color: '#4b5563', fontSize: '0.7rem' }}>
-                            Variables: {'{{contact_name}}'}, {'{{phone_number}}'}, {'{{service_name}}'}, {'{{email}}'}, {'{{plan_name}}'}
-                        </p>
                     </>
                 )}
 
@@ -266,6 +308,7 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {nodeType === 'buttons' && (
                     <>
                         <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje</label>
+                        <FlowVariableButtons onInsert={v => appendToField('text', v)} />
                         <textarea
                             value={config.text || ''}
                             onChange={e => updateConfig('text', e.target.value)}
@@ -489,16 +532,17 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {/* AI RESPONSE CONFIG */}
                 {nodeType === 'ai_response' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Prompt del sistema (opcional)</label>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Instrucciones para la IA (opcional)</label>
+                        <FlowVariableButtons onInsert={v => appendToField('system_prompt', v)} />
                         <textarea
                             value={config.system_prompt || ''}
                             onChange={e => updateConfig('system_prompt', e.target.value)}
-                            placeholder="Instrucciones específicas para la IA en este punto del flujo..."
+                            placeholder="Ej: Responde de forma amigable. Ofrece los productos disponibles y sus precios."
                             rows={4}
                             style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
                         <p style={{ color: '#4b5563', fontSize: '0.7rem' }}>
-                            Si lo dejas vacío, usará el prompt de entrenamiento principal del asistente.
+                            Si lo dejas vacío, usará el entrenamiento principal del asistente.
                         </p>
                     </>
                 )}
