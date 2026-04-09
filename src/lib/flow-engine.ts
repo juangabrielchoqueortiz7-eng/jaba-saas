@@ -48,7 +48,7 @@ interface FlowState {
 }
 
 interface FlowAction {
-    type: 'send_message' | 'send_buttons' | 'send_list' | 'send_image' | 'wait_input' | 'ai_response' | 'system_action'
+    type: 'send_message' | 'send_buttons' | 'send_list' | 'send_image' | 'send_template' | 'wait_input' | 'ai_response' | 'system_action'
     payload: any
 }
 
@@ -490,6 +490,25 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
             break
         }
 
+        case 'send_template': {
+            const templateParams: Array<{ label: string; value: string }> = config.params || []
+            const resolvedParams = templateParams.map(p => ({
+                type: 'text' as const,
+                text: replaceVariables(p.value, vars, ctx)
+            }))
+            actions.push({
+                type: 'send_template',
+                payload: {
+                    templateName: config.template_name || '',
+                    language: config.language || 'es',
+                    components: resolvedParams.length > 0
+                        ? [{ type: 'body', parameters: resolvedParams }]
+                        : []
+                }
+            })
+            break
+        }
+
         case 'delay': {
             // In practice we'd use a setTimeout, but for now we just add a small wait
             const seconds = config.seconds || 1
@@ -563,7 +582,7 @@ export async function executeFlowActions(
     actions: FlowAction[],
     ctx: MessageContext
 ): Promise<void> {
-    const { sendWhatsAppMessage, sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppImage } = await import('@/lib/whatsapp')
+    const { sendWhatsAppMessage, sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppImage, sendWhatsAppTemplate } = await import('@/lib/whatsapp')
 
     for (const action of actions) {
         switch (action.type) {
@@ -613,6 +632,24 @@ export async function executeFlowActions(
                     content: action.payload.caption || '📷 Imagen enviada',
                     media_url: imgUrl,
                     media_type: 'image',
+                    status: 'delivered'
+                })
+                break
+            }
+
+            case 'send_template': {
+                await sendWhatsAppTemplate(
+                    ctx.phoneNumber,
+                    action.payload.templateName,
+                    action.payload.language || 'es',
+                    action.payload.components || [],
+                    ctx.tenantToken,
+                    ctx.phoneId
+                )
+                await supabaseAdmin.from('messages').insert({
+                    chat_id: ctx.chatId,
+                    is_from_me: true,
+                    content: `📋 Plantilla enviada: ${action.payload.templateName}`,
                     status: 'delivered'
                 })
                 break

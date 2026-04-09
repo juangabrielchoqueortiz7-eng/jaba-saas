@@ -20,6 +20,10 @@
         {
             "path": "/api/trigger-engine",
             "schedule": "0 14 * * *"
+        },
+        {
+            "path": "/api/run-automations",
+            "schedule": "0 * * * *"
         }
     ]
 }

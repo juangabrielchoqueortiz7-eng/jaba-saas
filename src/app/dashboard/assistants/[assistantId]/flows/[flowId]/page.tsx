@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
     Save, ArrowLeft, Power, PowerOff, Trash2, Copy,
-    MessageSquare, MousePointerClick, GitBranch, Bot, Clock, Zap, ListOrdered, Image
+    MessageSquare, MousePointerClick, GitBranch, Bot, Clock, Zap, ListOrdered, Image, Send
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { getFlowDetails, saveFlowCanvas, updateFlow } from '../actions'
@@ -46,6 +46,7 @@ const nodeColors: Record<string, { bg: string; border: string; icon: string }> =
     action: { bg: 'rgba(239,68,68,0.15)', border: '#ef4444', icon: '⚙️' },
     wait_input: { bg: 'rgba(74,222,128,0.15)', border: '#25D366', icon: '⏳' },
     delay: { bg: 'rgba(100,116,139,0.15)', border: '#64748b', icon: '⏱️' },
+    send_template: { bg: 'rgba(245,158,11,0.15)', border: '#f59e0b', icon: '📨' },
 }
 
 function isNodeConfigured(nodeType: string, config: any): boolean {
@@ -57,6 +58,7 @@ function isNodeConfigured(nodeType: string, config: any): boolean {
     if (nodeType === 'condition') return !!config.value?.trim()
     if (nodeType === 'wait_input') return !!config.variable_name?.trim()
     if (nodeType === 'action') return !!config.action_type
+    if (nodeType === 'send_template') return !!config.template_name?.trim()
     return true
 }
 
@@ -171,6 +173,7 @@ const nodeTypeCatalog = [
     { type: 'ai_response', label: 'Respuesta IA', icon: Bot, desc: 'La IA genera una respuesta automática' },
     { type: 'action', label: 'Acción', icon: Zap, desc: 'Poner etiqueta, enviar imagen, etc.' },
     { type: 'delay', label: 'Pausa', icon: Clock, desc: 'Espera unos segundos antes de continuar' },
+    { type: 'send_template', label: 'Enviar plantilla', icon: Send, desc: 'Envía una plantilla Meta aprobada' },
 ]
 
 // ========================
@@ -544,6 +547,58 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                                 />
                             </>
                         )}
+                    </>
+                )}
+
+                {/* SEND TEMPLATE CONFIG */}
+                {nodeType === 'send_template' && (
+                    <>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Nombre exacto de la plantilla Meta</label>
+                        <Input
+                            value={config.template_name || ''}
+                            onChange={e => updateConfig('template_name', e.target.value)}
+                            placeholder="ej: recordatorio_renovacion_v1"
+                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                        />
+                        <p style={{ color: '#4b5563', fontSize: '0.7rem' }}>
+                            Debe coincidir exactamente con el nombre en Meta Business Manager.
+                        </p>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>
+                            Parámetros del cuerpo{' '}
+                            <span style={{ color: '#4b5563', fontWeight: 400 }}>({'{{1}}'}, {'{{2}}'}, ...)</span>
+                        </label>
+                        {(config.params || []).map((p: any, i: number) => (
+                            <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                <span style={{ color: '#64748b', fontSize: '0.75rem', flexShrink: 0, width: 32 }}>{`{{${i + 1}}}`}</span>
+                                <Input
+                                    value={p.value || ''}
+                                    onChange={e => {
+                                        const params = [...(config.params || [])]
+                                        params[i] = { ...params[i], value: e.target.value }
+                                        updateConfig('params', params)
+                                    }}
+                                    placeholder="{{contact.name}}"
+                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', flex: 1, fontSize: '0.8rem' }}
+                                />
+                                <Button
+                                    onClick={() => updateConfig('params', (config.params || []).filter((_: any, idx: number) => idx !== i))}
+                                    style={{ color: '#ef4444', background: 'transparent', padding: '4px 6px', flexShrink: 0 }}
+                                >✕</Button>
+                            </div>
+                        ))}
+                        <Button
+                            onClick={() => updateConfig('params', [...(config.params || []), { label: `Variable ${(config.params || []).length + 1}`, value: '' }])}
+                            style={{ color: '#f59e0b', fontSize: '0.8rem', background: 'transparent' }}
+                        >
+                            + Agregar parámetro
+                        </Button>
+                        <FlowVariableButtons onInsert={v => {
+                            const params = [...(config.params || [])]
+                            if (params.length > 0) {
+                                params[params.length - 1] = { ...params[params.length - 1], value: params[params.length - 1].value + v }
+                                updateConfig('params', params)
+                            }
+                        }} />
                     </>
                 )}
 

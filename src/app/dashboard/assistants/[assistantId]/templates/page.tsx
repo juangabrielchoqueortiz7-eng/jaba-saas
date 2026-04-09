@@ -3,18 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
 import {
-    Plus, Search, FileText, Bell, BellOff, RefreshCw, CheckCircle2, XCircle,
-    Clock, AlertCircle, Settings2, Save, Send, Copy, MessageSquare, Zap, Image, Video, FileIcon, Globe
+    Plus, Search, FileText, RefreshCw, CheckCircle2, XCircle,
+    AlertCircle, Send, Copy, MessageSquare, Zap, Image, Video, FileIcon, Settings2
 } from 'lucide-react'
-import { getSubscriptionSettings, updateSubscriptionSettings } from './actions'
 import MetaTemplateBuilder from './MetaTemplateBuilder'
 import SimpleTemplateWizard from './SimpleTemplateWizard'
 import BroadcastModal from './BroadcastModal'
 import { toast } from 'sonner'
-import { createClient } from '@/utils/supabase/client'
-import { COMMON_TIMEZONES } from '@/lib/timezone-utils'
 
 type MetaTemplate = {
     id: string
@@ -48,7 +44,7 @@ const LANG_FLAGS: Record<string, string> = {
     es: '🇪🇸', en: '🇺🇸', en_US: '🇺🇸', es_MX: '🇲🇽', es_AR: '🇦🇷', pt_BR: '🇧🇷', pt: '🇧🇷',
 }
 
-type Tab = 'templates' | 'broadcast' | 'config'
+type Tab = 'templates' | 'broadcast'
 
 // ── WhatsApp Bubble Preview ────────────────────────────────────────────────────
 
@@ -261,36 +257,8 @@ export default function TemplatesPage() {
     const [builderOpen, setBuilderOpen] = useState(false)
     const [useAdvancedBuilder, setUseAdvancedBuilder] = useState(false)
     const [duplicateBody, setDuplicateBody] = useState<string | undefined>(undefined)
-    const [settings, setSettings] = useState<any>(null)
-    const [isSavingSettings, setIsSavingSettings] = useState(false)
 
-    type ServiceKey = string
-    type PhaseConfig = { reminder: string; followup: string; urgency: string }
-    type TemplateConfig = Record<ServiceKey, PhaseConfig>
-    const DEFAULT_SERVICES = ['CANVA', 'CHATGPT', 'GEMINI', 'NETFLIX', 'SPOTIFY', 'OTRO']
-    const EMPTY_CONFIG: TemplateConfig = Object.fromEntries(
-        DEFAULT_SERVICES.map(s => [s, { reminder: '', followup: '', urgency: '' }])
-    )
-    const [templateConfig, setTemplateConfig] = useState<TemplateConfig>(EMPTY_CONFIG)
-    const [isSavingConfig, setIsSavingConfig] = useState(false)
-    const [configSaved, setConfigSaved] = useState(false)
-
-    // Scheduling config state
-    const [schedConfig, setSchedConfig] = useState({
-        timezone: 'America/La_Paz',
-        reminder_hour: 9,
-        followup_hour: 18,
-        urgency_hour: 9,
-    })
-    const [isSavingSchedConfig, setIsSavingSchedConfig] = useState(false)
-    const [schedConfigSaved, setSchedConfigSaved] = useState(false)
-
-    // Plantilla seleccionada por fase (aplica a todos los servicios)
-    const [phaseTpl, setPhaseTplState] = useState({ reminder: '', followup: '', urgency: '' })
-    const [isSavingAll, setIsSavingAll] = useState(false)
-    const [savedAll, setSavedAll] = useState(false)
-
-    useEffect(() => { loadMetaTemplates(); loadSettings(); loadSchedConfig() }, [])
+    useEffect(() => { loadMetaTemplates() }, [])
 
     const loadMetaTemplates = async () => {
         setMetaLoading(true); setMetaError(null)
@@ -301,24 +269,6 @@ export default function TemplatesPage() {
             setMetaTemplates(data.templates || [])
         } catch (err: any) { setMetaError(err.message) }
         finally { setMetaLoading(false) }
-    }
-
-    const loadSettings = async () => {
-        const data = await getSubscriptionSettings()
-        setSettings(data || { enable_auto_notifications: true })
-        if (data?.template_config) {
-            const merged = { ...EMPTY_CONFIG, ...data.template_config }
-            setTemplateConfig(merged)
-            // Inferir plantilla por fase del primer servicio que tenga valor
-            const firstService = Object.values(merged)[0] as any
-            if (firstService) {
-                setPhaseTplState({
-                    reminder: firstService.reminder || '',
-                    followup: firstService.followup || '',
-                    urgency: firstService.urgency || '',
-                })
-            }
-        }
     }
 
     const handleDuplicate = (template: MetaTemplate) => {
@@ -333,94 +283,6 @@ export default function TemplatesPage() {
     const handleBuilderClose = () => { setBuilderOpen(false); setUseAdvancedBuilder(false); setDuplicateBody(undefined) }
     const handleBuilderSuccess = async () => { handleBuilderClose(); await loadMetaTemplates() }
 
-    const saveTemplateConfig = async () => {
-        setIsSavingConfig(true)
-        try {
-            await updateSubscriptionSettings({ template_config: templateConfig })
-            setConfigSaved(true); setTimeout(() => setConfigSaved(false), 2500)
-        } catch { toast.error('Error al guardar la configuración') }
-        finally { setIsSavingConfig(false) }
-    }
-
-    const setServiceTemplate = (service: ServiceKey, phase: keyof PhaseConfig, value: string) => {
-        setTemplateConfig(prev => ({ ...prev, [service]: { ...prev[service], [phase]: value } }))
-    }
-
-    const loadSchedConfig = async () => {
-        try {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
-            const { data } = await supabase
-                .from('scheduling_config')
-                .select('*')
-                .eq('user_id', user.id)
-                .single()
-            if (data) setSchedConfig({
-                timezone: data.timezone || 'America/La_Paz',
-                reminder_hour: data.reminder_hour ?? 9,
-                followup_hour: data.followup_hour ?? 18,
-                urgency_hour: data.urgency_hour ?? 9,
-            })
-        } catch { /* sin config previa, usa defaults */ }
-    }
-
-    const saveSchedConfig = async () => {
-        setIsSavingSchedConfig(true)
-        try {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('No user')
-            const { error } = await supabase
-                .from('scheduling_config')
-                .upsert({ user_id: user.id, ...schedConfig }, { onConflict: 'user_id' })
-            if (error) throw error
-            setSchedConfigSaved(true)
-            setTimeout(() => setSchedConfigSaved(false), 2500)
-        } catch { toast.error('Error al guardar los horarios') }
-        finally { setIsSavingSchedConfig(false) }
-    }
-
-    // Cambiar plantilla de una fase → aplica a todos los servicios
-    const setPhaseTpl = (phase: keyof typeof phaseTpl, value: string) => {
-        setPhaseTplState(prev => ({ ...prev, [phase]: value }))
-        setTemplateConfig(prev => {
-            const updated = { ...prev }
-            DEFAULT_SERVICES.forEach(s => {
-                updated[s] = { ...updated[s], [phase]: value }
-            })
-            return updated
-        })
-    }
-
-    // Guardar todo: horarios + plantillas en una sola acción
-    const saveAll = async () => {
-        setIsSavingAll(true)
-        try {
-            // 1. Guardar plantillas
-            await updateSubscriptionSettings({ template_config: templateConfig })
-            // 2. Guardar horarios
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('No user')
-            const { error } = await supabase
-                .from('scheduling_config')
-                .upsert({ user_id: user.id, ...schedConfig }, { onConflict: 'user_id' })
-            if (error) throw error
-            setSavedAll(true)
-            setTimeout(() => setSavedAll(false), 2500)
-        } catch { toast.error('Error al guardar la configuración') }
-        finally { setIsSavingAll(false) }
-    }
-
-    const toggleNotifications = async (checked: boolean) => {
-        setSettings((prev: any) => ({ ...prev, enable_auto_notifications: checked }))
-        setIsSavingSettings(true)
-        try { await updateSubscriptionSettings({ enable_auto_notifications: checked }) }
-        catch { toast.error('Error al actualizar configuración') }
-        finally { setIsSavingSettings(false) }
-    }
-
     const filtered = metaTemplates
         .filter(t => statusFilter === 'ALL' || t.status === statusFilter)
         .filter(t => t.name.toLowerCase().includes(metaSearch.toLowerCase()))
@@ -430,9 +292,8 @@ export default function TemplatesPage() {
     const rejectedCount  = metaTemplates.filter(t => t.status === 'REJECTED').length
 
     const TABS = [
-        { id: 'templates' as Tab, label: 'Mis Plantillas',  icon: <FileText size={15} /> },
-        { id: 'broadcast' as Tab, label: 'Envío Masivo',    icon: <Send size={15} /> },
-        { id: 'config'    as Tab, label: 'Configuración',   icon: <Settings2 size={15} /> },
+        { id: 'templates' as Tab, label: 'Mis Plantillas', icon: <FileText size={15} /> },
+        { id: 'broadcast' as Tab, label: 'Envío Masivo',   icon: <Send size={15} /> },
     ]
 
     return (
@@ -590,191 +451,6 @@ export default function TemplatesPage() {
                     <BroadcastModal metaTemplates={metaTemplates} onClose={() => setTab('templates')} inline />
                 )}
 
-                {/* ══════════════════════════════════════════ */}
-                {/* TAB: CONFIGURACIÓN                        */}
-                {/* ══════════════════════════════════════════ */}
-                {tab === 'config' && settings && (
-                    <div className="space-y-5">
-
-                        {/* ── Fila superior: toggle + zona horaria ── */}
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            {/* Toggle notificaciones */}
-                            <div className="bg-white rounded-2xl border border-black/[0.08] shadow-sm p-5 flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2.5 rounded-xl ${settings.enable_auto_notifications ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                                        {settings.enable_auto_notifications ? <Bell size={18} /> : <BellOff size={18} />}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-[#0F172A] text-sm">Envíos automáticos</h3>
-                                        <p className="text-xs text-slate-500 mt-0.5">Recordatorios diarios de renovación</p>
-                                    </div>
-                                </div>
-                                <label className="flex items-center cursor-pointer shrink-0">
-                                    <div className="relative">
-                                        <input type="checkbox" className="sr-only" checked={settings.enable_auto_notifications} onChange={e => toggleNotifications(e.target.checked)} disabled={isSavingSettings} />
-                                        <div className={`w-11 h-6 rounded-full transition-colors ${settings.enable_auto_notifications ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${settings.enable_auto_notifications ? 'translate-x-5' : ''}`} />
-                                    </div>
-                                </label>
-                            </div>
-
-                            {/* Zona horaria */}
-                            <div className="bg-white rounded-2xl border border-black/[0.08] shadow-sm p-5">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                                    <Globe size={12} /> Zona horaria
-                                </label>
-                                <Select value={schedConfig.timezone} onValueChange={v => setSchedConfig(p => ({ ...p, timezone: v }))}>
-                                    <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm h-9 rounded-lg">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {COMMON_TIMEZONES.map(tz => (
-                                            <SelectItem key={tz.value} value={tz.value} className="text-sm">{tz.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-[11px] text-slate-400 mt-2">Los horarios se aplican en esta zona.</p>
-                            </div>
-                        </div>
-
-                        {/* ── 3 Fases ── */}
-                        {([
-                            {
-                                phase: 'reminder' as const,
-                                hourKey: 'reminder_hour' as const,
-                                step: '1',
-                                label: 'Recordatorio',
-                                desc: 'Primer aviso cuando la suscripción está próxima a vencer.',
-                                badge: 'bg-blue-50 text-blue-700 border-blue-200',
-                                dot: 'bg-blue-500',
-                                ring: 'ring-blue-100',
-                                hourColor: 'text-blue-600',
-                            },
-                            {
-                                phase: 'followup' as const,
-                                hourKey: 'followup_hour' as const,
-                                step: '2',
-                                label: 'Remarketing',
-                                desc: 'Segundo mensaje si el cliente aún no renovó.',
-                                badge: 'bg-amber-50 text-amber-700 border-amber-200',
-                                dot: 'bg-amber-400',
-                                ring: 'ring-amber-100',
-                                hourColor: 'text-amber-600',
-                            },
-                            {
-                                phase: 'urgency' as const,
-                                hourKey: 'urgency_hour' as const,
-                                step: '3',
-                                label: 'Último aviso',
-                                desc: 'Aviso final antes de suspender el acceso.',
-                                badge: 'bg-red-50 text-red-700 border-red-200',
-                                dot: 'bg-red-500',
-                                ring: 'ring-red-100',
-                                hourColor: 'text-red-600',
-                            },
-                        ]).map(({ phase, hourKey, step, label, desc, badge, dot, ring, hourColor }) => {
-                            const selectedName = phaseTpl[phase]
-                            const selectedTpl = metaTemplates.find(t => t.name === selectedName)
-                            const approved = metaTemplates.filter(t => t.status === 'APPROVED')
-
-                            return (
-                                <div key={phase} className="bg-white rounded-2xl border border-black/[0.08] shadow-sm overflow-hidden">
-                                    {/* Header de fase */}
-                                    <div className="px-6 py-4 border-b border-black/[0.06] flex items-center gap-4">
-                                        <div className={`w-8 h-8 rounded-full ${dot} flex items-center justify-center text-white text-sm font-bold shrink-0`}>{step}</div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-semibold text-[#0F172A]">{label}</span>
-                                                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badge}`}>Fase {step}</span>
-                                            </div>
-                                            <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
-                                        </div>
-                                        {/* Hora de envío */}
-                                        <div className="flex items-center gap-2 shrink-0 bg-[#F7F8FA] border border-black/[0.08] rounded-xl px-4 py-2">
-                                            <Clock size={14} className={hourColor} />
-                                            <span className="text-xs text-slate-500">Enviar a las</span>
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                max={23}
-                                                value={schedConfig[hourKey]}
-                                                onChange={e => setSchedConfig(p => ({ ...p, [hourKey]: Math.min(23, Math.max(0, parseInt(e.target.value) || 0)) }))}
-                                                className={`w-10 text-center font-bold text-base ${hourColor} bg-transparent border-none outline-none`}
-                                            />
-                                            <span className={`font-bold text-base ${hourColor}`}>:00</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Cuerpo: selector + preview */}
-                                    <div className="p-6 grid md:grid-cols-2 gap-6 items-start">
-                                        {/* Selector de plantilla */}
-                                        <div className="space-y-3">
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plantilla a enviar</p>
-                                            <Select
-                                                value={selectedName || '_none'}
-                                                onValueChange={v => setPhaseTpl(phase, v === '_none' ? '' : v)}
-                                            >
-                                                <SelectTrigger className={`bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm h-10 rounded-xl ring-2 ${selectedName ? ring : 'ring-transparent'}`}>
-                                                    <SelectValue placeholder="— Selecciona una plantilla aprobada —" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="_none" className="text-slate-400 text-sm">— Sin plantilla (mensaje por defecto) —</SelectItem>
-                                                    {approved.length === 0 && (
-                                                        <div className="px-3 py-2 text-xs text-slate-400">No hay plantillas aprobadas aún</div>
-                                                    )}
-                                                    {approved.map(t => (
-                                                        <SelectItem key={t.id} value={t.name} className="text-sm">
-                                                            <span className="flex items-center gap-2">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                                                                {t.name}
-                                                            </span>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-
-                                            {selectedTpl ? (
-                                                <div className="text-xs text-slate-500 flex items-center gap-1.5">
-                                                    <CheckCircle2 size={13} className="text-emerald-500" />
-                                                    <span>Aprobada · {selectedTpl.language} · {selectedTpl.category}</span>
-                                                </div>
-                                            ) : (
-                                                <p className="text-xs text-slate-400">Si no seleccionas ninguna, el sistema usará el mensaje de texto predeterminado.</p>
-                                            )}
-                                        </div>
-
-                                        {/* Vista previa */}
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Vista previa</p>
-                                            {selectedTpl ? (
-                                                <div className="scale-90 origin-top-left w-[111%]">
-                                                    <WhatsAppPreview template={selectedTpl} />
-                                                </div>
-                                            ) : (
-                                                <div className="h-32 rounded-xl bg-[#F7F8FA] border border-dashed border-black/[0.1] flex flex-col items-center justify-center gap-2">
-                                                    <MessageSquare size={22} className="text-slate-300" />
-                                                    <p className="text-xs text-slate-400">Selecciona una plantilla para ver la vista previa</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )
-                        })}
-
-                        {/* ── Botón guardar todo ── */}
-                        <div className="flex justify-end pt-2">
-                            <Button
-                                onClick={saveAll}
-                                disabled={isSavingAll}
-                                className="bg-[#25D366] hover:bg-[#20B858] text-white gap-2 px-8 py-2.5 rounded-xl shadow-sm text-sm font-semibold"
-                            >
-                                <Save size={15} />
-                                {isSavingAll ? 'Guardando...' : savedAll ? '✓ Configuración guardada' : 'Guardar configuración'}
-                            </Button>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     )
