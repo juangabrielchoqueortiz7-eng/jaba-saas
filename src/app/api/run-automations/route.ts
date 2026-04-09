@@ -36,20 +36,33 @@ function toDateStr(date: Date): string {
     return date.toISOString().split('T')[0]
 }
 
-function resolveParam(value: string, sub: any): string {
+// Resolver variables dinámicas en los parámetros de la plantilla
+// Funciona tanto con datos de suscripción como con datos de contacto/chat
+function resolveParam(value: string, data: Record<string, any>): string {
     return value
-        .replace(/\{\{contact\.name\}\}/g, sub.correo || sub.numero || '')
-        .replace(/\{\{subscription\.expires_at\}\}/g, sub.vencimiento || '')
-        .replace(/\{\{subscription\.service\}\}/g, sub.servicio || sub.equipo || '')
+        // Variables de contacto (genéricas)
+        .replace(/\{\{contact\.name\}\}/g, data.contact_name || data.correo || data.numero || '')
+        .replace(/\{\{contact\.phone\}\}/g, data.phone_number || data.numero || '')
+        // Variables de suscripción (para negocios que las usan)
+        .replace(/\{\{subscription\.expires_at\}\}/g, data.vencimiento || '')
+        .replace(/\{\{subscription\.service\}\}/g, data.servicio || data.equipo || '')
+        .replace(/\{\{subscription\.email\}\}/g, data.correo || '')
+        // Variable genérica catch-all
+        .replace(/\{\{(\w+(?:\.\w+)?)\}\}/g, (_, key) => {
+            const parts = key.split('.')
+            let val = data
+            for (const p of parts) { val = val?.[p] }
+            return typeof val === 'string' ? val : ''
+        })
 }
 
 // =============================================
 // GET: Llamado por Vercel Cron una vez al día (13:00 UTC)
-// Plan Hobby no permite crons frecuentes — el endpoint procesa TODOS los jobs
-// cuya hora configurada coincide con la hora local actual en su timezone.
-// Como se ejecuta a las 13 UTC, cubrirá usuarios en zonas horarias donde
-// sea la hora configurada (ej: 9am en UTC-4 = 13 UTC).
-// Para mayor cobertura, ejecuta jobs cuya hora esté dentro de ±30 min del momento actual en su tz.
+// Procesa TODOS los automation_jobs activos cuya hora local coincida.
+// Soporta 3 tipos de audiencia:
+//   - subscriptions_expiring: suscripciones por vencer en X días
+//   - all_contacts: todos los contactos/chats del usuario
+//   - tagged_contacts: contactos con tags específicos
 // =============================================
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
@@ -64,7 +77,6 @@ export async function GET(request: Request) {
     console.log(`[RunAutomations] Starting at ${now.toISOString()}`)
 
     try {
-        // 1. Obtener todos los automation_jobs activos
         const { data: jobs, error: jobsError } = await supabaseAdmin
             .from('automation_jobs')
             .select('*')
@@ -81,22 +93,24 @@ export async function GET(request: Request) {
         }
 
         console.log(`[RunAutomations] Found ${jobs.length} active jobs`)
-
         const stats = { ran: 0, skipped: 0, sent: 0, failed: 0 }
 
         for (const job of jobs) {
-            // Verificar si la hora local del job coincide con ahora (exacta o dentro de la misma hora)
-            const localTime = getLocalTime(job.timezone, now)
+            const localTime = getLocalTime(job.timezone || 'America/La_Paz', now)
             if (localTime.hour !== job.hour) {
                 stats.skipped++
                 continue
             }
 
-            console.log(`[RunAutomations] Executing job "${job.name}" (user: ${job.user_id}, hour: ${job.hour}, tz: ${job.timezone})`)
+            const targetType = job.target_type || 'subscriptions_expiring'
+            console.log(`[RunAutomations] Executing "${job.name}" (type: ${targetType}, user: ${job.user_id})`)
             stats.ran++
 
             try {
-                await executeJob(job, now)
+                const jobStats = await executeJob(job, now)
+                stats.sent += jobStats.sent
+                stats.failed += jobStats.failed
+
                 await supabaseAdmin
                     .from('automation_jobs')
                     .update({ last_run_at: now.toISOString() })
@@ -109,46 +123,62 @@ export async function GET(request: Request) {
 
         console.log(`[RunAutomations] Done — ran: ${stats.ran}, skipped: ${stats.skipped}, sent: ${stats.sent}, failed: ${stats.failed}`)
         return NextResponse.json(stats)
-
     } catch (error) {
         console.error('[RunAutomations] Fatal error:', error)
         return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }
 
-async function executeJob(job: any, now: Date) {
-    // Calcular la fecha objetivo según trigger_days_before
-    const targetDate = new Date(now)
-    targetDate.setDate(targetDate.getDate() + job.trigger_days_before)
-    const targetDateStr = toDateStr(targetDate)
+// =============================================
+// Ejecutar un job según su target_type
+// =============================================
+async function executeJob(job: any, now: Date): Promise<{ sent: number; failed: number }> {
+    const creds = await getCredentials(job.user_id)
+    if (!creds) return { sent: 0, failed: 0 }
 
-    // Obtener credenciales WhatsApp del usuario
-    const { data: creds } = await supabaseAdmin
+    const targetType = job.target_type || 'subscriptions_expiring'
+
+    switch (targetType) {
+        case 'subscriptions_expiring':
+            return await executeSubscriptionJob(job, now, creds)
+        case 'all_contacts':
+            return await executeAllContactsJob(job, creds)
+        case 'tagged_contacts':
+            return await executeTaggedContactsJob(job, creds)
+        default:
+            console.warn(`[RunAutomations] Unknown target_type: ${targetType}`)
+            return { sent: 0, failed: 0 }
+    }
+}
+
+async function getCredentials(userId: string) {
+    const { data } = await supabaseAdmin
         .from('whatsapp_credentials')
         .select('access_token, phone_number_id, country_code')
-        .eq('user_id', job.user_id)
+        .eq('user_id', userId)
         .single()
-
-    if (!creds?.access_token || !creds?.phone_number_id) {
-        console.log(`[RunAutomations] No WhatsApp credentials for user ${job.user_id}`)
-        return
+    if (!data?.access_token || !data?.phone_number_id) {
+        console.log(`[RunAutomations] No WhatsApp credentials for user ${userId}`)
+        return null
     }
+    return data
+}
 
+// ── TARGET: Suscripciones por vencer ──────────────────────────────────────
+async function executeSubscriptionJob(job: any, now: Date, creds: any): Promise<{ sent: number; failed: number }> {
+    const targetDate = new Date(now)
+    targetDate.setDate(targetDate.getDate() + (job.trigger_days_before ?? 0))
+    const targetDateStr = toDateStr(targetDate)
     const tenantCC = creds.country_code || '591'
 
-    // Obtener suscripciones del usuario activas cuyo vencimiento coincide
     const { data: subscriptions } = await supabaseAdmin
         .from('subscriptions')
         .select('*')
         .eq('user_id', job.user_id)
         .eq('estado', 'ACTIVO')
 
-    if (!subscriptions || subscriptions.length === 0) {
-        console.log(`[RunAutomations] No active subscriptions for user ${job.user_id}`)
-        return
-    }
+    if (!subscriptions?.length) return { sent: 0, failed: 0 }
 
-    // Filtrar suscripciones cuyo vencimiento coincide con la fecha objetivo
     const candidates = subscriptions.filter(sub => {
         const phone = (sub.numero || '').replace(/\D/g, '')
         if (phone.length < 8) return false
@@ -157,25 +187,85 @@ async function executeJob(job: any, now: Date) {
         return toDateStr(expDate) === targetDateStr
     })
 
-    if (candidates.length === 0) {
-        console.log(`[RunAutomations] Job "${job.name}": no subscriptions expiring on ${targetDateStr}`)
-        return
+    if (!candidates.length) {
+        console.log(`[RunAutomations] "${job.name}": 0 subs expiring on ${targetDateStr}`)
+        return { sent: 0, failed: 0 }
     }
 
-    console.log(`[RunAutomations] Job "${job.name}": ${candidates.length} subscriptions matching date ${targetDateStr}`)
+    console.log(`[RunAutomations] "${job.name}": ${candidates.length} subs expiring on ${targetDateStr}`)
+    return await sendToRecipients(job, creds, candidates.map(sub => ({
+        phone: formatPhone(sub.numero, tenantCC),
+        data: sub,
+    })))
+}
 
-    // Enviar plantilla a cada suscripción candidata
+// ── TARGET: Todos los contactos ───────────────────────────────────────────
+async function executeAllContactsJob(job: any, creds: any): Promise<{ sent: number; failed: number }> {
+    const tenantCC = creds.country_code || '591'
+
+    const { data: chats } = await supabaseAdmin
+        .from('chats')
+        .select('phone_number, contact_name')
+        .eq('user_id', job.user_id)
+
+    if (!chats?.length) {
+        console.log(`[RunAutomations] "${job.name}": 0 contacts found`)
+        return { sent: 0, failed: 0 }
+    }
+
+    console.log(`[RunAutomations] "${job.name}": ${chats.length} contacts`)
+    return await sendToRecipients(job, creds, chats.map(c => ({
+        phone: formatPhone(c.phone_number, tenantCC),
+        data: { contact_name: c.contact_name, phone_number: c.phone_number, numero: c.phone_number },
+    })))
+}
+
+// ── TARGET: Contactos con tags específicos ────────────────────────────────
+async function executeTaggedContactsJob(job: any, creds: any): Promise<{ sent: number; failed: number }> {
+    const tenantCC = creds.country_code || '591'
+    const targetConfig = job.target_config || {}
+    const tags: string[] = targetConfig.tags || []
+
+    if (tags.length === 0) {
+        console.log(`[RunAutomations] "${job.name}": no tags configured`)
+        return { sent: 0, failed: 0 }
+    }
+
+    // Obtener chats que tengan al menos uno de los tags
+    const { data: chats } = await supabaseAdmin
+        .from('chats')
+        .select('phone_number, contact_name, tags')
+        .eq('user_id', job.user_id)
+        .overlaps('tags', tags)
+
+    if (!chats?.length) {
+        console.log(`[RunAutomations] "${job.name}": 0 contacts with tags [${tags.join(', ')}]`)
+        return { sent: 0, failed: 0 }
+    }
+
+    console.log(`[RunAutomations] "${job.name}": ${chats.length} contacts with tags [${tags.join(', ')}]`)
+    return await sendToRecipients(job, creds, chats.map(c => ({
+        phone: formatPhone(c.phone_number, tenantCC),
+        data: { contact_name: c.contact_name, phone_number: c.phone_number, numero: c.phone_number },
+    })))
+}
+
+// ── Envío unificado ───────────────────────────────────────────────────────
+async function sendToRecipients(
+    job: any,
+    creds: any,
+    recipients: Array<{ phone: string; data: Record<string, any> }>
+): Promise<{ sent: number; failed: number }> {
+    const stats = { sent: 0, failed: 0 }
     const params: { label: string; value: string }[] = job.template_params || []
 
-    for (const sub of candidates) {
-        try {
-            const phone = sub.numero.replace(/\D/g, '')
-            const fullPhone = !phone.startsWith(tenantCC) ? tenantCC + phone : phone
+    for (const { phone, data } of recipients) {
+        if (!phone || phone.length < 8) { stats.failed++; continue }
 
-            // Resolver parámetros de la plantilla con datos del suscriptor
+        try {
             const bodyParameters = params.map(p => ({
                 type: 'text' as const,
-                text: resolveParam(p.value, sub)
+                text: resolveParam(p.value, data),
             }))
 
             const components = bodyParameters.length > 0
@@ -183,7 +273,7 @@ async function executeJob(job: any, now: Date) {
                 : []
 
             const result = await sendWhatsAppTemplate(
-                fullPhone,
+                phone,
                 job.template_name,
                 'es',
                 components,
@@ -192,14 +282,23 @@ async function executeJob(job: any, now: Date) {
             )
 
             if (result) {
-                console.log(`[RunAutomations] ✅ Sent "${job.template_name}" to ${fullPhone}`)
+                stats.sent++
+                console.log(`[RunAutomations] ✅ "${job.template_name}" → ${phone.slice(-4)}`)
             } else {
-                console.log(`[RunAutomations] ❌ Failed sending to ${fullPhone}`)
+                stats.failed++
             }
 
             await delay(1500)
         } catch (err) {
-            console.error(`[RunAutomations] Error sending to sub ${sub.id}:`, err)
+            console.error(`[RunAutomations] Error sending to ${phone.slice(-4)}:`, err)
+            stats.failed++
         }
     }
+
+    return stats
+}
+
+function formatPhone(phone: string, countryCode: string): string {
+    const clean = (phone || '').replace(/\D/g, '')
+    return clean.startsWith(countryCode) ? clean : countryCode + clean
 }

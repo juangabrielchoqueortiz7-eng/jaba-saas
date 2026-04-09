@@ -1,3 +1,6 @@
+// Nota: Este endpoint es específico para negocios de suscripción.
+// Para automatizaciones generales (cualquier negocio) usar /api/run-automations
+
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'

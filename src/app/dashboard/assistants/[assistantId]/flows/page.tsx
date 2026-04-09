@@ -20,6 +20,8 @@ import { toast } from 'sonner'
 
 type PageTab = 'flows' | 'automations'
 
+type TargetType = 'subscriptions_expiring' | 'all_contacts' | 'tagged_contacts'
+
 type AutomationJob = {
     id: string
     name: string
@@ -28,6 +30,8 @@ type AutomationJob = {
     hour: number
     timezone: string
     trigger_days_before: number
+    target_type: TargetType
+    target_config: Record<string, any>
     is_active: boolean
     last_run_at: string | null
     created_at: string
@@ -40,6 +44,12 @@ type MetaTemplate = {
     components: Array<{ type: string; text?: string; format?: string }>
 }
 
+const TARGET_TYPE_OPTIONS: { value: TargetType; label: string; desc: string }[] = [
+    { value: 'all_contacts', label: 'Todos los contactos', desc: 'Enviar a todos los chats registrados' },
+    { value: 'subscriptions_expiring', label: 'Suscripciones por vencer', desc: 'Solo clientes cuya suscripción vence en X días' },
+    { value: 'tagged_contacts', label: 'Contactos con etiqueta', desc: 'Solo contactos que tengan etiquetas específicas' },
+]
+
 const EMPTY_JOB = {
     name: '',
     template_name: '',
@@ -47,6 +57,8 @@ const EMPTY_JOB = {
     hour: 9,
     timezone: 'America/La_Paz',
     trigger_days_before: 1,
+    target_type: 'all_contacts' as TargetType,
+    target_config: {} as Record<string, any>,
     is_active: true,
 }
 
@@ -70,6 +82,8 @@ function AutomationModal({
         hour: job.hour,
         timezone: job.timezone,
         trigger_days_before: job.trigger_days_before,
+        target_type: (job.target_type || 'all_contacts') as TargetType,
+        target_config: job.target_config || {},
         is_active: job.is_active,
     } : { ...EMPTY_JOB })
     const [saving, setSaving] = useState(false)
@@ -180,8 +194,49 @@ function AutomationModal({
                         </div>
                     )}
 
-                    {/* Cuándo enviar */}
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Audiencia */}
+                    <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">A quién enviar</label>
+                        <div className="space-y-2">
+                            {TARGET_TYPE_OPTIONS.map(opt => (
+                                <label key={opt.value}
+                                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                                        form.target_type === opt.value
+                                            ? 'border-[#25D366] bg-emerald-50/50'
+                                            : 'border-black/[0.08] bg-[#F7F8FA] hover:border-black/[0.15]'
+                                    }`}>
+                                    <input type="radio" name="target_type" value={opt.value}
+                                        checked={form.target_type === opt.value}
+                                        onChange={() => setForm(p => ({ ...p, target_type: opt.value }))}
+                                        className="mt-0.5 accent-[#25D366]" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-[#0F172A]">{opt.label}</p>
+                                        <p className="text-[11px] text-slate-400">{opt.desc}</p>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Tags (solo si target_type es tagged_contacts) */}
+                    {form.target_type === 'tagged_contacts' && (
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Etiquetas (separadas por coma)</label>
+                            <Input
+                                placeholder="vip, lead-nuevo, interesado"
+                                value={(form.target_config.tags || []).join(', ')}
+                                onChange={e => setForm(p => ({
+                                    ...p,
+                                    target_config: { ...p.target_config, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }
+                                }))}
+                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
+                            />
+                            <p className="text-[11px] text-slate-400 mt-1">Se envía a contactos que tengan al menos una de estas etiquetas</p>
+                        </div>
+                    )}
+
+                    {/* Días antes del vencimiento (solo para suscripciones) */}
+                    {form.target_type === 'subscriptions_expiring' && (
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Días antes del vencimiento</label>
                             <Input
@@ -200,6 +255,10 @@ function AutomationModal({
                                         : `${Math.abs(form.trigger_days_before)} día(s) después`}
                             </p>
                         </div>
+                    )}
+
+                    {/* Cuándo enviar */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
                                 <Clock size={11} /> Hora de envío
@@ -463,7 +522,7 @@ export default function FlowsPage() {
                                     {[
                                         { icon: <ShoppingCart size={18} />, title: 'Flujo de Ventas', desc: 'Guía al cliente desde el interés hasta la compra.' },
                                         { icon: <MessageSquare size={18} />, title: 'Flujo de Soporte', desc: 'Responde preguntas frecuentes automáticamente.' },
-                                        { icon: <Zap size={18} />, title: 'Flujo de Renovación', desc: 'Recuerda al cliente su vencimiento.' },
+                                        { icon: <Zap size={18} />, title: 'Flujo Automatizado', desc: 'Envía plantillas y mensajes programados.' },
                                     ].map((item, i) => (
                                         <div key={i} className="bg-white border border-black/[0.07] rounded-xl p-3">
                                             <div className="text-cyan-600 mb-2">{item.icon}</div>
@@ -600,13 +659,18 @@ export default function FlowsPage() {
                                                 <Clock size={11} />
                                                 {String(job.hour).padStart(2, '0')}:00 hs
                                             </span>
-                                            <span className="text-xs text-slate-400">
-                                                {job.trigger_days_before > 0
-                                                    ? `${job.trigger_days_before}d antes del vencimiento`
-                                                    : job.trigger_days_before === 0
-                                                        ? 'El día del vencimiento'
-                                                        : `${Math.abs(job.trigger_days_before)}d después del vencimiento`}
+                                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">
+                                                {TARGET_TYPE_OPTIONS.find(t => t.value === (job.target_type || 'all_contacts'))?.label || job.target_type}
                                             </span>
+                                            {job.target_type === 'subscriptions_expiring' && (
+                                                <span className="text-xs text-slate-400">
+                                                    {job.trigger_days_before > 0
+                                                        ? `${job.trigger_days_before}d antes del vencimiento`
+                                                        : job.trigger_days_before === 0
+                                                            ? 'El día del vencimiento'
+                                                            : `${Math.abs(job.trigger_days_before)}d después del vencimiento`}
+                                                </span>
+                                            )}
                                             {job.last_run_at && (
                                                 <span className="text-[11px] text-slate-400">
                                                     Último envío: {new Date(job.last_run_at).toLocaleDateString()}

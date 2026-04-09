@@ -109,7 +109,7 @@ export default async function HomePage() {
         { done: hasAssistant,     title: 'Conecta tu WhatsApp',      description: 'Vincula tu número Business.',                  icon: Bot,           href: '/dashboard/settings',                                                                          cta: 'Configurar', color: GREEN, rgb: GREEN_RGB },
         { done: hasTraining,      title: 'Entrena tu asistente IA',  description: 'Cuéntale a tu bot sobre tu negocio.',           icon: BookOpen,      href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/training` : '/dashboard/assistants',  cta: 'Entrenar',   color: GREEN, rgb: GREEN_RGB },
         { done: hasProducts,      title: 'Agrega tu catálogo',       description: 'Define productos con precios.',                 icon: ShoppingBag,   href: '/dashboard/products',                                                                          cta: 'Agregar',    color: GREEN, rgb: GREEN_RGB },
-        { done: hasSubscriptions, title: 'Agrega suscriptores',      description: 'Importa o crea tu primera suscripción.',        icon: Users,         href: '/dashboard/subscriptions',                                                                     cta: 'Agregar',    color: GREEN, rgb: GREEN_RGB },
+        { done: hasSubscriptions || hasChats, title: 'Registra tus clientes',       description: 'Importa clientes o espera el primer mensaje.',  icon: Users,         href: '/dashboard/subscriptions',                                                                     cta: 'Agregar',    color: GREEN, rgb: GREEN_RGB },
         { done: hasFlows,         title: 'Crea tu primer flujo',     description: 'Diseña el árbol de conversación.',              icon: Zap,           href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/flows` : '/dashboard/assistants',    cta: 'Crear',      color: GREEN, rgb: GREEN_RGB },
         { done: hasChats,         title: 'Recibe tu primer mensaje', description: 'Cuando un cliente escriba, aparecerá aquí.',    icon: MessageSquare, href: '/dashboard/chats',                                                                             cta: 'Ver Chats',  color: GREEN, rgb: GREEN_RGB },
     ]
@@ -192,7 +192,7 @@ export default async function HomePage() {
                                 ✅ Todo configurado
                             </div>
                         )}
-                        {vencenHoy.length > 0 && (
+                        {hasSubscriptions && vencenHoy.length > 0 && (
                             <div style={{ padding: '5px 14px', borderRadius: 20, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', fontSize: 11, fontWeight: 700, color: '#f87171' }}>
                                 ⚠️ {vencenHoy.length} suscripción{vencenHoy.length > 1 ? 'es vencen' : ' vence'} hoy
                             </div>
@@ -217,12 +217,16 @@ export default async function HomePage() {
                 </div>
             </div>
 
-            {/* ── KPI CARDS ROW ── */}
+            {/* ── KPI CARDS ROW — dinámico según tipo de negocio ── */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 mb-7">
                 {[
                     { Icon: MessageSquare, label: 'Chats hoy',            value: activeChatsToday ?? 0, sub: `de ${totalChats ?? 0} totales`,           color: GREEN },
-                    { Icon: Users,         label: 'Suscripciones activas', value: totalActivas,          sub: `${vencidas.length} vencidas sin renovar`,  color: GREEN },
-                    { Icon: AlertTriangle, label: 'Vencen esta semana',    value: vencen7d.length,       sub: `${vencenHoy.length} vencen hoy`,           color: vencen7d.length > 0 ? '#d97706' : 'rgba(15,23,42,0.30)' },
+                    ...(hasSubscriptions ? [
+                        { Icon: Users,         label: 'Clientes activos',    value: totalActivas,          sub: `${vencidas.length} vencidas sin renovar`,  color: GREEN },
+                        { Icon: AlertTriangle, label: 'Vencen esta semana',  value: vencen7d.length,       sub: `${vencenHoy.length} vencen hoy`,           color: vencen7d.length > 0 ? '#d97706' : 'rgba(15,23,42,0.30)' },
+                    ] : [
+                        { Icon: Users,         label: 'Contactos totales',   value: totalChats ?? 0,       sub: `${activeChatsToday ?? 0} activos hoy`,     color: GREEN },
+                    ]),
                     { Icon: Zap,           label: 'Disparadores activos',  value: activeTriggers ?? 0,   sub: 'reglas automáticas funcionando',                  color: GREEN },
                     { Icon: Send,          label: 'Notificaciones (7d)',   value: notifsEnviadas,        sub: `${notifsFallidas} fallidas`,               color: GREEN },
                     { Icon: Bot,           label: 'Asistente IA',          value: hasAssistant ? '✓' : '—', sub: hasTraining ? 'Entrenado' : 'Sin entrenar', color: hasTraining ? GREEN : 'rgba(15,23,42,0.30)' },
@@ -246,12 +250,12 @@ export default async function HomePage() {
                 {/* ── COLUMNA IZQUIERDA ── */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-                    {/* Suscripciones por servicio */}
-                    {totalActivas > 0 && (
+                    {/* Clientes por servicio (solo si usa suscripciones) */}
+                    {hasSubscriptions && totalActivas > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Users size={16} style={{ color: GREEN }} />
-                                <span style={{ color: '#0F172A' }}>Suscripciones por servicio</span>
+                                <span style={{ color: '#0F172A' }}>Clientes por servicio</span>
                                 <Link href="/dashboard/subscriptions" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: GREEN, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                                     Ver todas <ArrowRight size={12} />
                                 </Link>
@@ -275,8 +279,8 @@ export default async function HomePage() {
                         </div>
                     )}
 
-                    {/* Vencimientos próximos */}
-                    {vencen7d.length > 0 && (
+                    {/* Vencimientos próximos (solo si usa suscripciones) */}
+                    {hasSubscriptions && vencen7d.length > 0 && (
                         <div>
                             <h2 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Calendar size={16} style={{ color: 'rgba(15,23,42,0.55)' }} />
@@ -329,13 +333,13 @@ export default async function HomePage() {
                                 ? { color: '#ef4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.22)', icon: '🚨', title: 'Plan agotado — el bot no puede responder', desc: 'Recarga tu saldo ahora para reactivar la atención automática a tus clientes.', href: '/dashboard/recharges', cta: 'Recargar ahora' }
                                 : planNearLimit
                                 ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.22)', icon: '⚡', title: `Te quedan pocas conversaciones (${convBalance} restantes)`, desc: 'Considera recargar para no interrumpir el servicio a tus clientes.', href: '/dashboard/recharges', cta: 'Ver recargas' }
-                                : vencenHoy.length > 0
-                                ? { color: '#ef4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.22)', icon: '⚠️', title: `${vencenHoy.length} suscripción${vencenHoy.length > 1 ? 'es vencen' : ' vence'} hoy`, desc: 'Renuévalas antes de que el cliente pierda acceso al servicio.', href: '/dashboard/subscriptions', cta: 'Ver suscripciones' }
-                                : vencen7d.length > 0
-                                ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.22)', icon: '📅', title: `${vencen7d.length} suscripción${vencen7d.length > 1 ? 'es vencen' : ' vence'} esta semana`, desc: 'Avisa a tus clientes o renueva antes de que venzan.', href: '/dashboard/subscriptions', cta: 'Ver vencimientos' }
+                                : hasSubscriptions && vencenHoy.length > 0
+                                ? { color: '#ef4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.22)', icon: '⚠️', title: `${vencenHoy.length} cliente${vencenHoy.length > 1 ? 's vencen' : ' vence'} hoy`, desc: 'Revisa los vencimientos del día.', href: '/dashboard/subscriptions', cta: 'Ver clientes' }
+                                : hasSubscriptions && vencen7d.length > 0
+                                ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.22)', icon: '📅', title: `${vencen7d.length} vencimiento${vencen7d.length > 1 ? 's' : ''} esta semana`, desc: 'Avisa a tus clientes o gestiona las renovaciones.', href: '/dashboard/subscriptions', cta: 'Ver vencimientos' }
                                 : notifsFallidas > 0
                                 ? { color: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.22)', icon: '📩', title: `${notifsFallidas} notificación${notifsFallidas > 1 ? 'es fallaron' : ' falló'} esta semana`, desc: 'Algunos clientes no recibieron sus recordatorios. Revisa los detalles.', href: '/dashboard/home', cta: 'Revisar' }
-                                : { color: GREEN, bg: 'rgba(37,211,102,0.06)', border: 'rgba(37,211,102,0.20)', icon: '🎉', title: 'Todo al día — ¡excelente!', desc: 'Tu bot está activo y las suscripciones están al día. Sigue monitoreando desde aquí.', href: null, cta: null }
+                                : { color: GREEN, bg: 'rgba(37,211,102,0.06)', border: 'rgba(37,211,102,0.20)', icon: '🎉', title: 'Todo al día', desc: 'Tu bot está activo y atendiendo clientes automáticamente. Sigue monitoreando desde aquí.', href: null, cta: null }
 
                             return (
                                 <div style={{ padding: '20px 24px', borderRadius: 16, background: nextAction.bg, border: `1px solid ${nextAction.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -491,9 +495,9 @@ export default async function HomePage() {
                         <div className="grid grid-cols-2 gap-2">
                             {[
                                 { Icon: MessageSquare, label: 'Chats',          href: '/dashboard/chats' },
-                                { Icon: Users,         label: 'Suscripciones',  href: '/dashboard/subscriptions' },
-                                { Icon: Zap,           label: 'Disparadores',   href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/triggers` : '/dashboard/assistants' },
-                                { Icon: FileText,      label: 'Plantillas Meta', href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants' },
+                                { Icon: Zap,           label: 'Flujos',         href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/flows` : '/dashboard/assistants' },
+                                { Icon: FileText,      label: 'Plantillas',     href: hasAssistant ? `/dashboard/assistants/${assistants![0].id}/templates` : '/dashboard/assistants' },
+                                { Icon: Users,         label: 'Clientes',       href: '/dashboard/subscriptions' },
                             ].map((item, i) => (
                                 <Link key={i} href={item.href} style={{
                                     display: 'flex', alignItems: 'center', gap: 8,

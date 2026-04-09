@@ -219,7 +219,7 @@ function FlowVariableButtons({ onInsert }: { onInsert: (key: string) => void }) 
     )
 }
 
-function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (config: any, label: string) => void; onClose: () => void }) {
+function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Node; onUpdate: (config: any, label: string) => void; onClose: () => void; metaTemplates?: Array<{ name: string; body: string }> }) {
     const [config, setConfig] = useState<any>(node.data.config || {})
     const [label, setLabel] = useState<string>((node.data.label as string) || '')
     const nodeType = node.data.nodeType as string
@@ -553,16 +553,44 @@ function NodeConfigPanel({ node, onUpdate, onClose }: { node: Node; onUpdate: (c
                 {/* SEND TEMPLATE CONFIG */}
                 {nodeType === 'send_template' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Nombre exacto de la plantilla Meta</label>
-                        <Input
-                            value={config.template_name || ''}
-                            onChange={e => updateConfig('template_name', e.target.value)}
-                            placeholder="ej: recordatorio_renovacion_v1"
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
-                        />
-                        <p style={{ color: '#4b5563', fontSize: '0.7rem' }}>
-                            Debe coincidir exactamente con el nombre en Meta Business Manager.
-                        </p>
+                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Plantilla Meta aprobada</label>
+                        {metaTemplates && metaTemplates.length > 0 ? (
+                            <select
+                                value={config.template_name || ''}
+                                onChange={e => {
+                                    const name = e.target.value
+                                    updateConfig('template_name', name)
+                                    // Auto-detectar parámetros del body
+                                    const tpl = metaTemplates.find(t => t.name === name)
+                                    if (tpl) {
+                                        const matches = [...(tpl.body || '').matchAll(/\{\{(\d+)\}\}/g)]
+                                        const params = matches.map((_, i) => ({
+                                            label: `Variable ${i + 1}`,
+                                            value: config.params?.[i]?.value || '',
+                                        }))
+                                        updateConfig('params', params)
+                                    }
+                                }}
+                                style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', width: '100%' }}
+                            >
+                                <option value="">— Selecciona una plantilla —</option>
+                                {metaTemplates.map(t => (
+                                    <option key={t.name} value={t.name}>{t.name}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <Input
+                                value={config.template_name || ''}
+                                onChange={e => updateConfig('template_name', e.target.value)}
+                                placeholder="ej: recordatorio_renovacion_v1"
+                                style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                            />
+                        )}
+                        {config.template_name && metaTemplates?.find(t => t.name === config.template_name)?.body && (
+                            <p style={{ color: '#64748b', fontSize: '0.7rem', lineHeight: 1.4, background: 'rgba(30,30,50,0.6)', padding: '8px 10px', borderRadius: 6 }}>
+                                {metaTemplates.find(t => t.name === config.template_name)!.body}
+                            </p>
+                        )}
                         <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>
                             Parámetros del cuerpo{' '}
                             <span style={{ color: '#4b5563', fontWeight: 400 }}>({'{{1}}'}, {'{{2}}'}, ...)</span>
@@ -642,12 +670,28 @@ export default function FlowEditorPage() {
     const [isSaving, setIsSaving] = useState(false)
     const [saveStatus, setSaveStatus] = useState<string>('')
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
+    const [metaTemplates, setMetaTemplates] = useState<Array<{ name: string; body: string }>>([])
 
     const nodeIdCounter = useRef(0)
 
     useEffect(() => {
         loadFlow()
+        loadMetaTemplates()
     }, [flowId])
+
+    const loadMetaTemplates = async () => {
+        try {
+            const res = await fetch('/api/meta-templates')
+            const data = await res.json()
+            const approved = (data.templates || [])
+                .filter((t: any) => t.status === 'APPROVED')
+                .map((t: any) => ({
+                    name: t.name,
+                    body: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
+                }))
+            setMetaTemplates(approved)
+        } catch { }
+    }
 
     const loadFlow = async () => {
         const [flows, details] = await Promise.all([
@@ -1054,6 +1098,7 @@ export default function FlowEditorPage() {
                         node={selectedNode}
                         onUpdate={handleNodeConfigUpdate}
                         onClose={() => setSelectedNode(null)}
+                        metaTemplates={metaTemplates}
                     />
                 )}
             </div>
