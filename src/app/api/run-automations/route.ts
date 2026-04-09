@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
-import { shouldExecuteAtHour } from '@/lib/timezone-utils'
+import { getLocalTime } from '@/lib/timezone-utils'
 
 function timingSafeCompare(a: string, b: string): boolean {
     try {
@@ -44,8 +44,12 @@ function resolveParam(value: string, sub: any): string {
 }
 
 // =============================================
-// GET: Llamado por Vercel Cron cada hora (0 * * * *)
-// Lee automation_jobs activos y ejecuta los que coincidan con la hora local del usuario
+// GET: Llamado por Vercel Cron una vez al día (13:00 UTC)
+// Plan Hobby no permite crons frecuentes — el endpoint procesa TODOS los jobs
+// cuya hora configurada coincide con la hora local actual en su timezone.
+// Como se ejecuta a las 13 UTC, cubrirá usuarios en zonas horarias donde
+// sea la hora configurada (ej: 9am en UTC-4 = 13 UTC).
+// Para mayor cobertura, ejecuta jobs cuya hora esté dentro de ±30 min del momento actual en su tz.
 // =============================================
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
@@ -81,8 +85,9 @@ export async function GET(request: Request) {
         const stats = { ran: 0, skipped: 0, sent: 0, failed: 0 }
 
         for (const job of jobs) {
-            // 2. Verificar si es la hora correcta en la timezone del job
-            if (!shouldExecuteAtHour(job.timezone, job.hour, now)) {
+            // Verificar si la hora local del job coincide con ahora (exacta o dentro de la misma hora)
+            const localTime = getLocalTime(job.timezone, now)
+            if (localTime.hour !== job.hour) {
                 stats.skipped++
                 continue
             }
@@ -92,7 +97,6 @@ export async function GET(request: Request) {
 
             try {
                 await executeJob(job, now)
-                // Update last_run_at
                 await supabaseAdmin
                     .from('automation_jobs')
                     .update({ last_run_at: now.toISOString() })
