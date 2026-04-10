@@ -127,8 +127,13 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
     const [uploading, setUploading] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [dragOver, setDragOver] = useState(false)
+    const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
     const fileRef = useRef<HTMLInputElement>(null)
     const bodyRef = useRef<HTMLTextAreaElement>(null)
+
+    useEffect(() => {
+        fetch('/api/custom-fields').then(r => r.json()).then(d => setCustomFieldDefs(d.fields || [])).catch(() => {})
+    }, [])
 
     // Keep bodyExamples array in sync with detected variables
     useEffect(() => {
@@ -554,6 +559,28 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                     />
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Custom fields guide */}
+                    {customFieldDefs.length > 0 && (
+                        <div className="mt-3 p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 space-y-2">
+                            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Variables de tu negocio</p>
+                            <p className="text-[10px] text-emerald-500">
+                                Al configurar automatizaciones, podr&aacute;s asignar estos campos a cada variable de la plantilla.
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {customFieldDefs.map(f => (
+                                    <span
+                                        key={f.field_name}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-emerald-200 text-[11px] text-emerald-700 font-medium"
+                                    >
+                                        <code className="font-mono text-[10px]">{`{{custom.${f.field_name}}}`}</code>
+                                        <span className="text-emerald-300">—</span>
+                                        {f.description || f.field_name}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

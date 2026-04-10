@@ -6,18 +6,6 @@
     },
     "crons": [
         {
-            "path": "/api/subscription-reminders",
-            "schedule": "0 13 * * *"
-        },
-        {
-            "path": "/api/subscription-followup",
-            "schedule": "0 22 * * *"
-        },
-        {
-            "path": "/api/subscription-urgency",
-            "schedule": "0 13 * * *"
-        },
-        {
             "path": "/api/trigger-engine",
             "schedule": "0 14 * * *"
         },

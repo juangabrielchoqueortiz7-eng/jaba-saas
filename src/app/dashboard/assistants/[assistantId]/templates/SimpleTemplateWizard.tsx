@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -124,7 +124,12 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
     const [name, setName] = useState(initialBody ? `copia_${Date.now().toString().slice(-6)}` : '')
     const [submitting, setSubmitting] = useState(false)
     const [showRealPreview, setShowRealPreview] = useState(true)
+    const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+    useEffect(() => {
+        fetch('/api/custom-fields').then(r => r.json()).then(d => setCustomFieldDefs(d.fields || [])).catch(() => {})
+    }, [])
 
     const currentMappings = purpose ? (VARIABLE_MAPPINGS[purpose.id] || VARIABLE_MAPPINGS.personalizada) : []
     const detectedVars = extractVariables(body)
@@ -365,6 +370,28 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                                                     <span className="text-slate-400 ml-auto italic">ej: "{m.example}"</span>
                                                 </div>
                                             ))}
+                                        </div>
+                                    )}
+
+                                    {/* Custom fields from business */}
+                                    {customFieldDefs.length > 0 && (
+                                        <div className="border-t border-slate-200 pt-3 space-y-2">
+                                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Mis campos (tu negocio)</span>
+                                            <p className="text-[10px] text-slate-400">
+                                                Estos campos los definiste en Ajustes. Asigna una variable a cada uno en la configuraci&oacute;n de automatizaciones.
+                                            </p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {customFieldDefs.map(f => (
+                                                    <span
+                                                        key={f.field_name}
+                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-700 font-medium"
+                                                    >
+                                                        <code className="font-mono text-[10px]">{`{{custom.${f.field_name}}}`}</code>
+                                                        <span className="text-emerald-400">—</span>
+                                                        {f.description || f.field_name}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

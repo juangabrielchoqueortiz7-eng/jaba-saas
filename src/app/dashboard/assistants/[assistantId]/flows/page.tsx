@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight,
     ChevronDown, ChevronUp, HelpCircle, Zap, MessageSquare, ShoppingCart,
-    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save
+    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon
 } from 'lucide-react'
 import { getFlows, deleteFlow, updateFlow, type ConversationFlow } from './actions'
 import Link from 'next/link'
@@ -60,6 +60,283 @@ const EMPTY_JOB = {
     target_type: 'all_contacts' as TargetType,
     target_config: {} as Record<string, any>,
     is_active: true,
+}
+
+// ── WhatsApp Template Preview ─────────────────────────────────────────────────
+
+function WhatsAppPreview({ template, params }: { template: MetaTemplate | undefined; params?: { label: string; value: string }[] }) {
+    if (!template) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                    <Eye size={24} className="text-slate-300" />
+                </div>
+                <p className="text-sm text-slate-400 font-medium">Vista previa</p>
+                <p className="text-xs text-slate-300 mt-1">Selecciona una plantilla para ver cómo se verá en WhatsApp</p>
+            </div>
+        )
+    }
+
+    const header = template.components.find(c => c.type === 'HEADER')
+    const body = template.components.find(c => c.type === 'BODY')
+    const footer = template.components.find(c => c.type === 'FOOTER')
+    const buttons = template.components.find(c => c.type === 'BUTTONS')
+
+    return (
+        <div className="flex flex-col h-full">
+            {/* Phone frame header */}
+            <div className="bg-[#075E54] rounded-t-2xl px-4 py-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <MessageSquare size={14} className="text-white" />
+                </div>
+                <div>
+                    <p className="text-white text-sm font-semibold">Tu negocio</p>
+                    <p className="text-white/60 text-[10px]">en línea</p>
+                </div>
+            </div>
+
+            {/* Chat area */}
+            <div
+                className="flex-1 p-4 min-h-[280px]"
+                style={{
+                    backgroundColor: '#ECE5DD',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8c0b8' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                }}
+            >
+                {/* Message bubble */}
+                <div className="max-w-[260px] ml-auto">
+                    <div className="bg-[#DCF8C6] rounded-lg shadow-sm overflow-hidden">
+                        {/* Header */}
+                        {header && header.format === 'IMAGE' && (
+                            <div className="bg-slate-200 h-32 flex items-center justify-center">
+                                <ImageIcon size={32} className="text-slate-400" />
+                            </div>
+                        )}
+                        {header && header.format === 'TEXT' && header.text && (
+                            <div className="px-3 pt-2">
+                                <p className="text-[13px] font-bold text-[#303030]">{header.text}</p>
+                            </div>
+                        )}
+
+                        {/* Body */}
+                        {body?.text && (
+                            <div className="px-3 py-2">
+                                <p className="text-[12.5px] text-[#303030] leading-[1.45] whitespace-pre-wrap break-words">
+                                    {body.text.replace(/\{\{(\d+)\}\}/g, (_: string, n: string) => {
+                                        const idx = parseInt(n) - 1
+                                        const paramValue = params?.[idx]?.value
+                                        if (paramValue) {
+                                            // Extract readable label from variable like {{custom.doctor}} → "Doctor"
+                                            const varMatch = paramValue.match(/\{\{(?:custom\.)?(\w+(?:\.\w+)?)\}\}/)
+                                            if (varMatch) {
+                                                const name = varMatch[1].split('.').pop() || varMatch[1]
+                                                return `[${name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ')}]`
+                                            }
+                                            return `[${paramValue}]`
+                                        }
+                                        return `[Variable ${n}]`
+                                    })}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Footer */}
+                        {footer?.text && (
+                            <div className="px-3 pb-2">
+                                <p className="text-[11px] text-[#8696a0]">{footer.text}</p>
+                            </div>
+                        )}
+
+                        {/* Timestamp */}
+                        <div className="flex justify-end px-3 pb-1.5">
+                            <span className="text-[10px] text-[#8696a0]">
+                                {new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Buttons (outside bubble, WhatsApp style) */}
+                    {buttons && (buttons as any).buttons && (
+                        <div className="mt-1 space-y-1">
+                            {((buttons as any).buttons as any[]).map((btn: any, i: number) => (
+                                <div key={i} className="bg-white rounded-lg text-center py-2 shadow-sm">
+                                    <span className="text-[13px] text-[#00a5f4] font-medium">
+                                        {btn.type === 'URL' ? '🔗 ' : btn.type === 'PHONE_NUMBER' ? '📞 ' : ''}
+                                        {btn.text}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Template info bar */}
+            <div className="bg-white rounded-b-2xl px-4 py-2.5 border-t border-black/[0.06]">
+                <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="text-[11px] font-semibold text-[#0F172A] truncate">{template.name}</span>
+                    <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium ml-auto shrink-0">APROBADA</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ── Variable Params Editor ─────────────────────────────────────────────────────
+
+const VARIABLE_OPTIONS: { group: string; icon: string; vars: { label: string; value: string }[] }[] = [
+    {
+        group: 'Contacto',
+        icon: '👤',
+        vars: [
+            { label: 'Nombre', value: '{{contact.name}}' },
+            { label: 'Teléfono', value: '{{contact.phone}}' },
+        ],
+    },
+    {
+        group: 'Negocio',
+        icon: '🏢',
+        vars: [
+            { label: 'Mi negocio', value: '{{business.name}}' },
+        ],
+    },
+    {
+        group: 'Suscripción',
+        icon: '📅',
+        vars: [
+            { label: 'Fecha vence', value: '{{subscription.expires_at}}' },
+            { label: 'Servicio', value: '{{subscription.service}}' },
+            { label: 'Plan', value: '{{subscription.plan}}' },
+            { label: 'Correo', value: '{{subscription.email}}' },
+        ],
+    },
+    {
+        group: 'Fecha / Hora',
+        icon: '🕐',
+        vars: [
+            { label: 'Hoy', value: '{{today}}' },
+            { label: 'Hora actual', value: '{{now}}' },
+        ],
+    },
+]
+
+function VariableParamsEditor({
+    varCount,
+    params,
+    targetType,
+    onChange,
+}: {
+    varCount: number
+    params: { label: string; value: string }[]
+    targetType: TargetType
+    onChange: (updated: { label: string; value: string }[]) => void
+}) {
+    const [activeVar, setActiveVar] = useState<number | null>(null)
+    const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
+
+    useEffect(() => {
+        fetch('/api/custom-fields')
+            .then(r => r.json())
+            .then(d => setCustomFieldDefs(d.fields || []))
+            .catch(() => {})
+    }, [])
+
+    const allGroups = [
+        ...VARIABLE_OPTIONS.filter(g =>
+            g.group !== 'Suscripción' || targetType === 'subscriptions_expiring'
+        ),
+        ...(customFieldDefs.length > 0
+            ? [{
+                group: 'Mis campos',
+                icon: '🗂️',
+                vars: customFieldDefs.map(f => ({
+                    label: f.description || f.field_name,
+                    value: `{{custom.${f.field_name}}}`,
+                })),
+            }]
+            : []),
+    ]
+
+    const visibleGroups = allGroups
+
+    const setParam = (i: number, value: string) => {
+        const updated = [...params]
+        updated[i] = { label: `Variable ${i + 1}`, value }
+        onChange(updated)
+    }
+
+    const appendToParam = (i: number, variable: string) => {
+        const current = params[i]?.value || ''
+        setParam(i, current + variable)
+        setActiveVar(null)
+    }
+
+    return (
+        <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                Variables de la plantilla
+            </label>
+            <div className="space-y-3">
+                {Array.from({ length: varCount }).map((_, i) => (
+                    <div key={i} className="border border-black/[0.08] rounded-xl overflow-hidden bg-[#F7F8FA]">
+                        {/* Variable header */}
+                        <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full font-mono">
+                                {`{{${i + 1}}}`}
+                            </span>
+                            <Input
+                                placeholder="Escribe un valor o elige una variable abajo"
+                                value={params[i]?.value || ''}
+                                onChange={e => setParam(i, e.target.value)}
+                                onFocus={() => setActiveVar(i)}
+                                className="border-0 bg-transparent shadow-none text-sm h-7 p-0 text-[#0F172A] placeholder:text-slate-300 focus-visible:ring-0"
+                            />
+                            {params[i]?.value && (
+                                <button
+                                    onClick={() => setParam(i, '')}
+                                    className="text-slate-300 hover:text-slate-500 shrink-0"
+                                    title="Limpiar"
+                                >
+                                    <X size={13} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Quick-pick chips */}
+                        <div className="px-3 pb-2.5 space-y-1.5">
+                            {visibleGroups.map(group => (
+                                <div key={group.group} className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] text-slate-400 shrink-0 w-20">
+                                        {group.icon} {group.group}
+                                    </span>
+                                    <div className="flex flex-wrap gap-1">
+                                        {group.vars.map(v => {
+                                            const isSelected = params[i]?.value === v.value
+                                            return (
+                                                <button
+                                                    key={v.value}
+                                                    type="button"
+                                                    onClick={() => setParam(i, v.value)}
+                                                    className={`text-[11px] px-2 py-0.5 rounded-full border transition-all font-medium ${
+                                                        isSelected
+                                                            ? 'bg-[#25D366] border-[#25D366] text-white'
+                                                            : 'bg-white border-black/[0.1] text-slate-600 hover:border-[#25D366] hover:text-[#25D366]'
+                                                    }`}
+                                                >
+                                                    {v.label}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
 }
 
 // ── Automation Form Modal ──────────────────────────────────────────────────────
@@ -116,9 +393,9 @@ function AutomationModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.08]">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.08] shrink-0">
                     <h2 className="font-bold text-[#0F172A] text-base">
                         {job ? 'Editar automatización' : 'Nueva automatización'}
                     </h2>
@@ -127,190 +404,191 @@ function AutomationModal({
                     </button>
                 </div>
 
-                <div className="p-6 space-y-5">
-                    {/* Nombre */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Nombre</label>
-                        <Input
-                            placeholder="Ej: Recordatorio 7 días antes"
-                            value={form.name}
-                            onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                            className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
-                        />
-                    </div>
-
-                    {/* Plantilla */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Plantilla Meta aprobada</label>
-                        <Select value={form.template_name || '_none'} onValueChange={v => handleTemplateChange(v === '_none' ? '' : v)}>
-                            <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-10 rounded-lg">
-                                <SelectValue placeholder="Selecciona una plantilla" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="_none" className="text-slate-400">— Selecciona —</SelectItem>
-                                {templates.map(t => (
-                                    <SelectItem key={t.id} value={t.name}>
-                                        <span className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                                            {t.name}
-                                        </span>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {selectedTpl && (
-                            <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed line-clamp-2">{bodyText}</p>
-                        )}
-                    </div>
-
-                    {/* Parámetros dinámicos */}
-                    {varCount > 0 && (
+                {/* Two-column layout */}
+                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+                    {/* Left: Form */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                        {/* Nombre */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                                Variables de la plantilla
-                            </label>
-                            <div className="space-y-2">
-                                {Array.from({ length: varCount }).map((_, i) => (
-                                    <div key={i} className="flex items-center gap-2">
-                                        <span className="text-xs text-slate-400 w-20 shrink-0">{`{{${i + 1}}}`}</span>
-                                        <Input
-                                            placeholder={`Valor o variable — ej: {{contact.name}}`}
-                                            value={form.template_params[i]?.value || ''}
-                                            onChange={e => {
-                                                const updated = [...form.template_params]
-                                                updated[i] = { label: `Variable ${i + 1}`, value: e.target.value }
-                                                setForm(p => ({ ...p, template_params: updated }))
-                                            }}
-                                            className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-sm h-8"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            <p className="text-[11px] text-slate-400 mt-1.5">
-                                Puedes usar: <code className="bg-slate-100 px-1 rounded">{'{{contact.name}}'}</code>{' '}
-                                <code className="bg-slate-100 px-1 rounded">{'{{subscription.expires_at}}'}</code>{' '}
-                                <code className="bg-slate-100 px-1 rounded">{'{{subscription.service}}'}</code>
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Audiencia */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">A quién enviar</label>
-                        <div className="space-y-2">
-                            {TARGET_TYPE_OPTIONS.map(opt => (
-                                <label key={opt.value}
-                                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                                        form.target_type === opt.value
-                                            ? 'border-[#25D366] bg-emerald-50/50'
-                                            : 'border-black/[0.08] bg-[#F7F8FA] hover:border-black/[0.15]'
-                                    }`}>
-                                    <input type="radio" name="target_type" value={opt.value}
-                                        checked={form.target_type === opt.value}
-                                        onChange={() => setForm(p => ({ ...p, target_type: opt.value }))}
-                                        className="mt-0.5 accent-[#25D366]" />
-                                    <div>
-                                        <p className="text-sm font-semibold text-[#0F172A]">{opt.label}</p>
-                                        <p className="text-[11px] text-slate-400">{opt.desc}</p>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Tags (solo si target_type es tagged_contacts) */}
-                    {form.target_type === 'tagged_contacts' && (
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Etiquetas (separadas por coma)</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Nombre</label>
                             <Input
-                                placeholder="vip, lead-nuevo, interesado"
-                                value={(form.target_config.tags || []).join(', ')}
-                                onChange={e => setForm(p => ({
-                                    ...p,
-                                    target_config: { ...p.target_config, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }
-                                }))}
+                                placeholder="Ej: Recordatorio 7 días antes"
+                                value={form.name}
+                                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                                 className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                             />
-                            <p className="text-[11px] text-slate-400 mt-1">Se envía a contactos que tengan al menos una de estas etiquetas</p>
                         </div>
-                    )}
 
-                    {/* Días antes del vencimiento (solo para suscripciones) */}
-                    {form.target_type === 'subscriptions_expiring' && (
+                        {/* Plantilla */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Días antes del vencimiento</label>
-                            <Input
-                                type="number"
-                                min={-30}
-                                max={30}
-                                value={form.trigger_days_before}
-                                onChange={e => setForm(p => ({ ...p, trigger_days_before: parseInt(e.target.value) || 0 }))}
-                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-center font-bold"
-                            />
-                            <p className="text-[11px] text-slate-400 mt-1">
-                                {form.trigger_days_before > 0
-                                    ? `${form.trigger_days_before} día(s) antes`
-                                    : form.trigger_days_before === 0
-                                        ? 'El mismo día del vencimiento'
-                                        : `${Math.abs(form.trigger_days_before)} día(s) después`}
-                            </p>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Plantilla Meta aprobada</label>
+                            <Select value={form.template_name || '_none'} onValueChange={v => handleTemplateChange(v === '_none' ? '' : v)}>
+                                <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-10 rounded-lg">
+                                    <SelectValue placeholder="Selecciona una plantilla" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="_none" className="text-slate-400">— Selecciona —</SelectItem>
+                                    {templates.map(t => {
+                                        const tplBody = t.components.find(c => c.type === 'BODY')?.text || ''
+                                        const tplHeader = t.components.find(c => c.type === 'HEADER')
+                                        return (
+                                            <SelectItem key={t.id} value={t.name}>
+                                                <span className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                                                    <span className="flex flex-col">
+                                                        <span className="font-medium">{t.name}</span>
+                                                        <span className="text-[10px] text-slate-400 line-clamp-1 max-w-[280px]">
+                                                            {tplHeader?.format === 'IMAGE' ? '📷 Imagen + ' : ''}
+                                                            {tplBody.substring(0, 60)}{tplBody.length > 60 ? '...' : ''}
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                            </SelectItem>
+                                        )
+                                    })}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    )}
 
-                    {/* Cuándo enviar */}
-                    <div className="grid grid-cols-2 gap-4">
+                        {/* Parámetros dinámicos */}
+                        {varCount > 0 && (
+                            <VariableParamsEditor
+                                varCount={varCount}
+                                params={form.template_params}
+                                targetType={form.target_type}
+                                onChange={updated => setForm(p => ({ ...p, template_params: updated }))}
+                            />
+                        )}
+
+                        {/* Audiencia */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                                <Clock size={11} /> Hora de envío
-                            </label>
-                            <Input
-                                type="number"
-                                min={0}
-                                max={23}
-                                value={form.hour}
-                                onChange={e => setForm(p => ({ ...p, hour: Math.min(23, Math.max(0, parseInt(e.target.value) || 0)) }))}
-                                className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-center font-bold"
-                            />
-                            <p className="text-[11px] text-slate-400 mt-1">{String(form.hour).padStart(2, '0')}:00 hrs</p>
-                        </div>
-                    </div>
-
-                    {/* Zona horaria */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-1.5">
-                            <Globe size={11} /> Zona horaria
-                        </label>
-                        <Select value={form.timezone} onValueChange={v => setForm(p => ({ ...p, timezone: v }))}>
-                            <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-10 rounded-lg text-sm">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {COMMON_TIMEZONES.map(tz => (
-                                    <SelectItem key={tz.value} value={tz.value} className="text-sm">{tz.label}</SelectItem>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">A quién enviar</label>
+                            <div className="space-y-2">
+                                {TARGET_TYPE_OPTIONS.map(opt => (
+                                    <label key={opt.value}
+                                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                                            form.target_type === opt.value
+                                                ? 'border-[#25D366] bg-emerald-50/50'
+                                                : 'border-black/[0.08] bg-[#F7F8FA] hover:border-black/[0.15]'
+                                        }`}>
+                                        <input type="radio" name="target_type" value={opt.value}
+                                            checked={form.target_type === opt.value}
+                                            onChange={() => setForm(p => ({ ...p, target_type: opt.value }))}
+                                            className="mt-0.5 accent-[#25D366]" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-[#0F172A]">{opt.label}</p>
+                                            <p className="text-[11px] text-slate-400">{opt.desc}</p>
+                                        </div>
+                                    </label>
                                 ))}
-                            </SelectContent>
-                        </Select>
+                            </div>
+                        </div>
+
+                        {/* Tags (solo si target_type es tagged_contacts) */}
+                        {form.target_type === 'tagged_contacts' && (
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Etiquetas (separadas por coma)</label>
+                                <Input
+                                    placeholder="vip, lead-nuevo, interesado"
+                                    value={(form.target_config.tags || []).join(', ')}
+                                    onChange={e => setForm(p => ({
+                                        ...p,
+                                        target_config: { ...p.target_config, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }
+                                    }))}
+                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
+                                />
+                                <p className="text-[11px] text-slate-400 mt-1">Se envía a contactos que tengan al menos una de estas etiquetas</p>
+                            </div>
+                        )}
+
+                        {/* Días antes del vencimiento (solo para suscripciones) */}
+                        {form.target_type === 'subscriptions_expiring' && (
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Días antes del vencimiento</label>
+                                <Input
+                                    type="number"
+                                    min={-30}
+                                    max={30}
+                                    value={form.trigger_days_before}
+                                    onChange={e => setForm(p => ({ ...p, trigger_days_before: parseInt(e.target.value) || 0 }))}
+                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-center font-bold"
+                                />
+                                <p className="text-[11px] text-slate-400 mt-1">
+                                    {form.trigger_days_before > 0
+                                        ? `${form.trigger_days_before} día(s) antes`
+                                        : form.trigger_days_before === 0
+                                            ? 'El mismo día del vencimiento'
+                                            : `${Math.abs(form.trigger_days_before)} día(s) después`}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Cuándo enviar */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                                    <Clock size={11} /> Hora de envío
+                                </label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    max={23}
+                                    value={form.hour}
+                                    onChange={e => setForm(p => ({ ...p, hour: Math.min(23, Math.max(0, parseInt(e.target.value) || 0)) }))}
+                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] text-center font-bold"
+                                />
+                                <p className="text-[11px] text-slate-400 mt-1">{String(form.hour).padStart(2, '0')}:00 hrs</p>
+                            </div>
+                        </div>
+
+                        {/* Zona horaria */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-1.5">
+                                <Globe size={11} /> Zona horaria
+                            </label>
+                            <Select value={form.timezone} onValueChange={v => setForm(p => ({ ...p, timezone: v }))}>
+                                <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-10 rounded-lg text-sm">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {COMMON_TIMEZONES.map(tz => (
+                                        <SelectItem key={tz.value} value={tz.value} className="text-sm">{tz.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Activo */}
+                        <div className="flex items-center justify-between p-4 bg-[#F7F8FA] rounded-xl border border-black/[0.06]">
+                            <div>
+                                <p className="text-sm font-semibold text-[#0F172A]">Activar automatización</p>
+                                <p className="text-xs text-slate-400">Cuando está activa se ejecuta automáticamente</p>
+                            </div>
+                            <label className="flex items-center cursor-pointer">
+                                <div className="relative">
+                                    <input type="checkbox" className="sr-only" checked={form.is_active}
+                                        onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} />
+                                    <div className={`w-11 h-6 rounded-full transition-colors ${form.is_active ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_active ? 'translate-x-5' : ''}`} />
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
-                    {/* Activo */}
-                    <div className="flex items-center justify-between p-4 bg-[#F7F8FA] rounded-xl border border-black/[0.06]">
-                        <div>
-                            <p className="text-sm font-semibold text-[#0F172A]">Activar automatización</p>
-                            <p className="text-xs text-slate-400">Cuando está activa se ejecuta automáticamente</p>
+                    {/* Right: WhatsApp Preview */}
+                    <div className="lg:w-[320px] shrink-0 border-t lg:border-t-0 lg:border-l border-black/[0.08] bg-[#F7F8FA] p-4 flex flex-col">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Eye size={14} className="text-[#25D366]" />
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vista previa WhatsApp</span>
                         </div>
-                        <label className="flex items-center cursor-pointer">
-                            <div className="relative">
-                                <input type="checkbox" className="sr-only" checked={form.is_active}
-                                    onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} />
-                                <div className={`w-11 h-6 rounded-full transition-colors ${form.is_active ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-                                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_active ? 'translate-x-5' : ''}`} />
-                            </div>
-                        </label>
+                        <div className="flex-1 rounded-2xl overflow-hidden border border-black/[0.08] shadow-lg bg-white">
+                            <WhatsAppPreview template={selectedTpl} params={form.template_params} />
+                        </div>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 pb-6 flex gap-3 justify-end">
+                <div className="px-6 py-4 border-t border-black/[0.08] flex gap-3 justify-end shrink-0">
                     <Button onClick={onClose} className="bg-transparent text-slate-500 hover:bg-slate-100 border border-black/[0.08]">
                         Cancelar
                     </Button>

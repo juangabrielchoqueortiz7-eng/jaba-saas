@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import {
     LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit,
-    ShoppingCart, Package, GitBranch, Zap,
+    ShoppingCart, Package, GitBranch, Zap, Bell,
     FileText, Settings, Users, Trophy, CreditCard, ChevronRight, Building2
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
@@ -114,6 +114,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const [activeId, setActiveId] = useState<string | undefined>(paramId)
     const [assistantName, setAssistantName] = useState<string>('')
     const [isAdmin, setIsAdmin] = useState(false)
+    const [hasSubscriptions, setHasSubscriptions] = useState(false)
 
     useEffect(() => {
         if (paramId) {
@@ -142,6 +143,13 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 const active = creds.find(c => c.id === targetId) || creds[0]
                 if (active) setAssistantName(active.bot_name || 'Mi Asistente')
             }
+
+            // Check if user has subscriptions (to conditionally show subscription-related nav)
+            const { count } = await supabase
+                .from('subscriptions')
+                .select('*', { count: 'exact', head: true })
+                .limit(1)
+            setHasSubscriptions((count ?? 0) > 0)
         }
         loadData()
     }, [activeId])
@@ -221,9 +229,21 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             {isAdmin && (
                 <div className="px-3">
                     <SectionLabel label="Gestión" />
-                    <NavItem href="/dashboard/subscriptions"
-                        icon={<Users size={17} />} label="Suscripciones"
-                        active={is('/dashboard/subscriptions')} onNavigate={nav}
+                    {hasSubscriptions && (
+                        <>
+                            <NavItem href="/dashboard/subscriptions"
+                                icon={<Users size={17} />} label="Suscripciones"
+                                active={is('/dashboard/subscriptions')} onNavigate={nav}
+                                accentColor="#25D366" />
+                            <NavItem href="/dashboard/renewals"
+                                icon={<CreditCard size={17} />} label="Renovaciones"
+                                active={is('/dashboard/renewals')} onNavigate={nav}
+                                accentColor="#25D366" />
+                        </>
+                    )}
+                    <NavItem href="/dashboard/notifications"
+                        icon={<Bell size={17} />} label="Notificaciones"
+                        active={is('/dashboard/notifications')} onNavigate={nav}
                         accentColor="#25D366" />
                     <NavItem href="/dashboard/admin-accounts"
                         icon={<Building2 size={17} />} label="Cuentas"

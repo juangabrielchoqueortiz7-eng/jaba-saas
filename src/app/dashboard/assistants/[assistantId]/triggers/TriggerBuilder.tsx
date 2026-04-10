@@ -373,10 +373,11 @@ function VariablePicker({ onInsert }: { onInsert: (variable: string) => void }) 
 // ── ConditionEditor ────────────────────────────────────────────────────────────
 
 function ConditionEditor({
-  condition, index, onUpdate, onRemove
+  condition, index, customFieldDefs, onUpdate, onRemove
 }: {
   condition: TriggerCondition
   index: number
+  customFieldDefs: { field_name: string; description: string | null }[]
   onUpdate: (i: number, update: Partial<TriggerCondition>) => void
   onRemove: (i: number) => void
 }) {
@@ -537,13 +538,31 @@ function ConditionEditor({
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-[10px] text-slate-400">Nombre del campo</Label>
-                <Input
-                  className="h-8 bg-[#F7F8FA] border-black/[0.08] text-xs"
-                  placeholder="ej: tier, region"
-                  value={condition.payload?.field_name || ''}
-                  onChange={e => onUpdate(index, { payload: { ...condition.payload, field_name: e.target.value } })}
-                />
+                <Label className="text-[10px] text-slate-400">Campo</Label>
+                {customFieldDefs.length > 0 ? (
+                  <Select
+                    value={condition.payload?.field_name || ''}
+                    onValueChange={v => onUpdate(index, { payload: { ...condition.payload, field_name: v } })}
+                  >
+                    <SelectTrigger className="h-8 bg-[#F7F8FA] border-black/[0.08] text-xs">
+                      <SelectValue placeholder="Seleccionar campo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customFieldDefs.map(f => (
+                        <SelectItem key={f.field_name} value={f.field_name}>
+                          {f.description || f.field_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    className="h-8 bg-[#F7F8FA] border-black/[0.08] text-xs"
+                    placeholder="ej: tier, region"
+                    value={condition.payload?.field_name || ''}
+                    onChange={e => onUpdate(index, { payload: { ...condition.payload, field_name: e.target.value } })}
+                  />
+                )}
               </div>
               <div>
                 <Label className="text-[10px] text-slate-400">Valor esperado</Label>
@@ -653,12 +672,13 @@ function ConditionEditor({
 // ── ActionEditor ───────────────────────────────────────────────────────────────
 
 function ActionEditor({
-  action, index, flows, metaTemplates, onUpdate, onRemove
+  action, index, flows, metaTemplates, customFieldDefs, onUpdate, onRemove
 }: {
   action: TriggerAction
   index: number
   flows: ConversationFlow[]
   metaTemplates: MetaTemplate[]
+  customFieldDefs: { field_name: string; description: string | null }[]
   onUpdate: (i: number, update: Partial<TriggerAction>) => void
   onRemove: (i: number) => void
 }) {
@@ -966,13 +986,31 @@ function ActionEditor({
       {at === 'update_field' && (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <Label className="text-xs text-slate-400">Nombre del campo</Label>
-            <Input
-              className="h-9 text-xs bg-[#F7F8FA] border-black/[0.08] mt-1"
-              placeholder="ej: tier, region"
-              value={action.payload.field_name || ''}
-              onChange={e => updatePayload('field_name', e.target.value)}
-            />
+            <Label className="text-xs text-slate-400">Campo</Label>
+            {customFieldDefs.length > 0 ? (
+              <Select
+                value={action.payload.field_name || ''}
+                onValueChange={v => updatePayload('field_name', v)}
+              >
+                <SelectTrigger className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs mt-1">
+                  <SelectValue placeholder="Seleccionar campo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customFieldDefs.map(f => (
+                    <SelectItem key={f.field_name} value={f.field_name}>
+                      {f.description || f.field_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                className="h-9 text-xs bg-[#F7F8FA] border-black/[0.08] mt-1"
+                placeholder="ej: tier, region"
+                value={action.payload.field_name || ''}
+                onChange={e => updatePayload('field_name', e.target.value)}
+              />
+            )}
           </div>
           <div>
             <div className="flex justify-between">
@@ -1150,12 +1188,15 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
     audience_value: '',
   })
 
-  // Load flows + templates
+  const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
+
+  // Load flows + templates + custom fields
   useEffect(() => {
     getFlows().then(setFlows)
     fetch('/api/meta-templates').then(r => r.json()).then(d => {
       if (d.templates) setMetaTemplates(d.templates.filter((t: MetaTemplate) => t.status === 'APPROVED'))
     }).catch(() => {})
+    fetch('/api/custom-fields').then(r => r.json()).then(d => setCustomFieldDefs(d.fields || [])).catch(() => {})
   }, [])
 
   // Pre-fill from template (only when creating new, not editing)
@@ -1674,6 +1715,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                       <ConditionEditor
                         condition={cond}
                         index={index}
+                        customFieldDefs={customFieldDefs}
                         onUpdate={updateCondition}
                         onRemove={removeCondition}
                       />
@@ -1756,6 +1798,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                       index={index}
                       flows={flows}
                       metaTemplates={metaTemplates}
+                      customFieldDefs={customFieldDefs}
                       onUpdate={updateAction}
                       onRemove={removeAction}
                     />

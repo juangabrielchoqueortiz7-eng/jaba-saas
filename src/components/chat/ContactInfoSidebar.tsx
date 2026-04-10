@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Phone, Mail, Calendar, Package, ShoppingBag, User, Users } from 'lucide-react'
+import { X, Phone, Mail, Calendar, Package, ShoppingBag, User, Users, Database, Check, Pencil } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { cn } from '@/lib/utils'
 import { CRM_TAGS } from './ConversationList'
@@ -58,11 +58,15 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
+    const [customFields, setCustomFields] = useState<Record<string, any>>({})
+    const [fieldDefs, setFieldDefs] = useState<{ id: string; field_name: string; field_type: string; description: string | null }[]>([])
+    const [editingField, setEditingField] = useState<string | null>(null)
+    const [editValue, setEditValue] = useState('')
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true)
-            const [subsRes, ordersRes] = await Promise.all([
+            const [subsRes, ordersRes, chatRes, fieldsRes] = await Promise.all([
                 supabase
                     .from('subscriptions')
                     .select('id, correo, numero, vencimiento, estado, servicio, equipo')
@@ -72,14 +76,29 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
                     .select('id, created_at, plan_name, amount, customer_email, status')
                     .eq('chat_id', chatId)
                     .order('created_at', { ascending: false })
-                    .limit(10)
+                    .limit(10),
+                supabase
+                    .from('chats')
+                    .select('custom_fields')
+                    .eq('id', chatId)
+                    .single(),
+                fetch('/api/custom-fields').then(r => r.json()).catch(() => ({ fields: [] }))
             ])
             if (subsRes.data) setSubscriptions(subsRes.data)
             if (ordersRes.data) setOrders(ordersRes.data)
+            if (chatRes.data?.custom_fields) setCustomFields(chatRes.data.custom_fields)
+            setFieldDefs(fieldsRes.fields || [])
             setLoading(false)
         }
         fetchData()
     }, [phoneNumber, chatId, supabase])
+
+    const saveFieldValue = async (fieldName: string, value: string) => {
+        const updated = { ...customFields, [fieldName]: value }
+        setCustomFields(updated)
+        setEditingField(null)
+        await supabase.from('chats').update({ custom_fields: updated }).eq('id', chatId)
+    }
 
     return (
         <div className="w-72 border-l border-black/[0.08] bg-[#F7F8FA] flex flex-col h-full overflow-y-auto shrink-0">
@@ -170,6 +189,55 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
                             </div>
                         )}
                     </div>
+
+                    {/* Campos personalizados */}
+                    {fieldDefs.length > 0 && (
+                        <div>
+                            <p className="text-[10px] font-bold text-[#0F172A]/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <Database size={10} /> Datos del contacto ({fieldDefs.length})
+                            </p>
+                            <div className="space-y-1">
+                                {fieldDefs.map(fd => {
+                                    const val = customFields[fd.field_name]
+                                    const isEditing = editingField === fd.field_name
+                                    return (
+                                        <div key={fd.id} className="bg-white border border-black/[0.08] rounded-lg px-3 py-2 flex items-center justify-between gap-2 group">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[10px] text-[#0F172A]/35 font-medium">{fd.description || fd.field_name}</p>
+                                                {isEditing ? (
+                                                    <div className="flex items-center gap-1 mt-0.5">
+                                                        <input
+                                                            type={fd.field_type === 'number' ? 'number' : fd.field_type === 'date' ? 'date' : 'text'}
+                                                            className="text-xs text-[#0F172A] bg-[#F7F8FA] border border-black/[0.1] rounded px-1.5 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-[#25D366]"
+                                                            value={editValue}
+                                                            onChange={e => setEditValue(e.target.value)}
+                                                            onKeyDown={e => { if (e.key === 'Enter') saveFieldValue(fd.field_name, editValue); if (e.key === 'Escape') setEditingField(null) }}
+                                                            autoFocus
+                                                        />
+                                                        <button onClick={() => saveFieldValue(fd.field_name, editValue)} className="text-[#25D366] hover:text-emerald-700 shrink-0">
+                                                            <Check size={12} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-[#0F172A] truncate mt-0.5">
+                                                        {val || <span className="text-[#0F172A]/20 italic">Sin dato</span>}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {!isEditing && (
+                                                <button
+                                                    onClick={() => { setEditingField(fd.field_name); setEditValue(val || '') }}
+                                                    className="text-[#0F172A]/15 hover:text-[#25D366] transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                                                >
+                                                    <Pencil size={11} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Pedidos */}
                     <div>

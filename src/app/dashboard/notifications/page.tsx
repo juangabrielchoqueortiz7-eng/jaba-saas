@@ -27,6 +27,8 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; ic
     followup:     { label: 'Remarketing',   color: 'text-[#4ade80]', bg: 'bg-[#25D366]/8 border-violet-500/20', icon: '📩' },
     urgency:      { label: 'Último aviso',  color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', icon: '⚠️' },
     auto_renewed: { label: 'Auto-renovado', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', icon: '♻️' },
+    automation:   { label: 'Automatización', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20', icon: '⚡' },
+    broadcast:    { label: 'Envío masivo',  color: 'text-cyan-400',   bg: 'bg-cyan-500/10 border-cyan-500/20',   icon: '📢' },
 }
 
 export default function NotificationsPage() {
@@ -58,8 +60,8 @@ export default function NotificationsPage() {
         const sent     = logs.filter(l => l.status === 'sent').length
         const failed   = logs.filter(l => l.status === 'failed').length
         const rate     = total > 0 ? Math.round((sent / total) * 100) : 0
-        const byType   = Object.keys(TYPE_CONFIG).reduce((acc, t) => {
-            acc[t] = logs.filter(l => l.message_type === t).length
+        const byType   = logs.reduce((acc, l) => {
+            acc[l.message_type] = (acc[l.message_type] || 0) + 1
             return acc
         }, {} as Record<string, number>)
         return { total, sent, failed, rate, byType }
@@ -95,7 +97,7 @@ export default function NotificationsPage() {
                         Historial de Notificaciones
                     </h1>
                     <p className="text-[rgba(15,23,42,0.45)] text-sm mt-1">
-                        Registro de todos los mensajes automáticos enviados a tus suscriptores
+                        Registro de todos los mensajes automáticos enviados a tus contactos
                     </p>
                 </div>
                 <button
@@ -128,13 +130,16 @@ export default function NotificationsPage() {
 
             {/* Chips por tipo */}
             <div className="flex flex-wrap gap-2 mb-5">
-                {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
-                    <div key={key} className={cn('px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5', cfg.bg, cfg.color)}>
-                        <span>{cfg.icon}</span>
-                        {cfg.label}
-                        <span className="ml-1 opacity-70">{stats.byType[key] ?? 0}</span>
-                    </div>
-                ))}
+                {Object.entries(stats.byType).map(([key, count]) => {
+                    const cfg = TYPE_CONFIG[key] || { label: key, color: 'text-slate-400', bg: 'bg-slate-500/10 border-slate-500/20', icon: '📨' }
+                    return (
+                        <div key={key} className={cn('px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5', cfg.bg, cfg.color)}>
+                            <span>{cfg.icon}</span>
+                            {cfg.label}
+                            <span className="ml-1 opacity-70">{count}</span>
+                        </div>
+                    )
+                })}
             </div>
 
             {/* Filtros */}
@@ -157,9 +162,10 @@ export default function NotificationsPage() {
                         className="bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 px-3 text-sm text-[#0F172A]/65 focus:outline-none cursor-pointer"
                     >
                         <option value="all">Todos los tipos</option>
-                        {Object.entries(TYPE_CONFIG).map(([k, v]) => (
-                            <option key={k} value={k}>{v.icon} {v.label}</option>
-                        ))}
+                        {Object.keys(stats.byType).map(k => {
+                            const cfg = TYPE_CONFIG[k] || { label: k, icon: '📨' }
+                            return <option key={k} value={k}>{cfg.icon} {cfg.label}</option>
+                        })}
                     </select>
                     <select
                         value={statusFilter}

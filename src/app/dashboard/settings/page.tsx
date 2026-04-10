@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Database, Plus, Trash2, Pencil } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
@@ -279,7 +279,63 @@ export default function SettingsPage() {
     }
 
     // Tabs state
-    const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'chat'>('general')
+    const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'chat' | 'fields'>('general')
+
+    // Custom Fields state
+    type CustomField = { id: string; field_name: string; field_type: string; description: string | null; enabled: boolean }
+    const [customFields, setCustomFields] = useState<CustomField[]>([])
+    const [fieldsLoading, setFieldsLoading] = useState(false)
+    const [showAddField, setShowAddField] = useState(false)
+    const [newFieldName, setNewFieldName] = useState('')
+    const [newFieldType, setNewFieldType] = useState('text')
+    const [newFieldDesc, setNewFieldDesc] = useState('')
+    const [fieldSaving, setFieldSaving] = useState(false)
+
+    const loadCustomFields = async () => {
+        setFieldsLoading(true)
+        try {
+            const res = await fetch('/api/custom-fields')
+            const data = await res.json()
+            setCustomFields(data.fields || [])
+        } catch { }
+        finally { setFieldsLoading(false) }
+    }
+
+    useEffect(() => {
+        if (activeTab === 'fields') loadCustomFields()
+    }, [activeTab])
+
+    const handleAddField = async () => {
+        if (!newFieldName.trim()) return
+        setFieldSaving(true)
+        try {
+            const res = await fetch('/api/custom-fields', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ field_name: newFieldName.trim().toLowerCase().replace(/\s+/g, '_'), field_type: newFieldType, description: newFieldDesc || null })
+            })
+            const data = await res.json()
+            if (!res.ok) { alert(data.error); return }
+            setNewFieldName(''); setNewFieldType('text'); setNewFieldDesc(''); setShowAddField(false)
+            await loadCustomFields()
+        } catch { alert('Error al crear campo') }
+        finally { setFieldSaving(false) }
+    }
+
+    const handleDeleteField = async (id: string, name: string) => {
+        if (!confirm(`¿Eliminar el campo "${name}"? Los datos existentes en contactos no se borrarán.`)) return
+        await fetch(`/api/custom-fields/${id}`, { method: 'DELETE' })
+        await loadCustomFields()
+    }
+
+    const handleToggleField = async (id: string, enabled: boolean) => {
+        await fetch(`/api/custom-fields/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: !enabled })
+        })
+        await loadCustomFields()
+    }
 
     // Form Fields
     const [botName, setBotName] = useState('Mi Asistente')
@@ -615,6 +671,7 @@ export default function SettingsPage() {
                 <TabButton id="general" label="General" icon={Bot} />
                 <TabButton id="ai" label="Inteligencia Artificial (IA)" icon={BrainCircuit} />
                 <TabButton id="chat" label="Conexión (Chat)" icon={MessageSquare} />
+                <TabButton id="fields" label="Mis Campos" icon={Database} />
             </div>
 
             {/* Tabs Content */}
@@ -1206,6 +1263,191 @@ export default function SettingsPage() {
                             {(!phoneNumberId || !accessToken) && (
                                 <p className="text-xs text-amber-500/70">⚠️ Guarda primero las credenciales (Phone ID + Token) para habilitar esta función.</p>
                             )}
+                        </div>
+                    </div>
+                )}
+
+                {/* --- CAMPOS PERSONALIZADOS TAB --- */}
+                {activeTab === 'fields' && (
+                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                        {/* Banner explicativo */}
+                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+                            <div className="flex items-start gap-3">
+                                <Database className="text-emerald-600 mt-0.5 shrink-0" size={20} />
+                                <div>
+                                    <p className="font-semibold text-emerald-900 text-sm">Base de datos de contactos</p>
+                                    <p className="text-emerald-700 text-xs mt-1">
+                                        Define los datos que necesitas recolectar de tus contactos. Cada campo se convierte en una variable
+                                        disponible en automatizaciones, flujos y plantillas con el formato <code className="bg-white/60 px-1 py-0.5 rounded text-emerald-800 font-mono text-[11px]">{'{{custom.nombre_campo}}'}</code>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Botón agregar */}
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-[#0F172A]">Campos definidos ({customFields.length})</h3>
+                            <Button
+                                onClick={() => setShowAddField(true)}
+                                className="bg-[#0F172A] hover:bg-[#1E293B] text-white gap-2 rounded-xl text-sm h-8"
+                            >
+                                <Plus size={14} />
+                                Nuevo campo
+                            </Button>
+                        </div>
+
+                        {/* Formulario agregar campo */}
+                        {showAddField && (
+                            <div className="border border-emerald-200 bg-emerald-50/50 rounded-xl p-4 space-y-3">
+                                <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Nuevo campo</p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-xs text-slate-500">Nombre (sin espacios)</Label>
+                                        <Input
+                                            placeholder="ej: fecha_cita, doctor, tipo_plan"
+                                            value={newFieldName}
+                                            onChange={e => setNewFieldName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                            className="bg-white border-black/[0.08] text-sm mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-slate-500">Tipo de dato</Label>
+                                        <select
+                                            value={newFieldType}
+                                            onChange={e => setNewFieldType(e.target.value)}
+                                            className="w-full mt-1 bg-white border border-black/[0.08] rounded-lg py-2 px-3 text-sm"
+                                        >
+                                            <option value="text">Texto</option>
+                                            <option value="number">Número</option>
+                                            <option value="date">Fecha</option>
+                                            <option value="boolean">Sí/No</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-slate-500">Descripción (opcional)</Label>
+                                        <Input
+                                            placeholder="ej: Fecha de la próxima cita"
+                                            value={newFieldDesc}
+                                            onChange={e => setNewFieldDesc(e.target.value)}
+                                            className="bg-white border-black/[0.08] text-sm mt-1"
+                                        />
+                                    </div>
+                                </div>
+                                {newFieldName && (
+                                    <p className="text-[11px] text-emerald-700">
+                                        Variable: <code className="bg-white px-1.5 py-0.5 rounded font-mono font-bold">{`{{custom.${newFieldName}}}`}</code>
+                                    </p>
+                                )}
+                                <div className="flex gap-2 justify-end">
+                                    <Button className="h-8 px-3 text-sm bg-transparent text-slate-500 hover:bg-slate-100 border border-black/[0.08]" onClick={() => { setShowAddField(false); setNewFieldName(''); setNewFieldDesc('') }}>
+                                        Cancelar
+                                    </Button>
+                                    <Button onClick={handleAddField} disabled={fieldSaving || !newFieldName}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3 text-sm">
+                                        {fieldSaving ? 'Creando...' : 'Crear campo'}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Lista de campos */}
+                        {fieldsLoading ? (
+                            <div className="text-center py-12 text-slate-400">
+                                <RefreshCw className="animate-spin mx-auto mb-2" size={24} />
+                                Cargando campos...
+                            </div>
+                        ) : customFields.length === 0 ? (
+                            <div className="text-center py-12 border border-dashed border-black/[0.1] rounded-xl">
+                                <Database className="mx-auto mb-3 text-slate-300" size={40} />
+                                <p className="text-slate-400 font-medium">No tienes campos personalizados</p>
+                                <p className="text-xs text-slate-300 mt-1">Crea tu primer campo para empezar a recolectar datos de tus contactos</p>
+                            </div>
+                        ) : (
+                            <div className="border border-black/[0.08] rounded-xl overflow-hidden">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="border-b border-black/[0.05] bg-[#F7F8FA]">
+                                            <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Campo</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tipo</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variable</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descripción</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-black/[0.04]">
+                                        {customFields.map(f => {
+                                            const typeColors: Record<string, string> = {
+                                                text: 'bg-blue-50 text-blue-700 border-blue-200',
+                                                number: 'bg-amber-50 text-amber-700 border-amber-200',
+                                                date: 'bg-purple-50 text-purple-700 border-purple-200',
+                                                boolean: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                            }
+                                            const typeLabels: Record<string, string> = { text: 'Texto', number: 'Número', date: 'Fecha', boolean: 'Sí/No' }
+                                            return (
+                                                <tr key={f.id} className={cn('hover:bg-black/[0.02] transition-colors', !f.enabled && 'opacity-40')}>
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-sm font-semibold text-[#0F172A]">{f.field_name}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', typeColors[f.field_type] || 'bg-slate-50 text-slate-600')}>
+                                                            {typeLabels[f.field_type] || f.field_type}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <code
+                                                            className="text-[11px] bg-slate-100 px-2 py-1 rounded font-mono cursor-pointer hover:bg-emerald-100 transition-colors"
+                                                            onClick={() => { navigator.clipboard.writeText(`{{custom.${f.field_name}}}`); }}
+                                                            title="Clic para copiar"
+                                                        >
+                                                            {`{{custom.${f.field_name}}}`}
+                                                        </code>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-xs text-slate-400">{f.description || '—'}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <button
+                                                                onClick={() => handleToggleField(f.id, f.enabled)}
+                                                                className={cn('text-xs px-2 py-1 rounded-lg border transition-all', f.enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200')}
+                                                                title={f.enabled ? 'Desactivar' : 'Activar'}
+                                                            >
+                                                                {f.enabled ? 'Activo' : 'Inactivo'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteField(f.id, f.field_name)}
+                                                                className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                title="Eliminar"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Variables de sistema */}
+                        <div className="border border-black/[0.08] rounded-xl p-4">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Variables de sistema (siempre disponibles)</p>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { var: '{{contact.name}}', label: 'Nombre del contacto' },
+                                    { var: '{{contact.phone}}', label: 'Teléfono' },
+                                    { var: '{{business.name}}', label: 'Nombre del negocio' },
+                                    { var: '{{today}}', label: 'Fecha de hoy' },
+                                    { var: '{{now}}', label: 'Hora actual' },
+                                ].map(v => (
+                                    <div key={v.var} className="flex items-center gap-1.5 bg-slate-50 border border-black/[0.06] rounded-lg px-2.5 py-1.5">
+                                        <code className="text-[10px] font-mono text-slate-600">{v.var}</code>
+                                        <span className="text-[10px] text-slate-400">— {v.label}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}

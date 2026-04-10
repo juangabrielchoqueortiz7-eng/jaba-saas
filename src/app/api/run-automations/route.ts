@@ -39,18 +39,29 @@ function toDateStr(date: Date): string {
 // Resolver variables dinámicas en los parámetros de la plantilla
 // Funciona tanto con datos de suscripción como con datos de contacto/chat
 function resolveParam(value: string, data: Record<string, any>): string {
+    const todayStr = new Date().toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const nowStr = new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+
     return value
-        // Variables de contacto (genéricas)
+        // Variables de contacto (genéricas — disponibles para cualquier negocio)
         .replace(/\{\{contact\.name\}\}/g, data.contact_name || data.correo || data.numero || '')
         .replace(/\{\{contact\.phone\}\}/g, data.phone_number || data.numero || '')
+        // Variables de negocio
+        .replace(/\{\{business\.name\}\}/g, data.business_name || data.service_name || data.bot_name || '')
         // Variables de suscripción (para negocios que las usan)
         .replace(/\{\{subscription\.expires_at\}\}/g, data.vencimiento || '')
         .replace(/\{\{subscription\.service\}\}/g, data.servicio || data.equipo || '')
+        .replace(/\{\{subscription\.plan\}\}/g, data.plan_name || data.servicio || '')
         .replace(/\{\{subscription\.email\}\}/g, data.correo || '')
+        // Campos personalizados: {{custom.CAMPO}}
+        .replace(/\{\{custom\.(\w+)\}\}/g, (_, field) => String(data.custom_fields?.[field] ?? ''))
+        // Variables de fecha/hora
+        .replace(/\{\{today\}\}/g, todayStr)
+        .replace(/\{\{now\}\}/g, nowStr)
         // Variable genérica catch-all
         .replace(/\{\{(\w+(?:\.\w+)?)\}\}/g, (_, key) => {
             const parts = key.split('.')
-            let val = data
+            let val: any = data
             for (const p of parts) { val = val?.[p] }
             return typeof val === 'string' ? val : ''
         })
@@ -205,7 +216,7 @@ async function executeAllContactsJob(job: any, creds: any): Promise<{ sent: numb
 
     const { data: chats } = await supabaseAdmin
         .from('chats')
-        .select('phone_number, contact_name')
+        .select('phone_number, contact_name, custom_fields')
         .eq('user_id', job.user_id)
 
     if (!chats?.length) {
@@ -216,7 +227,7 @@ async function executeAllContactsJob(job: any, creds: any): Promise<{ sent: numb
     console.log(`[RunAutomations] "${job.name}": ${chats.length} contacts`)
     return await sendToRecipients(job, creds, chats.map(c => ({
         phone: formatPhone(c.phone_number, tenantCC),
-        data: { contact_name: c.contact_name, phone_number: c.phone_number, numero: c.phone_number },
+        data: { contact_name: c.contact_name, phone_number: c.phone_number, numero: c.phone_number, custom_fields: c.custom_fields || {} },
     })))
 }
 
@@ -234,7 +245,7 @@ async function executeTaggedContactsJob(job: any, creds: any): Promise<{ sent: n
     // Obtener chats que tengan al menos uno de los tags
     const { data: chats } = await supabaseAdmin
         .from('chats')
-        .select('phone_number, contact_name, tags')
+        .select('phone_number, contact_name, tags, custom_fields')
         .eq('user_id', job.user_id)
         .overlaps('tags', tags)
 
@@ -246,7 +257,7 @@ async function executeTaggedContactsJob(job: any, creds: any): Promise<{ sent: n
     console.log(`[RunAutomations] "${job.name}": ${chats.length} contacts with tags [${tags.join(', ')}]`)
     return await sendToRecipients(job, creds, chats.map(c => ({
         phone: formatPhone(c.phone_number, tenantCC),
-        data: { contact_name: c.contact_name, phone_number: c.phone_number, numero: c.phone_number },
+        data: { contact_name: c.contact_name, phone_number: c.phone_number, numero: c.phone_number, custom_fields: c.custom_fields || {} },
     })))
 }
 

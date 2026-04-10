@@ -1474,6 +1474,8 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                 // =================================================================================
                 try {
                     const { processMessage: processFlowMessage, executeFlowActions } = await import('@/lib/flow-engine')
+                    const { data: chatForFlow } = await supabaseAdmin
+                        .from('chats').select('custom_fields').eq('id', chatId).single()
                     const flowCtx = {
                         chatId,
                         phoneNumber,
@@ -1484,7 +1486,8 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                         tenantUserId,
                         tenantToken,
                         phoneId,
-                        mediaUrl: savedMediaUrl
+                        mediaUrl: savedMediaUrl,
+                        chatCustomFields: chatForFlow?.custom_fields || {}
                     }
                     const flowResult = await processFlowMessage(flowCtx)
                     if (flowResult && flowResult.handled) {
@@ -1840,41 +1843,46 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
                                 }
                             }
 
-                            // Construir system prompt de SUPER VENTAS
-                            const planList = (tenantProducts || []).map((p, i) =>
+                            // Construir system prompt dinámico según entrenamiento del negocio
+                            const hasProducts = tenantProducts && tenantProducts.length > 0
+                            const hasSubscriptionBusiness = (allSubs && allSubs.length > 0) || (existingSub !== null)
+
+                            const planList = hasProducts ? (tenantProducts || []).map((p, i) =>
                                 `${i + 1}. *${p.name}* — *${tenantCurrency} ${p.price}*${p.description ? ' (' + p.description + ')' : ''}`
-                            ).join('\n')
-                            const idMapping = (tenantProducts || []).map(p =>
+                            ).join('\n') : ''
+                            const idMapping = hasProducts ? (tenantProducts || []).map(p =>
                                 `"${p.name}" = "${p.id}"`
-                            ).join('\n')
+                            ).join('\n') : ''
 
-                            // Instrucciones personalizadas del Usuario
-                            const customTrainingSection = aiConfig.training_prompt ? `
-=============================================
-🧠 ENTRENAMIENTO PERSONALIZADO DEL NEGOCIO:
-(Debes seguir estas reglas de personalidad, tono y respuestas por encima de todo):
-${aiConfig.training_prompt}
-=============================================
-` : '';
+                            // Base del prompt: si tiene training_prompt usa eso como personalidad principal
+                            const baseRole = aiConfig.training_prompt
+                                ? aiConfig.training_prompt
+                                : 'Eres el asistente oficial del negocio. Responde de forma profesional, amigable y concisa.'
 
-                            const salesSystemPrompt = `Eres el Asistente de Ventas Oficial del negocio.
-
-INFORMACIÓN INTERNA DE CATÁLOGO (Solo ofrécelo si el cliente muestra verdadero interés de compra o pregunta por precios/servicios):
-PLANES DISPONIBLES:
+                            // Sección de catálogo (solo si tiene productos)
+                            const catalogSection = hasProducts ? `
+CATÁLOGO DE PRODUCTOS/SERVICIOS (Solo ofrécelo si el cliente muestra interés o pregunta por precios/servicios):
 ${planList}
 
 MÉTODOS DE PAGO: ${tenantPaymentMethods}
 
-SERVICIOS INTEGRADOS:
-1. "send_welcome_menu": Una herramienta interactiva que envía un catálogo visual de los planes por WhatsApp. ÚSALA ÚNICAMENTE cuando el cliente explícitamente diga que quiere ver los planes, precios, o esté listo para comprar un paquete. NO la uses para saludar.
-2. "show_account_selection": Usa esta función INVARIABLEMENTE cuando el cliente diga que quiere renovar pero tenga MÁS DE UNA cuenta registrada. Esto le enviará botones nativos de WhatsApp para que elija. NO le preguntes qué cuenta quiere por texto, USA SIEMPRE ESTA FUNCIÓN.
-3. "confirm_plan": Usa esta herramienta cuando el cliente elija claramente un plan de la lista para proceder con el pago.
-4. "process_email": Ejecútala de inmediato en cuanto el cliente te escriba su correo electrónico válido.
-
 IDs INTERNOS (NUNCA mostrar al cliente):
-${idMapping}
+${idMapping}` : ''
 
-REGLAS GLOBALES ESTRICTAS:
+                            // Sección de herramientas integradas (solo si tiene productos configurados)
+                            const toolsSection = hasProducts ? `
+HERRAMIENTAS INTEGRADAS:
+1. "send_welcome_menu": Envía el catálogo interactivo por WhatsApp. ÚSALA solo cuando el cliente pida ver productos, precios o servicios. NO la uses para saludar.
+${hasSubscriptionBusiness ? `2. "show_account_selection": Usa esta función cuando el cliente quiera renovar pero tenga MÁS DE UNA cuenta registrada. Envía botones nativos de WhatsApp para que elija.
+3. "confirm_plan": Usa esta herramienta cuando el cliente elija un producto/plan de la lista para proceder con la compra.
+4. "process_email": Ejecútala cuando el cliente te escriba su correo electrónico válido.` : `2. "confirm_plan": Usa esta herramienta cuando el cliente elija un producto/plan de la lista.
+3. "process_email": Ejecútala cuando el cliente te escriba su correo electrónico válido.`}` : ''
+
+                            const systemPrompt = `${baseRole}
+${catalogSection}
+${toolsSection}
+
+REGLAS GLOBALES:
 - Máximo 2 emojis por mensaje.
 - NUNCA muestres IDs, UUIDs ni generes código.
 - NUNCA repitas saludos ni "Bienvenido" si ya hay mensajes en la conversación. Mantén un flujo natural y directo.
@@ -1883,62 +1891,51 @@ ${subscriberContext}
 ${orderContext}
 
 HISTORIAL (para que sepas en qué parte del flujo estás):
-${chatHistory}
+${chatHistory}`
 
-${customTrainingSection}`
-
-                            const salesFunctions: any = [
-                                {
+                            // Funciones disponibles para la IA (dinámicas según tipo de negocio)
+                            const aiFunctions: any = [
+                                ...(hasProducts ? [{
                                     name: 'send_welcome_menu',
-                                    description: 'Enviar el catálogo principal de planes interactivo por WhatsApp. Úsalo ÚNICAMENTE cuando el cliente pida ver los planes, precios, paquetes o servicios. NUNCA lo uses automáticamente en el primer saludo si el cliente solo dice "Hola".',
-                                    parameters: {
-                                        type: SchemaType.OBJECT,
-                                        properties: {}
-                                    }
-                                },
-                                {
+                                    description: 'Enviar el catálogo principal interactivo por WhatsApp. Úsalo cuando el cliente pida ver productos, precios o servicios. NUNCA lo uses automáticamente en el primer saludo.',
+                                    parameters: { type: SchemaType.OBJECT, properties: {} }
+                                }] : []),
+                                ...(hasSubscriptionBusiness ? [{
                                     name: 'show_account_selection',
-                                    description: 'Enviar una lista interactiva de WhatsApp con las cuentas que el cliente tiene disponibles para renovar. Úsala SIEMPRE que un cliente quiera renovar pero tenga más de una cuenta, o cuando quiera renovar "otra" cuenta.',
-                                    parameters: {
-                                        type: SchemaType.OBJECT,
-                                        properties: {}
-                                    }
-                                },
-                                {
+                                    description: 'Enviar una lista interactiva con las cuentas del cliente para renovar. Úsala cuando tenga más de una cuenta.',
+                                    parameters: { type: SchemaType.OBJECT, properties: {} }
+                                }] : []),
+                                ...(hasProducts ? [{
                                     name: 'confirm_plan',
-                                    description: 'Confirmar la compra de un plan. Usar cuando el cliente elige un plan por nombre o número.',
+                                    description: 'Confirmar la compra de un producto/plan. Usar cuando el cliente elige uno de la lista.',
                                     parameters: {
                                         type: SchemaType.OBJECT,
                                         properties: {
-                                            plan_id: {
-                                                type: SchemaType.STRING,
-                                                description: 'UUID del producto elegido'
-                                            }
+                                            plan_id: { type: SchemaType.STRING, description: 'UUID del producto elegido' }
                                         },
                                         required: ['plan_id']
                                     }
-                                },
-                                {
+                                }] : []),
+                                ...(hasProducts ? [{
                                     name: 'process_email',
-                                    description: 'Registrar email del cliente y enviar QR de pago. DEBE usarse INMEDIATAMENTE cuando el cliente te da un correo electrónico, especialmente si tienes un PEDIDO ACTIVO pendiente de email.',
+                                    description: 'Registrar email del cliente y procesar pedido. DEBE usarse cuando el cliente proporciona un correo electrónico válido.',
                                     parameters: {
                                         type: SchemaType.OBJECT,
                                         properties: {
-                                            email: {
-                                                type: SchemaType.STRING,
-                                                description: 'Email del cliente (ej: juan@gmail.com)'
-                                            }
+                                            email: { type: SchemaType.STRING, description: 'Email del cliente (ej: juan@gmail.com)' }
                                         },
                                         required: ['email']
                                     }
-                                }
+                                }] : [])
                             ]
 
                             const model = genAI.getGenerativeModel({
                                 model: 'gemini-2.5-pro',
-                                tools: [{ functionDeclarations: salesFunctions }],
-                                toolConfig: { functionCallingConfig: { mode: 'AUTO' as any } },
-                                systemInstruction: salesSystemPrompt
+                                ...(aiFunctions.length > 0 ? {
+                                    tools: [{ functionDeclarations: aiFunctions }],
+                                    toolConfig: { functionCallingConfig: { mode: 'AUTO' as any } },
+                                } : {}),
+                                systemInstruction: systemPrompt
                             })
 
                             // D. Preparar mensaje para Gemini (transcribir audio si es necesario)

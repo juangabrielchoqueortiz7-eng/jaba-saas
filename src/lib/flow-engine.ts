@@ -68,6 +68,7 @@ interface MessageContext {
     tenantToken: string
     phoneId: string
     mediaUrl?: string | null
+    chatCustomFields?: Record<string, any>
 }
 
 // ========================
@@ -85,6 +86,8 @@ function replaceVariables(text: string, vars: Record<string, any>, ctx: MessageC
         .replace(/\{\{plan_price\}\}/g, vars.plan_price || '')
         .replace(/\{\{qr_image_url\}\}/g, vars.qr_image_url || '')
         .replace(/\{\{expiration\}\}/g, vars.expiration || '')
+        // Custom fields ({{custom.FIELD_NAME}})
+        .replace(/\{\{custom\.(\w+)\}\}/g, (_, field) => String(ctx.chatCustomFields?.[field] ?? ''))
         // Generic variable replacement
         .replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')
 }
