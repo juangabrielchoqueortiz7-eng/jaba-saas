@@ -113,6 +113,18 @@ export async function GET(request: Request) {
                 continue
             }
 
+            // Evitar doble ejecución: si ya corrió hoy en la zona horaria del job, saltar
+            if (job.last_run_at) {
+                const tz = job.timezone || 'America/La_Paz'
+                const todayLocal = now.toLocaleDateString('en-CA', { timeZone: tz }) // YYYY-MM-DD
+                const lastRunLocal = new Date(job.last_run_at).toLocaleDateString('en-CA', { timeZone: tz })
+                if (todayLocal === lastRunLocal) {
+                    console.log(`[RunAutomations] Skipping "${job.name}" — ya ejecutado hoy (${todayLocal})`)
+                    stats.skipped++
+                    continue
+                }
+            }
+
             const targetType = job.target_type || 'subscriptions_expiring'
             console.log(`[RunAutomations] Executing "${job.name}" (type: ${targetType}, user: ${job.user_id})`)
             stats.ran++
