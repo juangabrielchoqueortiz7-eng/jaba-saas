@@ -58,6 +58,61 @@ export async function toggleTrigger(id: string, currentState: boolean) {
     revalidatePath('/dashboard/assistants')
 }
 
+export async function duplicateTrigger(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    // Fetch full trigger with conditions and actions
+    const { data: source } = await supabase
+        .from('triggers')
+        .select('*, trigger_conditions(*), trigger_actions(*), trigger_condition_groups(*)')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single()
+
+    if (!source) throw new Error('Trigger not found')
+
+    // Insert new trigger
+    const { data: newTrigger } = await supabase
+        .from('triggers')
+        .insert({
+            user_id: user.id,
+            name: `Copia de ${source.name}`,
+            type: source.type,
+            description: source.description,
+            is_active: false,
+            conditions_logic: source.conditions_logic,
+            time_minutes: source.time_minutes,
+            schedule_config: source.schedule_config,
+        })
+        .select('id')
+        .single()
+
+    if (!newTrigger) throw new Error('Failed to duplicate trigger')
+
+    // Copy conditions
+    if (source.trigger_conditions?.length) {
+        await supabase.from('trigger_conditions').insert(
+            source.trigger_conditions.map(({ id: _id, trigger_id: _tid, ...c }: any) => ({
+                ...c, trigger_id: newTrigger.id
+            }))
+        )
+    }
+
+    // Copy actions
+    if (source.trigger_actions?.length) {
+        await supabase.from('trigger_actions').insert(
+            source.trigger_actions.map(({ id: _id, trigger_id: _tid, ...a }: any) => ({
+                ...a, trigger_id: newTrigger.id
+            }))
+        )
+    }
+
+    revalidatePath('/dashboard/assistants')
+    return newTrigger.id
+}
+
 export async function deleteTrigger(id: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

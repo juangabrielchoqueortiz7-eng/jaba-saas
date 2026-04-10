@@ -7,11 +7,11 @@ import { Card } from '@/components/ui/card'
 import {
     Search, Plus, Trash2, Edit, Zap, Clock, Workflow, Calendar, Play,
     CheckCircle, AlertCircle, Loader2, HelpCircle, ChevronDown, ChevronUp,
-    History, X, RefreshCw,
+    History, X, RefreshCw, Copy,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { getTriggers, toggleTrigger, deleteTrigger } from './actions'
+import { getTriggers, toggleTrigger, deleteTrigger, duplicateTrigger } from './actions'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -259,6 +259,13 @@ export default function TriggersPage() {
         })
     }
 
+    const handleDuplicate = async (id: string) => {
+        startTransition(async () => {
+            await duplicateTrigger(id)
+            await loadTriggers()
+        })
+    }
+
     const handleRun = async (id: string) => {
         setRunningId(id)
         setRunResult(null)
@@ -470,6 +477,13 @@ export default function TriggersPage() {
                                                         }
                                                     </Button>
                                                 )}
+                                                <Button
+                                                    className="h-8 w-8 p-0 bg-transparent hover:bg-[#F7F8FA] text-slate-300 hover:text-slate-500 transition-colors"
+                                                    onClick={() => handleDuplicate(trigger.id)}
+                                                    title="Duplicar"
+                                                >
+                                                    <Copy size={15} />
+                                                </Button>
                                                 <Link href={`/dashboard/assistants/${assistantId}/triggers/${trigger.id}`}>
                                                     <Button className="h-8 w-8 p-0 bg-transparent hover:bg-[#F7F8FA] text-slate-300 hover:text-slate-600 transition-colors">
                                                         <Edit size={15} />

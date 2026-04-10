@@ -12,6 +12,8 @@ import {
   Users, Clock, ChevronDown, ChevronUp, Zap, MessageSquare,
   Tag, Globe, Webhook, Pause, Play, Bot, RefreshCw, Info,
 } from 'lucide-react'
+import { HelpTooltip } from '@/components/ui/help-tooltip'
+import { TagAutocomplete } from '@/components/ui/tag-autocomplete'
 import { useRouter } from 'next/navigation'
 import { saveTrigger, getTrigger } from './actions'
 import { getFlows, type ConversationFlow } from '../flows/actions'
@@ -82,36 +84,34 @@ const CONDITION_CATEGORIES = [
   {
     label: '💬 Cuando el cliente escribe...',
     items: [
-      { value: 'text_contains', label: 'El mensaje contiene ciertas palabras' },
-      { value: 'text_matches_intent', label: 'La IA detecta una intención (pregunta, queja, etc.)' },
-      { value: 'text_regex', label: '⚙️ Avanzado: patrón de texto (regex)' },
+      { value: 'text_contains', label: 'El mensaje contiene ciertas palabras', desc: 'Se activa cuando el cliente escribe una palabra o frase especifica' },
+      { value: 'text_matches_intent', label: 'La IA detecta una intención', desc: 'La inteligencia artificial analiza si el cliente pregunta, se queja, pide un precio, etc.' },
     ]
   },
   {
     label: '👤 Según el estado del cliente...',
     items: [
-      { value: 'last_message_time', label: 'Minutos sin responder' },
-      { value: 'message_count', label: 'Cantidad de mensajes enviados' },
-      { value: 'has_tag', label: 'El cliente tiene una etiqueta' },
-      { value: 'not_tag', label: 'El cliente NO tiene una etiqueta' },
-      { value: 'chat_status', label: 'Tipo de cliente (lead, cliente, VIP...)' },
-      { value: 'creation_date', label: 'Días desde que se registró' },
-      { value: 'message_rate', label: 'Frecuencia de mensajes (por hora)' },
-      { value: 'custom_field', label: '⚙️ Avanzado: campo personalizado' },
+      { value: 'last_message_time', label: 'Minutos sin responder', desc: 'Se activa si el cliente no ha escrito en cierto tiempo' },
+      { value: 'message_count', label: 'Cantidad de mensajes enviados', desc: 'Se activa segun cuantos mensajes ha enviado el cliente en total' },
+      { value: 'has_tag', label: 'El cliente tiene una etiqueta', desc: 'Se activa si el cliente tiene una etiqueta especifica como "vip" o "nuevo"' },
+      { value: 'not_tag', label: 'El cliente NO tiene una etiqueta', desc: 'Se activa si el cliente NO tiene cierta etiqueta' },
+      { value: 'chat_status', label: 'Tipo de cliente (lead, cliente, VIP...)', desc: 'Se activa segun la clasificacion del cliente' },
+      { value: 'day_of_week', label: 'Solo ciertos dias de la semana', desc: 'Se activa solo en los dias que elijas (lunes, martes, etc.)' },
     ]
   },
+]
+
+const CONDITION_CATEGORIES_ADVANCED = [
   {
-    label: '🕐 Según el día u hora...',
+    label: '⚙️ Opciones avanzadas',
     items: [
-      { value: 'day_of_week', label: 'Solo ciertos días de la semana' },
-      { value: 'hour_range', label: 'Solo en cierto horario' },
-    ]
-  },
-  {
-    label: '💳 Según la suscripción...',
-    items: [
-      { value: 'expiration_days', label: 'Días que faltan para que venza' },
-      { value: 'subscription_status', label: 'Estado de la suscripción (activo, vencido...)' },
+      { value: 'text_regex', label: 'Patron avanzado de texto (regex)', desc: 'Usa expresiones regulares para detectar patrones complejos en el mensaje' },
+      { value: 'message_rate', label: 'Velocidad de mensajes por hora', desc: 'Se activa segun la frecuencia con que el cliente escribe' },
+      { value: 'creation_date', label: 'Dias desde que se registro', desc: 'Se activa segun cuanto tiempo lleva el cliente registrado' },
+      { value: 'custom_field', label: 'Campo personalizado', desc: 'Se activa segun un campo que tu definiste en Ajustes' },
+      { value: 'hour_range', label: 'Solo en cierto horario', desc: 'Se activa solo dentro de un rango de horas' },
+      { value: 'expiration_days', label: 'Dias para que venza la suscripcion', desc: 'Se activa segun cuantos dias faltan para que venza' },
+      { value: 'subscription_status', label: 'Estado de la suscripcion', desc: 'Se activa segun si la suscripcion esta activa, vencida, etc.' },
     ]
   },
 ]
@@ -120,34 +120,37 @@ const ACTION_CATEGORIES = [
   {
     label: '💬 Enviar un mensaje al cliente',
     items: [
-      { value: 'send_text', label: 'Enviar un texto' },
-      { value: 'send_text_ai', label: 'Que la IA responda automáticamente' },
-      { value: 'send_media', label: 'Enviar imagen, video o archivo' },
-      { value: 'send_template', label: 'Enviar plantilla de WhatsApp aprobada' },
-      { value: 'send_interactive', label: 'Enviar botones o menú de opciones' },
+      { value: 'send_text', label: 'Enviar un texto', desc: 'Envia un mensaje de texto al cliente' },
+      { value: 'send_template', label: 'Enviar plantilla de WhatsApp', desc: 'Envia una plantilla aprobada por Meta (ideal para mensajes fuera de 24h)' },
+      { value: 'send_interactive', label: 'Enviar botones o menu', desc: 'Envia opciones que el cliente puede tocar para responder rapidamente' },
     ]
   },
   {
     label: '🏷️ Organizar al cliente',
     items: [
-      { value: 'add_tag', label: 'Ponerle una etiqueta' },
-      { value: 'remove_tag', label: 'Quitarle una etiqueta' },
-      { value: 'set_status', label: 'Cambiar su tipo (lead, cliente, VIP...)' },
-      { value: 'update_field', label: '⚙️ Avanzado: actualizar campo personalizado' },
-    ]
-  },
-  {
-    label: '🔔 Avisarte a ti o a otro sistema',
-    items: [
-      { value: 'notify_admin', label: 'Enviarte una notificación' },
-      { value: 'notify_webhook', label: 'Enviar datos a otra app (Zapier, Slack, CRM...)' },
+      { value: 'add_tag', label: 'Ponerle una etiqueta', desc: 'Agrega una etiqueta al cliente para clasificarlo' },
+      { value: 'remove_tag', label: 'Quitarle una etiqueta', desc: 'Remueve una etiqueta del cliente' },
+      { value: 'set_status', label: 'Cambiar su tipo', desc: 'Cambia la clasificacion del cliente (lead, cliente, VIP, etc.)' },
     ]
   },
   {
     label: '⚙️ Control del bot',
     items: [
-      { value: 'start_flow', label: 'Iniciar una conversación guiada (flujo)' },
-      { value: 'pause', label: 'Esperar unos segundos antes del siguiente paso' },
+      { value: 'start_flow', label: 'Iniciar una conversacion guiada', desc: 'Inicia un flujo de conversacion paso a paso con el cliente' },
+      { value: 'pause', label: 'Esperar unos segundos', desc: 'Hace una pausa antes del siguiente paso (parece mas natural)' },
+    ]
+  },
+]
+
+const ACTION_CATEGORIES_ADVANCED = [
+  {
+    label: '⚙️ Acciones avanzadas',
+    items: [
+      { value: 'send_text_ai', label: 'Respuesta inteligente (IA)', desc: 'La inteligencia artificial genera una respuesta personalizada' },
+      { value: 'send_media', label: 'Enviar imagen o archivo', desc: 'Envia una imagen, video o documento al cliente' },
+      { value: 'update_field', label: 'Actualizar campo personalizado', desc: 'Cambia el valor de un campo que definiste en Ajustes' },
+      { value: 'notify_admin', label: 'Enviarte una notificacion', desc: 'Te envia un aviso para que revises la conversacion' },
+      { value: 'notify_webhook', label: 'Enviar datos a otra app', desc: 'Conecta con Zapier, Slack, CRM u otro servicio externo' },
     ]
   },
 ]
@@ -274,13 +277,16 @@ function getDefaultActionPayload(actionType: ActionType): Record<string, any> {
 // ── CardPicker Modal ──────────────────────────────────────────────────────────
 
 function CardPickerModal({
-  title, categories, onSelect, onClose
+  title, categories, advancedCategories, onSelect, onClose
 }: {
   title: string
-  categories: { label: string; items: { value: string; label: string }[] }[]
+  categories: { label: string; items: { value: string; label: string; desc?: string }[] }[]
+  advancedCategories?: { label: string; items: { value: string; label: string; desc?: string }[] }[]
   onSelect: (value: string) => void
   onClose: () => void
 }) {
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col border border-black/[0.08]" onClick={e => e.stopPropagation()}>
@@ -302,11 +308,45 @@ function CardPickerModal({
                     className="text-left p-3 rounded-xl border border-black/[0.06] bg-[#F7F8FA] hover:bg-white hover:border-green-300 hover:shadow-sm transition-all group"
                   >
                     <p className="text-sm font-medium text-[#0F172A] group-hover:text-green-700">{item.label}</p>
+                    {item.desc && <p className="text-[11px] text-slate-400 mt-0.5">{item.desc}</p>}
                   </button>
                 ))}
               </div>
             </div>
           ))}
+
+          {advancedCategories && advancedCategories.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors w-full"
+              >
+                <div className="flex-1 h-px bg-slate-200" />
+                {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                {showAdvanced ? 'Ocultar avanzadas' : 'Mostrar opciones avanzadas'}
+                {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                <div className="flex-1 h-px bg-slate-200" />
+              </button>
+              {showAdvanced && advancedCategories.map(cat => (
+                <div key={cat.label}>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{cat.label}</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {cat.items.map(item => (
+                      <button
+                        key={item.value}
+                        onClick={() => { onSelect(item.value); onClose() }}
+                        className="text-left p-3 rounded-xl border border-black/[0.06] bg-[#F7F8FA] hover:bg-white hover:border-green-300 hover:shadow-sm transition-all group"
+                      >
+                        <p className="text-sm font-medium text-[#0F172A] group-hover:text-green-700">{item.label}</p>
+                        {item.desc && <p className="text-[11px] text-slate-400 mt-0.5">{item.desc}</p>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -394,9 +434,16 @@ function ConditionEditor({
 
       <CardContent className="p-4 pt-8 space-y-3">
         {/* Label */}
-        <div className="text-xs font-semibold text-red-500 uppercase tracking-wider">
-          {CONDITION_LABELS[ct] || ct}
-        </div>
+        {(() => {
+          const allItems = [...CONDITION_CATEGORIES, ...CONDITION_CATEGORIES_ADVANCED].flatMap(c => c.items)
+          const found = allItems.find(i => i.value === ct)
+          return (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-red-500 uppercase tracking-wider">{CONDITION_LABELS[ct] || ct}</span>
+              {found?.desc && <HelpTooltip text={found.desc} size={12} />}
+            </div>
+          )
+        })()}
 
         {/* ── text_contains ── */}
         {ct === 'text_contains' && (
@@ -498,11 +545,11 @@ function ConditionEditor({
 
         {/* ── has_tag / not_tag ── */}
         {(ct === 'has_tag' || ct === 'not_tag') && (
-          <Input
-            className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs"
-            placeholder="Nombre de la etiqueta — ej: vip, importante"
-            value={condition.value}
-            onChange={e => onUpdate(index, { value: e.target.value })}
+          <TagAutocomplete
+            value={condition.value ? [condition.value] : []}
+            onChange={tags => onUpdate(index, { value: tags[tags.length - 1] || '' })}
+            placeholder="Ej: vip, nuevo-cliente"
+            singleValue
           />
         )}
 
@@ -706,6 +753,11 @@ function ActionEditor({
           Paso {index + 1}
         </span>
         <span className="text-sm font-medium text-green-600">{ACTION_LABELS[at] || at}</span>
+        {(() => {
+          const allItems = [...ACTION_CATEGORIES, ...ACTION_CATEGORIES_ADVANCED].flatMap(c => c.items)
+          const found = allItems.find(i => i.value === at)
+          return found?.desc ? <HelpTooltip text={found.desc} size={12} /> : null
+        })()}
       </div>
 
       {/* ── send_text ── */}
@@ -953,12 +1005,12 @@ function ActionEditor({
       {/* ── add_tag / remove_tag ── */}
       {(at === 'add_tag' || at === 'remove_tag') && (
         <div className="space-y-1">
-          <Label className="text-xs text-slate-400">Nombre de la etiqueta</Label>
-          <Input
-            className="h-9 text-xs bg-[#F7F8FA] border-black/[0.08]"
-            placeholder="Ej: vip, seguimiento, pagado"
-            value={action.payload.tag || ''}
-            onChange={e => updatePayload('tag', e.target.value)}
+          <Label className="text-xs text-slate-400">Etiqueta</Label>
+          <TagAutocomplete
+            value={action.payload.tag ? [action.payload.tag] : []}
+            onChange={tags => updatePayload('tag', tags[tags.length - 1] || '')}
+            placeholder="Ej: vip, pagado, seguimiento"
+            singleValue
           />
         </div>
       )}
@@ -1639,6 +1691,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                 <CardPickerModal
                   title="¿Qué condición quieres agregar?"
                   categories={CONDITION_CATEGORIES}
+                  advancedCategories={CONDITION_CATEGORIES_ADVANCED}
                   onSelect={v => addCondition(v as ConditionType)}
                   onClose={() => setShowConditionPicker(false)}
                 />
@@ -1745,6 +1798,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                 <CardPickerModal
                   title="¿Qué quieres que haga el bot?"
                   categories={ACTION_CATEGORIES}
+                  advancedCategories={ACTION_CATEGORIES_ADVANCED}
                   onSelect={v => addAction(v as ActionType)}
                   onClose={() => setShowActionPicker(false)}
                 />

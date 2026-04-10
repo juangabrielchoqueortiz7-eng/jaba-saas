@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight,
     ChevronDown, ChevronUp, HelpCircle, Zap, MessageSquare, ShoppingCart,
-    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon
+    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon, Copy
 } from 'lucide-react'
 import { getFlows, deleteFlow, updateFlow, type ConversationFlow } from './actions'
+import { HelpTooltip } from '@/components/ui/help-tooltip'
+import { TagAutocomplete } from '@/components/ui/tag-autocomplete'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import FlowTemplates from './FlowTemplates'
@@ -274,8 +276,9 @@ function VariableParamsEditor({
 
     return (
         <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-2">
                 Variables de la plantilla
+                <HelpTooltip text="Las variables son los espacios en blanco de tu plantilla ({{1}}, {{2}}...). Aquí defines qué dato real irá en cada espacio cuando se envíe el mensaje." example="{{1}} = Nombre del cliente → 'Juan'" />
             </label>
             <div className="space-y-3">
                 {Array.from({ length: varCount }).map((_, i) => (
@@ -421,7 +424,10 @@ function AutomationModal({
 
                         {/* Plantilla */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Plantilla Meta aprobada</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-1.5">
+                                Plantilla Meta aprobada
+                                <HelpTooltip text="La plantilla es el mensaje pre-aprobado por WhatsApp que se enviará. Debes haberla creado y aprobado en Meta Business antes." example="'hola_renovacion', 'bienvenida_cliente'" />
+                            </label>
                             <Select value={form.template_name || '_none'} onValueChange={v => handleTemplateChange(v === '_none' ? '' : v)}>
                                 <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-10 rounded-lg">
                                     <SelectValue placeholder="Selecciona una plantilla" />
@@ -462,7 +468,10 @@ function AutomationModal({
 
                         {/* Audiencia */}
                         <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">A quién enviar</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-1.5">
+                                A quién enviar
+                                <HelpTooltip text="Define quiénes recibirán este mensaje. Puedes enviarlo a todos tus contactos, a los que tienen suscripciones por vencer, o solo a los que tienen cierta etiqueta." />
+                            </label>
                             <div className="space-y-2">
                                 {TARGET_TYPE_OPTIONS.map(opt => (
                                     <label key={opt.value}
@@ -487,17 +496,15 @@ function AutomationModal({
                         {/* Tags (solo si target_type es tagged_contacts) */}
                         {form.target_type === 'tagged_contacts' && (
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Etiquetas (separadas por coma)</label>
-                                <Input
-                                    placeholder="vip, lead-nuevo, interesado"
-                                    value={(form.target_config.tags || []).join(', ')}
-                                    onChange={e => setForm(p => ({
-                                        ...p,
-                                        target_config: { ...p.target_config, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }
-                                    }))}
-                                    className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-1.5">
+                                    Etiquetas
+                                    <HelpTooltip text="Solo se enviará a contactos que tengan al menos una de estas etiquetas. Útil para segmentar tu audiencia." example="vip, interesado, lead-nuevo" />
+                                </label>
+                                <TagAutocomplete
+                                    value={form.target_config.tags || []}
+                                    onChange={tags => setForm(p => ({ ...p, target_config: { ...p.target_config, tags } }))}
+                                    placeholder="Ej: vip, interesado..."
                                 />
-                                <p className="text-[11px] text-slate-400 mt-1">Se envía a contactos que tengan al menos una de estas etiquetas</p>
                             </div>
                         )}
 
@@ -526,8 +533,9 @@ function AutomationModal({
                         {/* Cuándo enviar */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-1.5">
                                     <Clock size={11} /> Hora de envío
+                                    <HelpTooltip text="A qué hora del día se enviará este mensaje, en la zona horaria que elijas." example="9 = se envía a las 9:00 AM" />
                                 </label>
                                 <Input
                                     type="number"
@@ -545,6 +553,7 @@ function AutomationModal({
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-1.5">
                                 <Globe size={11} /> Zona horaria
+                                <HelpTooltip text="La hora de envío se calcula en esta zona horaria. Asegúrate de que coincida con la hora local de tus clientes." example="America/La_Paz = Bolivia (UTC-4)" />
                             </label>
                             <Select value={form.timezone} onValueChange={v => setForm(p => ({ ...p, timezone: v }))}>
                                 <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-10 rounded-lg text-sm">
@@ -695,6 +704,20 @@ export default function FlowsPage() {
     const handleToggleAuto = async (job: AutomationJob) => {
         const supabase = createClient()
         await supabase.from('automation_jobs').update({ is_active: !job.is_active }).eq('id', job.id)
+        await loadAutomations()
+    }
+
+    const handleDuplicateAuto = async (job: AutomationJob) => {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { id: _id, last_run_at: _lr, ...rest } = job as any
+        await supabase.from('automation_jobs').insert({
+            ...rest,
+            user_id: user.id,
+            name: `Copia de ${job.name}`,
+            is_active: false,
+        })
         await loadAutomations()
     }
 
@@ -967,6 +990,13 @@ export default function FlowsPage() {
                                             title={job.is_active ? 'Pausar' : 'Activar'}
                                         >
                                             {job.is_active ? <Power size={15} /> : <PowerOff size={15} />}
+                                        </button>
+                                        <button
+                                            onClick={() => handleDuplicateAuto(job)}
+                                            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                                            title="Duplicar"
+                                        >
+                                            <Copy size={15} />
                                         </button>
                                         <button
                                             onClick={() => { setEditingJob(job); setModalOpen(true) }}

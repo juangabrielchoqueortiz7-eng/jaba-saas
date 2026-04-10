@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { AssistantNotFound } from '@/components/dashboard/AssistantNotFound'
 import { redirect } from 'next/navigation'
-import { MessageSquare, Mic, Calendar, BarChart2, BrainCircuit, Package, ArrowRight, AlertTriangle } from 'lucide-react'
+import { MessageSquare, Mic, Calendar, BarChart2, BrainCircuit, Package, ArrowRight, AlertTriangle, GitBranch, Zap, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { isOverLimit, isNearLimit } from '@/lib/plans'
 
@@ -33,8 +33,12 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
     const planOverLimit = convBalance !== null && isOverLimit(convBalance)
     const planNearLimit = convBalance !== null && !planOverLimit && isNearLimit(convBalance, convTotal)
 
-    const { count: totalChats } = await supabase
-        .from('chats').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+    const [{ count: totalChats }, { count: activeFlows }, { count: activeTriggers }, { count: activeAutomations }] = await Promise.all([
+        supabase.from('chats').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('conversation_flows').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
+        supabase.from('triggers').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
+        supabase.from('automation_jobs').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
+    ])
 
     const { count: totalAudios } = await supabase
         .from('messages')
@@ -294,6 +298,110 @@ export default async function AssistantDashboardPage({ params }: { params: Promi
                             <p style={{ fontSize: '0.75rem', color: 'rgba(15,23,42,0.50)', marginTop: 2 }}>Conversaciones hoy</p>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* ── CENTRO DE AUTOMATIZACIÓN ── */}
+            <div style={{ marginTop: 28 }}>
+                <div style={{ marginBottom: 16 }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Centro de automatización</h3>
+                    <p style={{ fontSize: '0.78rem', color: 'rgba(15,23,42,0.45)' }}>Elige cómo quieres automatizar tu negocio</p>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                    {[
+                        {
+                            icon: <GitBranch size={22} />,
+                            title: 'Conversaciones Guiadas',
+                            desc: 'Crea conversaciones paso a paso con menús, preguntas y respuestas automáticas',
+                            when: 'Úsalo cuando quieras guiar al cliente por un proceso estructurado',
+                            active: activeFlows || 0,
+                            label: 'flujos activos',
+                            color: '#8b5cf6',
+                            href: `/dashboard/assistants/${assistantId}/flows?tab=flows`,
+                            createHref: `/dashboard/assistants/${assistantId}/flows/new`,
+                        },
+                        {
+                            icon: <Zap size={22} />,
+                            title: 'Reglas Automáticas',
+                            desc: 'Reacciona automáticamente cuando un cliente escribe algo, tiene cierta etiqueta o lleva tiempo sin responder',
+                            when: 'Úsalo cuando quieras responder a comportamientos específicos del cliente',
+                            active: activeTriggers || 0,
+                            label: 'reglas activas',
+                            color: '#f59e0b',
+                            href: `/dashboard/assistants/${assistantId}/triggers`,
+                            createHref: `/dashboard/assistants/${assistantId}/triggers/new`,
+                        },
+                        {
+                            icon: <Bell size={22} />,
+                            title: 'Notificaciones Programadas',
+                            desc: 'Envía mensajes masivos automáticamente a tus contactos en un horario fijo cada día',
+                            when: 'Úsalo cuando quieras recordar, anunciar o notificar a múltiples contactos',
+                            active: activeAutomations || 0,
+                            label: 'activas',
+                            color: '#25D366',
+                            href: `/dashboard/assistants/${assistantId}/flows?tab=automations`,
+                            createHref: `/dashboard/assistants/${assistantId}/flows?tab=automations&new=1`,
+                        },
+                    ].map((item, i) => (
+                        <div key={i} style={{
+                            background: '#ffffff',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            borderTop: `3px solid ${item.color}`,
+                            borderRadius: 14,
+                            padding: '20px 22px',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+                            display: 'flex', flexDirection: 'column', gap: 12,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                                <div style={{
+                                    width: 44, height: 44, borderRadius: 11, flexShrink: 0,
+                                    background: `${item.color}18`,
+                                    border: `1px solid ${item.color}30`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: item.color,
+                                }}>
+                                    {item.icon}
+                                </div>
+                                <span style={{
+                                    fontSize: '0.68rem', fontWeight: 700,
+                                    color: (item.active > 0) ? item.color : 'rgba(15,23,42,0.30)',
+                                    background: (item.active > 0) ? `${item.color}14` : 'rgba(0,0,0,0.04)',
+                                    border: `1px solid ${(item.active > 0) ? `${item.color}25` : 'rgba(0,0,0,0.06)'}`,
+                                    padding: '3px 8px', borderRadius: 20,
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {item.active} {item.label}
+                                </span>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', marginBottom: 5 }}>{item.title}</p>
+                                <p style={{ fontSize: '0.75rem', color: 'rgba(15,23,42,0.50)', lineHeight: 1.5, marginBottom: 8 }}>{item.desc}</p>
+                                <p style={{ fontSize: '0.70rem', color: item.color, fontWeight: 600, background: `${item.color}08`, padding: '5px 8px', borderRadius: 6, lineHeight: 1.4 }}>
+                                    💡 {item.when}
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                                <Link href={item.createHref} style={{
+                                    flex: 1, textAlign: 'center', textDecoration: 'none',
+                                    background: item.color, color: '#fff',
+                                    fontSize: '0.76rem', fontWeight: 700,
+                                    padding: '8px 12px', borderRadius: 8,
+                                }}>
+                                    + Crear nueva
+                                </Link>
+                                <Link href={item.href} style={{
+                                    flex: 1, textAlign: 'center', textDecoration: 'none',
+                                    background: `${item.color}12`,
+                                    color: item.color,
+                                    fontSize: '0.76rem', fontWeight: 600,
+                                    padding: '8px 12px', borderRadius: 8,
+                                    border: `1px solid ${item.color}25`,
+                                }}>
+                                    Ver todas →
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
