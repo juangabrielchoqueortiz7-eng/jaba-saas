@@ -673,18 +673,39 @@ export default function FlowsPage() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { toast.error('No autenticado'); return }
 
+        // Sanitize form — only send columns that exist in automation_jobs
+        const payload = {
+            name: form.name,
+            template_name: form.template_name,
+            template_params: form.template_params,
+            hour: form.hour,
+            timezone: form.timezone,
+            trigger_days_before: form.trigger_days_before,
+            target_type: form.target_type,
+            target_config: form.target_config,
+            is_active: form.is_active,
+        }
+
         if (editingJob) {
             const { error } = await supabase
                 .from('automation_jobs')
-                .update({ ...form, updated_at: new Date().toISOString() })
+                .update(payload)
                 .eq('id', editingJob.id)
-            if (error) { toast.error('Error al guardar'); return }
+            if (error) {
+                console.error('[AutomationSave] update error:', error)
+                toast.error(`Error al guardar: ${error.message}`)
+                return
+            }
             toast.success('Automatización actualizada')
         } else {
             const { error } = await supabase
                 .from('automation_jobs')
-                .insert({ ...form, user_id: user.id })
-            if (error) { toast.error('Error al crear'); return }
+                .insert({ ...payload, user_id: user.id })
+            if (error) {
+                console.error('[AutomationSave] insert error:', error)
+                toast.error(`Error al crear: ${error.message}`)
+                return
+            }
             toast.success('Automatización creada')
         }
 
