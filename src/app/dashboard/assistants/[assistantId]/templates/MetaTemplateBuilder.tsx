@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import NextImage from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,6 +45,30 @@ export interface TemplateFormState {
     buttons: TemplateBtn[]
 }
 
+type CustomFieldDefinition = { field_name: string; description: string | null }
+type ApiResponse = { error?: string }
+type UploadImageResponse = ApiResponse & { handle?: string }
+type MetaTemplateResponse = ApiResponse
+type MediaHeaderFormat = Extract<HeaderFormat, 'IMAGE' | 'VIDEO' | 'DOCUMENT'>
+type TextHeaderComponent = { type: 'HEADER'; format: 'TEXT'; text: string; example?: { header_text: string[] } }
+type MediaHeaderComponent = { type: 'HEADER'; format: MediaHeaderFormat; example: { header_handle: string[] } }
+type LocationHeaderComponent = { type: 'HEADER'; format: 'LOCATION' }
+type BodyComponent = { type: 'BODY'; text: string; example?: { body_text: string[][] } }
+type FooterComponent = { type: 'FOOTER'; text: string }
+type QuickReplyButtonComponent = { type: 'QUICK_REPLY'; text: string }
+type PhoneButtonComponent = { type: 'PHONE_NUMBER'; text: string; phone_number: string }
+type UrlButtonComponent = { type: 'URL'; text: string; url: string; example?: string[] }
+type ButtonComponent = QuickReplyButtonComponent | PhoneButtonComponent | UrlButtonComponent
+type ButtonsComponent = { type: 'BUTTONS'; buttons: ButtonComponent[] }
+type TemplateComponent =
+    | TextHeaderComponent
+    | MediaHeaderComponent
+    | LocationHeaderComponent
+    | BodyComponent
+    | FooterComponent
+    | ButtonsComponent
+type ButtonPatch = Partial<QuickReplyBtn> | Partial<PhoneBtn> | Partial<UrlBtn>
+
 const EMPTY: TemplateFormState = {
     name: '', category: 'MARKETING', language: 'es_LA',
     headerFormat: 'NONE', headerText: '', headerTextExample: '',
@@ -83,6 +108,14 @@ function detectVars(text: string): number[] {
     const matches = [...text.matchAll(/\{\{(\d+)\}\}/g)]
     const nums = [...new Set(matches.map(m => parseInt(m[1])))].sort((a, b) => a - b)
     return nums
+}
+
+function isMediaHeaderFormat(format: HeaderFormat): format is MediaHeaderFormat {
+    return format === 'IMAGE' || format === 'VIDEO' || format === 'DOCUMENT'
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback
 }
 
 function insertAtCursor(
@@ -127,7 +160,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
     const [uploading, setUploading] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [dragOver, setDragOver] = useState(false)
-    const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
+    const [customFieldDefs, setCustomFieldDefs] = useState<CustomFieldDefinition[]>([])
     const fileRef = useRef<HTMLInputElement>(null)
     const bodyRef = useRef<HTMLTextAreaElement>(null)
 
@@ -158,12 +191,13 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
             const fd = new FormData()
             fd.append('image', file)
             const res = await fetch('/api/meta-templates/upload-image', { method: 'POST', body: fd })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
+            const data = await res.json() as UploadImageResponse
+            if (!res.ok) throw new Error(data.error || 'Error subiendo archivo')
+            if (!data.handle) throw new Error('Meta no devolvió el identificador del archivo')
             set('headerHandle', data.handle)
             toast.success('Archivo listo ✓')
-        } catch (err: any) {
-            toast.error(err.message || 'Error subiendo archivo')
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, 'Error subiendo archivo'))
             set('headerPreview', '')
             set('headerFile', null)
         } finally {
@@ -213,7 +247,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
         setForm(prev => ({ ...prev, buttons: [...prev.buttons, btn] }))
     }
 
-    const updateBtn = (id: string, patch: Partial<TemplateBtn>) =>
+    const updateBtn = (id: string, patch: ButtonPatch) =>
         setForm(prev => ({ ...prev, buttons: prev.buttons.map(b => b.id === id ? { ...b, ...patch } as TemplateBtn : b) }))
 
     const removeBtn = (id: string) =>
@@ -242,7 +276,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
             if (hv.length === 1 && !form.headerTextExample.trim()) return 'Escribe un ejemplo para {{1}} en el encabezado'
         }
 
-        if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(form.headerFormat) && !form.headerHandle) {
+        if (isMediaHeaderFormat(form.headerFormat) && !form.headerHandle) {
             return 'Sube el archivo multimedia antes de continuar'
         }
 
@@ -257,16 +291,16 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
 
     // ── Build payload ─────────────────────────────────────────────────────────
 
-    const buildComponents = () => {
-        const components: any[] = []
+    const buildComponents = (): TemplateComponent[] => {
+        const components: TemplateComponent[] = []
 
         // HEADER
         if (form.headerFormat === 'TEXT' && form.headerText.trim()) {
             const hv = detectVars(form.headerText)
-            const comp: any = { type: 'HEADER', format: 'TEXT', text: form.headerText.trim() }
+            const comp: TextHeaderComponent = { type: 'HEADER', format: 'TEXT', text: form.headerText.trim() }
             if (hv.length > 0) comp.example = { header_text: [form.headerTextExample.trim()] }
             components.push(comp)
-        } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(form.headerFormat) && form.headerHandle) {
+        } else if (isMediaHeaderFormat(form.headerFormat) && form.headerHandle) {
             components.push({ type: 'HEADER', format: form.headerFormat, example: { header_handle: [form.headerHandle] } })
         } else if (form.headerFormat === 'LOCATION') {
             components.push({ type: 'HEADER', format: 'LOCATION' })
@@ -274,7 +308,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
 
         // BODY
         const vars = detectVars(form.body)
-        const bodyComp: any = { type: 'BODY', text: form.body.trim() }
+        const bodyComp: BodyComponent = { type: 'BODY', text: form.body.trim() }
         if (vars.length > 0) {
             bodyComp.example = { body_text: [vars.map((_, i) => form.bodyExamples[i]?.trim() || `ejemplo${i + 1}`)] }
         }
@@ -285,11 +319,11 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
 
         // BUTTONS
         if (form.buttons.length > 0) {
-            const buttons = form.buttons.map(b => {
+            const buttons: ButtonComponent[] = form.buttons.map(b => {
                 if (b.kind === 'QUICK_REPLY') return { type: 'QUICK_REPLY', text: b.text }
                 if (b.kind === 'PHONE_NUMBER') return { type: 'PHONE_NUMBER', text: b.text, phone_number: (b as PhoneBtn).phone }
                 const ub = b as UrlBtn
-                const btn: any = { type: 'URL', text: ub.text, url: ub.url }
+                const btn: UrlButtonComponent = { type: 'URL', text: ub.text, url: ub.url }
                 if (ub.urlType === 'DYNAMIC') btn.example = [ub.url.replace(/\/$/, '') + '/ejemplo']
                 return btn
             })
@@ -318,12 +352,12 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                     components: buildComponents()
                 })
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
+            const data = await res.json() as MetaTemplateResponse
+            if (!res.ok) throw new Error(data.error || 'Error al crear la plantilla en Meta')
             toast.success('¡Plantilla enviada a Meta! Aparecerá en estado "Pendiente".')
             onSuccess()
-        } catch (err: any) {
-            toast.error(err.message || 'Error al crear la plantilla en Meta')
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, 'Error al crear la plantilla en Meta'))
         } finally {
             setSubmitting(false)
         }
@@ -340,7 +374,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.08] bg-[#F7F8FA]">
                 <div>
                     <h2 className="text-lg font-semibold text-[#0F172A]">Nueva Plantilla de Meta</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">La plantilla se enviará a Meta y aparecerá abajo en estado "Pendiente".</p>
+                    <p className="text-xs text-slate-500 mt-0.5">La plantilla se enviará a Meta y aparecerá abajo en estado &quot;Pendiente&quot;.</p>
                 </div>
                 <button onClick={onCancel} className="p-1.5 rounded-lg text-slate-400 hover:text-[#0F172A] hover:bg-[#F0F0F0] transition-colors">
                     <X size={18} />
@@ -455,7 +489,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                             {form.headerPreview ? (
                                 <div className="flex items-center gap-4 p-4 rounded-xl bg-[#F7F8FA] border border-black/[0.08]">
                                     {form.headerFormat === 'IMAGE' ? (
-                                        <img src={form.headerPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-black/[0.08]" />
+                                        <NextImage src={form.headerPreview} alt="Vista previa del archivo" width={80} height={80} unoptimized className="w-20 h-20 object-cover rounded-lg border border-black/[0.08]" />
                                     ) : (
                                         <div className="w-20 h-20 rounded-lg border border-black/[0.08] bg-[#F7F8FA] flex items-center justify-center text-[#0F172A]">
                                             {form.headerFormat === 'VIDEO' ? <FileVideo size={32} /> : <FileDoc size={32} />}
@@ -626,7 +660,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                     )}
 
                     <div className="space-y-3">
-                        {form.buttons.map((btn, idx) => (
+                        {form.buttons.map(btn => (
                             <div key={btn.id} className="p-4 rounded-xl bg-[#F7F8FA] border border-black/[0.08] space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${
@@ -666,7 +700,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                         />
                                         <Input
                                             value={(btn as PhoneBtn).phone}
-                                            onChange={e => updateBtn(btn.id, { phone: e.target.value } as any)}
+                                            onChange={e => updateBtn(btn.id, { phone: e.target.value })}
                                             placeholder="+591 70000000"
                                             className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] font-mono"
                                         />
@@ -681,12 +715,12 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                             <div className="grid grid-cols-2 gap-3">
                                                 <Input
                                                     value={ub.text}
-                                                    onChange={e => updateBtn(btn.id, { text: e.target.value } as any)}
+                                                    onChange={e => updateBtn(btn.id, { text: e.target.value })}
                                                     placeholder="Texto del botón"
                                                     maxLength={25}
                                                     className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]"
                                                 />
-                                                <Select value={ub.urlType} onValueChange={v => updateBtn(btn.id, { urlType: v as UrlType } as any)}>
+                                                <Select value={ub.urlType} onValueChange={v => updateBtn(btn.id, { urlType: v as UrlType })}>
                                                     <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                                                         <SelectValue />
                                                     </SelectTrigger>
@@ -698,7 +732,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                             </div>
                                             <Input
                                                 value={ub.url}
-                                                onChange={e => updateBtn(btn.id, { url: e.target.value } as any)}
+                                                onChange={e => updateBtn(btn.id, { url: e.target.value })}
                                                 placeholder={ub.urlType === 'DYNAMIC' ? 'https://jabachat.com/perfil/' : 'https://jabachat.com'}
                                                 className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] font-mono text-sm"
                                             />
@@ -723,7 +757,7 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                                     <p className="font-bold text-slate-900">{form.headerText}</p>
                                 )}
                                 {form.headerFormat === 'IMAGE' && form.headerPreview && (
-                                    <img src={form.headerPreview} className="rounded-lg w-full object-cover max-h-32" alt="" />
+                                    <NextImage src={form.headerPreview} alt="" width={320} height={128} unoptimized className="rounded-lg w-full object-cover max-h-32" />
                                 )}
                                 {form.headerFormat === 'LOCATION' && (
                                     <div className="flex items-center gap-1 text-slate-600 text-xs"><MapPin size={12}/> Ubicación adjunta</div>

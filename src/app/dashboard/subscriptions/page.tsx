@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import SubscriptionTable from '@/components/subscriptions/SubscriptionTable';
 import SubscriptionActions from '@/components/subscriptions/SubscriptionActions';
@@ -18,9 +18,9 @@ type SubscriptionFieldValue = Subscription[keyof Subscription];
 export default function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
 
-    const fetchSubscriptions = async (showLoading = true) => {
+    const fetchSubscriptions = useCallback(async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -68,7 +68,7 @@ export default function SubscriptionsPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [supabase]);
 
     useEffect(() => {
         let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -103,7 +103,7 @@ export default function SubscriptionsPage() {
         return () => {
             if (channel) supabase.removeChannel(channel);
         };
-    }, []);
+    }, [fetchSubscriptions, supabase]);
 
     const handleLocalAdd = (newSub: Subscription) => {
         setSubscriptions(prev => [newSub, ...prev]);

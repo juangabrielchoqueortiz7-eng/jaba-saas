@@ -10,7 +10,7 @@ import {
     Mail,
     Phone,
     MessageSquare,
-    Image,
+    Image as ImageIcon,
     XCircle,
     ArrowRight,
     TrendingUp,
@@ -23,6 +23,7 @@ import 'dayjs/locale/es'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import NextImage from 'next/image'
 
 dayjs.locale('es')
 
@@ -339,7 +340,7 @@ export default function RenewalsPage() {
                                                     className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-lg transition-colors border border-transparent hover:border-amber-500/20"
                                                     title="Ver comprobante"
                                                 >
-                                                    <Image size={16} />
+                                                    <ImageIcon size={16} />
                                                 </button>
                                             )}
                                             {renewal.chat_id && (
@@ -379,7 +380,14 @@ export default function RenewalsPage() {
                             <button onClick={() => setReceiptModal(null)} className="text-[#0F172A]/40 hover:text-[#0F172A]">✕</button>
                         </div>
                         <div className="p-4">
-                            <img src={receiptModal} alt="Comprobante" className="w-full rounded-lg" />
+                            <NextImage
+                                src={receiptModal}
+                                alt="Comprobante"
+                                width={640}
+                                height={640}
+                                unoptimized
+                                className="w-full rounded-lg"
+                            />
                         </div>
                     </div>
                 </div>

@@ -2,6 +2,7 @@
 import { cn } from '@/lib/utils'
 import { Check, CheckCheck, Image as ImageIcon, FileText, Play, Mic, Trash2, AlertCircle, RotateCcw, CornerUpLeft, Copy } from 'lucide-react'
 import { useState, useRef } from 'react'
+import NextImage from 'next/image'
 
 interface MessageBubbleProps {
     content: string
@@ -223,9 +224,12 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                                 <ImageIcon size={28} className="text-[#111B21]/20 animate-pulse" />
                             </div>
                         )}
-                        <img
+                        <NextImage
                             src={mediaUrl}
                             alt="Imagen"
+                            width={420}
+                            height={420}
+                            unoptimized
                             className={cn(
                                 "max-w-full max-h-[400px] object-contain cursor-pointer hover:opacity-95 transition-opacity",
                                 !imageLoaded && "hidden"

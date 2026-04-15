@@ -27,7 +27,7 @@ import {
   ShoppingCart,
   Check
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { CartDrawer, type CartItem } from './_components/CartDrawer';
 import { CheckoutModal } from './_components/CheckoutModal';
 
@@ -70,6 +70,14 @@ const scaleIn = {
   hidden: { opacity: 0, scale: 0.8 },
   visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } }
 };
+
+/*
+  { text: 'Â¡Hola! Quiero informaciÃ³n sobre los planes', sender: 'user', delay: 1000 },
+  { text: 'Â¡Hola! ðŸ‘‹ Empiezas con 500 conversaciones GRATIS. Sin tarjeta. Â¿Te agendo una demo?', sender: 'bot', delay: 1500 },
+  { text: 'SÃ­, por favor', sender: 'user', delay: 2000 },
+  { text: 'Perfecto. Dame tu nombre y tipo de negocio y preparo una propuesta a medida. ðŸš€', sender: 'bot', delay: 1500 }
+] as const;
+*/
 
 // ============ DATA ============
 
@@ -962,12 +970,12 @@ function InteractiveDemo() {
   const [messages, setMessages] = useState<{ id: number; text: string; sender: 'user' | 'bot'; time: string }[]>([]);
   const [typing, setTyping] = useState(false);
 
-  const demoSequence = [
+  const demoSequence = useMemo(() => [
     { text: '¡Hola! Quiero información sobre los planes', sender: 'user', delay: 1000 },
     { text: '¡Hola! 👋 Empiezas con 500 conversaciones GRATIS. Sin tarjeta. ¿Te agendo una demo?', sender: 'bot', delay: 1500 },
     { text: 'Sí, por favor', sender: 'user', delay: 2000 },
     { text: 'Perfecto. Dame tu nombre y tipo de negocio y preparo una propuesta a medida. 🚀', sender: 'bot', delay: 1500 }
-  ];
+  ], []);
 
   useEffect(() => {
     let currentTimeout: NodeJS.Timeout;
@@ -999,7 +1007,7 @@ function InteractiveDemo() {
 
     runSequence();
     return () => { isActive = false; clearTimeout(currentTimeout); };
-  }, []);
+  }, [demoSequence]);
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-white/8 bg-[#111] shadow-2xl">
@@ -1373,11 +1381,10 @@ function getServiceMockup(title: string) {
   }
 }
 
-function ServiceCard({ icon: Icon, title, description, iconColor, popular, keyBenefit, stat, statLabel, hero }: {
+function ServiceCard({ icon: Icon, title, description, popular, keyBenefit, stat, statLabel, hero }: {
   icon: React.ElementType;
   title: string;
   description: string;
-  iconColor: string;
   popular: boolean;
   keyBenefit: string;
   stat: string;

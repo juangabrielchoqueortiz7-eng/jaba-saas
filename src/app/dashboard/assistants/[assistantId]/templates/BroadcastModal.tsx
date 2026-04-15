@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { X, Send, Users, Loader2, CheckCircle2, XCircle, Eye, AlertTriangle } from 'lucide-react'
+import { X, Send, Loader2, CheckCircle2, Eye, AlertTriangle } from 'lucide-react'
 
 interface MetaTemplate {
     id: string
@@ -22,6 +22,9 @@ interface BroadcastModalProps {
 }
 
 type AudienceType = 'service' | 'tag' | 'all'
+type PreviewContact = { phone: string; correo?: string | null; servicio?: string | null }
+type BroadcastPreviewResponse = { total?: number; contacts?: PreviewContact[]; error?: string }
+type BroadcastSendResponse = Partial<SendResult> & { error?: string }
 
 function detectVars(components: MetaTemplate['components']): number {
     const body = components.find(c => c.type === 'BODY')
@@ -36,6 +39,10 @@ function getBodyText(components: MetaTemplate['components']): string {
 
 type SendResult = { sent: number; failed: number; total: number; errors: string[] }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback
+}
+
 export default function BroadcastModal({ metaTemplates, onClose, inline = false }: BroadcastModalProps) {
     const approved = metaTemplates.filter(t => t.status === 'APPROVED')
 
@@ -45,7 +52,7 @@ export default function BroadcastModal({ metaTemplates, onClose, inline = false 
     const [audienceValue, setAudienceValue] = useState('')
 
     const [previewCount, setPreviewCount] = useState<number | null>(null)
-    const [previewContacts, setPreviewContacts] = useState<any[]>([])
+    const [previewContacts, setPreviewContacts] = useState<PreviewContact[]>([])
     const [loadingPreview, setLoadingPreview] = useState(false)
 
     const [sending, setSending] = useState(false)
@@ -76,13 +83,13 @@ export default function BroadcastModal({ metaTemplates, onClose, inline = false 
                     preview: true,
                 }),
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
-            setPreviewCount(data.total)
+            const data = await res.json() as BroadcastPreviewResponse
+            if (!res.ok) throw new Error(data.error || 'Error al obtener vista previa')
+            setPreviewCount(data.total ?? 0)
             setPreviewContacts(data.contacts || [])
             setStep('preview')
-        } catch (err: any) {
-            alert(err.message || 'Error al obtener vista previa')
+        } catch (err: unknown) {
+            alert(getErrorMessage(err, 'Error al obtener vista previa'))
         } finally {
             setLoadingPreview(false)
         }
@@ -103,12 +110,17 @@ export default function BroadcastModal({ metaTemplates, onClose, inline = false 
                     preview: false,
                 }),
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
-            setResult(data)
+            const data = await res.json() as BroadcastSendResponse
+            if (!res.ok) throw new Error(data.error || 'Error al enviar')
+            setResult({
+                sent: data.sent ?? 0,
+                failed: data.failed ?? 0,
+                total: data.total ?? 0,
+                errors: data.errors ?? [],
+            })
             setStep('result')
-        } catch (err: any) {
-            alert(err.message || 'Error al enviar')
+        } catch (err: unknown) {
+            alert(getErrorMessage(err, 'Error al enviar'))
         } finally {
             setSending(false)
         }
@@ -281,7 +293,7 @@ export default function BroadcastModal({ metaTemplates, onClose, inline = false 
                         <div className="text-center py-4">
                             <div className="text-5xl font-black text-[#0F172A] mb-2">{previewCount}</div>
                             <p className="text-slate-500 text-sm">
-                                contactos recibirán la plantilla <span className="font-mono text-indigo-400">"{templateName}"</span>
+                                contactos recibirán la plantilla <span className="font-mono text-indigo-400">&quot;{templateName}&quot;</span>
                             </p>
                             <p className="text-xs text-slate-500 mt-1">
                                 Audiencia: {audienceType === 'all' ? 'Todas las suscripciones activas' : audienceType === 'service' ? `Servicio ${audienceValue}` : `Etiqueta "${audienceValue}"`}

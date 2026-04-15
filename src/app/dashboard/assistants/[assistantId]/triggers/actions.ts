@@ -14,6 +14,77 @@ export type Trigger = {
     trigger_actions: { count: number }[]
 }
 
+type JsonValue = string | number | boolean | null | JsonObject | JsonValue[]
+type JsonObject = { [key: string]: JsonValue }
+type TriggerType = 'logic' | 'flow' | 'time' | 'manual' | 'scheduled'
+type ConditionLogic = 'AND' | 'OR'
+
+type TriggerListRow = Omit<Trigger, 'trigger_actions'> & {
+    trigger_actions?: { count: number }[]
+}
+
+export type TriggerListItem = Omit<Trigger, 'trigger_actions'> & {
+    action_count: number
+}
+
+type TriggerConditionRow = {
+    id?: string
+    trigger_id?: string
+    type?: string
+    condition_type?: string
+    operator?: string
+    value?: string
+    payload?: JsonObject
+    [key: string]: JsonValue | undefined
+}
+
+type TriggerActionRow = {
+    id?: string
+    trigger_id?: string
+    type: string
+    payload?: JsonObject
+    action_order?: number
+    delay_seconds?: number
+    [key: string]: JsonValue | undefined
+}
+
+type TriggerConditionGroupRow = {
+    id: string
+    operator?: ConditionLogic
+    conditions?: TriggerConditionRow[]
+}
+
+type TriggerDetailRow = {
+    id: string
+    name: string
+    type: TriggerType
+    description: string | null
+    is_active?: boolean
+    conditions_logic?: ConditionLogic
+    time_minutes?: number | null
+    schedule_config?: JsonObject | null
+    trigger_actions?: TriggerActionRow[]
+    trigger_conditions?: TriggerConditionRow[]
+    trigger_condition_groups?: TriggerConditionGroupRow[]
+}
+
+type SaveTriggerPayload = {
+    id?: string
+    name: string
+    type: TriggerType
+    description: string
+    actions: { type: string, payload: Record<string, unknown>, action_order?: number, delay_seconds?: number }[]
+    conditions?: { type: string, condition_type?: string, operator: string, value: string, payload?: Record<string, unknown> }[]
+    conditionsLogic?: ConditionLogic
+}
+
+function omitTriggerIdentifiers<T extends { id?: string; trigger_id?: string }>(row: T): Omit<T, 'id' | 'trigger_id'> {
+    const clone = { ...row }
+    delete clone.id
+    delete clone.trigger_id
+    return clone
+}
+
 export async function getTriggers() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -37,9 +108,9 @@ export async function getTriggers() {
     }
 
     // Transform data to include action count cleanly
-    return data.map((t: any) => ({
+    return (data as TriggerListRow[]).map((t): TriggerListItem => ({
         ...t,
-        action_count: t.trigger_actions[0]?.count || 0
+        action_count: t.trigger_actions?.[0]?.count || 0
     }))
 }
 
@@ -72,19 +143,20 @@ export async function duplicateTrigger(id: string) {
         .single()
 
     if (!source) throw new Error('Trigger not found')
+    const sourceTrigger = source as TriggerDetailRow
 
     // Insert new trigger
     const { data: newTrigger } = await supabase
         .from('triggers')
         .insert({
             user_id: user.id,
-            name: `Copia de ${source.name}`,
-            type: source.type,
-            description: source.description,
+            name: `Copia de ${sourceTrigger.name}`,
+            type: sourceTrigger.type,
+            description: sourceTrigger.description,
             is_active: false,
-            conditions_logic: source.conditions_logic,
-            time_minutes: source.time_minutes,
-            schedule_config: source.schedule_config,
+            conditions_logic: sourceTrigger.conditions_logic,
+            time_minutes: sourceTrigger.time_minutes,
+            schedule_config: sourceTrigger.schedule_config,
         })
         .select('id')
         .single()
@@ -92,19 +164,21 @@ export async function duplicateTrigger(id: string) {
     if (!newTrigger) throw new Error('Failed to duplicate trigger')
 
     // Copy conditions
-    if (source.trigger_conditions?.length) {
+    if (sourceTrigger.trigger_conditions?.length) {
         await supabase.from('trigger_conditions').insert(
-            source.trigger_conditions.map(({ id: _id, trigger_id: _tid, ...c }: any) => ({
-                ...c, trigger_id: newTrigger.id
+            sourceTrigger.trigger_conditions.map(condition => ({
+                ...omitTriggerIdentifiers(condition),
+                trigger_id: newTrigger.id
             }))
         )
     }
 
     // Copy actions
-    if (source.trigger_actions?.length) {
+    if (sourceTrigger.trigger_actions?.length) {
         await supabase.from('trigger_actions').insert(
-            source.trigger_actions.map(({ id: _id, trigger_id: _tid, ...a }: any) => ({
-                ...a, trigger_id: newTrigger.id
+            sourceTrigger.trigger_actions.map(action => ({
+                ...omitTriggerIdentifiers(action),
+                trigger_id: newTrigger.id
             }))
         )
     }
@@ -151,34 +225,28 @@ export async function getTrigger(id: string) {
     }
 
     // Sort actions by order
-    if (data.trigger_actions) {
-        data.trigger_actions.sort((a: any, b: any) => a.action_order - b.action_order)
+    const trigger = data as TriggerDetailRow
+
+    if (trigger.trigger_actions) {
+        trigger.trigger_actions.sort((a, b) => (a.action_order ?? 0) - (b.action_order ?? 0))
     }
 
     // If we have condition groups, flatten conditions from the first group and expose conditionsLogic
-    if ((data as any).trigger_condition_groups?.length > 0) {
-        const group = (data as any).trigger_condition_groups[0]
-        ;(data as any).conditions_logic = group.operator || 'AND'
+    if (trigger.trigger_condition_groups?.length) {
+        const group = trigger.trigger_condition_groups[0]
+        trigger.conditions_logic = group.operator || 'AND'
         // Prefer conditions from groups
-        if (group.conditions?.length > 0) {
-            ;(data as any).trigger_conditions = group.conditions
+        if ((group.conditions?.length ?? 0) > 0) {
+            trigger.trigger_conditions = group.conditions
         }
     }
 
-    return data
+    return trigger
 }
 
 export async function saveTrigger(
     assistantId: string,
-    triggerData: {
-        id?: string,
-        name: string,
-        type: 'logic' | 'flow' | 'time' | 'manual' | 'scheduled',
-        description: string,
-        actions: { type: string, payload: any, action_order?: number, delay_seconds?: number }[],
-        conditions?: { type: string, condition_type?: string, operator: string, value: string, payload?: any }[],
-        conditionsLogic?: 'AND' | 'OR',
-    }
+    triggerData: SaveTriggerPayload
 ) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -246,7 +314,7 @@ export async function saveTrigger(
         .eq('trigger_id', triggerId)
 
     if (existingGroups?.length) {
-        const groupIds = existingGroups.map((g: any) => g.id)
+        const groupIds = (existingGroups as { id: string }[]).map(g => g.id)
         // Delete conditions linked to these groups first
         await supabase.from('trigger_conditions').delete().in('group_id', groupIds)
         await supabase.from('trigger_condition_groups').delete().eq('trigger_id', triggerId)

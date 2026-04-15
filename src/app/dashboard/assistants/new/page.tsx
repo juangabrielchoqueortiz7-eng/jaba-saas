@@ -1,8 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { ArrowLeft, Save, Bot, MessageSquare, Settings, ChevronDown, Layers, Trash2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Save, Bot, MessageSquare, Settings, Layers, Trash2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -16,6 +17,7 @@ import {
     type OnEdgesChange,
     type OnConnect,
     type NodeTypes,
+    type NodeMouseHandler,
     Panel,
     BackgroundVariant,
     MarkerType,
@@ -26,11 +28,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
     Save, ArrowLeft, Power, PowerOff, Trash2, Copy,
-    MessageSquare, MousePointerClick, GitBranch, Bot, Clock, Zap, ListOrdered, Image, Send
+    MessageSquare, MousePointerClick, GitBranch, Bot, Clock, Zap, ListOrdered, Send
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { getFlowDetails, saveFlowCanvas, updateFlow } from '../actions'
-import { getFlows, type ConversationFlow } from '../actions'
+import { getFlows } from '../actions'
+import type { FlowButton, FlowListRow, FlowParam, WizardStepConfig } from '../wizard-utils'
 
 // ========================
 // CUSTOM NODES
@@ -49,12 +52,33 @@ const nodeColors: Record<string, { bg: string; border: string; icon: string }> =
     send_template: { bg: 'rgba(245,158,11,0.15)', border: '#f59e0b', icon: '📨' },
 }
 
-function isNodeConfigured(nodeType: string, config: any): boolean {
+type FlowNodeData = {
+    label: string
+    nodeType: string
+    config: WizardStepConfig
+    preview?: string
+    isNew?: boolean
+}
+
+type FlowEditorNode = Node<FlowNodeData>
+
+type MetaTemplateSummary = {
+    name: string
+    body: string
+}
+
+type MetaTemplateApiItem = {
+    status?: string
+    name: string
+    components?: Array<{ type: string; text?: string }>
+}
+
+function isNodeConfigured(nodeType: string, config: WizardStepConfig): boolean {
     if (!config) return false
-    if (nodeType === 'trigger') return config.trigger_type !== 'keyword' || (config.keywords?.length > 0)
+    if (nodeType === 'trigger') return config.trigger_type !== 'keyword' || ((config.keywords?.length ?? 0) > 0)
     if (nodeType === 'message') return !!config.text?.trim()
-    if (nodeType === 'buttons') return !!config.text?.trim() && config.buttons?.length > 0
-    if (nodeType === 'list') return !!config.body?.trim() && config.rows?.length > 0
+    if (nodeType === 'buttons') return !!config.text?.trim() && ((config.buttons?.length ?? 0) > 0)
+    if (nodeType === 'list') return !!config.body?.trim() && ((config.rows?.length ?? 0) > 0)
     if (nodeType === 'condition') return !!config.value?.trim()
     if (nodeType === 'wait_input') return !!config.variable_name?.trim()
     if (nodeType === 'action') return !!config.action_type
@@ -62,7 +86,7 @@ function isNodeConfigured(nodeType: string, config: any): boolean {
     return true
 }
 
-function FlowNode({ data, selected }: { data: any; selected: boolean }) {
+function FlowNode({ data, selected }: { data: FlowNodeData; selected: boolean }) {
     const colors = nodeColors[data.nodeType] || nodeColors.message
     const isCondition = data.nodeType === 'condition'
     const isTrigger = data.nodeType === 'trigger'
@@ -107,7 +131,7 @@ function FlowNode({ data, selected }: { data: any; selected: boolean }) {
                 </div>
             )}
             {data.preview && configured && (
-                <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {data.preview}
                 </div>
             )}
@@ -219,12 +243,12 @@ function FlowVariableButtons({ onInsert }: { onInsert: (key: string) => void }) 
     )
 }
 
-function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Node; onUpdate: (config: any, label: string) => void; onClose: () => void; metaTemplates?: Array<{ name: string; body: string }> }) {
-    const [config, setConfig] = useState<any>(node.data.config || {})
+function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: FlowEditorNode; onUpdate: (config: WizardStepConfig, label: string) => void; onClose: () => void; metaTemplates?: MetaTemplateSummary[] }) {
+    const [config, setConfig] = useState<WizardStepConfig>(node.data.config || {})
     const [label, setLabel] = useState<string>((node.data.label as string) || '')
     const nodeType = node.data.nodeType as string
 
-    const updateConfig = (key: string, value: any) => {
+    const updateConfig = (key: string, value: WizardStepConfig[string]) => {
         const newConfig = { ...config, [key]: value }
         setConfig(newConfig)
         onUpdate(newConfig, label)
@@ -279,7 +303,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Nod
                             <>
                                 <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué palabras activan este flujo? (separadas por coma)</label>
                                 <Input
-                                    value={(config.keywords || []).join(', ')}
+                                    value={Array.isArray(config.keywords) ? config.keywords.join(', ') : (config.keywords || '')}
                                     onChange={e => updateConfig('keywords', e.target.value.split(',').map((k: string) => k.trim()).filter(Boolean))}
                                     placeholder="hola, bienvenido, inicio"
                                     style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
@@ -338,7 +362,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Nod
                             style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
                         <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Botones (máx 3)</label>
-                        {(config.buttons || [{ id: '', title: '' }]).map((btn: any, i: number) => (
+                        {(config.buttons || [{ id: '', title: '' }]).map((btn: FlowButton, i: number) => (
                             <div key={i} style={{ display: 'flex', gap: 6 }}>
                                 <Input
                                     value={btn.id}
@@ -393,7 +417,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Nod
                             Opciones de la lista
                             <span style={{ color: '#4b5563', fontWeight: 400, marginLeft: 6 }}>máx 10</span>
                         </label>
-                        {(config.rows || [{ id: '', title: '', description: '' }]).map((row: any, i: number) => (
+                        {(config.rows || [{ id: '', title: '', description: '' }]).map((row: FlowListRow, i: number) => (
                             <div key={i} style={{ background: 'rgba(15,15,25,0.6)', borderRadius: 8, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
                                 <div style={{ display: 'flex', gap: 6 }}>
                                     <Input
@@ -407,7 +431,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Nod
                                         style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#e2e8f0', flex: 1, fontSize: '0.8rem' }}
                                     />
                                     <Button
-                                        onClick={() => updateConfig('rows', (config.rows || []).filter((_: any, idx: number) => idx !== i))}
+                                    onClick={() => updateConfig('rows', (config.rows || []).filter((_, idx) => idx !== i))}
                                         style={{ color: '#ef4444', background: 'transparent', padding: '4px 8px', flexShrink: 0 }}
                                     >✕</Button>
                                 </div>
@@ -595,7 +619,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Nod
                             Parámetros del cuerpo{' '}
                             <span style={{ color: '#4b5563', fontWeight: 400 }}>({'{{1}}'}, {'{{2}}'}, ...)</span>
                         </label>
-                        {(config.params || []).map((p: any, i: number) => (
+                        {(config.params || []).map((p: FlowParam, i: number) => (
                             <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <span style={{ color: '#64748b', fontSize: '0.75rem', flexShrink: 0, width: 32 }}>{`{{${i + 1}}}`}</span>
                                 <Input
@@ -609,7 +633,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Nod
                                     style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', flex: 1, fontSize: '0.8rem' }}
                                 />
                                 <Button
-                                    onClick={() => updateConfig('params', (config.params || []).filter((_: any, idx: number) => idx !== i))}
+                                    onClick={() => updateConfig('params', (config.params || []).filter((_, idx) => idx !== i))}
                                     style={{ color: '#ef4444', background: 'transparent', padding: '4px 6px', flexShrink: 0 }}
                                 >✕</Button>
                             </div>
@@ -662,38 +686,34 @@ export default function FlowEditorPage() {
     const flowId = params.flowId as string
     const assistantId = params.assistantId as string
 
-    const [nodes, setNodes] = useState<Node[]>([])
+    const [nodes, setNodes] = useState<FlowEditorNode[]>([])
     const [edges, setEdges] = useState<Edge[]>([])
-    const [selectedNode, setSelectedNode] = useState<Node | null>(null)
+    const [selectedNode, setSelectedNode] = useState<FlowEditorNode | null>(null)
     const [flowName, setFlowName] = useState('')
     const [isActive, setIsActive] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [saveStatus, setSaveStatus] = useState<string>('')
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
-    const [metaTemplates, setMetaTemplates] = useState<Array<{ name: string; body: string }>>([])
+    const [metaTemplates, setMetaTemplates] = useState<MetaTemplateSummary[]>([])
 
     const nodeIdCounter = useRef(0)
 
-    useEffect(() => {
-        loadFlow()
-        loadMetaTemplates()
-    }, [flowId])
-
-    const loadMetaTemplates = async () => {
+    const loadMetaTemplates = useCallback(async () => {
         try {
             const res = await fetch('/api/meta-templates')
             const data = await res.json()
-            const approved = (data.templates || [])
-                .filter((t: any) => t.status === 'APPROVED')
-                .map((t: any) => ({
+            const templates = (data.templates || []) as MetaTemplateApiItem[]
+            const approved = templates
+                .filter(t => t.status === 'APPROVED')
+                .map(t => ({
                     name: t.name,
-                    body: t.components?.find((c: any) => c.type === 'BODY')?.text || '',
+                    body: t.components?.find(c => c.type === 'BODY')?.text || '',
                 }))
             setMetaTemplates(approved)
         } catch { }
-    }
+    }, [])
 
-    const loadFlow = async () => {
+    const loadFlow = useCallback(async () => {
         const [flows, details] = await Promise.all([
             getFlows(),
             getFlowDetails(flowId)
@@ -706,7 +726,7 @@ export default function FlowEditorPage() {
         }
 
         // Convert DB nodes to React Flow nodes
-        const rfNodes: Node[] = details.nodes.map(n => ({
+        const rfNodes: FlowEditorNode[] = details.nodes.map(n => ({
             id: n.id,
             type: 'flowNode',
             position: { x: n.position_x, y: n.position_y },
@@ -733,10 +753,17 @@ export default function FlowEditorPage() {
         setNodes(rfNodes)
         setEdges(rfEdges)
         nodeIdCounter.current = rfNodes.length
-    }
+    }, [flowId])
 
-    const getNodePreview = (type: string, config: any): string => {
-        if (type === 'trigger' && config.keywords?.length) return `Palabras: ${config.keywords.join(', ')}`
+    useEffect(() => {
+        void loadFlow()
+        void loadMetaTemplates()
+    }, [loadFlow, loadMetaTemplates])
+
+    function getNodePreview(type: string, config: WizardStepConfig): string {
+        if (type === 'trigger' && config.keywords?.length) {
+            return `Palabras: ${Array.isArray(config.keywords) ? config.keywords.join(', ') : config.keywords}`
+        }
         if (type === 'message' && config.text) return config.text.substring(0, 60)
         if (type === 'buttons' && config.buttons?.length) return `${config.buttons.length} botones`
         if (type === 'list' && config.rows?.length) return `${config.rows.length} opciones — "${config.button_text || 'Ver opciones'}"`
@@ -747,8 +774,8 @@ export default function FlowEditorPage() {
         return ''
     }
 
-    const onNodesChange: OnNodesChange = useCallback(
-        (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    const onNodesChange: OnNodesChange<FlowEditorNode> = useCallback(
+        (changes) => setNodes((nds) => applyNodeChanges<FlowEditorNode>(changes, nds)),
         []
     )
 
@@ -773,7 +800,7 @@ export default function FlowEditorPage() {
         // Place new nodes in a predictable vertical stack centered on the canvas
         const xCenter = 300
         const yOffset = nodeIdCounter.current * 160
-        const newNode: Node = {
+        const newNode: FlowEditorNode = {
             id,
             type: 'flowNode',
             position: { x: xCenter, y: yOffset },
@@ -790,8 +817,9 @@ export default function FlowEditorPage() {
         setSelectedNode(newNode)
     }
 
-    const handleNodeClick = (_: any, node: Node) => {
-        setSelectedNode(node)
+    const handleNodeClick: NodeMouseHandler = (_, node) => {
+        const typedNode = node as FlowEditorNode
+        setSelectedNode(typedNode)
         setContextMenu(null)
     }
 
@@ -806,7 +834,7 @@ export default function FlowEditorPage() {
         const node = nodes.find(n => n.id === nodeId)
         if (!node) return
         const newId = crypto.randomUUID()
-        const newNode: Node = {
+        const newNode: FlowEditorNode = {
             ...node,
             id: newId,
             position: { x: node.position.x + 40, y: node.position.y + 60 },
@@ -817,7 +845,7 @@ export default function FlowEditorPage() {
         setContextMenu(null)
     }, [nodes])
 
-    const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+    const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: FlowEditorNode) => {
         event.preventDefault()
         setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id })
         setSelectedNode(node)
@@ -828,7 +856,7 @@ export default function FlowEditorPage() {
         setContextMenu(null)
     }, [])
 
-    const handleNodeConfigUpdate = (config: any, label: string) => {
+    const handleNodeConfigUpdate = (config: WizardStepConfig, label: string) => {
         if (!selectedNode) return
         setNodes(nds => nds.map(n => {
             if (n.id === selectedNode.id) {
@@ -855,7 +883,7 @@ export default function FlowEditorPage() {
             return
         }
         const emptyTrigger = triggerNodes.find(n => {
-            const cfg = n.data.config as any
+            const cfg = n.data.config
             return cfg.trigger_type === 'keyword' && (!cfg.keywords || cfg.keywords.length === 0)
         })
         if (emptyTrigger) {
@@ -887,9 +915,9 @@ export default function FlowEditorPage() {
             await saveFlowCanvas(flowId, dbNodes, dbEdges)
             setSaveStatus('✅ Guardado')
             setTimeout(() => setSaveStatus(''), 3000)
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error saving:', err)
-            const msg = err?.message || 'Error desconocido'
+            const msg = err instanceof Error ? err.message : 'Error desconocido'
             setSaveStatus(`❌ ${msg}`)
             setTimeout(() => setSaveStatus(''), 6000)
         } finally {

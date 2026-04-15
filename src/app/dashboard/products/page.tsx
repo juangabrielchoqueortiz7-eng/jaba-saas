@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { getProducts, createProduct, deleteProduct, toggleProduct, updateProduct, type Product } from './actions'
 import { createClient } from '@/utils/supabase/client'
+import NextImage from 'next/image'
 
 // ── Category config ──────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -364,9 +365,12 @@ export default function ProductsPage() {
                             {(promoImageUrl || promoLocalPreview) ? (
                                 <div className="space-y-2">
                                     <div className="relative inline-block">
-                                        <img
+                                        <NextImage
                                             src={promoLocalPreview || promoImageUrl}
                                             alt="Imagen de catálogo"
+                                            width={640}
+                                            height={320}
+                                            unoptimized
                                             className="max-h-64 w-full rounded-xl border border-black/[0.08] object-contain bg-[#F7F8FA]"
                                         />
                                         {promoUploading && (
@@ -689,7 +693,14 @@ export default function ProductsPage() {
                             >
                                 {imagePreview ? (
                                     <>
-                                        <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+                                        <NextImage
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            width={80}
+                                            height={80}
+                                            unoptimized
+                                            className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                                        />
                                         <div>
                                             <p className="text-sm font-medium text-[#0F172A]">Imagen cargada</p>
                                             <p className="text-xs text-[#0F172A]/45 mt-0.5">Haz clic para cambiarla</p>
@@ -780,9 +791,12 @@ export default function ProductsPage() {
                                 <div className="flex items-start gap-4 flex-1 min-w-0">
                                     {/* Image or icon */}
                                     {product.qr_image_url ? (
-                                        <img
+                                        <NextImage
                                             src={product.qr_image_url}
                                             alt={product.name}
+                                            width={56}
+                                            height={56}
+                                            unoptimized
                                             className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-black/[0.06]"
                                         />
                                     ) : (

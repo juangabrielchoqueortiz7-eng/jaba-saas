@@ -24,7 +24,7 @@ interface SubscriptionTableProps {
 }
 
 export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete, onLocalUpdate }: SubscriptionTableProps) {
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
     const { openChat } = useChat();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
     const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
@@ -60,7 +60,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
         fetchSettings();
         console.log("SubscriptionTable v2 loaded");
-    }, []);
+    }, [supabase]);
     const [filtersState, setFilters] = useState({
         numero: '',
         correo: '',

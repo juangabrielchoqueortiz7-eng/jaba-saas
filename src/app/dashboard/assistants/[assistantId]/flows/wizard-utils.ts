@@ -3,7 +3,49 @@
 export interface WizardStep {
   id: string
   type: 'trigger' | 'message' | 'buttons' | 'list' | 'question' | 'ai_response' | 'action' | 'delay'
-  config: Record<string, any>
+  config: WizardStepConfig
+}
+
+export type FlowButton = {
+  id: string
+  title: string
+}
+
+export type FlowListRow = {
+  id: string
+  title: string
+  description?: string
+}
+
+export type FlowParam = {
+  label: string
+  value: string
+}
+
+export interface WizardStepConfig {
+  label?: string
+  keywords?: string | string[]
+  trigger_type?: string
+  button_id?: string
+  body?: string
+  footer?: string
+  condition_type?: string
+  value?: string
+  match_mode?: string
+  text?: string
+  buttons?: FlowButton[]
+  rows?: FlowListRow[]
+  variable_name?: string
+  button_text?: string
+  system_prompt?: string
+  action_type?: string
+  tag?: string
+  image_url?: string
+  caption?: string
+  seconds?: number
+  template_name?: string
+  params?: FlowParam[]
+  [key: string]: unknown
 }
 
 interface GeneratedNode {
@@ -12,7 +54,7 @@ interface GeneratedNode {
   label: string
   position_x: number
   position_y: number
-  config: Record<string, any>
+  config: WizardStepConfig
 }
 
 interface GeneratedEdge {
@@ -49,7 +91,9 @@ export function stepsToNodesEdges(steps: WizardStep[]): {
           position_y: currentY,
           config: {
             trigger_type: 'keyword',
-            keywords: (step.config.keywords || '').split(',').map((k: string) => k.trim()).filter(Boolean),
+            keywords: Array.isArray(step.config.keywords)
+              ? step.config.keywords.map(k => k.trim()).filter(Boolean)
+              : (step.config.keywords || '').split(',').map(k => k.trim()).filter(Boolean),
             match_mode: step.config.match_mode || 'contains',
           },
         })
@@ -71,7 +115,7 @@ export function stepsToNodesEdges(steps: WizardStep[]): {
       }
 
       case 'buttons': {
-        const buttons = (step.config.buttons || []).map((b: any, i: number) => ({
+        const buttons = (step.config.buttons || []).map((b, i) => ({
           id: b.id || `btn_${i + 1}`,
           title: b.title || `Opcion ${i + 1}`,
         }))
@@ -108,7 +152,7 @@ export function stepsToNodesEdges(steps: WizardStep[]): {
       }
 
       case 'list': {
-        const rows = (step.config.rows || []).map((r: any, i: number) => ({
+        const rows = (step.config.rows || []).map((r, i) => ({
           id: r.id || `opt_${i + 1}`,
           title: r.title || `Opcion ${i + 1}`,
           description: r.description || '',
@@ -268,7 +312,7 @@ export function stepsToNodesEdges(steps: WizardStep[]): {
 
 // ── Default step configs ───────────────────────────────────────────────────
 
-export function getDefaultStepConfig(type: WizardStep['type']): Record<string, any> {
+export function getDefaultStepConfig(type: WizardStep['type']): WizardStepConfig {
   switch (type) {
     case 'trigger':
       return { label: 'Activador', keywords: '', match_mode: 'contains' }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useTransition, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getTriggers, toggleTrigger, deleteTrigger, duplicateTrigger } from './actions'
+import type { TriggerListItem } from './actions'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,12 @@ interface Execution {
 }
 
 interface LogsStats { total: number; successful: number; failed: number }
+type TriggerRunResponse = { executed?: number; skipped?: number; error?: string }
+type TriggerExecutionResponse = { executions?: Execution[]; stats?: LogsStats }
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback
+}
 
 function LogsModal({ triggerId, triggerName, onClose }: { triggerId: string; triggerName: string; onClose: () => void }) {
     const [executions, setExecutions] = useState<Execution[]>([])
@@ -59,20 +66,34 @@ function LogsModal({ triggerId, triggerName, onClose }: { triggerId: string; tri
     const [loading, setLoading] = useState(true)
     const [expanded, setExpanded] = useState<string | null>(null)
 
-    const load = async () => {
-        setLoading(true)
+    const load = useCallback(async (showSpinner = false) => {
+        if (showSpinner) setLoading(true)
         try {
             const res = await fetch(`/api/trigger-executions?triggerId=${triggerId}&limit=30`)
-            const data = await res.json()
+            const data = await res.json() as TriggerExecutionResponse
             if (res.ok) {
                 setExecutions(data.executions || [])
-                setStats(data.stats)
+                setStats(data.stats || null)
             }
         } catch {}
         setLoading(false)
-    }
+    }, [triggerId])
 
-    useEffect(() => { load() }, [triggerId])
+    useEffect(() => {
+        let cancelled = false
+        fetch(`/api/trigger-executions?triggerId=${triggerId}&limit=30`)
+            .then(res => res.json() as Promise<TriggerExecutionResponse>)
+            .then(data => {
+                if (cancelled) return
+                setExecutions(data.executions || [])
+                setStats(data.stats || null)
+            })
+            .catch(() => {})
+            .finally(() => {
+                if (!cancelled) setLoading(false)
+            })
+        return () => { cancelled = true }
+    }, [triggerId])
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -85,7 +106,7 @@ function LogsModal({ triggerId, triggerName, onClose }: { triggerId: string; tri
                     </div>
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={load}
+                            onClick={() => void load(true)}
                             className="p-2 rounded-lg hover:bg-[#F7F8FA] text-slate-400 hover:text-slate-600 transition-colors"
                             title="Actualizar"
                         >
@@ -225,20 +246,20 @@ export default function TriggersPage() {
     const params = useParams()
     const assistantId = params?.assistantId as string
 
-    const [triggers, setTriggers] = useState<any[]>([])
+    const [triggers, setTriggers] = useState<TriggerListItem[]>([])
     const [search, setSearch] = useState('')
     const [showHelp, setShowHelp] = useState(false)
-    const [isPending, startTransition] = useTransition()
+    const [, startTransition] = useTransition()
     const [runningId, setRunningId] = useState<string | null>(null)
     const [runResult, setRunResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null)
     const [logsModal, setLogsModal] = useState<{ id: string; name: string } | null>(null)
 
-    useEffect(() => { loadTriggers() }, [])
-
-    const loadTriggers = async () => {
+    const loadTriggers = useCallback(async () => {
         const data = await getTriggers()
         setTriggers(data)
-    }
+    }, [])
+
+    useEffect(() => { void loadTriggers() }, [loadTriggers])
 
     const handleToggle = (id: string, currentState: boolean) => {
         setTriggers(prev => prev.map(t => t.id === id ? { ...t, is_active: !currentState } : t))
@@ -275,15 +296,15 @@ export default function TriggersPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ triggerId: id }),
             })
-            const data = await res.json()
+            const data = await res.json() as TriggerRunResponse
             if (!res.ok) {
                 setRunResult({ id, ok: false, msg: data.error || 'Error al ejecutar' })
             } else {
-                setRunResult({ id, ok: true, msg: `${data.executed} enviados, ${data.skipped} omitidos` })
+                setRunResult({ id, ok: true, msg: `${data.executed ?? 0} enviados, ${data.skipped ?? 0} omitidos` })
                 await loadTriggers()
             }
-        } catch (err: any) {
-            setRunResult({ id, ok: false, msg: err.message || 'Error desconocido' })
+        } catch (err: unknown) {
+            setRunResult({ id, ok: false, msg: getErrorMessage(err, 'Error desconocido') })
         } finally {
             setRunningId(null)
             setTimeout(() => setRunResult(null), 5000)
@@ -330,7 +351,7 @@ export default function TriggersPage() {
                 {showHelp && (
                     <div className="px-5 pb-5 space-y-4">
                         <p className="text-sm text-[#0F172A]/65 leading-relaxed">
-                            Una automatización es una <strong>regla de "si pasa X, haz Y"</strong> que funciona sola las 24 horas.
+                            Una automatización es una <strong>regla de &quot;si pasa X, haz Y&quot;</strong> que funciona sola las 24 horas.
                             Ejemplo: si un cliente lleva 30 minutos sin responder → el bot le envía un recordatorio automáticamente.
                         </p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -348,7 +369,7 @@ export default function TriggersPage() {
                             ))}
                         </div>
                         <div className="bg-[#fef9c3] border border-[#eab308]/30 rounded-lg px-4 py-3 text-xs text-[#0F172A]/65">
-                            <strong>📋 ¿Cómo crear una?</strong> Haz clic en "Nuevo Disparador", elige una plantilla rápida o créala desde cero. Solo necesitas decirle: <em>¿cuándo se activa?</em> y <em>¿qué hace?</em> Luego actívala con el interruptor y listo.
+                            <strong>📋 ¿Cómo crear una?</strong> Haz clic en &quot;Nuevo Disparador&quot;, elige una plantilla rápida o créala desde cero. Solo necesitas decirle: <em>¿cuándo se activa?</em> y <em>¿qué hace?</em> Luego actívala con el interruptor y listo.
                         </div>
                     </div>
                 )}

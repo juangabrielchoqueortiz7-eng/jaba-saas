@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import type { WizardStepConfig } from './wizard-utils'
 
 // ========================
 // TYPES
@@ -24,7 +25,7 @@ export type FlowNodeData = {
     label: string
     position_x: number
     position_y: number
-    config: any
+    config: WizardStepConfig
     created_at: string
 }
 
@@ -143,7 +144,7 @@ export async function getFlowDetails(flowId: string): Promise<{ nodes: FlowNodeD
 
 export async function saveFlowCanvas(
     flowId: string,
-    nodes: { id: string; type: string; label: string; position_x: number; position_y: number; config: any }[],
+    nodes: { id: string; type: string; label: string; position_x: number; position_y: number; config: WizardStepConfig }[],
     edges: { id: string; source_node_id: string; target_node_id: string; source_handle: string; label: string }[]
 ): Promise<void> {
     const supabase = await createClient()
@@ -212,7 +213,7 @@ export async function saveFlowCanvas(
 export async function createFlowFromTemplate(
     name: string,
     description: string,
-    templateNodes: { type: string; label: string; position_x: number; position_y: number; config: any }[],
+    templateNodes: { type: string; label: string; position_x: number; position_y: number; config: WizardStepConfig }[],
     templateEdges: { sourceIndex: number; targetIndex: number; source_handle: string; label: string }[]
 ): Promise<string | null> {
     const supabase = await createClient()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,18 @@ interface VariableMapping {
     label: string
     icon: string
     example: string
+}
+
+type TemplateBodyComponent = {
+    type: 'BODY'
+    text: string
+    example?: { body_text: string[][] }
+}
+
+type MetaTemplateResponse = { error?: string }
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback
 }
 
 const VARIABLE_MAPPINGS: Record<string, VariableMapping[]> = {
@@ -181,7 +193,7 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
             .replace(/[^a-z0-9_]/g, '')
 
         const examples = buildBodyExamples(body)
-        const bodyComponent: any = { type: 'BODY', text: body }
+        const bodyComponent: TemplateBodyComponent = { type: 'BODY', text: body }
         if (examples.length > 0) bodyComponent.example = { body_text: examples }
 
         setSubmitting(true)
@@ -196,12 +208,12 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                     components: [bodyComponent],
                 }),
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error)
+            const data = await res.json() as MetaTemplateResponse
+            if (!res.ok) throw new Error(data.error || 'Error al crear la plantilla')
             toast.success('¡Plantilla enviada a Meta! Aparecerá en estado "Pendiente".')
             onSuccess()
-        } catch (err: any) {
-            toast.error(err.message || 'Error al crear la plantilla')
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, 'Error al crear la plantilla'))
         } finally {
             setSubmitting(false)
         }
@@ -367,7 +379,7 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                                                     </code>
                                                     <span className="text-slate-400">=</span>
                                                     <span className="text-slate-600">{m.icon} {m.label}</span>
-                                                    <span className="text-slate-400 ml-auto italic">ej: "{m.example}"</span>
+                                                    <span className="text-slate-400 ml-auto italic">ej: &quot;{m.example}&quot;</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -480,7 +492,7 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                         {/* Info banner */}
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 leading-relaxed">
                             <strong>Meta revisa las plantillas</strong> — después de enviar, la plantilla aparecerá
-                            como <em>"Pendiente"</em> hasta ser aprobada (generalmente en minutos a pocas horas).
+                            como <em>&quot;Pendiente&quot;</em> hasta ser aprobada (generalmente en minutos a pocas horas).
                             Solo las plantillas <strong>APROBADAS</strong> pueden usarse en envíos masivos.
                         </div>
 

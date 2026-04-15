@@ -8,9 +8,6 @@ export interface Plan {
     highlight?: boolean
 }
 
-// Base rate for savings calculation: free plan recharge = $9.99 / 500 = $0.01998 per conv
-const BASE_RATE = 9.99 / 500
-
 export const PLANS: Plan[] = [
     {
         id: 'free',

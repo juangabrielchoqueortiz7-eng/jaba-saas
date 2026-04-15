@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
-    Plus, Search, FileText, RefreshCw, CheckCircle2, XCircle,
-    AlertCircle, Send, Copy, MessageSquare, Zap, Image, Video, FileIcon, Settings2
+    Plus, Search, FileText, RefreshCw, CheckCircle2,
+    AlertCircle, Send, Copy, MessageSquare, Zap, Image as ImageIcon, Video, FileIcon, Settings2
 } from 'lucide-react'
 import MetaTemplateBuilder from './MetaTemplateBuilder'
 import SimpleTemplateWizard from './SimpleTemplateWizard'
@@ -26,6 +26,12 @@ type MetaTemplate = {
     }>
 }
 
+type MetaTemplatesResponse = { templates?: MetaTemplate[]; error?: string }
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback
+}
+
 const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
     APPROVED:  { label: 'Aprobada',    dot: 'bg-emerald-400', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
     PENDING:   { label: 'En revisión', dot: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -34,7 +40,7 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string 
     DISABLED:  { label: 'Desactivada', dot: 'bg-slate-400',   badge: 'bg-slate-100 text-slate-600 border-slate-200' },
 }
 
-const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: ReactNode }> = {
     MARKETING:      { label: 'Marketing',      color: 'text-purple-600 bg-purple-50',  icon: <Zap size={11} /> },
     UTILITY:        { label: 'Utilidad',        color: 'text-blue-600 bg-blue-50',      icon: <Settings2 size={11} /> },
     AUTHENTICATION: { label: 'Autenticación',   color: 'text-orange-600 bg-orange-50',  icon: <CheckCircle2 size={11} /> },
@@ -63,7 +69,7 @@ function WhatsAppPreview({ template }: { template: MetaTemplate }) {
                 {header && (
                     header.format === 'IMAGE' ? (
                         <div className="bg-slate-200 h-28 flex items-center justify-center">
-                            <Image size={28} className="text-slate-400" />
+                            <ImageIcon size={28} className="text-slate-400" />
                             <span className="ml-2 text-slate-400 text-xs">Imagen</span>
                         </div>
                     ) : header.format === 'VIDEO' ? (
@@ -264,10 +270,10 @@ export default function TemplatesPage() {
         setMetaLoading(true); setMetaError(null)
         try {
             const res = await fetch('/api/meta-templates')
-            const data = await res.json()
+            const data = await res.json() as MetaTemplatesResponse
             if (!res.ok) throw new Error(data.error || 'Error al cargar plantillas de Meta')
             setMetaTemplates(data.templates || [])
-        } catch (err: any) { setMetaError(err.message) }
+        } catch (err: unknown) { setMetaError(getErrorMessage(err, 'Error al cargar plantillas de Meta')) }
         finally { setMetaLoading(false) }
     }
 
@@ -370,7 +376,7 @@ export default function TemplatesPage() {
                                     <MessageSquare size={28} className="text-slate-300" />
                                 </div>
                                 <p className="font-semibold text-slate-600 mb-1">Aún no tienes plantillas</p>
-                                <p className="text-xs text-slate-400 mb-4">Crea tu primera plantilla con el botón "Nueva Plantilla"</p>
+                                <p className="text-xs text-slate-400 mb-4">Crea tu primera plantilla con el botón &quot;Nueva Plantilla&quot;</p>
                                 <Button
                                     onClick={() => setBuilderOpen(true)}
                                     className="bg-[#25D366] hover:bg-[#20B858] text-white gap-2 rounded-xl"

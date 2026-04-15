@@ -2,10 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, User, Bot, Sparkles, Save, Check, Loader2, Wand2, ChevronDown, ChevronUp, Code } from 'lucide-react'
+import { Send, User, Bot, Sparkles, Save, Check, Loader2, Wand2, Code } from 'lucide-react'
 import { useParams } from 'next/navigation'
 
 import { simulateChatAction } from '../../actions'
@@ -157,7 +155,7 @@ export default function TrainingPage() {
             if (response) {
                 setSimulatedMessages(prev => [...prev, { role: 'assistant', content: response }])
             }
-        } catch (error) {
+        } catch {
             setSimulatedMessages(prev => [...prev, { role: 'assistant', content: "Error de conexión con IA." }])
         } finally {
             setIsGenerating(false)
@@ -237,7 +235,7 @@ export default function TrainingPage() {
                     <div className="flex-1 bg-white rounded-xl shadow-sm border border-black/[0.08] flex flex-col overflow-y-auto">
                         <div className="p-6 space-y-5">
                             <div className="p-3 bg-indigo-50 border border-indigo-200/60 rounded-lg text-xs text-indigo-600">
-                                Completa los campos y el prompt se generará automáticamente. Puedes cambiar al modo "Avanzado" para editarlo manualmente.
+                                Completa los campos y el prompt se generará automáticamente. Puedes cambiar al modo &quot;Avanzado&quot; para editarlo manualmente.
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

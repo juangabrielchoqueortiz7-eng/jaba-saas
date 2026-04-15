@@ -5,17 +5,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp,
-  GripVertical, Wand2, Eye, EyeOff, Info,
+  Eye, EyeOff, Info,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createFlow, saveFlowCanvas } from './actions'
-import type { WizardStep } from './wizard-utils'
+import type { FlowButton, FlowListRow, WizardStep, WizardStepConfig } from './wizard-utils'
 import { stepsToNodesEdges, getDefaultStepConfig, STEP_TYPE_INFO } from './wizard-utils'
 import PhonePreview from './PhonePreview'
 
 // ── Step Editor Components ─────────────────────────────────────────────────
 
-function TriggerStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function TriggerStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   return (
     <div className="space-y-3">
       <div>
@@ -46,7 +46,7 @@ function TriggerStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
   )
 }
 
-function MessageStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function MessageStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   return (
     <div className="space-y-2">
       <label className="text-xs font-medium text-slate-500 mb-1 block">Mensaje</label>
@@ -64,7 +64,7 @@ function MessageStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
   )
 }
 
-function ButtonsStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function ButtonsStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   const buttons = step.config.buttons || [{ id: 'btn_1', title: '' }]
   return (
     <div className="space-y-3">
@@ -81,7 +81,7 @@ function ButtonsStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Botones (maximo 3)</label>
         <div className="space-y-2">
-          {buttons.map((btn: any, i: number) => (
+          {buttons.map((btn: FlowButton, i: number) => (
             <div key={i} className="flex items-center gap-2">
               <span className="text-xs text-slate-400 w-5 text-center">{i + 1}</span>
               <Input
@@ -96,7 +96,7 @@ function ButtonsStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
               />
               {buttons.length > 1 && (
                 <button
-                  onClick={() => onChange({ ...step.config, buttons: buttons.filter((_: any, idx: number) => idx !== i) })}
+                  onClick={() => onChange({ ...step.config, buttons: buttons.filter((_, idx) => idx !== i) })}
                   className="p-1 text-red-400 hover:text-red-500"
                 >
                   <Trash2 size={14} />
@@ -118,7 +118,7 @@ function ButtonsStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
   )
 }
 
-function ListStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function ListStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   const rows = step.config.rows || [{ id: 'opt_1', title: '', description: '' }]
   return (
     <div className="space-y-3">
@@ -144,7 +144,7 @@ function ListStepEditor({ step, onChange }: { step: WizardStep; onChange: (confi
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Opciones de la lista (max 10)</label>
         <div className="space-y-2">
-          {rows.map((row: any, i: number) => (
+          {rows.map((row: FlowListRow, i: number) => (
             <div key={i} className="flex items-start gap-2">
               <span className="text-xs text-slate-400 w-5 text-center mt-2">{i + 1}</span>
               <div className="flex-1 space-y-1">
@@ -171,7 +171,7 @@ function ListStepEditor({ step, onChange }: { step: WizardStep; onChange: (confi
               </div>
               {rows.length > 1 && (
                 <button
-                  onClick={() => onChange({ ...step.config, rows: rows.filter((_: any, idx: number) => idx !== i) })}
+                  onClick={() => onChange({ ...step.config, rows: rows.filter((_, idx) => idx !== i) })}
                   className="p-1 text-red-400 hover:text-red-500 mt-1"
                 >
                   <Trash2 size={13} />
@@ -193,7 +193,7 @@ function ListStepEditor({ step, onChange }: { step: WizardStep; onChange: (confi
   )
 }
 
-function QuestionStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function QuestionStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   return (
     <div className="space-y-3">
       <div>
@@ -222,7 +222,7 @@ function QuestionStepEditor({ step, onChange }: { step: WizardStep; onChange: (c
   )
 }
 
-function AIStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function AIStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   return (
     <div className="space-y-2">
       <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
@@ -240,7 +240,7 @@ function AIStepEditor({ step, onChange }: { step: WizardStep; onChange: (config:
   )
 }
 
-function ActionStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function ActionStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   return (
     <div className="space-y-3">
       <div>
@@ -292,7 +292,7 @@ function ActionStepEditor({ step, onChange }: { step: WizardStep; onChange: (con
   )
 }
 
-function DelayStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: Record<string, any>) => void }) {
+function DelayStepEditor({ step, onChange }: { step: WizardStep; onChange: (config: WizardStepConfig) => void }) {
   return (
     <div className="space-y-2">
       <label className="text-xs font-medium text-slate-500 mb-1 block">Segundos de espera</label>
@@ -370,7 +370,7 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
     setSteps(steps.filter((_, i) => i !== index))
   }
 
-  const updateStepConfig = (index: number, config: Record<string, any>) => {
+  const updateStepConfig = (index: number, config: WizardStepConfig) => {
     setSteps(steps.map((s, i) => i === index ? { ...s, config } : s))
   }
 
@@ -389,7 +389,10 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
     if (!flowName.trim()) return alert('El nombre del flujo es obligatorio')
 
     const triggerStep = steps[0]
-    const keywords = (triggerStep.config.keywords || '').split(',').map((k: string) => k.trim()).filter(Boolean)
+    const keywordSource = triggerStep.config.keywords
+    const keywords = Array.isArray(keywordSource)
+      ? keywordSource.map(k => k.trim()).filter(Boolean)
+      : (keywordSource || '').split(',').map(k => k.trim()).filter(Boolean)
     if (keywords.length === 0) return alert('Agrega al menos una palabra clave en el Activador')
 
     if (steps.length < 2) return alert('Agrega al menos un paso despues del Activador')

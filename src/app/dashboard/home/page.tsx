@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
-import { CheckCircle, CheckCircle2, Bot, BookOpen, Zap, ShoppingBag, MessageSquare, Sparkles, TrendingUp, ArrowRight, Bell, AlertTriangle, Calendar, Users, Activity, Send, FileText, Rocket } from 'lucide-react'
+import { CheckCircle2, Bot, BookOpen, Zap, ShoppingBag, MessageSquare, Sparkles, TrendingUp, ArrowRight, Bell, AlertTriangle, Calendar, Users, Activity, Send, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { isOverLimit, isNearLimit } from '@/lib/plans'
 
@@ -290,7 +290,7 @@ export default async function HomePage() {
                                 </span>
                             </h2>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                {vencen7d.slice(0, 8).map((sub, i) => {
+                                {vencen7d.slice(0, 8).map((sub) => {
                                     const days = diffDays(sub.vencimiento)
                                     const urgent = days <= 1
                                     return (

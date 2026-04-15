@@ -9,8 +9,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Plus, Save, ArrowLeft, Trash2, Filter, AlertCircle, Calendar,
-  Users, Clock, ChevronDown, ChevronUp, Zap, MessageSquare,
-  Tag, Globe, Webhook, Pause, Play, Bot, RefreshCw, Info,
+  Users, Clock, ChevronDown, ChevronUp, Zap,
+  Webhook, Info,
 } from 'lucide-react'
 import { HelpTooltip } from '@/components/ui/help-tooltip'
 import { TagAutocomplete } from '@/components/ui/tag-autocomplete'
@@ -42,18 +42,57 @@ type ConditionOperator =
   | 'greater_than' | 'greater_equal' | 'less_than' | 'less_equal'
   | 'starts_with' | 'ends_with'
 
+type InteractiveButton = { id: string; title: string }
+
+type ConditionPayload = {
+  flags?: string
+  field_name?: string
+  words?: string
+  tag?: string
+  count?: number
+  [key: string]: string | number | boolean | undefined
+}
+
+type TriggerActionPayloadValue = string | number | boolean | string[] | InteractiveButton[] | undefined
+
+type TriggerActionPayload = {
+  message?: string
+  instruction?: string
+  context?: string
+  url?: string
+  type?: string
+  caption?: string
+  template_name?: string
+  templateName?: string
+  language?: string
+  variables?: string[]
+  header?: string
+  body?: string
+  buttons?: InteractiveButton[]
+  tag?: string
+  status?: string
+  field_name?: string
+  value?: string
+  title?: string
+  method?: string
+  flow_id?: string
+  flowId?: string
+  seconds?: number
+  [key: string]: TriggerActionPayloadValue
+}
+
 interface TriggerCondition {
   id?: string
   condition_type: ConditionType
   operator: ConditionOperator
   value: string
-  payload?: Record<string, any>
+  payload?: ConditionPayload
 }
 
 interface TriggerAction {
   id?: string
   type: ActionType
-  payload: Record<string, any>
+  payload: TriggerActionPayload
   action_order?: number
   delay_seconds?: number
 }
@@ -76,6 +115,32 @@ interface TriggerBuilderProps {
   assistantId: string
   triggerId?: string
   initialTemplate?: TriggerTemplate
+}
+
+interface LoadedTriggerAction {
+  id?: string
+  type: string
+  payload?: TriggerActionPayload
+  action_order?: number
+  delay_seconds?: number
+}
+
+interface LoadedTriggerCondition {
+  id?: string
+  type?: string
+  condition_type?: string
+  operator?: ConditionOperator
+  value?: string
+  payload?: ConditionPayload
+}
+
+interface LoadedTrigger {
+  name: string
+  type: TriggerType
+  description: string | null
+  trigger_actions?: LoadedTriggerAction[]
+  trigger_conditions?: LoadedTriggerCondition[]
+  conditions_logic?: 'AND' | 'OR'
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -216,7 +281,7 @@ function detectTemplateVars(components: MetaTemplate['components']): number {
 }
 
 // Map legacy condition types to new ones when loading
-function normalizeLegacyCondition(cond: any): TriggerCondition {
+function normalizeLegacyCondition(cond: LoadedTriggerCondition): TriggerCondition {
   const typeMap: Record<string, ConditionType> = {
     has_tag: 'has_tag',
     contains_words: 'text_contains',
@@ -225,17 +290,18 @@ function normalizeLegacyCondition(cond: any): TriggerCondition {
     template_sent: 'text_contains',
     schedule: 'expiration_days',
   }
+  const rawType = cond.type || cond.condition_type || ''
   return {
     id: cond.id,
-    condition_type: (typeMap[cond.type] || cond.condition_type || cond.type) as ConditionType,
+    condition_type: (typeMap[rawType] || cond.condition_type || rawType) as ConditionType,
     operator: cond.operator || 'equals',
     value: cond.value || '',
     payload: cond.payload || {},
   }
 }
 
-function getDefaultConditionPayload(condType: ConditionType): { operator: ConditionOperator; value: string; payload?: any } {
-  const defaults: Partial<Record<ConditionType, { operator: ConditionOperator; value: string; payload?: any }>> = {
+function getDefaultConditionPayload(condType: ConditionType): { operator: ConditionOperator; value: string; payload?: ConditionPayload } {
+  const defaults: Partial<Record<ConditionType, { operator: ConditionOperator; value: string; payload?: ConditionPayload }>> = {
     text_contains: { operator: 'contains', value: '' },
     text_regex: { operator: 'equals', value: '', payload: { flags: 'i' } },
     text_matches_intent: { operator: 'equals', value: 'pregunta' },
@@ -255,8 +321,8 @@ function getDefaultConditionPayload(condType: ConditionType): { operator: Condit
   return defaults[condType] || { operator: 'equals', value: '' }
 }
 
-function getDefaultActionPayload(actionType: ActionType): Record<string, any> {
-  const defaults: Record<ActionType, Record<string, any>> = {
+function getDefaultActionPayload(actionType: ActionType): TriggerActionPayload {
+  const defaults: Record<ActionType, TriggerActionPayload> = {
     send_text: { message: '' },
     send_text_ai: { instruction: '', context: '' },
     send_media: { url: '', type: 'image', caption: '' },
@@ -272,6 +338,36 @@ function getDefaultActionPayload(actionType: ActionType): Record<string, any> {
     pause: { seconds: 5 },
   }
   return defaults[actionType] || {}
+}
+
+function getInitialScheduleConfig(triggerId?: string, initialTemplate?: TriggerTemplate): ScheduleConfig {
+  if (!triggerId && initialTemplate?.type === 'scheduled' && initialTemplate.scheduleConfig) {
+    return initialTemplate.scheduleConfig
+  }
+  return {
+    send_days: 'expiration',
+    audience_type: 'service',
+    audience_value: '',
+  }
+}
+
+function getInitialConditions(triggerId?: string, initialTemplate?: TriggerTemplate): TriggerCondition[] {
+  if (triggerId || !initialTemplate) return []
+  return (initialTemplate.conditions || []).map(c => ({
+    condition_type: c.condition_type as ConditionType,
+    operator: c.operator as ConditionOperator,
+    value: c.value,
+    payload: c.payload as ConditionPayload | undefined,
+  }))
+}
+
+function getInitialActions(triggerId?: string, initialTemplate?: TriggerTemplate): TriggerAction[] {
+  if (triggerId || !initialTemplate) return []
+  return (initialTemplate.actions || []).map(a => ({
+    type: a.type as ActionType,
+    payload: a.payload as TriggerActionPayload,
+    delay_seconds: a.delay_seconds ?? 0,
+  }))
 }
 
 // ── CardPicker Modal ──────────────────────────────────────────────────────────
@@ -731,7 +827,7 @@ function ActionEditor({
 }) {
   const at = action.type
 
-  const updatePayload = (key: string, value: any) => {
+  const updatePayload = (key: string, value: TriggerActionPayloadValue) => {
     onUpdate(index, { payload: { ...action.payload, [key]: value } })
   }
 
@@ -974,7 +1070,7 @@ function ActionEditor({
                 </button>
               )}
             </div>
-            {(action.payload.buttons || []).map((btn: any, bi: number) => (
+            {(action.payload.buttons || []).map((btn, bi) => (
               <div key={bi} className="flex gap-2 items-center">
                 <Input
                   className="h-8 text-xs bg-[#F7F8FA] border-black/[0.08]"
@@ -989,7 +1085,7 @@ function ActionEditor({
                 <button
                   type="button"
                   onClick={() => {
-                    const btns = action.payload.buttons.filter((_: any, i: number) => i !== bi)
+                    const btns = (action.payload.buttons || []).filter((_, i) => i !== bi)
                     updatePayload('buttons', btns)
                   }}
                   className="text-slate-400 hover:text-red-500"
@@ -1224,21 +1320,17 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const [showActionPicker, setShowActionPicker] = useState(false)
 
   // Trigger form
-  const [name, setName] = useState('')
-  const [type, setType] = useState<TriggerType>('logic')
+  const [name, setName] = useState(!triggerId && initialTemplate ? initialTemplate.name : '')
+  const [type, setType] = useState<TriggerType>(!triggerId && initialTemplate ? initialTemplate.type : 'logic')
   const [description, setDescription] = useState('')
-  const [timeMinutes, setTimeMinutes] = useState('30')
+  const [timeMinutes, setTimeMinutes] = useState(!triggerId && initialTemplate?.type === 'time' && initialTemplate.timeMinutes ? initialTemplate.timeMinutes : '30')
   const [flows, setFlows] = useState<ConversationFlow[]>([])
   const [selectedFlowId, setSelectedFlowId] = useState('')
-  const [conditionsLogic, setConditionsLogic] = useState<'AND' | 'OR'>('AND')
-  const [conditions, setConditions] = useState<TriggerCondition[]>([])
-  const [actions, setActions] = useState<TriggerAction[]>([])
+  const [conditionsLogic, setConditionsLogic] = useState<'AND' | 'OR'>(!triggerId && initialTemplate?.conditionsLogic ? initialTemplate.conditionsLogic : 'AND')
+  const [conditions, setConditions] = useState<TriggerCondition[]>(() => getInitialConditions(triggerId, initialTemplate))
+  const [actions, setActions] = useState<TriggerAction[]>(() => getInitialActions(triggerId, initialTemplate))
   const [metaTemplates, setMetaTemplates] = useState<MetaTemplate[]>([])
-  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
-    send_days: 'expiration',
-    audience_type: 'service',
-    audience_value: '',
-  })
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>(() => getInitialScheduleConfig(triggerId, initialTemplate))
 
   const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
 
@@ -1251,41 +1343,11 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
     fetch('/api/custom-fields').then(r => r.json()).then(d => setCustomFieldDefs(d.fields || [])).catch(() => {})
   }, [])
 
-  // Pre-fill from template (only when creating new, not editing)
-  useEffect(() => {
-    if (!triggerId && initialTemplate) {
-      setName(initialTemplate.name)
-      setType(initialTemplate.type)
-      if (initialTemplate.type === 'time' && initialTemplate.timeMinutes) {
-        setTimeMinutes(initialTemplate.timeMinutes)
-      }
-      if (initialTemplate.type === 'scheduled' && initialTemplate.scheduleConfig) {
-        setScheduleConfig(initialTemplate.scheduleConfig as any)
-      }
-      if (initialTemplate.conditionsLogic) setConditionsLogic(initialTemplate.conditionsLogic)
-      setConditions(
-        (initialTemplate.conditions || []).map(c => ({
-          condition_type: c.condition_type as ConditionType,
-          operator: c.operator as any,
-          value: c.value,
-          payload: c.payload,
-        }))
-      )
-      setActions(
-        (initialTemplate.actions || []).map(a => ({
-          type: a.type as ActionType,
-          payload: a.payload,
-          delay_seconds: a.delay_seconds ?? 0,
-        }))
-      )
-      setIsLoading(false)
-    }
-  }, [initialTemplate, triggerId])
-
   // Load existing trigger
   useEffect(() => {
     if (triggerId) {
-      getTrigger(triggerId).then(data => {
+      getTrigger(triggerId).then(rawData => {
+        const data = rawData as LoadedTrigger | null
         if (data) {
           setName(data.name)
           setType(data.type as TriggerType)
@@ -1294,14 +1356,14 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           else if (data.type === 'scheduled') {
             try { setScheduleConfig(JSON.parse(data.description || '{}')) } catch {}
           } else setDescription(data.description || '')
-          setActions((data.trigger_actions || []).map((a: any) => ({
+          setActions((data.trigger_actions || []).map(a => ({
             ...a,
             type: a.type as ActionType,
             payload: a.payload || {},
             delay_seconds: a.delay_seconds || 0,
           })))
           setConditions((data.trigger_conditions || []).map(normalizeLegacyCondition))
-          if ((data as any).conditions_logic) setConditionsLogic((data as any).conditions_logic)
+          if (data.conditions_logic) setConditionsLogic(data.conditions_logic)
         }
         setIsLoading(false)
       })
@@ -1370,9 +1432,9 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           conditionsLogic,
         })
         router.push(`/dashboard/assistants/${assistantId}/triggers`)
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[TriggerBuilder] Save error:', error)
-        const msg = error?.message || error?.toString() || 'Error desconocido'
+        const msg = error instanceof Error ? error.message : String(error || 'Error desconocido')
         alert(`Error al guardar la automatización:\n\n${msg}`)
       }
     })
@@ -1534,7 +1596,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                 <div className="space-y-3 animate-in fade-in">
                   <div className="flex gap-2 p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-400">
                     <Calendar size={13} className="shrink-0 mt-0.5" />
-                    <span>Se ejecuta automáticamente una vez al día. En la sección "¿Qué hace?" agrega una <strong>Plantilla de WhatsApp</strong>.</span>
+                    <span>Se ejecuta automáticamente una vez al día. En la sección &quot;¿Qué hace?&quot; agrega una <strong>Plantilla de WhatsApp</strong>.</span>
                   </div>
                   <div>
                     <Label className="text-xs text-slate-400 flex items-center gap-1"><Users size={12} /> Audiencia</Label>
@@ -1624,7 +1686,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1">
                 <Zap size={11} className="text-indigo-400" /> Datos que puedes usar en mensajes
               </p>
-              <p className="text-[10px] text-slate-400 mb-3">Usa el botón "+ Insertar dato" en cualquier mensaje para agregarlos automáticamente.</p>
+              <p className="text-[10px] text-slate-400 mb-3">Usa el botón &quot;+ Insertar dato&quot; en cualquier mensaje para agregarlos automáticamente.</p>
               <div className="space-y-3">
                 {[
                   { label: '👤 Datos del cliente', items: [

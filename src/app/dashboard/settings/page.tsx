@@ -4,11 +4,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Database, Plus, Trash2, Pencil, type LucideIcon } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Database, Plus, Trash2, type LucideIcon } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
@@ -359,9 +358,6 @@ export default function SettingsPage() {
     const [serviceName, setServiceName] = useState('')
     const [serviceDescription, setServiceDescription] = useState('')
     const [promoImageUrl, setPromoImageUrl] = useState('')
-    const [promoLocalPreview, setPromoLocalPreview] = useState('')
-    const [promoUploading, setPromoUploading] = useState(false)
-    const [promoDragging, setPromoDragging] = useState(false)
 
     // Business Config Fields (Etapa 1-4)
     const [timezone, setTimezone] = useState('America/La_Paz')
@@ -400,7 +396,7 @@ export default function SettingsPage() {
     const [testMsgLoading, setTestMsgLoading] = useState(false)
     const [testMsgResult, setTestMsgResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
 
 
 
@@ -428,7 +424,7 @@ export default function SettingsPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('whatsapp_credentials')
                 .select('*')
                 .eq('user_id', user.id)
@@ -448,7 +444,6 @@ export default function SettingsPage() {
                 setServiceName(data.service_name || '')
                 setServiceDescription(data.service_description || '')
                 setPromoImageUrl(data.promo_image_url || '')
-                setPromoLocalPreview(data.promo_image_url || '')
 
                 // Business Config
                 setTimezone(data.timezone || 'America/La_Paz')
@@ -471,7 +466,7 @@ export default function SettingsPage() {
             }
         }
         loadCredentials()
-    }, [])
+    }, [supabase])
 
     const testTts = async () => {
         setTtsStatus('checking')
@@ -558,32 +553,6 @@ export default function SettingsPage() {
             setMessage({ type: 'error', text: getErrorMessage(error, 'Error al guardar') })
         } finally {
             setLoading(false)
-        }
-    }
-
-    // Subir imagen de precios — muestra preview local inmediata, sube en background
-    const handlePromoUpload = async (file: File) => {
-        // 1. Preview local inmediata
-        const localUrl = URL.createObjectURL(file)
-        setPromoLocalPreview(localUrl)
-        setPromoUploading(true)
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
-            const ext = file.name.split('.').pop()
-            const path = `promo/${user?.id}_${Date.now()}.${ext}`
-            const { error: upErr } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
-            if (upErr) throw upErr
-            const { data: pub } = supabase.storage.from('assets').getPublicUrl(path)
-            setPromoImageUrl(pub.publicUrl)
-            setPromoLocalPreview(pub.publicUrl)
-            URL.revokeObjectURL(localUrl)
-        } catch (error) {
-            // Si falla el upload, mantener preview local pero avisar que no se guardó
-            const message = getErrorMessage(error, 'Error desconocido')
-            setMessage({ type: 'error', text: `No se pudo subir la imagen al servidor: ${message}. Asegúrate de haber creado el bucket "assets" en Supabase Storage (público).` })
-            // Dejar la preview local visible para que el usuario vea su imagen
-        } finally {
-            setPromoUploading(false)
         }
     }
 
@@ -1016,6 +985,14 @@ export default function SettingsPage() {
                                                     <p className="text-sm font-semibold text-[#0F172A]">Estado de Google Text-to-Speech</p>
                                                     <p className="text-xs text-slate-500 mt-0.5">
                                                         Requiere <code className="bg-slate-200 text-indigo-600 px-1 rounded text-[11px]">GOOGLE_API_KEY</code> con el servicio <strong>"Cloud Text-to-Speech API"</strong> habilitado en Google Cloud Console.
+                                                    </p>
+                                                    <p className={cn(
+                                                        "mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                                        googleApiKeyConfigured
+                                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                                                    )}>
+                                                        {googleApiKeyConfigured ? 'API key detectada' : 'API key no detectada'}
                                                     </p>
                                                 </div>
                                                 <button

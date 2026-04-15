@@ -3,7 +3,7 @@
  * Validates all 12+ action types, variable resolution, and execution pipeline
  */
 
-import ActionFactory, { executeActions, ActionContext, ActionResult } from './trigger-actions'
+import ActionFactory, { executeActions, ActionContext } from './trigger-actions'
 import { resolveVariables, extractVariables, AVAILABLE_VARIABLES } from './trigger-variables'
 
 // ── Test Context Builder ───────────────────────────────────────────────────
@@ -382,9 +382,6 @@ describe('executeActions pipeline', () => {
   })
 
   test('should execute actions in action_order sequence', async () => {
-    const executionOrder: string[] = []
-    const executor = ActionFactory.getExecutor('pause')!
-
     // Simulate order by checking results
     const context = createTestContext()
     const { results } = await executeActions([

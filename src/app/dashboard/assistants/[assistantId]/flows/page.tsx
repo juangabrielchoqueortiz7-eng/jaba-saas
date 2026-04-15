@@ -24,16 +24,26 @@ type PageTab = 'flows' | 'automations'
 
 type TargetType = 'subscriptions_expiring' | 'all_contacts' | 'tagged_contacts'
 
+type TemplateParam = { label: string; value: string }
+type TargetConfig = { tags?: string[] }
+type MetaTemplateButton = { type: string; text: string }
+type MetaTemplateComponent = {
+    type: string
+    text?: string
+    format?: string
+    buttons?: MetaTemplateButton[]
+}
+
 type AutomationJob = {
     id: string
     name: string
     template_name: string
-    template_params: any[]
+    template_params: TemplateParam[]
     hour: number
     timezone: string
     trigger_days_before: number
     target_type: TargetType
-    target_config: Record<string, any>
+    target_config: TargetConfig
     is_active: boolean
     last_run_at: string | null
     created_at: string
@@ -43,7 +53,7 @@ type MetaTemplate = {
     id: string
     name: string
     status: string
-    components: Array<{ type: string; text?: string; format?: string }>
+    components: MetaTemplateComponent[]
 }
 
 const TARGET_TYPE_OPTIONS: { value: TargetType; label: string; desc: string }[] = [
@@ -60,7 +70,7 @@ const EMPTY_JOB = {
     timezone: 'America/La_Paz',
     trigger_days_before: 1,
     target_type: 'all_contacts' as TargetType,
-    target_config: {} as Record<string, any>,
+    target_config: {} as TargetConfig,
     is_active: true,
 }
 
@@ -158,9 +168,9 @@ function WhatsAppPreview({ template, params }: { template: MetaTemplate | undefi
                     </div>
 
                     {/* Buttons (outside bubble, WhatsApp style) */}
-                    {buttons && (buttons as any).buttons && (
+                    {buttons?.buttons && (
                         <div className="mt-1 space-y-1">
-                            {((buttons as any).buttons as any[]).map((btn: any, i: number) => (
+                            {buttons.buttons.map((btn, i) => (
                                 <div key={i} className="bg-white rounded-lg text-center py-2 shadow-sm">
                                     <span className="text-[13px] text-[#00a5f4] font-medium">
                                         {btn.type === 'URL' ? '🔗 ' : btn.type === 'PHONE_NUMBER' ? '📞 ' : ''}
@@ -234,7 +244,6 @@ function VariableParamsEditor({
     targetType: TargetType
     onChange: (updated: { label: string; value: string }[]) => void
 }) {
-    const [activeVar, setActiveVar] = useState<number | null>(null)
     const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
 
     useEffect(() => {
@@ -268,12 +277,6 @@ function VariableParamsEditor({
         onChange(updated)
     }
 
-    const appendToParam = (i: number, variable: string) => {
-        const current = params[i]?.value || ''
-        setParam(i, current + variable)
-        setActiveVar(null)
-    }
-
     return (
         <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mb-2">
@@ -292,7 +295,6 @@ function VariableParamsEditor({
                                 placeholder="Escribe un valor o elige una variable abajo"
                                 value={params[i]?.value || ''}
                                 onChange={e => setParam(i, e.target.value)}
-                                onFocus={() => setActiveVar(i)}
                                 className="border-0 bg-transparent shadow-none text-sm h-7 p-0 text-[#0F172A] placeholder:text-slate-300 focus-visible:ring-0"
                             />
                             {params[i]?.value && (
@@ -622,7 +624,7 @@ export default function FlowsPage() {
     // Flows tab
     const [flows, setFlows] = useState<ConversationFlow[]>([])
     const [search, setSearch] = useState('')
-    const [isPending, startTransition] = useTransition()
+    const [, startTransition] = useTransition()
     const [showHelp, setShowHelp] = useState(false)
     const [showTemplates, setShowTemplates] = useState(false)
 
@@ -733,7 +735,10 @@ export default function FlowsPage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
-        const { id: _id, last_run_at: _lr, ...rest } = job as any
+        const { id: _id, last_run_at: _lr, created_at: _createdAt, ...rest } = job
+        void _id
+        void _lr
+        void _createdAt
         await supabase.from('automation_jobs').insert({
             ...rest,
             user_id: user.id,

@@ -26,6 +26,7 @@ import 'dayjs/locale/es'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import NextImage from 'next/image'
 
 dayjs.locale('es')
 
@@ -118,7 +119,7 @@ export default function OrdersPage() {
             await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', id)
             toast.success(newStatus === 'cancelled' ? 'Pedido revertido' : 'Estado actualizado')
             if (selectedOrder?.id === id) setSelectedOrder(prev => prev ? { ...prev, status: newStatus as Order['status'] } : null)
-        } catch (err) {
+        } catch {
             toast.error('Error al actualizar')
         }
     }
@@ -130,7 +131,7 @@ export default function OrdersPage() {
             toast.success('Pedido eliminado')
             setOrders(prev => prev.filter(o => o.id !== id))
             if (selectedOrder?.id === id) setSelectedOrder(null)
-        } catch (err) {
+        } catch {
             toast.error('Error al eliminar')
         }
     }
@@ -257,9 +258,12 @@ export default function OrdersPage() {
                                     {/* Payment proof thumbnail */}
                                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#F7F8FA] flex-shrink-0 border border-black/[0.08]">
                                         {order.payment_proof_url ? (
-                                            <img
+                                            <NextImage
                                                 src={order.payment_proof_url}
                                                 alt="Comprobante"
+                                                width={48}
+                                                height={48}
+                                                unoptimized
                                                 className="w-full h-full object-cover"
                                                 onClick={(e) => { e.stopPropagation(); setProofModal(order.payment_proof_url!) }}
                                             />
@@ -335,7 +339,14 @@ export default function OrdersPage() {
                                         className="relative rounded-lg overflow-hidden cursor-pointer group border border-black/[0.08]"
                                         onClick={() => setProofModal(selectedOrder.payment_proof_url!)}
                                     >
-                                        <img src={selectedOrder.payment_proof_url} alt="Comprobante" className="w-full max-h-48 object-contain bg-black" />
+                                        <NextImage
+                                            src={selectedOrder.payment_proof_url}
+                                            alt="Comprobante"
+                                            width={640}
+                                            height={320}
+                                            unoptimized
+                                            className="w-full max-h-48 object-contain bg-black"
+                                        />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                             <Eye size={24} className="text-white" />
                                         </div>
@@ -360,7 +371,15 @@ export default function OrdersPage() {
                                         {chatMessages.map(msg => (
                                             <div key={msg.id} className={cn("max-w-[90%] rounded-lg p-2", msg.is_from_me ? "ml-auto bg-[#25D366]/20 border border-[#25D366]/30" : "bg-[#F7F8FA] border border-black/[0.08]")}>
                                                 {msg.media_url && msg.media_type === 'image' && (
-                                                    <img src={msg.media_url} alt="" className="w-full rounded mb-1 max-h-24 object-cover cursor-pointer" onClick={() => setProofModal(msg.media_url!)} />
+                                                    <NextImage
+                                                        src={msg.media_url}
+                                                        alt=""
+                                                        width={240}
+                                                        height={96}
+                                                        unoptimized
+                                                        className="w-full rounded mb-1 max-h-24 object-cover cursor-pointer"
+                                                        onClick={() => setProofModal(msg.media_url!)}
+                                                    />
                                                 )}
                                                 <p className="text-[11px] text-[#0F172A]/65 whitespace-pre-wrap break-words">{msg.content}</p>
                                                 <p className="text-[9px] text-[#0F172A]/35 mt-1">{dayjs(msg.created_at).format("HH:mm")}</p>
@@ -427,7 +446,14 @@ export default function OrdersPage() {
                         <button onClick={() => setProofModal(null)} className="absolute -top-3 -right-3 bg-white text-[#0F172A] rounded-full p-2 hover:bg-[#F7F8FA] z-10 border border-slate-600">
                             <X size={18} />
                         </button>
-                        <img src={proofModal} alt="Comprobante" className="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain" />
+                        <NextImage
+                            src={proofModal}
+                            alt="Comprobante"
+                            width={960}
+                            height={960}
+                            unoptimized
+                            className="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain"
+                        />
                     </div>
                 </div>
             )}

@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, ArrowRight, Zap, Clock, Calendar, Tag, Bell, Users, Workflow, Star, ChevronRight, Plus } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { ArrowRight, Zap, Clock, Calendar, Bell, Users, Workflow, Star, ChevronRight, Plus } from 'lucide-react'
 
 // ── Types (mirrors TriggerBuilder) ───────────────────────────────────────────
 
@@ -11,12 +10,12 @@ export interface TemplateCondition {
   condition_type: string
   operator: string
   value: string
-  payload?: Record<string, any>
+  payload?: Record<string, unknown>
 }
 
 export interface TemplateAction {
   type: string
-  payload: Record<string, any>
+  payload: Record<string, unknown>
   delay_seconds?: number
 }
 
@@ -26,13 +25,17 @@ export interface TriggerTemplate {
   description: string
   badge: string
   badgeColor: string
-  icon: React.ReactNode
+  icon: ReactNode
   type: 'logic' | 'time' | 'scheduled' | 'flow'
   timeMinutes?: string
   conditionsLogic?: 'AND' | 'OR'
   conditions: TemplateCondition[]
   actions: TemplateAction[]
-  scheduleConfig?: { send_days: string; audience_type: string; audience_value: string }
+  scheduleConfig?: {
+    send_days: 'expiration' | '1_day_before' | '3_days_before' | '7_days_before' | 'daily'
+    audience_type: 'service' | 'tag' | 'all'
+    audience_value: string
+  }
 }
 
 // ── Template Definitions ───────────────────────────────────────────────────

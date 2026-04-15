@@ -2,7 +2,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
-import ConditionEvaluator, { EvaluationContext } from '@/lib/trigger-conditions'
+import type { FunctionDeclaration } from '@google/generative-ai'
+import ConditionEvaluator, { EvaluationContext, TriggerConditionGroup } from '@/lib/trigger-conditions'
 import { executeActions, ActionContext } from '@/lib/trigger-actions'
 
 // Token de verificación que configuraste en .env.local.
@@ -49,6 +50,7 @@ async function sendAndSave(
     })
     return result
 }
+void sendAndSave;
 
 // Productos se cargan dinámicamente desde la DB para cada tenant
 
@@ -59,6 +61,7 @@ interface BufferedMessage {
     timer: NodeJS.Timeout | null;
 }
 const messageBuffer = new Map<string, BufferedMessage>();
+void messageBuffer;
 // -----------------------------
 
 // --- RATE LIMITER ---
@@ -79,6 +82,59 @@ function isRateLimited(phone: string): boolean {
     if (entry.count > RATE_LIMIT_MAX) return true
     return false
 }
+
+type WhatsAppCredentials = {
+    user_id: string
+    access_token: string
+    bot_name?: string | null
+    service_name?: string | null
+    promo_image_url?: string | null
+    timezone?: string | null
+    currency_symbol?: string | null
+    payment_methods?: string | null
+}
+
+type ChatLookup = { id: string; unread_count?: number | null }
+type ChatUpdatePayload = {
+    last_message: string
+    last_message_time: string
+    unread_count: number
+    contact_name: string
+    bsuid_user_id?: string
+}
+type ChatInsertPayload = {
+    phone_number: string
+    user_id: string
+    contact_name: string
+    last_message: string
+    last_message_time: string
+    unread_count: number
+    tags: string[]
+    bsuid_user_id?: string
+}
+type MessageInsertPayload = {
+    chat_id: string
+    is_from_me: boolean
+    content: string
+    status: string
+    whatsapp_message_id?: string
+    media_url?: string
+    media_type?: string
+}
+type MessageMediaUpdate = { media_url: string; media_type?: string }
+type ProductRow = {
+    id: string
+    name: string
+    price: string | number
+    description?: string | null
+    qr_image_url?: string | null
+}
+type SubscriptionAccountRow = {
+    correo: string
+    vencimiento?: string | null
+    equipo?: string | null
+}
+type FunctionCallArgs = Record<string, unknown>
 // --------------------
 
 // GET: Para la verificación inicial de Meta (Webhook Challenge)
@@ -228,7 +284,7 @@ export async function POST(request: Request) {
                     .select('user_id, access_token, bot_name, service_name, service_description, promo_image_url, timezone, currency_symbol, payment_methods, country_code')
                     .eq('phone_number_id', String(phoneId))
 
-                const credentials = credentialsList?.[0] || null
+                const credentials = (credentialsList?.[0] || null) as WhatsAppCredentials | null
 
                 if (credError) {
                     console.error("Error looking up credentials:", credError);
@@ -242,15 +298,13 @@ export async function POST(request: Request) {
                 }
 
                 const { user_id: tenantUserId, access_token: tenantToken } = credentials
-                const tenantBusinessName = (credentials as any).bot_name || 'Nuestro negocio'
-                const tenantServiceName = (credentials as any).service_name || tenantBusinessName
-                const tenantServiceDesc = (credentials as any).service_description || `el servicio de ${tenantServiceName}`
+                const tenantBusinessName = credentials.bot_name || 'Nuestro negocio'
+                const tenantServiceName = credentials.service_name || tenantBusinessName
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-                const tenantPromoImage = (credentials as any).promo_image_url || `${baseUrl}/prices_promo.jpg`
-                const tenantTimezone = (credentials as any).timezone || 'America/La_Paz'
-                const tenantCurrency = (credentials as any).currency_symbol || 'Bs'
-                const tenantPaymentMethods = (credentials as any).payment_methods || 'QR bancario'
-                const tenantCountryCode = (credentials as any).country_code || '591'
+                const tenantPromoImage = credentials.promo_image_url || `${baseUrl}/prices_promo.jpg`
+                const tenantTimezone = credentials.timezone || 'America/La_Paz'
+                const tenantCurrency = credentials.currency_symbol || 'Bs'
+                const tenantPaymentMethods = credentials.payment_methods || 'QR bancario'
                 // ---------------------------
 
                 const messageObject = value.messages[0]
@@ -352,7 +406,7 @@ export async function POST(request: Request) {
 
                 // 2. Buscar o Crear CHAT (Vinculado al Tenant)
                 // Support BSUID: if phone is absent we look up by bsuid_user_id column
-                let existingChat: any = null
+                let existingChat: ChatLookup | null = null
                 if (rawPhone) {
                     const { data } = await supabaseAdmin
                         .from('chats')
@@ -376,7 +430,7 @@ export async function POST(request: Request) {
                 if (existingChat) {
                     chatId = existingChat.id
                     // Actualizamos chat y NOMBRE DE CONTACTO
-                    const updatePayload: any = {
+                    const updatePayload: ChatUpdatePayload = {
                         last_message: messageText,
                         last_message_time: new Date().toISOString(),
                         unread_count: (existingChat.unread_count || 0) + 1,
@@ -386,7 +440,7 @@ export async function POST(request: Request) {
                     if (bsuid) updatePayload.bsuid_user_id = bsuid
                     await supabaseAdmin.from('chats').update(updatePayload).eq('id', chatId)
                 } else {
-                    const insertPayload: any = {
+                    const insertPayload: ChatInsertPayload = {
                         phone_number: rawPhone || phoneNumber,
                         user_id: tenantUserId,
                         contact_name: contactName,
@@ -409,7 +463,7 @@ export async function POST(request: Request) {
                 // Esto garantiza que el mensaje quede registrado aunque la descarga de media falle o la función haga timeout
                 let savedMsgId: string | null = null
                 if (chatId) {
-                    const baseMsg: any = {
+                    const baseMsg: MessageInsertPayload = {
                         chat_id: chatId,
                         is_from_me: false,
                         content: messageText,
@@ -503,7 +557,7 @@ export async function POST(request: Request) {
 
                 // Si se descargó media, actualizamos el mensaje ya guardado con la URL
                 if (savedMsgId && savedMediaUrl) {
-                    const mediaUpdate: any = { media_url: savedMediaUrl }
+                    const mediaUpdate: MessageMediaUpdate = { media_url: savedMediaUrl }
                     if (savedMediaType) mediaUpdate.media_type = savedMediaType
                     await supabaseAdmin.from('messages').update(mediaUpdate).eq('id', savedMsgId)
                 }
@@ -657,7 +711,6 @@ export async function POST(request: Request) {
                             }
 
                             // ===== CALCULAR FECHA DESDE VENCIMIENTO ACTUAL (NO DESDE HOY) =====
-                            const todayTenant = getTenantNow(tenantTimezone);
                             const today = getTenantToday(tenantTimezone);
                             let baseDate = today;
 
@@ -836,7 +889,7 @@ export async function POST(request: Request) {
 
                             // Evaluate all condition groups
                             if (groups.length > 0) {
-                                const evaluationResult = await ConditionEvaluator.evaluateAllConditionGroups(groups as any, context)
+                                const evaluationResult = await ConditionEvaluator.evaluateAllConditionGroups(groups as TriggerConditionGroup[], context)
 
                                 if (evaluationResult.matched) {
                                     console.log(`[Trigger] Activado: ${trigger.name}`, evaluationResult.reason);
@@ -928,7 +981,7 @@ export async function POST(request: Request) {
                         .in('status', ['pending_plan_selection', 'pending_email', 'pending_payment']);
 
                     // Guardar el email seleccionado en la base de datos inmediatamente
-                    const { data: newOrder, error: orderErr } = await supabaseAdmin.from('orders').insert({
+                    const { error: orderErr } = await supabaseAdmin.from('orders').insert({
                         chat_id: chatId,
                         user_id: tenantUserId,
                         customer_email: selectedEmail,
@@ -952,7 +1005,7 @@ export async function POST(request: Request) {
                         if (products && products.length > 0) {
                             const { sendWhatsAppInteractiveList } = await import('@/lib/whatsapp');
 
-                            const rows = products.map((p: any) => ({
+                            const rows = (products as ProductRow[]).map(p => ({
                                 id: `renew_plan_${p.id}`,
                                 title: p.name.substring(0, 24),
                                 description: `${tenantCurrency} ${p.price} - ${p.description || 'Renovación'}`.substring(0, 72)
@@ -1171,7 +1224,6 @@ export async function POST(request: Request) {
 
                     if (activeOrder) {
                         // Verificar que la imagen sea reciente (de hoy)
-                        const now = new Date()
                         const tenantNow = getTenantNow(tenantTimezone)
                         const todayStr = tenantNow.toISOString().split('T')[0]
 
@@ -1275,7 +1327,6 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // PASO 2: Calcular nueva fecha correctamente:
                             // - Si la sub sigue vigente → extender desde el vencimiento actual
                             // - Si ya venció → extender desde hoy
-                            const todayTenant = getTenantNow(tenantTimezone);
                             const today = getTenantToday(tenantTimezone);
 
                             // Obtener duration_months del producto (fuente de verdad)
@@ -1549,7 +1600,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                 console.log(`[Buffer] Mensaje ${myMsgId} de ${redactPhone(phoneNumber)} esperando 4s por mensajes adicionales...`)
 
                 await new Promise(resolve => {
-                    const timer = setTimeout(async () => {
+                    setTimeout(async () => {
                         // Verificar si hay un mensaje más reciente que el nuestro
                         try {
                             const { data: latestMsg } = await supabaseAdmin
@@ -1577,7 +1628,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
 
                         try {
                             // D. Generar Respuesta con Gemini (con Function Calling para ventas)
-                            const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai')
+                            const { GoogleGenerativeAI, FunctionCallingMode, SchemaType } = await import('@google/generative-ai')
                             const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!)
 
                             // Catálogo de planes (Movido a nivel global)
@@ -1659,7 +1710,6 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             let subscriptionStatusLabel = '';
                             if (existingSub?.vencimiento) {
                                 // Fecha actual en Bolivia (UTC-4)
-                                const nowTz = getTenantNow(tenantTimezone);
                                 const todayTz = getTenantToday(tenantTimezone);
 
                                 // Parsear vencimiento DD/MM/YYYY o YYYY-MM-DD
@@ -1695,7 +1745,6 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                 console.log(`[AI] Cliente detectado: ${redactPhone(phoneNumber)} → ${totalCnt} suscripciones (${activeCnt} activas)`);
 
                                 // Construir lista de TODAS las cuentas para el contexto con DÍAS PRECALCULADOS
-                                const nowBol = getTenantNow(tenantTimezone);
                                 const todayBol = getTenantToday(tenantTimezone);
                                 const allAccountsList = allSubs.map((s, i) => {
                                     let diasInfo = '';
@@ -1894,7 +1943,7 @@ HISTORIAL (para que sepas en qué parte del flujo estás):
 ${chatHistory}`
 
                             // Funciones disponibles para la IA (dinámicas según tipo de negocio)
-                            const aiFunctions: any = [
+                            const aiFunctions = [
                                 ...(hasProducts ? [{
                                     name: 'send_welcome_menu',
                                     description: 'Enviar el catálogo principal interactivo por WhatsApp. Úsalo cuando el cliente pida ver productos, precios o servicios. NUNCA lo uses automáticamente en el primer saludo.',
@@ -1927,13 +1976,13 @@ ${chatHistory}`
                                         required: ['email']
                                     }
                                 }] : [])
-                            ]
+                            ] as FunctionDeclaration[]
 
                             const model = genAI.getGenerativeModel({
                                 model: 'gemini-2.5-pro',
                                 ...(aiFunctions.length > 0 ? {
                                     tools: [{ functionDeclarations: aiFunctions }],
-                                    toolConfig: { functionCallingConfig: { mode: 'AUTO' as any } },
+                                    toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } },
                                 } : {}),
                                 systemInstruction: systemPrompt
                             })
@@ -2024,12 +2073,11 @@ ${chatHistory}`
 
                                 if (part.functionCall) {
                                     const { name, args } = part.functionCall
-                                    const callArgs = args as any
+                                    const callArgs = args as FunctionCallArgs
                                     console.log(`[SALES] Function call REAL: ${name}`, JSON.stringify(callArgs))
 
                                     if (name === 'send_welcome_menu') {
                                         const { sendWhatsAppImage, sendWhatsAppMessage, sendWhatsAppList } = await import('@/lib/whatsapp')
-                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
 
                                         // 1. Enviar respuesta de la IA primero (respeta el entrenamiento del usuario)
                                         if (aiResponseText.trim()) {
@@ -2100,7 +2148,7 @@ ${chatHistory}`
                                             const { sendWhatsAppInteractiveList } = await import('@/lib/whatsapp');
 
                                             // WhatsApp lists only support up to 10 rows per section
-                                            const rows = userAccounts.slice(0, 10).map((acc: any) => ({
+                                            const rows = (userAccounts as SubscriptionAccountRow[]).slice(0, 10).map(acc => ({
                                                 id: `renew_account_${acc.correo}`,
                                                 title: acc.correo.substring(0, 24),
                                                 description: `Vence: ${acc.vencimiento} - Eq: ${acc.equipo || '?'}`.substring(0, 72)
@@ -2279,7 +2327,7 @@ ${chatHistory}`
                                                         }
 
                                                         // Guardar mensaje de imagen QR en DB
-                                                        const qrMsgPayload: any = {
+                                                        const qrMsgPayload: MessageInsertPayload = {
                                                             chat_id: chatId,
                                                             is_from_me: true,
                                                             content: `💳 QR de pago - ${orderProduct.name} (${tenantCurrency} ${orderProduct.price})`,

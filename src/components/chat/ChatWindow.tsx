@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Paperclip, Smile, MoreVertical, Mic, X, Bell, Image as ImageIcon, Tag, Zap, Search, Info, ChevronDown, CornerUpLeft } from 'lucide-react'
+import { Send, Paperclip, Smile, Mic, X, Bell, Image as ImageIcon, Tag, Zap, Search, Info, ChevronDown } from 'lucide-react'
 import { MessageBubble } from './MessageBubble'
 import { ContactInfoSidebar } from './ContactInfoSidebar'
 import { createClient } from '@/utils/supabase/client'
+import NextImage from 'next/image'
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react'
 import { useSearchParams } from 'next/navigation'
 import { formatMessageTime, formatDateSeparator, isDifferentDay } from '@/lib/formatTime'
@@ -453,7 +454,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             } else {
                 setReminderResult(`⚠️ ${result.error || result.hint || 'No se pudo enviar'}`)
             }
-        } catch (err) {
+        } catch {
             setReminderResult('❌ Error de red')
         } finally {
             setIsSendingReminder(false)
@@ -503,9 +504,12 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                     >
                         <X size={24} />
                     </button>
-                    <img
+                    <NextImage
                         src={lightboxUrl}
                         alt="Imagen ampliada"
+                        width={1200}
+                        height={1200}
+                        unoptimized
                         className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     />
@@ -530,7 +534,14 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         {/* Preview */}
                         <div className="bg-[#F7F8FA] flex items-center justify-center" style={{ minHeight: 200 }}>
                             {pendingFilePreview && pendingFile.type.startsWith('image/') ? (
-                                <img src={pendingFilePreview} alt="Preview" className="max-h-64 max-w-full object-contain rounded-lg" />
+                                <NextImage
+                                    src={pendingFilePreview}
+                                    alt="Preview"
+                                    width={640}
+                                    height={360}
+                                    unoptimized
+                                    className="max-h-64 max-w-full object-contain rounded-lg"
+                                />
                             ) : pendingFilePreview && pendingFile.type.startsWith('video/') ? (
                                 <video src={pendingFilePreview} controls className="max-h-64 max-w-full rounded-lg" />
                             ) : (
