@@ -5,7 +5,6 @@
  * Supports 12+ condition types with AND/OR grouping logic.
  */
 
-import { createClient } from '@/utils/supabase/server'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -49,7 +48,7 @@ export interface TriggerCondition {
   condition_type: ConditionType
   operator: ConditionOperator
   value: string  // Stored as string; parsed based on type
-  payload?: Record<string, any>  // Additional config for complex types
+  payload?: Record<string, unknown>  // Additional config for complex types
   group_id?: string
 }
 
@@ -76,7 +75,7 @@ export interface EvaluationContext {
   chatStatus: string  // 'lead' | 'customer' | 'closed'
   chatLastMessageTime?: Date
   chatMessageCount: number
-  chatCustomFields?: Record<string, any>
+  chatCustomFields?: Record<string, unknown>
 
   // Subscription (optional)
   subscriptionStatus?: string  // 'active' | 'expired' | 'paused'
@@ -281,7 +280,8 @@ export class ConditionEvaluator {
 
   private static evaluateTextRegex(text: string, condition: TriggerCondition): boolean {
     try {
-      const regex = new RegExp(condition.value, condition.payload?.flags || 'i')
+      const flags = typeof condition.payload?.flags === 'string' ? condition.payload.flags : 'i'
+      const regex = new RegExp(condition.value, flags)
       return regex.test(text)
     } catch (error) {
       console.error('Invalid regex in condition:', condition.value, error)
@@ -360,10 +360,12 @@ export class ConditionEvaluator {
   }
 
   private static evaluateCustomField(
-    customFields: Record<string, any>,
+    customFields: Record<string, unknown>,
     condition: TriggerCondition
   ): boolean {
-    const fieldName = condition.payload?.field_name || condition.value.split(':')[0]
+    const fieldName = typeof condition.payload?.field_name === 'string'
+      ? condition.payload.field_name
+      : condition.value.split(':')[0]
     const value = customFields[fieldName]
 
     if (value === undefined) return false

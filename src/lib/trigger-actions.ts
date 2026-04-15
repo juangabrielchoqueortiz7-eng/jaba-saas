@@ -63,7 +63,7 @@ export interface ActionContext {
   contactName: string
   chatStatus?: string
   chatTags?: string[]
-  chatCustomFields?: Record<string, any>
+  chatCustomFields?: Record<string, unknown>
 
   // Credenciales WhatsApp
   tenantToken: string
@@ -91,12 +91,59 @@ export interface ActionResult {
   durationMs?: number
 }
 
+type ActionPayload = Record<string, unknown>
+
+interface ActionDefinition {
+  id?: string
+  type: string
+  payload?: ActionPayload
+  action_order?: number
+  delay_seconds?: number
+}
+
 // ── Interface Base ────────────────────────────────────────────────────────
 
 export interface ActionExecutor {
   readonly type: ActionType
-  validate(payload: Record<string, any>): { valid: boolean; error?: string }
-  execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult>
+  validate(payload: ActionPayload): { valid: boolean; error?: string }
+  execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult>
+}
+
+function getString(payload: ActionPayload, key: string): string {
+  const value = payload[key]
+  return typeof value === 'string' ? value : ''
+}
+
+function getOptionalString(payload: ActionPayload, key: string): string | undefined {
+  const value = payload[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+function getBoolean(payload: ActionPayload, key: string, fallback = false): boolean {
+  const value = payload[key]
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function getNumber(payload: ActionPayload, key: string): number | undefined {
+  const value = payload[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function getStringArray(payload: ActionPayload, key: string): string[] {
+  const value = payload[key]
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function getObject(payload: ActionPayload, key: string): Record<string, unknown> | undefined {
+  const value = payload[key]
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined
+}
+
+function getArray(payload: ActionPayload, key: string): unknown[] {
+  const value = payload[key]
+  return Array.isArray(value) ? value : []
 }
 
 // ── Helper: Context → VariableContext ─────────────────────────────────────
@@ -150,21 +197,21 @@ async function saveMessageToDB(
 class SendTextAction implements ActionExecutor {
   readonly type: ActionType = 'send_text'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.message && !payload.text) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'message') && !getString(payload, 'text')) {
       return { valid: false, error: 'Se requiere el campo "message"' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
       const supabase = getSupabaseAdmin()
       const vars = contextToVariableContext(context)
 
-      const rawMessage = payload.message || payload.text || ''
+      const rawMessage = getString(payload, 'message') || getString(payload, 'text')
       const message = resolveVariables(rawMessage, vars)
 
       await sendWhatsAppMessage(context.phoneNumber, message, context.tenantToken, context.tenantPhoneId)
@@ -184,14 +231,14 @@ class SendTextAction implements ActionExecutor {
 class SendTextAIAction implements ActionExecutor {
   readonly type: ActionType = 'send_text_ai'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.instruction) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'instruction')) {
       return { valid: false, error: 'Se requiere el campo "instruction" con la instrucción para la IA' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const { generateAIResponse } = await import('@/lib/ai')
@@ -199,8 +246,9 @@ class SendTextAIAction implements ActionExecutor {
       const supabase = getSupabaseAdmin()
       const vars = contextToVariableContext(context)
 
-      const instruction = resolveVariables(payload.instruction, vars)
-      const extraContext = payload.context ? resolveVariables(payload.context, vars) : ''
+      const instruction = resolveVariables(getString(payload, 'instruction'), vars)
+      const extraContextValue = getOptionalString(payload, 'context')
+      const extraContext = extraContextValue ? resolveVariables(extraContextValue, vars) : ''
 
       const systemPrompt = `${instruction}${extraContext ? `\n\nContexto adicional: ${extraContext}` : ''}`
       const userMessage = context.messageText || 'Hola'
@@ -225,26 +273,28 @@ class SendTextAIAction implements ActionExecutor {
 class SendMediaAction implements ActionExecutor {
   readonly type: ActionType = 'send_media'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.url) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'url')) {
       return { valid: false, error: 'Se requiere el campo "url" con la URL del archivo' }
     }
-    if (!payload.type || !['image', 'video', 'document', 'audio'].includes(payload.type)) {
+    const mediaType = getString(payload, 'type')
+    if (!mediaType || !['image', 'video', 'document', 'audio'].includes(mediaType)) {
       return { valid: false, error: 'El campo "type" debe ser: image, video, document o audio' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const { sendWhatsAppImage, sendWhatsAppVideo, sendWhatsAppMessage } = await import('@/lib/whatsapp')
       const supabase = getSupabaseAdmin()
       const vars = contextToVariableContext(context)
 
-      const url = resolveVariables(payload.url, vars)
-      const caption = payload.caption ? resolveVariables(payload.caption, vars) : undefined
-      const mediaType = payload.type as 'image' | 'video' | 'document' | 'audio'
+      const url = resolveVariables(getString(payload, 'url'), vars)
+      const captionValue = getOptionalString(payload, 'caption')
+      const caption = captionValue ? resolveVariables(captionValue, vars) : undefined
+      const mediaType = getString(payload, 'type') as 'image' | 'video' | 'document' | 'audio'
 
       if (mediaType === 'image') {
         await sendWhatsAppImage(context.phoneNumber, url, caption, context.tenantToken, context.tenantPhoneId)
@@ -271,26 +321,26 @@ class SendMediaAction implements ActionExecutor {
 class SendTemplateAction implements ActionExecutor {
   readonly type: ActionType = 'send_template'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.template_name && !payload.templateName) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'template_name') && !getString(payload, 'templateName')) {
       return { valid: false, error: 'Se requiere "template_name"' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
       const vars = contextToVariableContext(context)
 
-      const templateName = payload.template_name || payload.templateName
-      const language = payload.language || 'es'
-      const variables: string[] = (payload.variables || []).map((v: string) => resolveVariables(v, vars))
+      const templateName = getString(payload, 'template_name') || getString(payload, 'templateName')
+      const language = getString(payload, 'language') || 'es'
+      const variables = getStringArray(payload, 'variables').map((value) => resolveVariables(value, vars))
 
-      const components: any[] = variables.length > 0 ? [{
+      const components = variables.length > 0 ? [{
         type: 'body',
-        parameters: variables.map((v: string) => ({ type: 'text', text: v || ' ' }))
+        parameters: variables.map((value) => ({ type: 'text', text: value || ' ' }))
       }] : []
 
       await sendWhatsAppTemplate(context.phoneNumber, templateName, language, components, context.tenantToken, context.tenantPhoneId)
@@ -306,33 +356,42 @@ class SendTemplateAction implements ActionExecutor {
 class SendInteractiveAction implements ActionExecutor {
   readonly type: ActionType = 'send_interactive'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.body) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'body')) {
       return { valid: false, error: 'Se requiere el campo "body" con el texto del mensaje' }
     }
-    if (!payload.buttons && !payload.sections) {
+    if (getArray(payload, 'buttons').length === 0 && getArray(payload, 'sections').length === 0) {
       return { valid: false, error: 'Se requiere "buttons" (para botones) o "sections" (para lista)' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const { sendWhatsAppButtons, sendWhatsAppList } = await import('@/lib/whatsapp')
       const supabase = getSupabaseAdmin()
       const vars = contextToVariableContext(context)
 
-      const body = resolveVariables(payload.body, vars)
+      const body = resolveVariables(getString(payload, 'body'), vars)
+      const buttons = getArray(payload, 'buttons').flatMap((item) => {
+        if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+          return []
+        }
+        const button = item as Record<string, unknown>
+        const id = typeof button.id === 'string' ? button.id : ''
+        const title = typeof button.title === 'string' ? button.title : ''
+        return id && title ? [{ id, title }] : []
+      })
 
-      if (payload.buttons) {
-        await sendWhatsAppButtons(context.phoneNumber, body, payload.buttons, context.tenantToken, context.tenantPhoneId)
+      if (buttons.length > 0) {
+        await sendWhatsAppButtons(context.phoneNumber, body, buttons, context.tenantToken, context.tenantPhoneId)
         if (context.chatId) {
           await saveMessageToDB(supabase, context.chatId, body + '\n[Botones enviados]')
         }
-      } else if (payload.sections) {
-        const buttonText = payload.button_text || payload.buttonText || 'Ver opciones'
-        await sendWhatsAppList(context.phoneNumber, body, buttonText, payload.sections, context.tenantToken, context.tenantPhoneId)
+      } else {
+        const buttonText = getString(payload, 'button_text') || getString(payload, 'buttonText') || 'Ver opciones'
+        await sendWhatsAppList(context.phoneNumber, body, buttonText, getArray(payload, 'sections'), context.tenantToken, context.tenantPhoneId)
         if (context.chatId) {
           await saveMessageToDB(supabase, context.chatId, body + '\n[Lista interactiva enviada]')
         }
@@ -349,18 +408,18 @@ class SendInteractiveAction implements ActionExecutor {
 class AddTagAction implements ActionExecutor {
   readonly type: ActionType = 'add_tag'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.tag) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'tag')) {
       return { valid: false, error: 'Se requiere el campo "tag"' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const supabase = getSupabaseAdmin()
-      const tag = payload.tag.trim()
+      const tag = getString(payload, 'tag').trim()
 
       const { data: chat } = await supabase.from('chats').select('id, tags').eq('id', context.chatId).maybeSingle()
 
@@ -382,18 +441,18 @@ class AddTagAction implements ActionExecutor {
 class RemoveTagAction implements ActionExecutor {
   readonly type: ActionType = 'remove_tag'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.tag) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'tag')) {
       return { valid: false, error: 'Se requiere el campo "tag"' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const supabase = getSupabaseAdmin()
-      const tag = payload.tag.trim()
+      const tag = getString(payload, 'tag').trim()
 
       const { data: chat } = await supabase.from('chats').select('id, tags').eq('id', context.chatId).maybeSingle()
 
@@ -414,22 +473,23 @@ class RemoveTagAction implements ActionExecutor {
 class SetStatusAction implements ActionExecutor {
   readonly type: ActionType = 'set_status'
 
-  validate(payload: Record<string, any>) {
+  validate(payload: ActionPayload) {
     const validStatuses = ['lead', 'customer', 'closed', 'vip', 'pending', 'archived']
-    if (!payload.status) {
+    const status = getString(payload, 'status')
+    if (!status) {
       return { valid: false, error: 'Se requiere el campo "status"' }
     }
-    if (!validStatuses.includes(payload.status)) {
+    if (!validStatuses.includes(status)) {
       return { valid: true } // Permitir cualquier status (flexible)
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const supabase = getSupabaseAdmin()
-      const status = payload.status
+      const status = getString(payload, 'status')
 
       await supabase.from('chats').update({ status }).eq('id', context.chatId)
 
@@ -444,8 +504,8 @@ class SetStatusAction implements ActionExecutor {
 class UpdateFieldAction implements ActionExecutor {
   readonly type: ActionType = 'update_field'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.field_name) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'field_name')) {
       return { valid: false, error: 'Se requiere el campo "field_name"' }
     }
     if (payload.value === undefined || payload.value === null) {
@@ -454,13 +514,13 @@ class UpdateFieldAction implements ActionExecutor {
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const supabase = getSupabaseAdmin()
       const vars = contextToVariableContext(context)
 
-      const fieldName = payload.field_name
+      const fieldName = getString(payload, 'field_name')
       const value = resolveVariables(String(payload.value), vars)
 
       // Obtener custom_fields actuales y actualizar el campo específico
@@ -481,22 +541,23 @@ class UpdateFieldAction implements ActionExecutor {
 class NotifyAdminAction implements ActionExecutor {
   readonly type: ActionType = 'notify_admin'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.message) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'message')) {
       return { valid: false, error: 'Se requiere el campo "message"' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const supabase = getSupabaseAdmin()
       const vars = contextToVariableContext(context)
 
-      const title = payload.title ? resolveVariables(payload.title, vars) : 'Notificación de Disparador'
-      const message = resolveVariables(payload.message, vars)
-      const channel = payload.channel || 'log' // 'log', 'email', 'webhook'
+      const titleValue = getOptionalString(payload, 'title')
+      const title = titleValue ? resolveVariables(titleValue, vars) : 'Notificación de Disparador'
+      const message = resolveVariables(getString(payload, 'message'), vars)
+      const channel = getString(payload, 'channel') || 'log' // 'log', 'email', 'webhook'
 
       // Siempre loguear
       console.log(`[TriggerAction:notify_admin] 🔔 ${title}: ${message} — Chat: ${context.chatId} Phone: ${context.phoneNumber.slice(-4)}`)
@@ -516,9 +577,9 @@ class NotifyAdminAction implements ActionExecutor {
       }
 
       // Si hay email configurado, enviar (futuro: integración Resend/SendGrid)
-      if (channel === 'email' && payload.email) {
+      if (channel === 'email' && getString(payload, 'email')) {
         // TODO: Integrar Resend para emails reales
-        console.log(`[TriggerAction:notify_admin] Email a ${payload.email}: ${title}`)
+        console.log(`[TriggerAction:notify_admin] Email a ${getString(payload, 'email')}: ${title}`)
       }
 
       return { success: true, actionType: this.type, message: `Admin notificado: "${title}"`, executedAt: new Date(), durationMs: Date.now() - start }
@@ -532,29 +593,31 @@ class NotifyAdminAction implements ActionExecutor {
 class NotifyWebhookAction implements ActionExecutor {
   readonly type: ActionType = 'notify_webhook'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.url) {
+  validate(payload: ActionPayload) {
+    const url = getString(payload, 'url')
+    if (!url) {
       return { valid: false, error: 'Se requiere el campo "url" con la URL del webhook externo' }
     }
     try {
-      new URL(payload.url)
+      new URL(url)
     } catch {
       return { valid: false, error: 'La URL del webhook no es válida' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const vars = contextToVariableContext(context)
 
-      const url = payload.url
-      const method = (payload.method || 'POST').toUpperCase()
+      const url = getString(payload, 'url')
+      const method = (getString(payload, 'method') || 'POST').toUpperCase()
 
       // Construir payload del webhook con variables resueltas
-      const webhookPayload = payload.body
-        ? JSON.parse(resolveVariables(JSON.stringify(payload.body), vars))
+      const bodyPayload = getObject(payload, 'body')
+      const webhookPayload = bodyPayload
+        ? JSON.parse(resolveVariables(JSON.stringify(bodyPayload), vars))
         : {
           event: 'trigger_fired',
           chat_id: context.chatId,
@@ -570,7 +633,7 @@ class NotifyWebhookAction implements ActionExecutor {
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...(payload.headers || {}),
+          ...(getObject(payload, 'headers') || {}),
         },
         body: method !== 'GET' ? JSON.stringify(webhookPayload) : undefined,
         signal: AbortSignal.timeout(10000), // 10 second timeout
@@ -591,18 +654,18 @@ class NotifyWebhookAction implements ActionExecutor {
 class StartFlowAction implements ActionExecutor {
   readonly type: ActionType = 'start_flow'
 
-  validate(payload: Record<string, any>) {
-    if (!payload.flow_id && !payload.flowId) {
+  validate(payload: ActionPayload) {
+    if (!getString(payload, 'flow_id') && !getString(payload, 'flowId')) {
       return { valid: false, error: 'Se requiere el campo "flow_id"' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     const start = Date.now()
     try {
       const supabase = getSupabaseAdmin()
-      const flowId = payload.flow_id || payload.flowId
+      const flowId = getString(payload, 'flow_id') || getString(payload, 'flowId')
 
       // Verificar que el flujo existe y pertenece al tenant
       const { data: flow } = await supabase
@@ -640,19 +703,22 @@ class StartFlowAction implements ActionExecutor {
 class PauseAction implements ActionExecutor {
   readonly type: ActionType = 'pause'
 
-  validate(payload: Record<string, any>) {
-    if (payload.seconds === undefined || isNaN(parseInt(payload.seconds))) {
+  validate(payload: ActionPayload) {
+    const secondsValue = getNumber(payload, 'seconds') ?? Number.parseInt(getString(payload, 'seconds'), 10)
+    if (Number.isNaN(secondsValue)) {
       return { valid: false, error: 'Se requiere el campo "seconds" con los segundos de pausa' }
     }
-    if (parseInt(payload.seconds) > 300) {
+    if (secondsValue > 300) {
       return { valid: false, error: 'La pausa máxima es de 300 segundos (5 minutos)' }
     }
     return { valid: true }
   }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, _context: ActionContext): Promise<ActionResult> {
+    void _context
     const start = Date.now()
-    const seconds = Math.min(parseInt(payload.seconds) || 1, 300)
+    const parsedSeconds = getNumber(payload, 'seconds') ?? Number.parseInt(getString(payload, 'seconds'), 10)
+    const seconds = Math.min(parsedSeconds || 1, 300)
     await new Promise(resolve => setTimeout(resolve, seconds * 1000))
     return { success: true, actionType: this.type, message: `Pausa de ${seconds}s completada`, executedAt: new Date(), durationMs: Date.now() - start }
   }
@@ -667,18 +733,18 @@ class SendMessageLegacyAction extends SendTextAction {
 class SendMetaTemplateLegacyAction extends SendTemplateAction {
   override readonly type: ActionType = 'send_meta_template'
 
-  override validate(payload: Record<string, any>) {
-    if (!payload.templateName && !payload.template_name) {
+  override validate(payload: ActionPayload) {
+    if (!getString(payload, 'templateName') && !getString(payload, 'template_name')) {
       return { valid: false, error: 'Se requiere "templateName"' }
     }
     return { valid: true }
   }
 
-  override async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  override async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     // Map legacy field names to new ones
     const normalizedPayload = {
       ...payload,
-      template_name: payload.templateName || payload.template_name,
+      template_name: getString(payload, 'templateName') || getString(payload, 'template_name'),
     }
     return super.execute(normalizedPayload, context)
   }
@@ -691,13 +757,16 @@ class UpdateStatusLegacyAction extends SetStatusAction {
 class ToggleBotAction implements ActionExecutor {
   readonly type: ActionType = 'toggle_bot'
 
-  validate(_payload: Record<string, any>) { return { valid: true } }
+  validate(_payload: ActionPayload) {
+    void _payload
+    return { valid: true }
+  }
 
-  async execute(payload: Record<string, any>, context: ActionContext): Promise<ActionResult> {
+  async execute(payload: ActionPayload, context: ActionContext): Promise<ActionResult> {
     try {
       const supabase = getSupabaseAdmin()
       // Toggle bot enabled/disabled for this chat
-      const enable = payload.enable !== undefined ? Boolean(payload.enable) : true
+      const enable = payload.enable !== undefined ? getBoolean(payload, 'enable', true) : true
       await supabase.from('chats').update({ bot_enabled: enable }).eq('id', context.chatId)
       return { success: true, actionType: this.type, message: `Bot ${enable ? 'activado' : 'desactivado'}`, executedAt: new Date() }
     } catch (err) {
@@ -766,7 +835,7 @@ export class ActionFactory {
  * Soporta delays configurables y logging de cada acción.
  */
 export async function executeActions(
-  actions: Array<{ id?: string; type: string; payload?: Record<string, any>; action_order?: number; delay_seconds?: number }>,
+  actions: ActionDefinition[],
   context: ActionContext,
   options: { logResults?: boolean } = {}
 ): Promise<{ results: ActionResult[]; allSucceeded: boolean; failedCount: number }> {

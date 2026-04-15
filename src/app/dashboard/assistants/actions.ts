@@ -19,7 +19,7 @@ export async function simulateChatAction(
     // Using simple format: { role: 'user' | 'model', parts: string } for my helper function wrapper
 
     // We exclude the Last Message because sendMessage takes it separately
-    let historyParams = history.slice(0, -1).map(msg => ({
+    const historyParams = history.slice(0, -1).map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: msg.content }]
     })) as { role: 'user' | 'model', parts: { text: string }[] }[]
@@ -56,7 +56,7 @@ export async function deleteAssistant(id: string) {
 
         revalidatePath('/dashboard/assistants')
         return { success: true }
-    } catch (error: any) {
-        return { success: false, error: error.message }
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'No se pudo eliminar el asistente' }
     }
 }

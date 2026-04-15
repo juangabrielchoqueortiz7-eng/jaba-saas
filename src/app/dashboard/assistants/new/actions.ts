@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 export async function createAssistant(formData: FormData) {
@@ -50,8 +49,8 @@ export async function createAssistant(formData: FormData) {
 
         revalidatePath('/dashboard/assistants')
         return { success: true }
-    } catch (error: any) {
+    } catch (error) {
         console.error('Create assistant error:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error instanceof Error ? error.message : 'No se pudo crear el asistente' }
     }
 }

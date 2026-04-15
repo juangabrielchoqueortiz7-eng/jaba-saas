@@ -6,7 +6,6 @@ import { Plus, Upload, Download, Trash2, FileSpreadsheet, FileText, Send, Radio 
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -17,6 +16,14 @@ import SubscriptionSettingsModal from './SubscriptionSettingsModal';
 import SubscriptionFormModal from './SubscriptionFormModal';
 import { Settings } from 'lucide-react';
 import { Subscription } from '@/types/subscription';
+
+interface SubscriptionSpreadsheetRow {
+    correo: string;
+    equipo: string;
+    estado: string;
+    numero: string;
+    vencimiento: string;
+}
 
 export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCount }: { onRefresh: () => void, onLocalAdd?: (sub: Subscription) => void, pendingCount?: number }) {
     const supabase = createClient();
@@ -122,14 +129,12 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
                 if (!user) throw new Error('No user');
 
                 let addedCount = 0;
-                const batchSize = 100; // Create batch logic if many rows
-                // Supabase inserts support array of objects
 
                 for (const sheetName of workbook.SheetNames) {
-                    const jsonData = XLSX.utils.sheet_to_json<any[]>(workbook.Sheets[sheetName], { header: 1 });
+                    const jsonData = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1 });
                     if (jsonData.length < 2) continue;
 
-                    const headers = jsonData[0].map((h: any) => String(h || '').trim().toLowerCase());
+                    const headers = jsonData[0].map((header) => String(header || '').trim().toLowerCase());
 
                     const findHeader = (keywords: string[]) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
@@ -143,7 +148,7 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
 
                     if (colMap.correo === -1) continue;
 
-                    const rowsToInsert = [];
+                    const rowsToInsert: Array<SubscriptionSpreadsheetRow & { user_id: string }> = [];
 
                     for (let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
@@ -199,7 +204,7 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
     // Trae TODAS las suscripciones paginando de 1000 en 1000
     const fetchAllSubscriptions = async () => {
         const BATCH = 1000;
-        let all: any[] = [];
+        let all: Subscription[] = [];
         let page = 0;
         while (true) {
             const { data: batch } = await supabase
@@ -238,7 +243,7 @@ export default function SubscriptionActions({ onRefresh, onLocalAdd, pendingCoun
         const doc = new jsPDF();
         autoTable(doc, {
             head: [['#', 'Correo', 'Vencimiento', 'Estado', 'Equipo']],
-            body: data.map((s: any) => [s.numero, s.correo, s.vencimiento, s.estado, s.equipo]),
+            body: data.map((subscription) => [subscription.numero, subscription.correo, subscription.vencimiento, subscription.estado, subscription.equipo]),
         });
         doc.save("Suscripciones_JABA.pdf");
     };

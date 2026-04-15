@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense, lazy } from 'react'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Menu, X, LogOut } from 'lucide-react'
 import { SidebarNav } from './SidebarNav'
@@ -19,12 +20,15 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const pathname = usePathname()
 
-    useEffect(() => { setSidebarOpen(false) }, [pathname])
-
     useEffect(() => {
         document.body.style.overflow = sidebarOpen ? 'hidden' : ''
         return () => { document.body.style.overflow = '' }
     }, [sidebarOpen])
+
+    useEffect(() => {
+        document.body.dataset.jabaPathname = pathname
+        return () => { delete document.body.dataset.jabaPathname }
+    }, [pathname])
 
     return (
         <ChatProvider>
@@ -52,7 +56,7 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                         <Menu size={20} />
                     </button>
                     <div className="flex-1 flex justify-center">
-                        <img src="/logo.png" alt="JABA" className="h-8 w-auto" />
+                        <Image src="/logo.png" alt="JABA" width={120} height={32} className="h-8 w-auto" priority />
                     </div>
                     <div className="w-10" />
                 </div>
@@ -86,7 +90,7 @@ export function DashboardShell({ children, userEmail, signOutAction }: Dashboard
                         style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', minHeight: 68 }}
                     >
                         <div className="flex items-center gap-3">
-                            <img src="/logo.png" alt="JABA" className="h-9 w-auto" />
+                            <Image src="/logo.png" alt="JABA" width={128} height={36} className="h-9 w-auto" priority />
                             <div>
                                 <p
                                     className="text-xs font-bold tracking-widest uppercase"

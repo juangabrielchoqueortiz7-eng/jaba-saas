@@ -1,660 +1,539 @@
-// Nota: Este endpoint es específico para negocios de suscripción.
-// Para automatizaciones generales (cualquier negocio) usar /api/run-automations
+// Nota: Este endpoint es especifico para negocios de suscripcion.
+// Para automatizaciones generales usar /api/run-automations.
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { sendWhatsAppMessage, sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { asRecord } from '@/lib/automation-jobs'
 import { getUsersToExecuteNow } from '@/lib/db/scheduling'
-
-// Helpers para ocultar datos sensibles en logs
-function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
-function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
-function timingSafeCompare(a: string, b: string): boolean {
-    try { const bA = Buffer.from(a), bB = Buffer.from(b); if (bA.length !== bB.length) return false; const { timingSafeEqual } = require('crypto'); return timingSafeEqual(bA, bB) } catch { return false }
-}
+import {
+  buildPlanListContent,
+  buildPlanListSections,
+  delay,
+  extractWhatsAppMessageId,
+  findOrCreateChat,
+  getPromoImageUrl,
+  getServiceName,
+  getSubscriptionDateDiff,
+  groupSubscriptionsByUser,
+  hasValidSubscriptionPhone,
+  normalizePhone,
+  redactEmail,
+  redactPhone,
+  resolveTemplateName,
+  timingSafeCompare,
+  toCredentials,
+  toProductList,
+  toSettings,
+  toSubscriptionList,
+  type NotificationResults,
+} from '@/lib/subscription-notifications'
+import { sendWhatsAppList, sendWhatsAppTemplate } from '@/lib/whatsapp'
 
 const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
-if (!serviceRoleKey) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
+if (!serviceRoleKey) {
+  throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
+}
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  serviceRoleKey,
 )
 
-// Delay helper
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-// Parse DD/MM/YYYY date strings
-function parseDate(dateStr: string): Date | null {
-    if (!dateStr) return null
-    const parts = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
-    if (parts) {
-        return new Date(parseInt(parts[3]), parseInt(parts[2]) - 1, parseInt(parts[1]))
-    }
-    const d = new Date(dateStr)
-    return isNaN(d.getTime()) ? null : d
-}
-
-// Buscar o crear chat para que los mensajes aparezcan en el panel
-async function findOrCreateChat(phoneNumber: string, userId: string, contactName?: string, countryCode: string = '591'): Promise<string | null> {
-    try {
-        // Intentar con múltiples formatos de número
-        const cleanNum = phoneNumber.replace(/\D/g, '')
-        const withPrefix = cleanNum.startsWith(countryCode) ? cleanNum : countryCode + cleanNum
-        const withoutPrefix = cleanNum.startsWith(countryCode) ? cleanNum.slice(countryCode.length) : cleanNum
-
-        // Buscar chat existente con cualquier formato del número
-        const { data: existingChat } = await supabaseAdmin
-            .from('chats')
-            .select('id')
-            .eq('user_id', userId)
-            .or(`phone_number.eq.${withPrefix},phone_number.eq.${withoutPrefix},phone_number.eq.+${withPrefix}`)
-            .limit(1)
-            .maybeSingle()
-
-        if (existingChat) return existingChat.id
-
-        // Crear nuevo chat con el formato completo (591...)
-        const { data: newChat } = await supabaseAdmin
-            .from('chats')
-            .insert({
-                phone_number: withPrefix,
-                user_id: userId,
-                contact_name: contactName || phoneNumber,
-                last_message: 'Recordatorio enviado',
-                unread_count: 0
-            })
-            .select('id')
-            .single()
-
-        return newChat?.id || null
-    } catch (err) {
-        console.error('[Chat] Error finding/creating chat:', err)
-        return null
-    }
-}
-
-// =============================================
-// GET: Llamado por Vercel Cron (13:00 UTC)
-// NOTA: Se ejecuta siempre a las 13:00 UTC, pero solo procesa usuarios
-// cuya zona horaria local coincida con su hora configurada de recordatorio
-// =============================================
 export async function GET(request: Request) {
-    // Verificar CRON_SECRET
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
 
-    if (!cronSecret || !timingSafeCompare(authHeader ?? '', `Bearer ${cronSecret}`)) {
-        console.log('[Cron Reminders] Unauthorized access attempt')
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!cronSecret || !timingSafeCompare(authHeader ?? '', `Bearer ${cronSecret}`)) {
+    console.log('[Cron Reminders] Unauthorized access attempt')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  console.log('[Cron Reminders] Starting automated reminder job at', new Date().toISOString())
+
+  try {
+    const usersToExecute = await getUsersToExecuteNow('reminder')
+
+    if (usersToExecute.length === 0) {
+      console.log('[Cron Reminders] No users with reminder_hour matching current time in their timezone')
+      return NextResponse.json({ sent: 0, failed: 0, skipped: 0, userCount: 0 })
     }
 
-    console.log('[Cron Reminders] Starting automated reminder job at', new Date().toISOString())
+    console.log(`[Cron Reminders] Found ${usersToExecute.length} users to execute reminders for`)
 
-    try {
-        // Obtener usuarios que deben ejecutar reminders AHORA según su zona horaria configurada
-        const usersToExecute = await getUsersToExecuteNow('reminder')
+    const specificUserIds = usersToExecute.map(user => user.user_id)
+    const result = await processReminders(specificUserIds)
+    console.log(`[Cron Reminders] Done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`)
 
-        if (usersToExecute.length === 0) {
-            console.log('[Cron Reminders] No users with reminder_hour matching current time in their timezone')
-            return NextResponse.json({ sent: 0, failed: 0, skipped: 0, userCount: 0 })
-        }
-
-        console.log(`[Cron Reminders] Found ${usersToExecute.length} users to execute reminders for`)
-
-        // Procesar reminders solo para los usuarios que coinciden
-        const specificUserIds = usersToExecute.map(u => u.user_id)
-        const result = await processReminders(specificUserIds)
-        console.log(`[Cron Reminders] Done: ${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped`)
-        return NextResponse.json({ ...result, usersProcessed: usersToExecute.length })
-    } catch (error) {
-        console.error('[Cron Reminders] Fatal error:', error)
-        return NextResponse.json({ error: 'Internal error' }, { status: 500 })
-    }
+    return NextResponse.json({ ...result, usersProcessed: usersToExecute.length })
+  } catch (error) {
+    console.error('[Cron Reminders] Fatal error:', error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
 }
 
-// =============================================
-// POST: Re-notificar UN número específico (Bug 3 fix)
-//        O broadcast a todos (force mode)
-// =============================================
 export async function POST(request: Request) {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-        return NextResponse.json({ error: 'No token' }, { status: 401 })
-    }
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'No token' }, { status: 401 })
+  }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    ).auth.getUser(token)
+  const token = authHeader.replace('Bearer ', '')
+  const anonClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
 
-    if (authError || !user) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
+  const {
+    data: { user },
+    error: authError,
+  } = await anonClient.auth.getUser(token)
 
-    let force = false
-    let singlePhone: string | null = null
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+  }
 
-    try {
-        const body = await request.json()
-        force = body?.force === true
-        singlePhone = body?.phoneNumber || null
-    } catch {
-        // No body = normal mode
-    }
+  let force = false
+  let singlePhone: string | null = null
 
-    // BUG 3 FIX: Re-enviar recordatorio a un número específico via Template
-    // Esto permite notificar a clientes que dijeron "renuevo mañana" aunque hayan pasado 24h
-    if (singlePhone) {
-        console.log(`[Manual Reminders] Re-notificación individual a ${singlePhone} por usuario ${user.id}`)
-        try {
-            const result = await sendSingleReminder(singlePhone, user.id)
-            return NextResponse.json(result)
-        } catch (error) {
-            console.error('[Manual Reminders] Error sending single reminder:', error)
-            return NextResponse.json({ error: 'Error sending reminder' }, { status: 500 })
-        }
-    }
+  try {
+    const body = asRecord(await request.json())
+    force = body?.force === true
+    singlePhone = typeof body?.phoneNumber === 'string' ? body.phoneNumber : null
+  } catch {
+    // No body = normal mode
+  }
 
-    console.log(`[Manual Reminders] Triggered by user ${user.id}${force ? ' (FORCE/BROADCAST)' : ''}`)
+  if (singlePhone) {
+    console.log(`[Manual Reminders] Re-notificacion individual a ${singlePhone} por usuario ${user.id}`)
 
     try {
-        const result = await processReminders([user.id], force)
-        return NextResponse.json(result)
+      const result = await sendSingleReminder(singlePhone, user.id)
+      return NextResponse.json(result)
     } catch (error) {
-        console.error('[Manual Reminders] Error:', error)
-        return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+      console.error('[Manual Reminders] Error sending single reminder:', error)
+      return NextResponse.json({ error: 'Error sending reminder' }, { status: 500 })
     }
+  }
+
+  console.log(`[Manual Reminders] Triggered by user ${user.id}${force ? ' (FORCE/BROADCAST)' : ''}`)
+
+  try {
+    const result = await processReminders([user.id], force)
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('[Manual Reminders] Error:', error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
 }
 
-// =============================================
-// Re-enviar recordatorio a un número individual
-// =============================================
 async function sendSingleReminder(phoneNumber: string, userId: string) {
-    // Obtener credenciales WhatsApp del usuario
-    const { data: creds } = await supabaseAdmin
-        .from('whatsapp_credentials')
-        .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol, country_code')
-        .eq('user_id', userId)
-        .single()
+  const { data: credentialsRow } = await supabaseAdmin
+    .from('whatsapp_credentials')
+    .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol, country_code')
+    .eq('user_id', userId)
+    .single()
 
-    if (!creds?.access_token || !creds?.phone_number_id) {
-        return { error: 'No WhatsApp credentials found', sent: 0 }
-    }
+  const credentials = toCredentials(credentialsRow)
+  if (!credentials) {
+    return { error: 'No WhatsApp credentials found', sent: 0 }
+  }
 
-    // Buscar suscripción del cliente por teléfono
-    const tenantCC = (creds as any)?.country_code || '591'
-    const cleanNum = phoneNumber.replace(/\D/g, '')
-    const withPrefix = cleanNum.startsWith(tenantCC) ? cleanNum : tenantCC + cleanNum
-    const withoutPrefix = cleanNum.startsWith(tenantCC) ? cleanNum.slice(tenantCC.length) : cleanNum
+  const fullPhone = normalizePhone(phoneNumber, credentials.country_code)
+  const withoutPrefix = fullPhone.startsWith(credentials.country_code)
+    ? fullPhone.slice(credentials.country_code.length)
+    : fullPhone
 
-    const { data: sub } = await supabaseAdmin
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .or(`numero.eq.${withPrefix},numero.eq.${withoutPrefix}`)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+  const { data: subscriptionRow } = await supabaseAdmin
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .or(`numero.eq.${fullPhone},numero.eq.${withoutPrefix}`)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-    // Obtener productos para referencia en notas
-    const { data: products } = await supabaseAdmin
-        .from('products')
-        .select('id, name, description, price')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
+  const subscription = toSubscriptionList(subscriptionRow)[0]
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-    const imageUrl = (creds as any)?.promo_image_url || `${baseUrl}/prices_promo.jpg`
-    const fullPhone = withPrefix
+  const { data: productRows } = await supabaseAdmin
+    .from('products')
+    .select('id, name, description, price')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
 
-    // ✅ Enviar template de recordatorio (funciona fuera de la ventana 24h)
-    const sendResult = await sendWhatsAppTemplate(
-        fullPhone,
-        'recordatorio_renovacion_v1',
-        'es',
-        [
-            {
-                type: 'header',
-                parameters: [{ type: 'image', image: { link: imageUrl } }]
-            },
-            {
-                type: 'body',
-                parameters: [
-                    { type: 'text', text: sub?.correo || 'tu cuenta' },
-                    { type: 'text', text: sub?.vencimiento || 'pronto' }
-                ]
-            }
+  const products = toProductList(productRows)
+  const imageUrl = getPromoImageUrl(credentials)
+
+  const sendResult = await sendWhatsAppTemplate(
+    fullPhone,
+    'recordatorio_renovacion_v1',
+    'es',
+    [
+      {
+        type: 'header',
+        parameters: [{ type: 'image', image: { link: imageUrl } }],
+      },
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: subscription?.correo || 'tu cuenta' },
+          { type: 'text', text: subscription?.vencimiento || 'pronto' },
         ],
-        creds.access_token,
-        creds.phone_number_id
-    )
+      },
+    ],
+    credentials.access_token,
+    credentials.phone_number_id,
+  )
 
-    if (!sendResult) {
-        return { error: 'Template send failed', sent: 0, hint: 'Verifica que el template "recordatorio_renovacion_v1" esté aprobado en Meta.' }
-    }
-
-    // Buscar/crear chat para guardar mensajes en el panel
-    const chatId = await findOrCreateChat(fullPhone, userId, sub?.correo || fullPhone)
-
-    if (chatId) {
-        // Guardar el TEXTO EXACTO que recibe el cliente (igual al template de Meta)
-        // Guardar el TEXTO EXACTO que recibe el cliente (igual al template de Meta)
-        const svcName = (creds as any)?.service_name || (creds as any)?.bot_name || 'nuestro servicio'
-        const actualTemplateText = `⚠️ *Acción requerida: Tu acceso a ${svcName} necesita atención*\n\n¡Hola! Notamos que tu suscripción de la cuenta ${sub?.correo || 'tu cuenta'} vencerá / venció el ${sub?.vencimiento || 'fecha no registrada'}.\n\nComo valoramos tu preferencia, queremos recordarte renovar a tiempo para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${svcName}. ✨\n\nPara renovar, puedes ver los precios en la imagen adjunta o elegir tu plan en la lista que te enviaremos a continuación 👇`
-
-        await supabaseAdmin.from('messages').insert({
-            chat_id: chatId,
-            is_from_me: true,
-            content: actualTemplateText,
-            status: 'delivered'
-        })
-        await supabaseAdmin.from('chats').update({
-            last_message: '🔔 Recordatorio de renovación enviado',
-            last_message_time: new Date().toISOString()
-        }).eq('id', chatId)
-    }
-
-    // ⚠️ Intentar enviar lista interactiva de planes (solo funciona si el cliente contestó en las últimas 24h)
-    let listSent = false
-    if (products && products.length > 0) {
-        await delay(1000)
-        try {
-            const listSections = [{
-                title: 'Planes Disponibles',
-                rows: products.map(p => ({
-                    id: `renew_plan_${p.id}`,
-                    title: p.name.substring(0, 24),
-                    description: `${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`
-                }))
-            }]
-            const listResult = await sendWhatsAppList(
-                fullPhone,
-                '👇 Selecciona el plan que deseas para renovar tu suscripción:',
-                'Ver Planes',
-                listSections,
-                creds.access_token,
-                creds.phone_number_id
-            )
-            listSent = !!listResult
-
-            // Si la lista SÍ se envió (cliente dentro de 24h), guardarla como tarjeta visual
-            if (listSent && chatId) {
-                const planListContent = products.map(p => `• ${p.name} — ${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`).join('\n')
-                await supabaseAdmin.from('messages').insert({
-                    chat_id: chatId,
-                    is_from_me: true,
-                    content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente lo recibió como botones interactivos`,
-                    status: 'delivered'
-                })
-            }
-        } catch (listErr) {
-            console.log(`[Manual Reminders] Lista interactiva no pudo enviarse (fuera de ventana 24h): ${listErr}`)
-            listSent = false
-        }
-
-        // Si la lista NO se pudo enviar, notificar al admin en el chat
-        if (!listSent && chatId) {
-            const warningMsg = `⚠️ *Nota del sistema:* La lista de planes interactiva NO se pudo enviar porque el cliente está fuera de la ventana de 24h de WhatsApp.\n\nCuando el cliente responda, usa el botón 📋 Planes para enviarle la lista.`
-            await supabaseAdmin.from('messages').insert({
-                chat_id: chatId,
-                is_from_me: true,
-                content: warningMsg,
-                status: 'delivered'
-            })
-        }
-    }
-
-    console.log(`[Manual Reminders] ✅ Recordatorio individual enviado a ${redactPhone(fullPhone)} | Lista: ${listSent ? 'OK' : 'BLOQUEADA (>24h)'}`)
+  if (!sendResult) {
     return {
-        sent: 1,
-        failed: 0,
-        phone: fullPhone,
-        listSent,
-        note: listSent ? 'Template + lista enviados' : 'Solo template enviado (cliente fuera de ventana 24h). Usa el botón Planes cuando responda.'
+      error: 'Template send failed',
+      sent: 0,
+      hint: 'Verifica que el template "recordatorio_renovacion_v1" este aprobado en Meta.',
     }
-}
+  }
 
-// =============================================
-// Core Logic: Procesar y enviar recordatorios
-// =============================================
-async function processReminders(specificUserIds?: string[], force: boolean = false) {
-    const today = new Date()
-    const results = { sent: 0, failed: 0, skipped: 0, total: 0 }
+  const chatId = await findOrCreateChat(
+    supabaseAdmin,
+    fullPhone,
+    userId,
+    subscription?.correo || fullPhone,
+    credentials.country_code,
+  )
 
-    // 1. Obtener suscripciones candidatas
-    let query = supabaseAdmin
-        .from('subscriptions')
-        .select('*')
-        .eq('estado', 'ACTIVO')
+  if (chatId) {
+    const serviceName = getServiceName(credentials)
+    const actualTemplateText = `⚠️ *Accion requerida: Tu acceso a ${serviceName} necesita atencion*\n\n¡Hola! Notamos que tu suscripcion de la cuenta ${subscription?.correo || 'tu cuenta'} vencera / vencio el ${subscription?.vencimiento || 'fecha no registrada'}.\n\nComo valoramos tu preferencia, queremos recordarte renovar a tiempo para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. ✨\n\nPara renovar, puedes ver los precios en la imagen adjunta o elegir tu plan en la lista que te enviaremos a continuacion 👇`
 
-    // In normal mode, only get un-notified. In force/broadcast mode, get ALL active.
-    if (!force) {
-        query = query.eq('notified', false)
-    }
-
-    // Si se pasan user IDs específicos (desde cron con timezone), filtrar por esos
-    if (specificUserIds && specificUserIds.length > 0) {
-        query = query.in('user_id', specificUserIds)
-    } else if (specificUserIds && specificUserIds.length === 0) {
-        // Si se pasan user IDs pero la lista está vacía, no procesar nada
-        return results
-    }
-
-    const { data: subscriptions, error: subError } = await query
-
-    if (subError) {
-        console.error('[Reminders] Error fetching subscriptions:', subError)
-        return { ...results, error: subError.message }
-    }
-
-    if (!subscriptions || subscriptions.length === 0) {
-        console.log('[Reminders] No subscriptions to process')
-        return results
-    }
-
-    // Filter by date (only in normal mode, skip in force/broadcast mode)
-    const candidates = subscriptions.filter(sub => {
-        // Skip paused
-        if (sub.auto_notify_paused) return false
-
-        // Must have a phone number
-        const phone = (sub.numero || '').replace(/\D/g, '')
-        if (phone.length < 8) return false
-
-        // In force mode, skip date filtering
-        if (force) return true
-
-        // Parse date
-        const expDate = parseDate(sub.vencimiento)
-        if (!expDate) return false
-
-        // Check if expiring today or already expired (grace period)
-        // Note: initial filter is broad; per-tenant timezone is applied later in the user group loop
-        const expDateStr = expDate.toISOString().split('T')[0];
-        const nowStr = new Date().toISOString().split('T')[0];
-        return expDateStr <= nowStr
+    await supabaseAdmin.from('messages').insert({
+      chat_id: chatId,
+      is_from_me: true,
+      content: actualTemplateText,
+      status: 'delivered',
+      whatsapp_message_id: extractWhatsAppMessageId(sendResult),
     })
 
-    results.total = candidates.length
-    results.skipped = subscriptions.length - candidates.length
+    await supabaseAdmin.from('chats').update({
+      last_message: '🔔 Recordatorio de renovacion enviado',
+      last_message_time: new Date().toISOString(),
+    }).eq('id', chatId)
+  }
 
-    if (candidates.length === 0) {
-        console.log('[Reminders] No candidates after filtering')
-        return results
+  let listSent = false
+  const listSections = buildPlanListSections(products, credentials.currency_symbol)
+  if (listSections.length > 0 && listSections[0].rows.length > 0) {
+    await delay(1000)
+
+    try {
+      const listResult = await sendWhatsAppList(
+        fullPhone,
+        '👇 Selecciona el plan que deseas para renovar tu suscripcion:',
+        'Ver Planes',
+        listSections,
+        credentials.access_token,
+        credentials.phone_number_id,
+      )
+      listSent = Boolean(listResult)
+
+      if (listSent && chatId) {
+        await supabaseAdmin.from('messages').insert({
+          chat_id: chatId,
+          is_from_me: true,
+          content: `📋 *Planes Enviados:*\n\n${buildPlanListContent(products, credentials.currency_symbol)}\n\n👆 El cliente lo recibio como botones interactivos`,
+          status: 'delivered',
+        })
+      }
+    } catch (error) {
+      console.log(`[Manual Reminders] Lista interactiva no pudo enviarse (fuera de ventana 24h): ${error}`)
     }
 
-    // 2. Group by user_id for efficient processing
-    const userGroups: Record<string, typeof candidates> = {}
-    for (const sub of candidates) {
-        if (!userGroups[sub.user_id]) userGroups[sub.user_id] = []
-        userGroups[sub.user_id].push(sub)
+    if (!listSent && chatId) {
+      await supabaseAdmin.from('messages').insert({
+        chat_id: chatId,
+        is_from_me: true,
+        content: '⚠️ *Nota del sistema:* La lista de planes interactiva no se pudo enviar porque el cliente esta fuera de la ventana de 24h de WhatsApp.\n\nCuando el cliente responda, usa el boton 📋 Planes para enviarle la lista.',
+        status: 'delivered',
+      })
     }
+  }
 
-    // 3. Process each user group
-    for (const [userId, userSubs] of Object.entries(userGroups)) {
-        // Get WhatsApp credentials for this user
-        const { data: creds } = await supabaseAdmin
-            .from('whatsapp_credentials')
-            .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol, country_code')
-            .eq('user_id', userId)
-            .single()
+  console.log(`[Manual Reminders] ✅ Recordatorio individual enviado a ${redactPhone(fullPhone)} | Lista: ${listSent ? 'OK' : 'BLOQUEADA (>24h)'}`)
 
-        if (!creds?.access_token || !creds?.phone_number_id) {
-            console.log(`[Reminders] No WhatsApp credentials for user ${userId}, skipping ${userSubs.length} subs`)
-            results.skipped += userSubs.length
-            results.total -= userSubs.length
-            continue
-        }
+  return {
+    sent: 1,
+    failed: 0,
+    phone: fullPhone,
+    listSent,
+    note: listSent
+      ? 'Template + lista enviados'
+      : 'Solo template enviado (cliente fuera de ventana 24h). Usa el boton Planes cuando responda.',
+  }
+}
 
-        // Get custom messages
-        const { data: settings } = await supabaseAdmin
-            .from('subscription_settings')
-            .select('*, template_config')
-            .eq('user_id', userId)
-            .single()
+async function processReminders(
+  specificUserIds?: string[],
+  force: boolean = false,
+): Promise<NotificationResults & { error?: string }> {
+  const today = new Date()
+  const results: NotificationResults = { sent: 0, failed: 0, skipped: 0, total: 0 }
 
-        if (settings && settings.enable_auto_notifications === false) {
-            console.log(`[Reminders] Auto notifications disabled for user ${userId}, skipping`)
-            results.skipped += userSubs.length
-            results.total -= userSubs.length
-            continue
-        }
+  let query = supabaseAdmin
+    .from('subscriptions')
+    .select('*')
+    .eq('estado', 'ACTIVO')
 
-        // Get products/plans for this user
-        const { data: products } = await supabaseAdmin
-            .from('products')
-            .select('id, name, description, price')
-            .eq('user_id', userId)
-            .eq('is_active', true)
-            .order('sort_order', { ascending: true })
+  if (!force) {
+    query = query.eq('notified', false)
+  }
 
-        // Build plans text
-        const tenantCurrency = (creds as any)?.currency_symbol || 'Bs'
-        const tenantCC = (creds as any)?.country_code || '591'
-        const plansText = (products || []).map(p =>
-            `• ${p.name} - ${tenantCurrency} ${p.price}`
-        ).join('\n')
-
-        // Build WhatsApp list sections for interactive plan selection
-        const listSections = products && products.length > 0 ? [{
-            title: 'Planes Disponibles',
-            rows: products.map(p => ({
-                id: `renew_plan_${p.id}`,
-                title: p.name.substring(0, 24),
-                description: `${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`
-            }))
-        }] : []
-
-        const serviceName = (creds as any)?.service_name || (creds as any)?.bot_name || 'nuestro servicio'
-
-        // Default messages (genéricos para cualquier negocio)
-        const defaultReminder = `⚠️ *Acción requerida: Tu acceso a ${serviceName} necesita atención*
-
-¡Hola! Notamos que tu suscripción venció el {vencimiento} de tu cuenta {correo}
-
-Porque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.
-
-📋 *Planes disponibles para renovar:*
-{planes}
-
-Por favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨
-
-Ref: {equipo}`
-
-        const defaultExpiredGrace = `⚠️ *Acción requerida: Tu acceso a ${serviceName} necesita atención*
-
-¡Hola! Notamos que tu suscripción venció el {vencimiento} de tu cuenta {correo}
-
-Porque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.
-
-📋 *Planes disponibles para renovar:*
-{planes}
-
-Por favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨
-
-Ref: {equipo}`
-
-        // Send to each subscription
-        for (const sub of userSubs) {
-            try {
-                const phone = sub.numero.replace(/\D/g, '')
-                const fullPhone = !phone.startsWith(tenantCC) ? tenantCC + phone : phone
-
-                // Choose message based on status
-                const expDate = parseDate(sub.vencimiento)
-                const diffDays = expDate ? Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0
-
-                let messageTemplate: string
-                if (diffDays < 0) {
-                    // Already expired but ACTIVE (grace period)
-                    messageTemplate = settings?.expired_grace_msg || defaultExpiredGrace
-                } else {
-                    // Expiring soon
-                    messageTemplate = settings?.reminder_msg || defaultReminder
-                }
-
-                // Replace variables
-                const message = messageTemplate
-                    .replace(/{correo}/g, sub.correo || '')
-                    .replace(/{vencimiento}/g, sub.vencimiento || '')
-                    .replace(/{equipo}/g, sub.equipo || '')
-                    .replace(/{planes}/g, plansText)
-
-                // URL de imagen de precios desde config del tenant
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
-                const imageUrl = (creds as any)?.promo_image_url || `${baseUrl}/prices_promo.jpg`
-
-                // Seleccionar template según servicio del suscriptor
-                const templateConfig = (settings as any)?.template_config || {}
-                const servicio = (sub.servicio || serviceName || 'Servicio') as string
-                const templateName = templateConfig?.[servicio]?.reminder
-                    || (Object.values(templateConfig || {}) as any[])?.[0]?.reminder
-                    || 'recordatorio_renovacion_v1'
-
-                // Send TEMPLATE message (requerido para clientes fuera de ventana 24h)
-                const sendResult = await sendWhatsAppTemplate(
-                    fullPhone,
-                    templateName,
-                    'es',
-                    [
-                        {
-                            type: 'header',
-                            parameters: [
-                                {
-                                    type: 'image',
-                                    image: { link: imageUrl }
-                                }
-                            ]
-                        },
-                        {
-                            type: 'body',
-                            parameters: [
-                                { type: 'text', text: sub.correo || 'tu cuenta' },
-                                { type: 'text', text: sub.vencimiento || 'pronto' }
-                            ]
-                        }
-                    ],
-                    creds.access_token,
-                    creds.phone_number_id
-                )
-
-                if (sendResult) {
-                    // Extraer ID del mensaje de WhatsApp para tracking de status
-                    const waMessageId = sendResult?.messages?.[0]?.id || null
-
-                    // Buscar/crear chat para guardar mensajes en el panel
-                    const chatId = await findOrCreateChat(fullPhone, userId, sub.correo || fullPhone)
-
-                    // Guardar mensaje de texto en el panel de chat
-                    if (chatId) {
-                        await supabaseAdmin.from('messages').insert({
-                            chat_id: chatId,
-                            is_from_me: true,
-                            content: message,
-                            status: 'delivered',
-                            whatsapp_message_id: waMessageId
-                        })
-
-                        // Actualizar last_message del chat
-                        await supabaseAdmin.from('chats').update({
-                            last_message: '📤 Recordatorio de renovación enviado',
-                            last_message_time: new Date().toISOString()
-                        }).eq('id', chatId)
-                    }
-
-                    // Send interactive list with plans
-                    if (listSections.length > 0 && listSections[0].rows.length > 0) {
-                        await delay(1000)
-                        await sendWhatsAppList(
-                            fullPhone,
-                            '👇 Selecciona el plan que deseas para renovar tu suscripción:',
-                            'Ver Planes',
-                            listSections,
-                            creds.access_token,
-                            creds.phone_number_id
-                        )
-
-                        // Guardar lista interactiva en el panel con formato correcto para tarjeta visual
-                        if (chatId && products && products.length > 0) {
-                            const planListContent = products.map(p => `• ${p.name} — ${(creds as any)?.currency_symbol || 'Bs'} ${p.price}`).join('\n')
-                            await supabaseAdmin.from('messages').insert({
-                                chat_id: chatId,
-                                is_from_me: true,
-                                content: `📋 *Planes Enviados:*\n\n${planListContent}\n\n👆 El cliente lo recibió como botones interactivos`,
-                                status: 'delivered'
-                            })
-                        }
-                    }
-
-                    // Update subscription
-                    await supabaseAdmin
-                        .from('subscriptions')
-                        .update({
-                            notified: true,
-                            notified_at: new Date().toISOString(),
-                            followup_sent: false,
-                            urgency_sent: false
-                        })
-                        .eq('id', sub.id)
-
-                    // Log success
-                    await supabaseAdmin.from('subscription_notification_logs').insert({
-                        user_id: userId,
-                        subscription_id: sub.id,
-                        phone_number: fullPhone,
-                        message_type: 'reminder',
-                        status: 'sent'
-                    })
-
-                    results.sent++
-                    console.log(`[Reminders] ✅ Sent to ${redactPhone(fullPhone)} (${redactEmail(sub.correo)})`)
-
-                    // CRM: Auto-tag renovacion_pendiente
-                    const reminderChatId = await findOrCreateChat(fullPhone, userId, sub.correo)
-                    if (reminderChatId) {
-                        try {
-                            const { data: chatData } = await supabaseAdmin.from('chats').select('tags').eq('id', reminderChatId).single()
-                            let tags: string[] = chatData?.tags || []
-                            tags = tags.filter(t => t !== 'pago') // remove pago if expired again
-                            if (!tags.includes('renovacion_pendiente')) tags.push('renovacion_pendiente')
-                            await supabaseAdmin.from('chats').update({ tags }).eq('id', reminderChatId)
-                        } catch { }
-                    }
-                } else {
-                    // Log failure
-                    await supabaseAdmin.from('subscription_notification_logs').insert({
-                        user_id: userId,
-                        subscription_id: sub.id,
-                        phone_number: fullPhone,
-                        message_type: 'reminder',
-                        status: 'failed',
-                        error_message: 'sendWhatsAppMessage returned null'
-                    })
-                    results.failed++
-                    console.log(`[Reminders] ❌ Failed for ${redactPhone(fullPhone)}`)
-                }
-
-                // Rate limit delay
-                await delay(2000)
-
-            } catch (err) {
-                console.error(`[Reminders] Error processing sub ${sub.id}:`, err)
-                results.failed++
-
-                await supabaseAdmin.from('subscription_notification_logs').insert({
-                    user_id: userId,
-                    subscription_id: sub.id,
-                    phone_number: sub.numero,
-                    message_type: 'reminder',
-                    status: 'failed',
-                    error_message: String(err)
-                })
-            }
-        }
-    }
-
+  if (specificUserIds && specificUserIds.length > 0) {
+    query = query.in('user_id', specificUserIds)
+  } else if (specificUserIds && specificUserIds.length === 0) {
     return results
+  }
+
+  const { data: subscriptionRows, error: subError } = await query
+
+  if (subError) {
+    console.error('[Reminders] Error fetching subscriptions:', subError)
+    return { ...results, error: subError.message }
+  }
+
+  const subscriptions = toSubscriptionList(subscriptionRows)
+  if (subscriptions.length === 0) {
+    console.log('[Reminders] No subscriptions to process')
+    return results
+  }
+
+  const candidates = subscriptions.filter(subscription => {
+    if (subscription.auto_notify_paused || !hasValidSubscriptionPhone(subscription)) {
+      return false
+    }
+
+    if (force) {
+      return true
+    }
+
+    const diffDays = getSubscriptionDateDiff(subscription, today)
+    return diffDays !== null && diffDays <= 0
+  })
+
+  results.total = candidates.length
+  results.skipped = subscriptions.length - candidates.length
+
+  if (candidates.length === 0) {
+    console.log('[Reminders] No candidates after filtering')
+    return results
+  }
+
+  const userGroups = groupSubscriptionsByUser(candidates)
+
+  for (const [userId, userSubscriptions] of Object.entries(userGroups)) {
+    const { data: credentialsRow } = await supabaseAdmin
+      .from('whatsapp_credentials')
+      .select('access_token, phone_number_id, bot_name, service_name, promo_image_url, timezone, currency_symbol, country_code')
+      .eq('user_id', userId)
+      .single()
+
+    const credentials = toCredentials(credentialsRow)
+    if (!credentials) {
+      console.log(`[Reminders] No WhatsApp credentials for user ${userId}, skipping ${userSubscriptions.length} subs`)
+      results.skipped += userSubscriptions.length
+      results.total -= userSubscriptions.length
+      continue
+    }
+
+    const { data: settingsRow } = await supabaseAdmin
+      .from('subscription_settings')
+      .select('reminder_msg, expired_grace_msg, enable_auto_notifications, template_config')
+      .eq('user_id', userId)
+      .single()
+
+    const settings = toSettings(settingsRow)
+    if (!settings.enable_auto_notifications) {
+      console.log(`[Reminders] Auto notifications disabled for user ${userId}, skipping`)
+      results.skipped += userSubscriptions.length
+      results.total -= userSubscriptions.length
+      continue
+    }
+
+    const { data: productRows } = await supabaseAdmin
+      .from('products')
+      .select('id, name, description, price')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+
+    const products = toProductList(productRows)
+    const currencySymbol = credentials.currency_symbol
+    const listSections = buildPlanListSections(products, currencySymbol)
+    const plansText = buildPlanListContent(products, currencySymbol)
+    const serviceName = getServiceName(credentials)
+    const imageUrl = getPromoImageUrl(credentials)
+
+    const defaultReminder = `⚠️ *Accion requerida: Tu acceso a ${serviceName} necesita atencion*\n\n¡Hola! Notamos que tu suscripcion vencio el {vencimiento} de tu cuenta {correo}\n\nPorque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.\n\n📋 *Planes disponibles para renovar:*\n{planes}\n\nPor favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨\n\nRef: {equipo}`
+    const defaultExpiredGrace = `⚠️ *Accion requerida: Tu acceso a ${serviceName} necesita atencion*\n\n¡Hola! Notamos que tu suscripcion vencio el {vencimiento} de tu cuenta {correo}\n\nPorque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.\n\n📋 *Planes disponibles para renovar:*\n{planes}\n\nPor favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨\n\nRef: {equipo}`
+
+    for (const subscription of userSubscriptions) {
+      try {
+        const fullPhone = normalizePhone(subscription.numero, credentials.country_code)
+        const diffDays = getSubscriptionDateDiff(subscription, today) ?? 0
+        const messageTemplate = diffDays < 0
+          ? settings.expired_grace_msg || defaultExpiredGrace
+          : settings.reminder_msg || defaultReminder
+
+        const message = messageTemplate
+          .replace(/{correo}/g, subscription.correo || '')
+          .replace(/{vencimiento}/g, subscription.vencimiento || '')
+          .replace(/{equipo}/g, subscription.equipo || '')
+          .replace(/{planes}/g, plansText)
+
+        const templateName = resolveTemplateName(
+          settings,
+          subscription.servicio || serviceName || 'Servicio',
+          'reminder',
+          'recordatorio_renovacion_v1',
+        )
+
+        const sendResult = await sendWhatsAppTemplate(
+          fullPhone,
+          templateName,
+          'es',
+          [
+            {
+              type: 'header',
+              parameters: [{ type: 'image', image: { link: imageUrl } }],
+            },
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: subscription.correo || 'tu cuenta' },
+                { type: 'text', text: subscription.vencimiento || 'pronto' },
+              ],
+            },
+          ],
+          credentials.access_token,
+          credentials.phone_number_id,
+        )
+
+        if (sendResult) {
+          const chatId = await findOrCreateChat(
+            supabaseAdmin,
+            fullPhone,
+            userId,
+            subscription.correo || fullPhone,
+            credentials.country_code,
+          )
+
+          if (chatId) {
+            await supabaseAdmin.from('messages').insert({
+              chat_id: chatId,
+              is_from_me: true,
+              content: message,
+              status: 'delivered',
+              whatsapp_message_id: extractWhatsAppMessageId(sendResult),
+            })
+
+            await supabaseAdmin.from('chats').update({
+              last_message: '📤 Recordatorio de renovacion enviado',
+              last_message_time: new Date().toISOString(),
+            }).eq('id', chatId)
+          }
+
+          if (listSections.length > 0 && listSections[0].rows.length > 0) {
+            await delay(1000)
+
+            await sendWhatsAppList(
+              fullPhone,
+              '👇 Selecciona el plan que deseas para renovar tu suscripcion:',
+              'Ver Planes',
+              listSections,
+              credentials.access_token,
+              credentials.phone_number_id,
+            )
+
+            if (chatId && products.length > 0) {
+              await supabaseAdmin.from('messages').insert({
+                chat_id: chatId,
+                is_from_me: true,
+                content: `📋 *Planes Enviados:*\n\n${plansText}\n\n👆 El cliente lo recibio como botones interactivos`,
+                status: 'delivered',
+              })
+            }
+          }
+
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({
+              notified: true,
+              notified_at: new Date().toISOString(),
+              followup_sent: false,
+              urgency_sent: false,
+            })
+            .eq('id', subscription.id)
+
+          await supabaseAdmin.from('subscription_notification_logs').insert({
+            user_id: userId,
+            subscription_id: subscription.id,
+            phone_number: fullPhone,
+            message_type: 'reminder',
+            status: 'sent',
+          })
+
+          results.sent++
+          console.log(`[Reminders] ✅ Sent to ${redactPhone(fullPhone)} (${redactEmail(subscription.correo)})`)
+
+          const reminderChatId = chatId ?? await findOrCreateChat(
+            supabaseAdmin,
+            fullPhone,
+            userId,
+            subscription.correo,
+            credentials.country_code,
+          )
+
+          if (reminderChatId) {
+            const { data: chatRow } = await supabaseAdmin
+              .from('chats')
+              .select('id, tags')
+              .eq('id', reminderChatId)
+              .single()
+
+            const chat = asRecord(chatRow)
+            const rawTags = Array.isArray(chat?.tags) ? chat.tags.filter((tag): tag is string => typeof tag === 'string') : []
+            const nextTags = [...new Set([...rawTags.filter(tag => tag !== 'pago'), 'renovacion_pendiente'])]
+
+            await supabaseAdmin.from('chats').update({ tags: nextTags }).eq('id', reminderChatId)
+          }
+        } else {
+          await supabaseAdmin.from('subscription_notification_logs').insert({
+            user_id: userId,
+            subscription_id: subscription.id,
+            phone_number: fullPhone,
+            message_type: 'reminder',
+            status: 'failed',
+            error_message: 'sendWhatsAppTemplate returned null',
+          })
+
+          results.failed++
+          console.log(`[Reminders] ❌ Failed for ${redactPhone(fullPhone)}`)
+        }
+
+        await delay(2000)
+      } catch (error) {
+        console.error(`[Reminders] Error processing sub ${subscription.id}:`, error)
+        results.failed++
+
+        await supabaseAdmin.from('subscription_notification_logs').insert({
+          user_id: userId,
+          subscription_id: subscription.id,
+          phone_number: subscription.numero,
+          message_type: 'reminder',
+          status: 'failed',
+          error_message: String(error),
+        })
+      }
+    }
+  }
+
+  return results
 }

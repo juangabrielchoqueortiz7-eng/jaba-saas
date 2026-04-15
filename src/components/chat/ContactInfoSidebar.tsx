@@ -25,6 +25,8 @@ interface Order {
     status: string
 }
 
+type CustomFieldValue = string | number | boolean | null
+
 interface ContactInfoSidebarProps {
     phoneNumber: string
     chatId: string
@@ -58,7 +60,7 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
-    const [customFields, setCustomFields] = useState<Record<string, any>>({})
+    const [customFields, setCustomFields] = useState<Record<string, CustomFieldValue>>({})
     const [fieldDefs, setFieldDefs] = useState<{ id: string; field_name: string; field_type: string; description: string | null }[]>([])
     const [editingField, setEditingField] = useState<string | null>(null)
     const [editValue, setEditValue] = useState('')
@@ -226,7 +228,7 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
                                             </div>
                                             {!isEditing && (
                                                 <button
-                                                    onClick={() => { setEditingField(fd.field_name); setEditValue(val || '') }}
+                                                    onClick={() => { setEditingField(fd.field_name); setEditValue(String(val ?? '')) }}
                                                     className="text-[#0F172A]/15 hover:text-[#25D366] transition-colors opacity-0 group-hover:opacity-100 shrink-0"
                                                 >
                                                     <Pencil size={11} />

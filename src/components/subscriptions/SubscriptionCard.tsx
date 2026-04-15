@@ -14,7 +14,7 @@ const getServicioBadge = (servicio: string) => {
 
 interface SubscriptionCardProps {
     sub: Subscription;
-    onUpdate: (id: string, field: keyof Subscription, value: any) => void;
+    onUpdate: (id: string, field: keyof Subscription, value: Subscription[keyof Subscription]) => void;
     onToggleStatus: (sub: Subscription) => void;
     onDelete: (id: string) => void;
     onWhatsApp: (sub: Subscription) => void;

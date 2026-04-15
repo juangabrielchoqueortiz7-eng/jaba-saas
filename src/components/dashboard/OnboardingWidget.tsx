@@ -24,17 +24,15 @@ export function OnboardingWidget() {
     const [steps, setSteps] = useState<Step[]>([])
     const [loading, setLoading] = useState(true)
     const [isOpen, setIsOpen] = useState(false)
-    const [dismissed, setDismissed] = useState(false)
+    const [dismissed, setDismissed] = useState(() => {
+        if (typeof window === 'undefined') return false
+        return localStorage.getItem('jaba_onboarding_dismissed') === 'true'
+    })
     const pathname = usePathname()
-    const supabase = createClient()
-
-    useEffect(() => {
-        const isDismissed = localStorage.getItem('jaba_onboarding_dismissed') === 'true'
-        if (isDismissed) setDismissed(true)
-    }, [])
 
     useEffect(() => {
         const fetchStatus = async () => {
+            const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 

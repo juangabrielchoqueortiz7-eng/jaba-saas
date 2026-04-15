@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { toCredentials } from '@/lib/subscription-notifications'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 const supabaseAdmin = createClient(
@@ -51,13 +52,14 @@ export async function POST(request: Request) {
         }
 
         // Obtener credenciales de WhatsApp del usuario
-        const { data: creds } = await supabaseAdmin
+        const { data: credentialsRow } = await supabaseAdmin
             .from('whatsapp_credentials')
             .select('access_token, phone_number_id, currency_symbol, country_code')
             .eq('user_id', user.id)
             .single()
 
-        const currency = (creds as any)?.currency_symbol || 'Bs';
+        const credentials = toCredentials(credentialsRow)
+        const currency = credentials?.currency_symbol || 'Bs'
 
         if (action === 'approve') {
             // =============================================
@@ -81,8 +83,8 @@ export async function POST(request: Request) {
                 console.log(`[Renewal Approve] ✅ Suscripción ${renewal.subscription_id} actualizada: ${renewal.old_expiration} → ${renewal.new_expiration} (ACTIVO)`);
             } else {
                 // Si no tenemos subscription_id, buscar por número de teléfono
-                const tenantCC = (creds as any)?.country_code || '591';
-                const cleanPhone = renewal.phone_number.replace(new RegExp(`^${tenantCC}`), '');
+                const tenantCC = credentials?.country_code || '591'
+                const cleanPhone = renewal.phone_number.replace(new RegExp(`^${tenantCC}`), '')
                 const { data: foundSub } = await supabaseAdmin
                     .from('subscriptions')
                     .select('id')
@@ -139,14 +141,14 @@ export async function POST(request: Request) {
             const businessName = businessProfile?.service_name || businessProfile?.bot_name || 'nuestro servicio';
 
             // 5. Enviar mensaje genérico al cliente por WhatsApp
-            if (creds?.access_token && creds?.phone_number_id && renewal.phone_number) {
+            if (credentials?.access_token && credentials?.phone_number_id && renewal.phone_number) {
                 const confirmMsg = `✅ *¡Renovación aprobada!* 🎉\n\nTu acceso para *${renewal.customer_email || renewal.phone_number}* ha sido renovado con éxito en *${businessName}*.\n\n📋 *Detalle de tu renovación:*\n• Plan: ${renewal.plan_name}\n• Monto: ${currency} ${renewal.amount}\n• Vigencia hasta: *${renewal.new_expiration}*\n\n¡Gracias por seguir confiando en nosotros! Si necesitas ayuda, estamos aquí. 😊`;
 
                 await sendWhatsAppMessage(
                     renewal.phone_number,
                     confirmMsg,
-                    creds.access_token,
-                    creds.phone_number_id
+                    credentials.access_token,
+                    credentials.phone_number_id
                 )
 
                 // Guardar mensaje en chat
@@ -196,14 +198,14 @@ export async function POST(request: Request) {
             }
 
             // Enviar mensaje al cliente
-            if (creds?.access_token && creds?.phone_number_id && renewal.phone_number) {
+            if (credentials?.access_token && credentials?.phone_number_id && renewal.phone_number) {
                 const rejectMsg = `⚠️ *Pago no verificado*\n\nHola, revisamos tu comprobante para el plan *${renewal.plan_name}* pero no pudimos verificar el pago.\n\nPor favor, revisa que:\n• El monto sea correcto (${currency} ${renewal.amount})\n• La captura sea legible y corresponda al pago actual\n\nSi ya realizaste el pago, vuelve a enviar tu comprobante. ¡Estamos aquí para ayudarte! 💬`
 
                 await sendWhatsAppMessage(
                     renewal.phone_number,
                     rejectMsg,
-                    creds.access_token,
-                    creds.phone_number_id
+                    credentials.access_token,
+                    credentials.phone_number_id
                 )
 
                 if (renewal.chat_id) {

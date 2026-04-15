@@ -1,42 +1,57 @@
 ﻿
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Database, Plus, Trash2, Pencil } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Database, Plus, Trash2, Pencil, type LucideIcon } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
 import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode, registerWhatsAppNumber, testWebhook, sendTestWhatsAppMessage } from './actions'
 import { Smartphone, RefreshCw, X, Wifi, Send as SendIcon, FlaskConical } from "lucide-react"
 
+type WhatsAppStatus = {
+    display_phone_number?: string
+    quality_rating?: string
+    verified_name?: string
+    status?: string
+    health_status?: string
+    name_status?: string
+    requires_registration?: boolean
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+    return error instanceof Error ? error.message : fallback
+}
+
 export default function SettingsPage() {
 
 
     const WhatsAppStatusCard = ({ phoneNumberId, accessToken }: { phoneNumberId: string, accessToken: string }) => {
-        const [status, setStatus] = useState<any>(null)
+        const [status, setStatus] = useState<WhatsAppStatus | null>(null)
         const [loading, setLoading] = useState(false)
         const [error, setError] = useState('')
 
-        const checkStatus = async () => {
+        const checkStatus = useCallback(async () => {
             setLoading(true)
             setError('')
             const res = await checkWhatsAppStatus(phoneNumberId, accessToken)
-            if (res.success) {
+            if (res.success && 'data' in res && res.data) {
                 setStatus(res.data)
             } else {
                 setError(res.error || 'Error desconocido')
             }
             setLoading(false)
-        }
+        }, [accessToken, phoneNumberId])
 
         useEffect(() => {
-            checkStatus()
-        }, [])
+            void checkStatus()
+        }, [checkStatus])
 
         if (loading) return <div className="p-4 bg-[#F7F8FA] border border-black/[0.08] rounded-lg text-[#0F172A]/40">Verificando conexión...</div>
         if (error) return (
@@ -472,9 +487,9 @@ export default function SettingsPage() {
                 setTtsError(data.error || 'Error desconocido')
                 setTtsHint(data.hint || null)
             }
-        } catch (err: any) {
+        } catch (error) {
             setTtsStatus('error')
-            setTtsError(err.message || 'Error al contactar el servidor')
+            setTtsError(getErrorMessage(error, 'Error al contactar el servidor'))
         }
     }
 
@@ -538,9 +553,9 @@ export default function SettingsPage() {
             }
 
             setMessage({ type: 'success', text: 'Configuración guardada correctamente' })
-        } catch (error: any) {
+        } catch (error) {
             console.error(error)
-            setMessage({ type: 'error', text: error.message || 'Error al guardar' })
+            setMessage({ type: 'error', text: getErrorMessage(error, 'Error al guardar') })
         } finally {
             setLoading(false)
         }
@@ -562,9 +577,10 @@ export default function SettingsPage() {
             setPromoImageUrl(pub.publicUrl)
             setPromoLocalPreview(pub.publicUrl)
             URL.revokeObjectURL(localUrl)
-        } catch (err: any) {
+        } catch (error) {
             // Si falla el upload, mantener preview local pero avisar que no se guardó
-            setMessage({ type: 'error', text: `No se pudo subir la imagen al servidor: ${err.message}. Asegúrate de haber creado el bucket "assets" en Supabase Storage (público).` })
+            const message = getErrorMessage(error, 'Error desconocido')
+            setMessage({ type: 'error', text: `No se pudo subir la imagen al servidor: ${message}. Asegúrate de haber creado el bucket "assets" en Supabase Storage (público).` })
             // Dejar la preview local visible para que el usuario vea su imagen
         } finally {
             setPromoUploading(false)
@@ -586,7 +602,7 @@ export default function SettingsPage() {
         )
     }
 
-    const TabButton = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: any }) => (
+    const TabButton = ({ id, label, icon: Icon }: { id: typeof activeTab, label: string, icon: LucideIcon }) => (
         <button
             onClick={() => setActiveTab(id)}
             className={cn(
@@ -1233,11 +1249,13 @@ export default function SettingsPage() {
                                         setTestMsgLoading(true)
                                         setTestMsgResult(null)
                                         const res = await sendTestWhatsAppMessage(phoneNumberId, accessToken, testPhone.trim())
+                                        const messageId = 'messageId' in res ? res.messageId : undefined
+                                        const errorMessage = 'error' in res ? res.error : 'Error desconocido'
                                         setTestMsgResult({
                                             ok: res.success,
                                             msg: res.success
-                                                ? `✅ Mensaje enviado (ID: ${(res as any).messageId || 'ok'})`
-                                                : `❌ ${(res as any).error}`
+                                                ? `✅ Mensaje enviado (ID: ${messageId || 'ok'})`
+                                                : `❌ ${errorMessage}`
                                         })
                                         setTestMsgLoading(false)
                                     }}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useDeferredValue, useEffect, useRef, useState } from 'react'
 import { X, Tag } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { cn } from '@/lib/utils'
@@ -13,13 +13,13 @@ interface TagAutocompleteProps {
     singleValue?: boolean  // if true, returns comma-string style (for legacy fields)
 }
 
-export function TagAutocomplete({ value, onChange, placeholder = 'Escribe una etiqueta...', className, singleValue }: TagAutocompleteProps) {
+export function TagAutocomplete({ value, onChange, placeholder = 'Escribe una etiqueta...', className }: TagAutocompleteProps) {
     const [input, setInput] = useState('')
-    const [suggestions, setSuggestions] = useState<string[]>([])
     const [allTags, setAllTags] = useState<string[]>([])
     const [open, setOpen] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const deferredInput = useDeferredValue(input)
 
     useEffect(() => {
         const supabase = createClient()
@@ -31,13 +31,10 @@ export function TagAutocomplete({ value, onChange, placeholder = 'Escribe una et
         })
     }, [])
 
-    useEffect(() => {
-        if (!input.trim()) {
-            setSuggestions(allTags.filter(t => !value.includes(t)).slice(0, 8))
-        } else {
-            setSuggestions(allTags.filter(t => t.toLowerCase().includes(input.toLowerCase()) && !value.includes(t)).slice(0, 8))
-        }
-    }, [input, allTags, value])
+    const suggestions = (!deferredInput.trim()
+        ? allTags.filter(tag => !value.includes(tag))
+        : allTags.filter(tag => tag.toLowerCase().includes(deferredInput.toLowerCase()) && !value.includes(tag))
+    ).slice(0, 8)
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -121,7 +118,7 @@ export function TagAutocomplete({ value, onChange, placeholder = 'Escribe una et
                             className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[#25D366] hover:bg-emerald-50 transition-colors border-t border-black/[0.04]"
                         >
                             <span className="font-semibold">+ Crear etiqueta</span>
-                            <span className="font-medium">"{input.trim()}"</span>
+                            <span className="font-medium">&quot;{input.trim()}&quot;</span>
                         </button>
                     )}
                 </div>

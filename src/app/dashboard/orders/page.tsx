@@ -117,7 +117,7 @@ export default function OrdersPage() {
         try {
             await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', id)
             toast.success(newStatus === 'cancelled' ? 'Pedido revertido' : 'Estado actualizado')
-            if (selectedOrder?.id === id) setSelectedOrder(prev => prev ? { ...prev, status: newStatus as any } : null)
+            if (selectedOrder?.id === id) setSelectedOrder(prev => prev ? { ...prev, status: newStatus as Order['status'] } : null)
         } catch (err) {
             toast.error('Error al actualizar')
         }

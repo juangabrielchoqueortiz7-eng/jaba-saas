@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight,
     ChevronDown, ChevronUp, HelpCircle, Zap, MessageSquare, ShoppingCart,
-    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon, Copy, Play
+    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon, Copy
 } from 'lucide-react'
 import { getFlows, deleteFlow, updateFlow, type ConversationFlow } from './actions'
 import { HelpTooltip } from '@/components/ui/help-tooltip'
@@ -728,31 +728,6 @@ export default function FlowsPage() {
         await loadAutomations()
     }
 
-    const handleRunNow = async (job: AutomationJob) => {
-        if (!confirm(`¿Ejecutar "${job.name}" ahora? Se enviará a todos los destinatarios inmediatamente.`)) return
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) { toast.error('No autenticado'); return }
-        toast.info(`Ejecutando "${job.name}"...`)
-        try {
-            const res = await fetch('/api/run-single-automation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({ jobId: job.id }),
-            })
-            const data = await res.json()
-            if (!res.ok) { toast.error(data.error || 'Error al ejecutar'); return }
-            if (data.sent > 0) {
-                toast.success(`Enviado a ${data.sent} contacto(s)`)
-            } else {
-                toast.warning(data.message || `0 enviados, ${data.failed} fallidos`)
-            }
-            await loadAutomations()
-        } catch { toast.error('Error de conexión') }
-    }
 
     const handleDuplicateAuto = async (job: AutomationJob) => {
         const supabase = createClient()
@@ -1029,13 +1004,6 @@ export default function FlowsPage() {
 
                                     {/* Actions */}
                                     <div className="flex gap-1.5 items-center shrink-0">
-                                        <button
-                                            onClick={() => handleRunNow(job)}
-                                            className="h-8 w-8 rounded-lg flex items-center justify-center text-emerald-500 hover:bg-emerald-50 transition-colors"
-                                            title="Ejecutar ahora"
-                                        >
-                                            <Play size={15} />
-                                        </button>
                                         <button
                                             onClick={() => handleToggleAuto(job)}
                                             className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${

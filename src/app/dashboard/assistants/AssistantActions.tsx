@@ -2,12 +2,15 @@
 
 import { MessageSquare, Wrench, Power } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useState } from 'react'
 
-export function AssistantActions({ asst }: { asst: any }) {
-    const router = useRouter()
+interface AssistantSummary {
+    ai_status: string | null
+    id: string
+}
+
+export function AssistantActions({ asst }: { asst: AssistantSummary }) {
     const supabase = createClient()
     const [aiStatus, setAiStatus] = useState(asst.ai_status)
     const [toggling, setToggling] = useState(false)

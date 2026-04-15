@@ -69,11 +69,13 @@ export async function GET() {
 
         return NextResponse.json({ ok: true })
 
-    } catch (err: any) {
-        const isTimeout = err?.name === 'TimeoutError' || err?.message?.includes('timeout')
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Error de red'
+        const errorName = error instanceof Error ? error.name : ''
+        const isTimeout = errorName === 'TimeoutError' || message.includes('timeout')
         return NextResponse.json({
             ok: false,
-            error: isTimeout ? 'Tiempo de espera agotado al conectar con Google TTS.' : (err.message || 'Error de red'),
+            error: isTimeout ? 'Tiempo de espera agotado al conectar con Google TTS.' : message,
             hint: isTimeout ? 'El servidor no pudo alcanzar texttospeech.googleapis.com. Revisa la conectividad de red de Vercel.' : undefined,
         })
     }

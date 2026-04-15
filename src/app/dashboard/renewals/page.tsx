@@ -102,9 +102,9 @@ export default function RenewalsPage() {
             } else {
                 toast.success('Renovación rechazada. Se notificó al cliente.')
             }
-        } catch (err: any) {
-            console.error('Error:', err)
-            toast.error(err.message || 'Error al actualizar')
+        } catch (error) {
+            console.error('Error:', error)
+            toast.error(error instanceof Error ? error.message : 'Error al actualizar')
         }
     }
 

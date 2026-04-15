@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
+import { asRecord } from '@/lib/automation-jobs'
 import { createClient } from '@/utils/supabase/server'
+
+type CustomFieldUpdate = Record<string, boolean | string>
 
 // PATCH: Actualizar campo personalizado
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,16 +14,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
         }
 
-        const body = await request.json()
-        const updates: Record<string, any> = { updated_at: new Date().toISOString() }
+        const body = asRecord(await request.json())
+        const updates: CustomFieldUpdate = { updated_at: new Date().toISOString() }
 
-        if (body.description !== undefined) updates.description = body.description
-        if (body.enabled !== undefined) updates.enabled = body.enabled
-        if (body.field_type) {
+        if (typeof body?.description === 'string') updates.description = body.description
+        if (typeof body?.enabled === 'boolean') updates.enabled = body.enabled
+        if (typeof body?.field_type === 'string') {
             const validTypes = ['text', 'number', 'date', 'boolean']
             if (!validTypes.includes(body.field_type)) {
-                return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
+                return NextResponse.json({ error: 'Tipo invalido' }, { status: 400 })
             }
+
             updates.field_type = body.field_type
         }
 

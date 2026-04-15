@@ -7,6 +7,10 @@ const supabaseAdmin = createClient(
     process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+interface InsertedNode {
+    id: string
+}
+
 export async function POST(req: NextRequest) {
     try {
         const userClient = await createUserClient()
@@ -97,7 +101,10 @@ export async function POST(req: NextRequest) {
 
         // --- EDGES ---
         const nodeMap: Record<string, string> = {}
-        insertedNodes.forEach((n: any, i: number) => { nodeMap[`n${i}`] = n.id })
+        insertedNodes.forEach((node, index: number) => {
+            const insertedNode = node as InsertedNode
+            nodeMap[`n${index}`] = insertedNode.id
+        })
 
         const edges = [
             // Trigger → Bienvenida
@@ -134,8 +141,10 @@ export async function POST(req: NextRequest) {
             message: 'Flujo de ventas creado con éxito'
         })
 
-    } catch (err: any) {
-        console.error('Error seeding flow:', err)
-        return NextResponse.json({ error: err.message }, { status: 500 })
+    } catch (error) {
+        console.error('Error seeding flow:', error)
+        return NextResponse.json({
+            error: error instanceof Error ? error.message : 'Error seeding flow'
+        }, { status: 500 })
     }
 }

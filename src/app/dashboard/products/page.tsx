@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
 import { useState, useEffect, useTransition, useRef } from 'react'
@@ -100,7 +101,7 @@ export default function ProductsPage() {
     const [imagePreview, setImagePreview] = useState<string | null>(null)
     const [imageUrl, setImageUrl] = useState<string | null>(null)
     const imageInputRef = useRef<HTMLInputElement>(null)
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
 
     // Promo image (lista de precios general del catálogo)
     const [promoImageUrl, setPromoImageUrl] = useState('')
@@ -143,7 +144,7 @@ export default function ProductsPage() {
             }
         }
         loadPromoImage()
-    }, [])
+    }, [supabase])
 
     const loadProducts = async () => {
         const data = await getProducts()
@@ -201,8 +202,9 @@ export default function ProductsPage() {
             await supabase.from('whatsapp_credentials').update({ promo_image_url: url }).eq('user_id', user.id)
             setPromoSaved(true)
             setTimeout(() => setPromoSaved(false), 3000)
-        } catch (err: any) {
-            alert(`No se pudo subir la imagen: ${err.message}`)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Error desconocido'
+            alert(`No se pudo subir la imagen: ${message}`)
         } finally {
             setPromoUploading(false)
         }

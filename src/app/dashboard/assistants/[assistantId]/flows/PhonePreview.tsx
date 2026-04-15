@@ -40,8 +40,8 @@ export default function PhonePreview({ steps, flowName }: PhonePreviewProps) {
               </p>
             </div>
           ) : (
-            steps.map((step, i) => (
-              <StepPreview key={step.id} step={step} index={i} />
+            steps.map((step) => (
+              <StepPreview key={step.id} step={step} />
             ))
           )}
         </div>
@@ -63,7 +63,7 @@ export default function PhonePreview({ steps, flowName }: PhonePreviewProps) {
   )
 }
 
-function StepPreview({ step, index }: { step: WizardStep; index: number }) {
+function StepPreview({ step }: { step: WizardStep }) {
   switch (step.type) {
     case 'trigger':
       return (
@@ -82,18 +82,30 @@ function StepPreview({ step, index }: { step: WizardStep; index: number }) {
       )
 
     case 'buttons':
+      {
+        const buttons = Array.isArray(step.config.buttons)
+          ? step.config.buttons
+          : []
+
       return (
         <div className="space-y-1">
           <BotBubble text={step.config.text || 'Elige una opcion:'} />
           <div className="ml-1 space-y-1">
-            {(step.config.buttons || []).map((btn: any, i: number) => (
+            {buttons.map((button, i: number) => {
+              const title = typeof button === 'object' && button !== null && 'title' in button
+                ? String(button.title || '')
+                : ''
+
+              return (
               <div key={i} className="bg-[#1f2c34] border border-[#2a3942] rounded-lg px-3 py-1.5 text-center">
-                <p className="text-[10px] text-[#53bdeb] font-medium">{btn.title || `Opcion ${i + 1}`}</p>
+                <p className="text-[10px] text-[#53bdeb] font-medium">{title || `Opcion ${i + 1}`}</p>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )
+      }
 
     case 'list':
       return (

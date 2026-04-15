@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Search, Filter, RefreshCcw, Bell, CheckCircle2, XCircle, TrendingUp, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -41,8 +41,11 @@ export default function NotificationsPage() {
     const PAGE_SIZE = 50
     const supabase = createClient()
 
-    const fetchLogs = async () => {
-        setLoading(true)
+    const fetchLogs = useCallback(async (showLoading = false) => {
+        if (showLoading) {
+            setLoading(true)
+        }
+
         const { data } = await supabase
             .from('subscription_notification_logs')
             .select('*, subscriptions(correo, plan_name)')
@@ -50,9 +53,17 @@ export default function NotificationsPage() {
             .limit(1000)
         setLogs((data as NotifLog[]) || [])
         setLoading(false)
-    }
+    }, [supabase])
 
-    useEffect(() => { fetchLogs() }, [])
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            void fetchLogs()
+        }, 0)
+
+        return () => {
+            window.clearTimeout(timeoutId)
+        }
+    }, [fetchLogs])
 
     // ── Stats ──────────────────────────────────────────────────
     const stats = useMemo(() => {
@@ -82,10 +93,8 @@ export default function NotificationsPage() {
     }, [logs, typeFilter, statusFilter, search])
 
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-    const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-
-    // Reset página al filtrar
-    useEffect(() => { setPage(0) }, [search, typeFilter, statusFilter])
+    const currentPage = Math.min(page, Math.max(totalPages - 1, 0))
+    const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
 
     return (
         <div className="p-6 max-w-7xl mx-auto min-h-screen">
@@ -101,7 +110,7 @@ export default function NotificationsPage() {
                     </p>
                 </div>
                 <button
-                    onClick={() => { setLoading(true); fetchLogs() }}
+                    onClick={() => { void fetchLogs(true) }}
                     className="flex items-center gap-2 px-4 py-2 bg-white border border-black/[0.08] rounded-xl text-sm font-medium hover:bg-black/[0.04] text-[#0F172A]/65 transition-all active:scale-95 self-start md:self-auto"
                 >
                     <RefreshCcw size={15} className={cn(loading && 'animate-spin text-[#25D366]')} />
@@ -112,10 +121,10 @@ export default function NotificationsPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
-                    { icon: <Send size={18} />, label: 'Total enviados', value: stats.total, color: '#25D366', rgb: '99,102,241' },
-                    { icon: <CheckCircle2 size={18} />, label: 'Exitosos', value: stats.sent, color: '#10b981', rgb: '16,185,129' },
-                    { icon: <XCircle size={18} />, label: 'Fallidos', value: stats.failed, color: '#f87171', rgb: '248,113,113' },
-                    { icon: <TrendingUp size={18} />, label: 'Tasa de éxito', value: `${stats.rate}%`, color: stats.rate >= 80 ? '#10b981' : stats.rate >= 50 ? '#f59e0b' : '#f87171', rgb: '99,102,241' },
+                    { icon: <Send size={18} />, label: 'Total enviados', value: stats.total, color: '#25D366' },
+                    { icon: <CheckCircle2 size={18} />, label: 'Exitosos', value: stats.sent, color: '#10b981' },
+                    { icon: <XCircle size={18} />, label: 'Fallidos', value: stats.failed, color: '#f87171' },
+                    { icon: <TrendingUp size={18} />, label: 'Tasa de éxito', value: `${stats.rate}%`, color: stats.rate >= 80 ? '#10b981' : stats.rate >= 50 ? '#f59e0b' : '#f87171' },
                 ].map((s, i) => (
                     <div key={i} className="bg-white border border-black/[0.08] rounded-2xl p-4 relative overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: s.color }} />
@@ -150,7 +159,7 @@ export default function NotificationsPage() {
                         type="text"
                         placeholder="Buscar por teléfono, email o plan..."
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={e => { setSearch(e.target.value); setPage(0) }}
                         className="w-full bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 pl-9 pr-4 text-sm text-[#0F172A]/65 focus:outline-none focus:ring-2 focus:ring-[#25D366]/40 placeholder:text-slate-400"
                     />
                 </div>
@@ -158,7 +167,7 @@ export default function NotificationsPage() {
                     <Filter size={15} className="text-[#0F172A]/35 shrink-0" />
                     <select
                         value={typeFilter}
-                        onChange={e => setTypeFilter(e.target.value)}
+                        onChange={e => { setTypeFilter(e.target.value); setPage(0) }}
                         className="bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 px-3 text-sm text-[#0F172A]/65 focus:outline-none cursor-pointer"
                     >
                         <option value="all">Todos los tipos</option>
@@ -169,7 +178,7 @@ export default function NotificationsPage() {
                     </select>
                     <select
                         value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
+                        onChange={e => { setStatusFilter(e.target.value); setPage(0) }}
                         className="bg-[#F7F8FA] border border-black/[0.08] rounded-xl py-2 px-3 text-sm text-[#0F172A]/65 focus:outline-none cursor-pointer"
                     >
                         <option value="all">Todos los estados</option>
@@ -272,20 +281,20 @@ export default function NotificationsPage() {
                 {totalPages > 1 && (
                     <div className="px-5 py-3 border-t border-black/[0.05] flex items-center justify-between">
                         <span className="text-xs text-[#0F172A]/35">
-                            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
+                            Mostrando {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
                         </span>
                         <div className="flex gap-1">
                             <button
                                 onClick={() => setPage(p => Math.max(0, p - 1))}
-                                disabled={page === 0}
+                                disabled={currentPage === 0}
                                 className="px-3 py-1.5 text-xs rounded-lg bg-black/[0.04] text-[#0F172A]/65 disabled:opacity-30 hover:bg-black/[0.06] transition-colors"
                             >
                                 ← Anterior
                             </button>
-                            <span className="px-3 py-1.5 text-xs text-[#0F172A]/40">{page + 1} / {totalPages}</span>
+                            <span className="px-3 py-1.5 text-xs text-[#0F172A]/40">{currentPage + 1} / {totalPages}</span>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                                disabled={page >= totalPages - 1}
+                                disabled={currentPage >= totalPages - 1}
                                 className="px-3 py-1.5 text-xs rounded-lg bg-black/[0.04] text-[#0F172A]/65 disabled:opacity-30 hover:bg-black/[0.06] transition-colors"
                             >
                                 Siguiente →

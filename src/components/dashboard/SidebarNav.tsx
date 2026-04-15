@@ -111,18 +111,21 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const params = useParams()
     const paramId = params?.assistantId as string | undefined
 
-    const [activeId, setActiveId] = useState<string | undefined>(paramId)
+    const [activeId] = useState<string | undefined>(() => {
+        if (typeof window === 'undefined') {
+            return paramId
+        }
+
+        return paramId || localStorage.getItem('jaba_active_assistant') || undefined
+    })
     const [assistantName, setAssistantName] = useState<string>('')
     const [isAdmin, setIsAdmin] = useState(false)
     const [hasSubscriptions, setHasSubscriptions] = useState(false)
+    const currentAssistantId = paramId || activeId
 
     useEffect(() => {
         if (paramId) {
-            setActiveId(paramId)
             localStorage.setItem('jaba_active_assistant', paramId)
-        } else {
-            const savedId = localStorage.getItem('jaba_active_assistant')
-            if (savedId) setActiveId(savedId)
         }
     }, [paramId])
 
@@ -139,7 +142,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
             if (creds && creds.length > 0) {
                 setIsAdmin(creds.some(c => c.is_platform_admin === true))
-                const targetId = activeId || localStorage.getItem('jaba_active_assistant')
+                const targetId = currentAssistantId || localStorage.getItem('jaba_active_assistant')
                 const active = creds.find(c => c.id === targetId) || creds[0]
                 if (active) setAssistantName(active.bot_name || 'Mi Asistente')
             }
@@ -152,10 +155,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             setHasSubscriptions((count ?? 0) > 0)
         }
         loadData()
-    }, [activeId])
+    }, [currentAssistantId])
 
 
-    const hasAssistant = !!activeId
+    const hasAssistant = !!currentAssistantId
     const nav = () => { if (onNavigate) onNavigate() }
     const is = (path: string) => pathname === path
     const startsWith = (path: string) => pathname.startsWith(path)
@@ -173,9 +176,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     active={is('/dashboard/home')} onNavigate={nav}
                     accentColor="#25D366" />
                 <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${activeId}` : '/dashboard'}
+                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}` : '/dashboard'}
                     icon={<LayoutDashboard size={17} />} label="Dashboard"
-                    active={is('/dashboard') || is(`/dashboard/assistants/${activeId}`)}
+                    active={is('/dashboard') || is(`/dashboard/assistants/${currentAssistantId}`)}
                     onNavigate={nav} accentColor="#25D366" />
                 <NavItem href="/dashboard/assistants"
                     icon={<Bot size={17} />} label="Asistentes"
@@ -204,22 +207,22 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             <div className="px-3">
                 <SectionLabel label="Automatización" />
                 <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${activeId}/training` : '#'}
+                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/training` : '#'}
                     icon={<BrainCircuit size={17} />} label="Entrenamiento IA"
                     active={includes('/training')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${activeId}/flows` : '#'}
+                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/flows` : '#'}
                     icon={<GitBranch size={17} />} label="Flujos"
                     active={includes('/flows')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${activeId}/triggers` : '#'}
+                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/triggers` : '#'}
                     icon={<Zap size={17} />} label="Disparadores"
                     active={includes('/triggers')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
                 <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${activeId}/templates` : '#'}
+                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/templates` : '#'}
                     icon={<FileText size={17} />} label="Plantillas"
                     active={includes('/templates')} onNavigate={nav}
                     disabled={!hasAssistant} accentColor="#25D366" />
@@ -302,7 +305,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                             {assistantName}
                         </p>
                     </div>
-                    {activeId && (
+                    {currentAssistantId && (
                         <Link
                             href="/dashboard/assistants"
                             className="flex items-center gap-1 mt-2 text-[11px] font-medium transition-colors"

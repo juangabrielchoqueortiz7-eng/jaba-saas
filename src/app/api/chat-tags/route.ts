@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { asRecord } from '@/lib/automation-jobs'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+
+type TagAction = 'add' | 'remove'
 
 // POST: Agregar o quitar tags de un chat
 export async function POST(request: Request) {
@@ -25,8 +28,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
         }
 
-        const body = await request.json()
-        const { chat_id, action, tag } = body // action: 'add' | 'remove'
+        const body = asRecord(await request.json())
+        const chat_id = typeof body?.chat_id === 'string' ? body.chat_id : ''
+        const action = body?.action === 'add' || body?.action === 'remove' ? body.action as TagAction : null
+        const tag = typeof body?.tag === 'string' ? body.tag : ''
 
         if (!chat_id || !action || !tag) {
             return NextResponse.json({ error: 'Missing chat_id, action, or tag' }, { status: 400 })
@@ -55,8 +60,9 @@ export async function POST(request: Request) {
         await supabase.from('chats').update({ tags: currentTags }).eq('id', chat_id)
 
         return NextResponse.json({ success: true, tags: currentTags })
-    } catch (err: any) {
-        console.error('[Chat Tags] Error:', err)
-        return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 })
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Internal error'
+        console.error('[Chat Tags] Error:', error)
+        return NextResponse.json({ error: message }, { status: 500 })
     }
 }

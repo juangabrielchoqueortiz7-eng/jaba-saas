@@ -18,7 +18,7 @@ export interface VariableContext {
   chatCreatedAt?: Date
   chatStatus?: string
   chatTags?: string[]
-  chatCustomFields?: Record<string, any>
+  chatCustomFields?: Record<string, unknown>
 
   // Datos de suscripción
   subscriptionService?: string

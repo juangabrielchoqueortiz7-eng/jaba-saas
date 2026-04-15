@@ -33,6 +33,10 @@ interface Chat {
     archived?: boolean
 }
 
+type DeletedChatPayload = {
+    id: string
+}
+
 interface ConversationListProps {
     onSelectChat?: (chatId: string) => void
     selectedChatId?: string | null
@@ -81,7 +85,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                             .sort((a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime())
                     )
                 } else if (payload.eventType === 'DELETE') {
-                    setChats(prev => prev.filter(c => c.id !== (payload.old as any).id))
+                    setChats(prev => prev.filter(c => c.id !== (payload.old as DeletedChatPayload).id))
                 }
             })
             .subscribe()

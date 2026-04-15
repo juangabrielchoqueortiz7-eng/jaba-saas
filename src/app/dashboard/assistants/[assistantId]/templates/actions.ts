@@ -10,6 +10,8 @@ export type Template = {
     created_at: string
 }
 
+type SubscriptionSettingsInput = Record<string, unknown>
+
 export async function getTemplates() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -97,7 +99,7 @@ export async function getSubscriptionSettings() {
     return data
 }
 
-export async function updateSubscriptionSettings(settings: any) {
+export async function updateSubscriptionSettings(settings: SubscriptionSettingsInput) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')

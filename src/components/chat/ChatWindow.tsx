@@ -5,7 +5,7 @@ import { Send, Paperclip, Smile, MoreVertical, Mic, X, Bell, Image as ImageIcon,
 import { MessageBubble } from './MessageBubble'
 import { ContactInfoSidebar } from './ContactInfoSidebar'
 import { createClient } from '@/utils/supabase/client'
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react'
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react'
 import { useSearchParams } from 'next/navigation'
 import { formatMessageTime, formatDateSeparator, isDifferentDay } from '@/lib/formatTime'
 import { CRM_TAGS } from './ConversationList'
@@ -121,7 +121,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 .eq('id', activeChatId)
                 .single()
 
-            if (chat) setChatDetails(chat as any)
+            if (chat) setChatDetails(chat as ChatDetails)
 
             const { data: msgs } = await supabase
                 .from('messages')
@@ -899,7 +899,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                     <div className="absolute bottom-[70px] left-3 z-50">
                         <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
                         <div className="relative z-50 shadow-xl rounded-lg">
-                            <EmojiPicker onEmojiClick={onEmojiClick} theme={'light' as any} lazyLoadEmojis={true} />
+                            <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.LIGHT} lazyLoadEmojis={true} />
                         </div>
                     </div>
                 )}

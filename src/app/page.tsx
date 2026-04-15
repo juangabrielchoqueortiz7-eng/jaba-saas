@@ -1092,7 +1092,7 @@ function TestimonialCarousel() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="relative overflow-hidden rounded-2xl bg-white border border-black/8 p-8 md:p-12 min-h-[280px] shadow-md">
-        <div className="absolute top-6 right-8 text-7xl text-[#25D366]/15 font-serif pointer-events-none select-none">"</div>
+        <div className="absolute top-6 right-8 text-7xl text-[#25D366]/15 font-serif pointer-events-none select-none">&quot;</div>
         <AnimatePresence mode="wait">
           <motion.div
             key={active}

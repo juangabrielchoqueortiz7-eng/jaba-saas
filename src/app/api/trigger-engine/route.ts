@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server'
+import { timingSafeEqual } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
+import { asRecord, getString } from '@/lib/automation-jobs'
 import ConditionEvaluator, { EvaluationContext } from '@/lib/trigger-conditions'
 import { executeActions, ActionContext } from '@/lib/trigger-actions'
 import dayjs from 'dayjs'
 
-// Helpers para ocultar datos sensibles en logs
-function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
-function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
 function timingSafeCompare(a: string, b: string): boolean {
-    try { const bA = Buffer.from(a), bB = Buffer.from(b); if (bA.length !== bB.length) return false; const { timingSafeEqual } = require('crypto'); return timingSafeEqual(bA, bB) } catch { return false }
+    try {
+        const left = Buffer.from(a)
+        const right = Buffer.from(b)
+        if (left.length !== right.length) return false
+        return timingSafeEqual(left, right)
+    } catch {
+        return false
+    }
 }
 
 const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -18,6 +24,12 @@ const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     serviceRoleKey
 )
+
+interface TriggerScheduleConfig {
+    audience_type?: string
+    audience_value?: string
+    send_days?: string
+}
 
 // delay ya no es necesario aquí — executeActions en trigger-actions.ts maneja los delays internamente
 
@@ -147,7 +159,10 @@ async function processTimeTriggers() {
                 }
 
                 if (groups.length > 0) {
-                    const evaluationResult = await ConditionEvaluator.evaluateAllConditionGroups(groups as any, context)
+                    const evaluationResult = await ConditionEvaluator.evaluateAllConditionGroups(
+                        groups as Parameters<typeof ConditionEvaluator.evaluateAllConditionGroups>[0],
+                        context,
+                    )
                     if (!evaluationResult.matched) continue
                 }
 
@@ -237,8 +252,15 @@ async function processScheduledTriggers() {
 
     for (const trigger of triggers) {
         try {
-            let scheduleConfig: any = {}
-            try { scheduleConfig = JSON.parse(trigger.description || '{}') } catch {}
+            let scheduleConfig: TriggerScheduleConfig = {}
+            try {
+                const parsedConfig = asRecord(JSON.parse(trigger.description || '{}'))
+                scheduleConfig = {
+                    send_days: getString(parsedConfig ?? {}, 'send_days') || undefined,
+                    audience_type: getString(parsedConfig ?? {}, 'audience_type') || undefined,
+                    audience_value: getString(parsedConfig ?? {}, 'audience_value') || undefined,
+                }
+            } catch {}
 
             const { send_days, audience_type, audience_value } = scheduleConfig
             if (!send_days) { results.skipped++; continue }
@@ -325,8 +347,8 @@ async function processScheduledTriggers() {
                     chatTags: chat?.tags || [],
                     tenantToken: creds.access_token,
                     tenantPhoneId: creds.phone_number_id,
-                    tenantName: (creds as any).bot_name,
-                    tenantServiceName: (creds as any).service_name,
+                    tenantName: creds.bot_name,
+                    tenantServiceName: creds.service_name,
                     subscriptionService: sub.servicio,
                     subscriptionEmail: sub.correo,
                     subscriptionExpiresAt: sub.vencimiento,

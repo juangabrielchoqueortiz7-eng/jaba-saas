@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Check, X, Save, MessageSquare } from 'lucide-react';
+import { MessageSquare, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SubscriptionSettingsModalProps {
@@ -27,31 +27,51 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
     });
 
     useEffect(() => {
-        if (isOpen) {
-            fetchSettings();
+        if (!isOpen) {
+            return;
         }
+
+        let cancelled = false;
+
+        const loadSettings = async () => {
+            const supabase = createClient();
+            if (!cancelled) {
+                setLoading(true);
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+                return;
+            }
+
+            const { data } = await supabase
+                .from('subscription_settings')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
+
+            if (!cancelled && data) {
+                setMessages({
+                    reminder_msg: data.reminder_msg || DEFAULT_MESSAGES.reminder,
+                    expired_grace_msg: data.expired_grace_msg || DEFAULT_MESSAGES.expired_grace,
+                    expired_removed_msg: data.expired_removed_msg || DEFAULT_MESSAGES.expired_removed
+                });
+            }
+
+            if (!cancelled) {
+                setLoading(false);
+            }
+        };
+
+        void loadSettings();
+
+        return () => {
+            cancelled = true;
+        };
     }, [isOpen]);
-
-    const fetchSettings = async () => {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-            .from('subscription_settings')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
-
-        if (data) {
-            setMessages({
-                reminder_msg: data.reminder_msg || DEFAULT_MESSAGES.reminder,
-                expired_grace_msg: data.expired_grace_msg || DEFAULT_MESSAGES.expired_grace,
-                expired_removed_msg: data.expired_removed_msg || DEFAULT_MESSAGES.expired_removed
-            });
-        }
-        setLoading(false);
-    };
 
     const handleSave = async () => {
         const { data: { user } } = await supabase.auth.getUser();

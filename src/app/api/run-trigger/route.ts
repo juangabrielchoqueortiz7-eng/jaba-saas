@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createUserClient } from '@/utils/supabase/server'
+import { asRecord, getString } from '@/lib/automation-jobs'
 import { executeActions, ActionContext } from '@/lib/trigger-actions'
 import dayjs from 'dayjs'
 
 const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey)
+
+interface ScheduleConfig {
+    audience_type?: string
+    audience_value?: string
+    send_days?: string
+}
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/run-trigger
@@ -43,7 +50,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Configura tus credenciales de WhatsApp en Ajustes' }, { status: 400 })
     }
 
-    const results = { executed: 0, skipped: 0, errors: 0, messages: [] as string[], action_results: [] as any[] }
+    const results = { executed: 0, skipped: 0, errors: 0, messages: [] as string[], action_results: [] as Array<{ phone: string; actions: unknown }> }
 
     if (trigger.type === 'time') {
         const waitMinutes = parseInt(trigger.description || '30') || 30
@@ -106,8 +113,15 @@ export async function POST(request: Request) {
         }
 
     } else if (trigger.type === 'scheduled') {
-        let scheduleConfig: any = {}
-        try { scheduleConfig = JSON.parse(trigger.description || '{}') } catch {}
+        let scheduleConfig: ScheduleConfig = {}
+        try {
+            const parsedConfig = asRecord(JSON.parse(trigger.description || '{}'))
+            scheduleConfig = {
+                send_days: getString(parsedConfig ?? {}, 'send_days') || undefined,
+                audience_type: getString(parsedConfig ?? {}, 'audience_type') || undefined,
+                audience_value: getString(parsedConfig ?? {}, 'audience_value') || undefined,
+            }
+        } catch {}
 
         const { send_days, audience_type, audience_value } = scheduleConfig
         const today = dayjs().format('YYYY-MM-DD')

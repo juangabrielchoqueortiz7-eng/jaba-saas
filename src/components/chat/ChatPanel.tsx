@@ -23,7 +23,7 @@ export function ChatPanel() {
         const fetchUnread = async () => {
             const { data } = await supabase.from('chats').select('unread_count')
             if (data) {
-                const total = data.reduce((sum: number, c: any) => sum + (c.unread_count || 0), 0)
+                const total = data.reduce((sum, chat: { unread_count: number | null }) => sum + (chat.unread_count || 0), 0)
                 setTotalUnread(total)
             }
         }

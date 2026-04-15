@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
-  Plus, ChevronRight, MessageSquare, HelpCircle, ShoppingCart,
+  ChevronRight, MessageSquare, HelpCircle, ShoppingCart,
   UserPlus, ClipboardList, Clock, Star, Bell, Loader2, Wand2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -17,7 +15,7 @@ interface TemplateNode {
   label: string
   position_x: number
   position_y: number
-  config: Record<string, any>
+  config: Record<string, unknown>
 }
 
 interface TemplateEdge {
@@ -258,8 +256,8 @@ export default function FlowTemplates({ assistantId, onStartBlank, onClose }: Fl
         if (flowId) {
           router.push(`/dashboard/assistants/${assistantId}/flows/${flowId}`)
         }
-      } catch (err) {
-        console.error(err)
+      } catch (error) {
+        console.error(error)
         alert('Error al crear el flujo')
       } finally {
         setLoadingId(null)

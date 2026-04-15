@@ -6,13 +6,12 @@ import { Subscription } from '@/types/subscription';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { createPortal } from 'react-dom';
-import { Trash2, Copy, MessageCircle, ExternalLink, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users, PauseCircle, PlayCircle, MessageSquare, Eye, EyeOff } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Trash2, Copy, MessageCircle, CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowRightCircle, Users, PauseCircle, PlayCircle, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import SubscriptionCard from './SubscriptionCard';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { useChat } from '@/context/ChatContext';
-import { Skeleton, TableSkeleton, CardSkeleton } from '@/components/ui/skeleton';
+import { TableSkeleton, CardSkeleton } from '@/components/ui/skeleton';
 
 dayjs.extend(customParseFormat);
 
@@ -21,12 +20,11 @@ interface SubscriptionTableProps {
     isLoading: boolean;
     onRefresh: () => void;
     onLocalDelete?: (id: string) => void;
-    onLocalUpdate?: (id: string, field: keyof Subscription, value: any) => void;
+    onLocalUpdate?: (id: string, field: keyof Subscription, value: Subscription[keyof Subscription]) => void;
 }
 
 export default function SubscriptionTable({ subscriptions, isLoading, onRefresh, onLocalDelete, onLocalUpdate }: SubscriptionTableProps) {
     const supabase = createClient();
-    const router = useRouter();
     const { openChat } = useChat();
     const [customMessages, setCustomMessages] = useState<{ reminder: string, expired_grace: string, expired_removed: string } | null>(null);
     const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
@@ -75,8 +73,6 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const filters = useMemo(() => filtersState, [filtersState]); // Fix potential infinite loop if passed directly
-
     // Pagination Input State
     const [inputPage, setInputPage] = useState(currentPage.toString());
 
@@ -106,7 +102,7 @@ export default function SubscriptionTable({ subscriptions, isLoading, onRefresh,
 
     const [renewMenuOpen, setRenewMenuOpen] = useState<{ id: string, top: number, left: number } | null>(null);
 
-    const handleUpdate = async (id: string, field: keyof Subscription, value: any) => {
+    const handleUpdate = async (id: string, field: keyof Subscription, value: Subscription[keyof Subscription]) => {
         // Optimistic update if handler provided
         if (onLocalUpdate) {
             onLocalUpdate(id, field, value);

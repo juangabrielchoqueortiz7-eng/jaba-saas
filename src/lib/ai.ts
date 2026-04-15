@@ -3,6 +3,30 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GOOGLE_API_KEY;
 
+interface RetryableApiError {
+    message?: string;
+    status?: number;
+}
+
+function isRateLimitError(error: unknown): error is RetryableApiError {
+    return typeof error === 'object'
+        && error !== null
+        && (
+            ('message' in error && typeof error.message === 'string' && error.message.includes('429'))
+            || ('status' in error && error.status === 429)
+        );
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    if (typeof error === 'string') {
+        return error;
+    }
+    return JSON.stringify(error);
+}
+
 export async function generateAIResponse(userMessage: string, systemPrompt?: string): Promise<string> {
     if (!apiKey) {
         console.error("GOOGLE_API_KEY no está configurada");
@@ -62,8 +86,8 @@ export async function generateChatResponse(history: { role: 'user' | 'model', pa
             const result = await chat.sendMessage(newMessage);
             const response = await result.response;
             return response.text();
-        } catch (error: any) {
-            const isRateLimit = error.message?.includes('429') || error.status === 429;
+        } catch (error: unknown) {
+            const isRateLimit = isRateLimitError(error);
 
             if (isRateLimit && attempt < maxRetries - 1) {
                 attempt++;
@@ -77,7 +101,7 @@ export async function generateChatResponse(history: { role: 'user' | 'model', pa
             if (isRateLimit) {
                 return "Estoy recibiendo muchas solicitudes. Por favor, espera unos segundos e inténtalo de nuevo. (Error 429)";
             }
-            return `Error: ${error.message || JSON.stringify(error)}`;
+            return `Error: ${getErrorMessage(error)}`;
         }
     }
     return "Error desconocido después de reintentar.";

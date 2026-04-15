@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { ArrowLeft, Save, Bot, MessageSquare, Settings, ChevronDown, Layers, Trash2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
@@ -13,6 +13,25 @@ import { useRouter } from 'next/navigation'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
+type AssistantFormData = {
+    bot_name: string
+    phone_number_display: string
+    welcome_message: string
+    ai_status: string
+    response_delay_seconds: number
+    audio_probability: number
+    message_delivery_mode: string
+    use_emojis: boolean
+    use_text_styles: boolean
+    audio_voice_id: string
+    max_audio_count: number
+    reply_audio_with_audio: boolean
+    phone_number_id: string
+    waba_id: string
+    app_id: string
+    access_token: string
+}
+
 export default function NewAssistantPage() {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState('general')
@@ -24,13 +43,8 @@ export default function NewAssistantPage() {
     const [countryCode, setCountryCode] = useState('+591')
     const [phoneBody, setPhoneBody] = useState('')
 
-    // Update formData when parts change
-    useEffect(() => {
-        handleChange('phone_number_display', `${countryCode} ${phoneBody}`)
-    }, [countryCode, phoneBody])
-
     // Form data state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<AssistantFormData>({
         // General
         bot_name: '',
         phone_number_display: '',
@@ -54,7 +68,7 @@ export default function NewAssistantPage() {
         access_token: ''
     })
 
-    const handleChange = (field: string, value: any) => {
+    const handleChange = <K extends keyof AssistantFormData>(field: K, value: AssistantFormData[K]) => {
         setFormData(prev => ({ ...prev, [field]: value }))
     }
 
@@ -78,8 +92,13 @@ export default function NewAssistantPage() {
             return
         }
 
+        const payload: AssistantFormData = {
+            ...formData,
+            phone_number_display: `${countryCode} ${phoneBody}`.trim(),
+        }
+
         const data = new FormData()
-        Object.entries(formData).forEach(([key, value]) => {
+        Object.entries(payload).forEach(([key, value]) => {
             data.append(key, String(value))
         })
 

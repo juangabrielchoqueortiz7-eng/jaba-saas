@@ -21,6 +21,10 @@ const AUDIO_PACKAGES = [
     { id: 'a_120', count: 120, price: 35.99, save: 4.00, popular: false },
 ]
 
+function getDefaultPackageId(tab: 'conversations' | 'audios') {
+    return tab === 'conversations' ? CONVERSATION_PACKAGES[1].id : AUDIO_PACKAGES[1].id
+}
+
 export default function RechargesPage() {
     const [activeTab, setActiveTab] = useState<'conversations' | 'audios'>('conversations')
 
@@ -29,7 +33,7 @@ export default function RechargesPage() {
     const [loadingWallet, setLoadingWallet] = useState(true)
 
     // Selection State
-    const [selectedPkgId, setSelectedPkgId] = useState<string>('')
+    const [selectedPkgId, setSelectedPkgId] = useState<string>(() => getDefaultPackageId('conversations'))
 
     // Payment State
     const [isProcessing, startTransition] = useTransition()
@@ -42,14 +46,13 @@ export default function RechargesPage() {
         })
     }, [])
 
-    // Set default package when tab changes
-    useEffect(() => {
-        if (activeTab === 'conversations') setSelectedPkgId(CONVERSATION_PACKAGES[1].id) // Default to popular
-        else setSelectedPkgId(AUDIO_PACKAGES[1].id)
-    }, [activeTab])
-
     const packages = activeTab === 'conversations' ? CONVERSATION_PACKAGES : AUDIO_PACKAGES
     const selectedPackage = packages.find(p => p.id === selectedPkgId)
+
+    const handleTabChange = (tab: 'conversations' | 'audios') => {
+        setActiveTab(tab)
+        setSelectedPkgId(getDefaultPackageId(tab))
+    }
 
     const handlePayment = () => {
         if (!selectedPackage) return
@@ -118,7 +121,7 @@ export default function RechargesPage() {
                     {/* Tabs */}
                     <div className="bg-white p-1 rounded-xl flex gap-1 border border-black/[0.08] backdrop-blur-sm">
                         <button
-                            onClick={() => setActiveTab('conversations')}
+                            onClick={() => handleTabChange('conversations')}
                             className={cn(
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'conversations'
@@ -130,7 +133,7 @@ export default function RechargesPage() {
                             Conversaciones
                         </button>
                         <button
-                            onClick={() => setActiveTab('audios')}
+                            onClick={() => handleTabChange('audios')}
                             className={cn(
                                 "flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2",
                                 activeTab === 'audios'

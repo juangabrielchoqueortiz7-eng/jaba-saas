@@ -21,20 +21,15 @@ const supabaseAdmin = createClient(
 // TYPES
 // ========================
 
+type FlowVariables = Record<string, string>
+type FlowConfig = Record<string, unknown>
+
 interface FlowNode {
     id: string
     flow_id: string
     type: string
     label: string
-    config: any
-}
-
-interface FlowEdge {
-    id: string
-    source_node_id: string
-    target_node_id: string
-    source_handle: string
-    label: string
+    config: FlowConfig
 }
 
 interface FlowState {
@@ -43,14 +38,19 @@ interface FlowState {
     user_id: string
     flow_id: string
     current_node_id: string | null
-    variables: Record<string, any>
+    variables: FlowVariables
     status: string
 }
 
-interface FlowAction {
-    type: 'send_message' | 'send_buttons' | 'send_list' | 'send_image' | 'send_template' | 'wait_input' | 'ai_response' | 'system_action'
-    payload: any
-}
+type FlowAction =
+    | { type: 'send_message'; payload: { text: string } }
+    | { type: 'send_buttons'; payload: { text: string; buttons: Array<{ id: string; title: string }> } }
+    | { type: 'send_list'; payload: { text: string; buttonText: string; sections: unknown[] } }
+    | { type: 'send_image'; payload: { imageUrl: string; caption: string } }
+    | { type: 'send_template'; payload: { templateName: string; language: string; components: Array<{ type: 'body'; parameters: Array<{ type: 'text'; text: string }> }> } }
+    | { type: 'wait_input'; payload: Record<string, never> }
+    | { type: 'ai_response'; payload: { systemPrompt: string | null; maxTokens: number } }
+    | { type: 'system_action'; payload: { actionType: string; params: FlowConfig; tag: string | null; imageUrl: string | null } }
 
 interface FlowResult {
     handled: boolean
@@ -68,24 +68,49 @@ interface MessageContext {
     tenantToken: string
     phoneId: string
     mediaUrl?: string | null
-    chatCustomFields?: Record<string, any>
+    chatCustomFields?: Record<string, unknown>
 }
 
 // ========================
 // TEMPLATE VARIABLES
 // ========================
 
-function replaceVariables(text: string, vars: Record<string, any>, ctx: MessageContext): string {
+function getConfigString(config: FlowConfig, key: string): string {
+    const value = config[key]
+    return typeof value === 'string' ? value : ''
+}
+
+function getConfigNumber(config: FlowConfig, key: string, fallback = 0): number {
+    const value = config[key]
+    return typeof value === 'number' ? value : fallback
+}
+
+function getConfigArray(config: FlowConfig, key: string): unknown[] {
+    const value = config[key]
+    return Array.isArray(value) ? value : []
+}
+
+function getFlowValue(vars: FlowVariables, key: string): string {
+    return vars[key] || ''
+}
+
+function asFlowConfig(value: unknown): FlowConfig {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? value as FlowConfig
+        : {}
+}
+
+function replaceVariables(text: string, vars: FlowVariables, ctx: MessageContext): string {
     return text
-        .replace(/\{\{service_name\}\}/g, vars.service_name || '')
+        .replace(/\{\{service_name\}\}/g, getFlowValue(vars, 'service_name'))
         .replace(/\{\{contact_name\}\}/g, ctx.contactName || '')
         .replace(/\{\{phone_number\}\}/g, ctx.phoneNumber || '')
         .replace(/\{\{message\}\}/g, ctx.messageText || '')
-        .replace(/\{\{email\}\}/g, vars.email || '')
-        .replace(/\{\{plan_name\}\}/g, vars.plan_name || '')
-        .replace(/\{\{plan_price\}\}/g, vars.plan_price || '')
-        .replace(/\{\{qr_image_url\}\}/g, vars.qr_image_url || '')
-        .replace(/\{\{expiration\}\}/g, vars.expiration || '')
+        .replace(/\{\{email\}\}/g, getFlowValue(vars, 'email'))
+        .replace(/\{\{plan_name\}\}/g, getFlowValue(vars, 'plan_name'))
+        .replace(/\{\{plan_price\}\}/g, getFlowValue(vars, 'plan_price'))
+        .replace(/\{\{qr_image_url\}\}/g, getFlowValue(vars, 'qr_image_url'))
+        .replace(/\{\{expiration\}\}/g, getFlowValue(vars, 'expiration'))
         // Custom fields ({{custom.FIELD_NAME}})
         .replace(/\{\{custom\.(\w+)\}\}/g, (_, field) => String(ctx.chatCustomFields?.[field] ?? ''))
         // Generic variable replacement
@@ -117,7 +142,7 @@ export async function processMessage(ctx: MessageContext): Promise<FlowResult | 
 
     } catch (err) {
         console.error('[FlowEngine] Error:', err)
-        return null // Fallback to AI on any error
+        return null // Fallback to AI on errors
     }
 }
 
@@ -203,10 +228,10 @@ async function findMatchingTrigger(ctx: MessageContext): Promise<{ flowId: strin
 async function matchesTrigger(node: FlowNode, ctx: MessageContext): Promise<boolean> {
     const config = node.config || {}
 
-    switch (config.trigger_type) {
+    switch (getConfigString(config, 'trigger_type')) {
         case 'keyword': {
-            const keywords: string[] = config.keywords || []
-            const mode = config.match_mode || 'contains'
+            const keywords = getConfigArray(config, 'keywords').filter((keyword): keyword is string => typeof keyword === 'string')
+            const mode = getConfigString(config, 'match_mode') || 'contains'
             const msg = ctx.messageText.toLowerCase()
             
             if (mode === 'exact') {
@@ -221,7 +246,7 @@ async function matchesTrigger(node: FlowNode, ctx: MessageContext): Promise<bool
 
         case 'button_id': {
             if (!ctx.interactiveData) return false
-            const pattern = config.button_id || ''
+            const pattern = getConfigString(config, 'button_id')
             if (pattern.endsWith('*')) {
                 return ctx.interactiveData.id.startsWith(pattern.slice(0, -1))
             }
@@ -229,7 +254,7 @@ async function matchesTrigger(node: FlowNode, ctx: MessageContext): Promise<bool
         }
 
         case 'event': {
-            if (config.event === 'first_message') {
+            if (getConfigString(config, 'event') === 'first_message') {
                 // Verificar si no hay mensajes previos en este chat
                 const { count } = await supabaseAdmin
                     .from('messages')
@@ -238,14 +263,14 @@ async function matchesTrigger(node: FlowNode, ctx: MessageContext): Promise<bool
                 if (count === 0 || count === null) return true
                 return false
             }
-            if (config.event === 'image_received') {
+            if (getConfigString(config, 'event') === 'image_received') {
                 return ctx.messageType === 'image'
             }
             return false
         }
 
         case 'message_type': {
-            return ctx.messageType === config.value
+            return ctx.messageType === getConfigString(config, 'value')
         }
 
         default:
@@ -299,8 +324,8 @@ async function continueFlow(state: FlowState, ctx: MessageContext): Promise<Flow
     // If current node is wait_input, the user just responded — advance
     if (currentNode.type === 'wait_input') {
         // Store the user's response in a variable
-        const variableName = currentNode.config?.variable_name || 'last_input'
-        const updatedVars: Record<string, any> = { ...state.variables, [variableName]: ctx.messageText }
+        const variableName = getConfigString(currentNode.config, 'variable_name') || 'last_input'
+        const updatedVars: FlowVariables = { ...state.variables, [variableName]: ctx.messageText }
 
         // If user sent interactive data, store that too
         if (ctx.interactiveData) {
@@ -342,7 +367,7 @@ async function advanceFromNode(
     fromNodeId: string,
     handle: string,
     ctx: MessageContext,
-    variables?: Record<string, any>
+    variables?: FlowVariables
 ): Promise<FlowResult> {
     const vars = variables || {}
     const actions: FlowAction[] = []
@@ -417,13 +442,13 @@ async function advanceFromNode(
 // NODE EXECUTION
 // ========================
 
-async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<string, any>): Promise<{ actions: FlowAction[] }> {
+async function executeNode(node: FlowNode, ctx: MessageContext, vars: FlowVariables): Promise<{ actions: FlowAction[] }> {
     const config = node.config || {}
     const actions: FlowAction[] = []
 
     switch (node.type) {
         case 'message': {
-            const text = replaceVariables(config.text || '', vars, ctx)
+            const text = replaceVariables(getConfigString(config, 'text'), vars, ctx)
             actions.push({
                 type: 'send_message',
                 payload: { text }
@@ -432,11 +457,18 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
         }
 
         case 'buttons': {
-            const text = replaceVariables(config.text || '', vars, ctx)
-            const buttons = (config.buttons || []).map((b: any) => ({
-                id: b.id,
-                title: replaceVariables(b.title || '', vars, ctx)
-            }))
+            const text = replaceVariables(getConfigString(config, 'text'), vars, ctx)
+            const buttons = getConfigArray(config, 'buttons').flatMap(button => {
+                const buttonConfig = asFlowConfig(button)
+                const id = getConfigString(buttonConfig, 'id')
+                const title = replaceVariables(getConfigString(buttonConfig, 'title'), vars, ctx)
+
+                if (!id || !title) {
+                    return []
+                }
+
+                return [{ id, title }]
+            })
             actions.push({
                 type: 'send_buttons',
                 payload: { text, buttons }
@@ -445,14 +477,14 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
         }
 
         case 'list': {
-            const text = replaceVariables(config.text || '', vars, ctx)
-            const buttonText = config.button_text || 'Ver opciones'
+            const text = replaceVariables(getConfigString(config, 'text'), vars, ctx)
+            const buttonText = getConfigString(config, 'button_text') || 'Ver opciones'
             actions.push({
                 type: 'send_list',
                 payload: {
                     text,
                     buttonText,
-                    sections: config.sections || []
+                    sections: getConfigArray(config, 'sections')
                 }
             })
             break
@@ -462,8 +494,8 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
             actions.push({
                 type: 'ai_response',
                 payload: {
-                    systemPrompt: config.system_prompt || null,
-                    maxTokens: config.max_tokens || 500
+                    systemPrompt: getConfigString(config, 'system_prompt') || null,
+                    maxTokens: getConfigNumber(config, 'max_tokens', 500)
                 }
             })
             break
@@ -473,20 +505,20 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
             actions.push({
                 type: 'system_action',
                 payload: {
-                    actionType: config.action_type,
-                    params: config.params || {},
-                    tag: config.tag || null,
-                    imageUrl: config.image_url ? replaceVariables(config.image_url, vars, ctx) : null
+                    actionType: getConfigString(config, 'action_type'),
+                    params: asFlowConfig(config.params),
+                    tag: getConfigString(config, 'tag') || null,
+                    imageUrl: getConfigString(config, 'image_url') ? replaceVariables(getConfigString(config, 'image_url'), vars, ctx) : null
                 }
             })
 
             // Special handling for send_image action
-            if (config.action_type === 'send_image' && config.image_url) {
+            if (getConfigString(config, 'action_type') === 'send_image' && getConfigString(config, 'image_url')) {
                 actions.push({
                     type: 'send_image',
                     payload: {
-                        imageUrl: replaceVariables(config.image_url, vars, ctx),
-                        caption: config.caption ? replaceVariables(config.caption, vars, ctx) : ''
+                        imageUrl: replaceVariables(getConfigString(config, 'image_url'), vars, ctx),
+                        caption: getConfigString(config, 'caption') ? replaceVariables(getConfigString(config, 'caption'), vars, ctx) : ''
                     }
                 })
             }
@@ -494,7 +526,11 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
         }
 
         case 'send_template': {
-            const templateParams: Array<{ label: string; value: string }> = config.params || []
+            const templateParams = getConfigArray(config, 'params').flatMap(param => {
+                const templateParam = asFlowConfig(param)
+                const value = getConfigString(templateParam, 'value')
+                return value ? [{ label: getConfigString(templateParam, 'label'), value }] : []
+            })
             const resolvedParams = templateParams.map(p => ({
                 type: 'text' as const,
                 text: replaceVariables(p.value, vars, ctx)
@@ -502,10 +538,10 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
             actions.push({
                 type: 'send_template',
                 payload: {
-                    templateName: config.template_name || '',
-                    language: config.language || 'es',
+                    templateName: getConfigString(config, 'template_name'),
+                    language: getConfigString(config, 'language') || 'es',
                     components: resolvedParams.length > 0
-                        ? [{ type: 'body', parameters: resolvedParams }]
+                        ? [{ type: 'body' as const, parameters: resolvedParams }]
                         : []
                 }
             })
@@ -514,7 +550,7 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
 
         case 'delay': {
             // In practice we'd use a setTimeout, but for now we just add a small wait
-            const seconds = config.seconds || 1
+            const seconds = getConfigNumber(config, 'seconds', 1)
             await new Promise(resolve => setTimeout(resolve, seconds * 1000))
             break
         }
@@ -540,32 +576,34 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: Record<str
 // CONDITION EVALUATION
 // ========================
 
-function evaluateCondition(node: FlowNode, ctx: MessageContext, vars: Record<string, any>): string {
+function evaluateCondition(node: FlowNode, ctx: MessageContext, vars: FlowVariables): string {
     const config = node.config || {}
 
-    switch (config.condition_type) {
+    switch (getConfigString(config, 'condition_type')) {
         case 'contains': {
-            const field = config.field === 'message' ? ctx.messageText : (vars[config.field] || '')
-            const value = config.value || ''
+            const fieldName = getConfigString(config, 'field')
+            const field = fieldName === 'message' ? ctx.messageText : getFlowValue(vars, fieldName)
+            const value = getConfigString(config, 'value')
             return field.toLowerCase().includes(value.toLowerCase()) ? 'true' : 'false'
         }
 
         case 'equals': {
-            const field = config.field === 'message' ? ctx.messageText : (vars[config.field] || '')
-            return field.toLowerCase() === (config.value || '').toLowerCase() ? 'true' : 'false'
+            const fieldName = getConfigString(config, 'field')
+            const field = fieldName === 'message' ? ctx.messageText : getFlowValue(vars, fieldName)
+            return field.toLowerCase() === getConfigString(config, 'value').toLowerCase() ? 'true' : 'false'
         }
 
         case 'message_type': {
-            return ctx.messageType === config.value ? 'true' : 'false'
+            return ctx.messageType === getConfigString(config, 'value') ? 'true' : 'false'
         }
 
         case 'has_variable': {
-            return vars[config.variable] ? 'true' : 'false'
+            return getFlowValue(vars, getConfigString(config, 'variable')) ? 'true' : 'false'
         }
 
         case 'interactive_id': {
             if (!ctx.interactiveData) return 'false'
-            const pattern = config.value || ''
+            const pattern = getConfigString(config, 'value')
             if (pattern.endsWith('*')) {
                 return ctx.interactiveData.id.startsWith(pattern.slice(0, -1)) ? 'true' : 'false'
             }
@@ -679,7 +717,7 @@ export async function executeFlowActions(
 // SYSTEM ACTIONS
 // ========================
 
-async function executeSystemAction(payload: any, ctx: MessageContext): Promise<void> {
+async function executeSystemAction(payload: Extract<FlowAction, { type: 'system_action' }>['payload'], ctx: MessageContext): Promise<void> {
     switch (payload.actionType) {
         case 'add_tag': {
             const { data: chat } = await supabaseAdmin.from('chats').select('tags').eq('id', ctx.chatId).single()

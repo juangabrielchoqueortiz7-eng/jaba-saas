@@ -3,11 +3,9 @@
 import { useState } from 'react'
 import { Trash2, Loader2 } from 'lucide-react'
 import { deleteAssistant } from './actions'
-import { useRouter } from 'next/navigation'
 
 export function DeleteAssistantButton({ id }: { id: string }) {
     const [loading, setLoading] = useState(false)
-    const router = useRouter()
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.preventDefault() // Prevent link navigation if inside a link (though it shouldn't be)

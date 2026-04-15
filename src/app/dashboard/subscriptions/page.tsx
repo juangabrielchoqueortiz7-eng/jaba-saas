@@ -13,6 +13,8 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 dayjs.extend(customParseFormat);
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+type SubscriptionFieldValue = Subscription[keyof Subscription];
+
 export default function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +71,7 @@ export default function SubscriptionsPage() {
     };
 
     useEffect(() => {
-        let channel: any;
+        let channel: ReturnType<typeof supabase.channel> | null = null;
 
         const setupRealtime = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -88,7 +90,7 @@ export default function SubscriptionsPage() {
                         table: 'subscriptions',
                         filter: `user_id=eq.${user.id}`
                     },
-                    (payload) => {
+                    () => {
                         // Refresh silently when realtime events occur
                         fetchSubscriptions(false);
                     }
@@ -111,7 +113,7 @@ export default function SubscriptionsPage() {
         setSubscriptions(prev => prev.filter(sub => sub.id !== id));
     };
 
-    const handleLocalUpdate = (id: string, field: keyof Subscription, value: any) => {
+    const handleLocalUpdate = (id: string, field: keyof Subscription, value: SubscriptionFieldValue) => {
         setSubscriptions(prev => prev.map(sub =>
             sub.id === id ? { ...sub, [field]: value } : sub
         ));

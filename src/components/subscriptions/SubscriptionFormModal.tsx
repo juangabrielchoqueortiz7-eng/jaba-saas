@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { Subscription } from '@/types/subscription';
-import { ImagePlus, Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
 
 dayjs.extend(customParseFormat);
 
@@ -17,6 +17,10 @@ interface SubscriptionFormModalProps {
     onClose: () => void;
     onSuccess: (newSub: Subscription) => void;
 }
+
+type NewSubscriptionInsert = Pick<Subscription, 'correo' | 'equipo' | 'estado' | 'numero' | 'password' | 'servicio' | 'vencimiento'> & {
+    user_id: string;
+};
 
 export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: SubscriptionFormModalProps) {
     const supabase = createClient();
@@ -124,7 +128,7 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
             // Input date gives YYYY-MM-DD
             const formattedDate = dayjs(formData.vencimiento).format('DD/MM/YYYY');
 
-            const newSub: Record<string, any> = {
+            const newSub: NewSubscriptionInsert = {
                 numero: formData.numero,
                 correo: formData.correo,
                 vencimiento: formattedDate,
@@ -159,9 +163,9 @@ export default function SubscriptionFormModal({ isOpen, onClose, onSuccess }: Su
                 password: ''
             });
 
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error creating subscription:', error);
-            toast.error(error.message || 'Error al crear la suscripción');
+            toast.error(error instanceof Error ? error.message : 'Error al crear la suscripción');
         } finally {
             setIsLoading(false);
         }

@@ -7,6 +7,13 @@
  * @param phoneNumberId (Opcional) ID del teléfono emisor. Si no se da, usa ENV.
  * @returns Respuesta de la API de Meta
  */
+type WhatsAppInteractiveListPayload = Record<string, unknown>
+
+interface WhatsAppTemplateComponent {
+    type: string
+    parameters?: Array<{ type: string; text?: string; image?: { link: string } }>
+}
+
 export async function sendWhatsAppMessage(to: string, body: string, token?: string, phoneNumberId?: string) {
     const apiToken = token || process.env.WHATSAPP_API_TOKEN;
     const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -123,7 +130,7 @@ export async function sendWhatsAppMedia(to: string, mediaId: string, type: 'imag
     if (!apiToken || !phoneId) return null;
 
     try {
-        const mediaPayload: any = { id: mediaId };
+        const mediaPayload: { id: string; caption?: string; filename?: string } = { id: mediaId };
         if (caption && type !== 'audio') mediaPayload.caption = caption;
         if (filename && type === 'document') mediaPayload.filename = filename;
 
@@ -409,7 +416,7 @@ export async function sendWhatsAppButtons(to: string, body: string, buttons: { i
  * @param buttonText Texto del botón de la lista
  * @param sections Secciones y filas de la lista
  */
-export async function sendWhatsAppList(to: string, body: string, buttonText: string, sections: any[], token?: string, phoneNumberId?: string) {
+export async function sendWhatsAppList(to: string, body: string, buttonText: string, sections: unknown[], token?: string, phoneNumberId?: string) {
     const apiToken = token || process.env.WHATSAPP_API_TOKEN;
     const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
 
@@ -449,7 +456,7 @@ export async function sendWhatsAppList(to: string, body: string, buttonText: str
 /**
  * Envía un mensaje interactivo con una lista usando estructura completa.
  */
-export async function sendWhatsAppInteractiveList(to: string, listMessage: any, token?: string, phoneNumberId?: string) {
+export async function sendWhatsAppInteractiveList(to: string, listMessage: WhatsAppInteractiveListPayload, token?: string, phoneNumberId?: string) {
     const apiToken = token || process.env.WHATSAPP_API_TOKEN;
     const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
 
@@ -486,7 +493,7 @@ export async function sendWhatsAppInteractiveList(to: string, listMessage: any, 
  * @param languageCode Código de idioma (ej: 'es')
  * @param components Parámetros dinámicos para la plantilla
  */
-export async function sendWhatsAppTemplate(to: string, templateName: string, languageCode: string = 'es', components: any[] = [], token?: string, phoneNumberId?: string) {
+export async function sendWhatsAppTemplate(to: string, templateName: string, languageCode: string = 'es', components: WhatsAppTemplateComponent[] = [], token?: string, phoneNumberId?: string) {
     const apiToken = token || process.env.WHATSAPP_API_TOKEN;
     const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
 

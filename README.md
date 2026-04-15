@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JABA SaaS
 
-## Getting Started
+Plataforma SaaS para gestionar asistentes de WhatsApp, conversaciones, suscripciones, automatizaciones y flujos conversacionales sobre Next.js y Supabase.
 
-First, run the development server:
+## Qué incluye
+
+- Dashboard operativo para asistentes, chats, productos, suscripciones y configuraciones.
+- Webhook y utilidades para WhatsApp Cloud API.
+- Motor de automatizaciones programadas y ejecución manual.
+- Flujos conversacionales y disparadores con acciones/condiciones.
+- Persistencia y migraciones en Supabase.
+
+## Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Supabase
+- Tailwind CSS 4
+
+## Estructura
+
+- `src/app`: páginas, layouts y rutas API.
+- `src/components`: UI reutilizable y módulos del dashboard.
+- `src/lib`: lógica de negocio, automatizaciones, WhatsApp, flujos y utilidades.
+- `supabase/migrations`: migraciones activas de Supabase.
+- `migrations`: migraciones históricas/manuales del proyecto.
+- `scripts`: utilidades operativas y diagnósticos.
+- `tmp`: artefactos temporales y salidas de depuración.
+
+## Requisitos
+
+- Node.js 20+
+- `npm`
+- Proyecto Supabase configurado
+- Credenciales de WhatsApp Cloud API
+
+## Variables de entorno
+
+El proyecto usa `.env.local`. Las claves exactas pueden variar por módulo, pero estas son las más importantes:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` o `JABA_ADMIN_KEY`
+- `CRON_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+- `WHATSAPP_API_TOKEN`
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `GOOGLE_API_KEY`
+
+## Comandos
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run lint
+npm run lint:app
+npm run verify
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Flujo recomendado
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Configurar `.env.local`.
+2. Ejecutar `npm run dev`.
+3. Verificar cambios con `npm run lint:app`.
+4. Confirmar build de producción con `npm run build` o `npm run verify`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Estado actual del repo
 
-## Learn More
+- `build` compila correctamente.
+- La deuda de lint histórica todavía existe en módulos heredados y áreas grandes del producto.
+- El foco actual de estabilización está en automatizaciones, componentes base, documentación y orden del repo.
 
-To learn more about Next.js, take a look at the following resources:
+## Notas operativas
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Las automatizaciones usan `CRON_SECRET` para ejecución protegida.
+- `src/app/api/run-automations/route.ts` procesa jobs activos.
+- `src/app/api/run-single-automation/route.ts` permite ejecutar un job puntual manualmente.
+- Los artefactos temporales no deberían quedarse en la raíz; usa `tmp/`.
