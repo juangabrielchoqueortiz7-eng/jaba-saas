@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { toCredentials } from '@/lib/subscription-notifications'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import { redactPhone } from '@/lib/logger'
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -106,9 +107,9 @@ export async function POST(request: Request) {
                             urgency_sent: false
                         })
                         .eq('id', foundSub.id);
-                    console.log(`[Renewal Approve] ✅ Suscripción encontrada por teléfono y actualizada: ${renewal.phone_number}`);
+                    console.log(`[Renewal Approve] ✅ Suscripción encontrada por teléfono y actualizada: ${redactPhone(renewal.phone_number)}`);
                 } else {
-                    console.warn(`[Renewal Approve] ⚠️ No se encontró suscripción para ${renewal.phone_number}`);
+                    console.warn(`[Renewal Approve] ⚠️ No se encontró suscripción para ${redactPhone(renewal.phone_number)}`);
                 }
             }
 

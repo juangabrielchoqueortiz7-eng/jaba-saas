@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendWhatsAppVideo } from '@/lib/whatsapp'
+import { logger, redactId, redactPhone, redactUrl } from '@/lib/logger'
 
 export async function POST(request: Request) {
     try {
@@ -31,12 +32,15 @@ export async function POST(request: Request) {
             .single()
 
         if (credError || !creds) {
-            console.error("Error fetching credentials:", credError);
+            logger.error('[Send Video] Error fetching credentials', credError)
             return NextResponse.json({ error: 'WhatsApp Credentials not found for this tenant' }, { status: 404 })
         }
 
         // 3. Send to WhatsApp Graph API
-        console.log(`[Send Video] Sending to ${chat.phone_number} via PhoneID ${creds.phone_number_id}`)
+        logger.info('[Send Video] Sending WhatsApp video', {
+            phone: redactPhone(chat.phone_number),
+            phoneNumberId: redactId(creds.phone_number_id),
+        })
 
         // Ensure absolute URL (Meta API requires public absolute URLs for downloaded media)
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com';
@@ -47,7 +51,7 @@ export async function POST(request: Request) {
             absoluteVideoUrl = 'https://mnepydxofhcgbykpcyfc.supabase.co/storage/v1/object/public/sales-assets/tutorial.mp4';
         }
 
-        console.log(`[Send Video] Using absolute URL: ${absoluteVideoUrl}`)
+        logger.debug('[Send Video] Using media URL', { url: redactUrl(absoluteVideoUrl) })
 
         const whatsappResponse = await sendWhatsAppVideo(
             chat.phone_number,
@@ -58,14 +62,16 @@ export async function POST(request: Request) {
         )
 
         if (!whatsappResponse) {
-            console.error(`[Send Video] WhatsApp API returned null for chat ${chatId}`)
+            logger.error('[Send Video] WhatsApp API returned null', { chatId: redactId(chatId) })
             return NextResponse.json({ error: 'Failed to send video to WhatsApp API' }, { status: 500 })
         }
 
-        console.log(`[Send Video] WhatsApp API Response:`, JSON.stringify(whatsappResponse).substring(0, 200))
+        logger.debug('[Send Video] WhatsApp API response received', {
+            whatsappId: redactId(whatsappResponse.messages?.[0]?.id),
+        })
 
         // 4. Insert into Database
-        const displayCaption = caption || '🎬 Video Tutorial Enviado';
+        const displayCaption = caption || 'Video tutorial enviado'
         const { error: insertError } = await supabase
             .from('messages')
             .insert({
@@ -98,7 +104,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, whatsapp_id: whatsappResponse.messages?.[0]?.id })
 
     } catch (error) {
-        console.error('Error in /api/chat/send-video:', error)
+        logger.error('[Send Video] Unexpected route error', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

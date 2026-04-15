@@ -71,14 +71,6 @@ const scaleIn = {
   visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } }
 };
 
-/*
-  { text: 'Â¡Hola! Quiero informaciÃ³n sobre los planes', sender: 'user', delay: 1000 },
-  { text: 'Â¡Hola! ðŸ‘‹ Empiezas con 500 conversaciones GRATIS. Sin tarjeta. Â¿Te agendo una demo?', sender: 'bot', delay: 1500 },
-  { text: 'SÃ­, por favor', sender: 'user', delay: 2000 },
-  { text: 'Perfecto. Dame tu nombre y tipo de negocio y preparo una propuesta a medida. ðŸš€', sender: 'bot', delay: 1500 }
-] as const;
-*/
-
 // ============ DATA ============
 
 const services = [

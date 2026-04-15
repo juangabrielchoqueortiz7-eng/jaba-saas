@@ -30,6 +30,11 @@ function getTenantToday(tz: string = 'America/La_Paz'): Date {
 // Helpers para ocultar datos sensibles en logs
 function redactPhone(phone: string) { return phone ? '***' + phone.slice(-4) : '***' }
 function redactEmail(email: string) { if (!email) return '***'; const [u, d] = email.split('@'); return u.slice(0, 2) + '***@' + (d || '***') }
+function redactIdentifier(value: string) { return value ? `${value.slice(0, 4)}...${value.slice(-4)}` : '***' }
+function redactPreview(value: string, maxLength = 48) {
+    const normalized = value.replace(/\s+/g, ' ').trim()
+    return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized
+}
 
 // Helper: enviar mensaje de WhatsApp + guardar en DB con wamid para recibir status updates (entregado/leído)
 async function sendAndSave(
@@ -229,7 +234,7 @@ export async function POST(request: Request) {
 
         if (orderError) return { error: orderError.message };
 
-        console.log(`[SALES] Pedido creado: ${product.name} (${tenantCurrency} ${product.price}) para ${contactName}`);
+        console.log(`[SALES] Pedido creado: ${product.name} (${tenantCurrency} ${product.price}) para ${redactPhone(phoneNumber)}`);
 
         // Log en el chat para visibilidad
         await supabaseAdmin.from('chats').update({
@@ -273,7 +278,7 @@ export async function POST(request: Request) {
                     return new NextResponse('NO_METADATA', { status: 200 })
                 }
 
-                console.log(`[Webhook] Received Event for Phone ID: ${phoneId}`);
+                console.log(`[Webhook] Received Event for Phone ID: ${redactIdentifier(String(phoneId))}`);
 
                 // --- MULTI-TENANT LOOKUP ---
                 // Buscamos de quién es este número de teléfono
@@ -291,10 +296,10 @@ export async function POST(request: Request) {
                 }
 
                 if (!credentials) {
-                    console.error(`Credenciales no encontradas para Phone ID: ${phoneId}`)
+                    console.error(`Credenciales no encontradas para Phone ID: ${redactIdentifier(String(phoneId))}`)
                     return NextResponse.json({ error: 'TENANT_NOT_FOUND' }, { status: 200 })
                 } else {
-                    console.log(`[Webhook] Tenant Found: ${credentials.user_id}`);
+                    console.log(`[Webhook] Tenant Found: ${redactIdentifier(credentials.user_id)}`);
                 }
 
                 const { user_id: tenantUserId, access_token: tenantToken } = credentials
@@ -382,7 +387,7 @@ export async function POST(request: Request) {
                         messageText = `[${messageType}] Mensaje no soportado`
                 }
 
-                console.log(`[Tenant: ${tenantUserId}] Mensaje de ${contactName}: ${messageText}`)
+                console.log(`[Tenant: ${redactIdentifier(tenantUserId)}] Mensaje de ${redactPreview(contactName)}: ${redactPreview(messageText)}`)
 
                 // --- 0. ENVIAR INDICADOR DE "ESCRIBIENDO..." ---
                 try {
@@ -456,7 +461,7 @@ export async function POST(request: Request) {
 
                     if (chatError) console.error("Error creating chat:", chatError);
                     if (newChat) chatId = newChat.id
-                    console.log(`[CRM] 🏷️ Auto-tagged nuevo: ${contactName}`);
+                    console.log(`[CRM] 🏷️ Auto-tagged nuevo: ${redactPreview(contactName)}`);
                 }
 
                 // 2. Guardar el MENSAJE inmediatamente (antes de descargar media)
@@ -2450,7 +2455,7 @@ En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pending
                                 }
                             }
 
-                            console.log(`[AI] Respondió a ${redactPhone(phoneNumber)}: "${aiResponseText.substring(0, 50)}..."`)
+                            console.log(`[AI] Respondió a ${redactPhone(phoneNumber)} (${aiResponseText.length} chars)`)
 
                         } catch (aiError) {
                             console.error('[AI] Error procesando consolidado:', aiError);

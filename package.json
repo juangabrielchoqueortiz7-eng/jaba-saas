@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:app": "eslint src/components/dashboard src/components/subscriptions/SubscriptionSettingsModal.tsx src/components/ui src/lib/automation-jobs.ts src/lib/ai.ts src/lib/flow-engine.ts src/lib/trigger-conditions.ts src/lib/trigger-variables.ts src/lib/whatsapp.ts src/app/api/run-automations eslint.config.mjs next.config.ts",
-    "verify": "npm run lint:app && next build"
+    "check:encoding": "node scripts/check-encoding.mjs",
+    "verify": "npm run lint && npm run check:encoding && next build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
