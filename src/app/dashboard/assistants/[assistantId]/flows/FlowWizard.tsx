@@ -336,6 +336,58 @@ const STEP_LABELS: Record<string, string> = {
 
 // ── Main Wizard ────────────────────────────────────────────────────────────
 
+type FlowRecipe = {
+  id: string
+  title: string
+  description: string
+  flowName: string
+  flowDesc: string
+  steps: Array<{ type: WizardStep['type']; config: WizardStepConfig }>
+}
+
+const FLOW_RECIPES: FlowRecipe[] = [
+  {
+    id: 'sales',
+    title: 'Ventas',
+    description: 'Presenta opciones, captura interes y marca el chat.',
+    flowName: 'Flujo de ventas',
+    flowDesc: 'Guia al cliente desde la consulta hasta el siguiente paso de compra.',
+    steps: [
+      { type: 'trigger', config: { keywords: 'precio, planes, comprar, info', match_mode: 'contains' } },
+      { type: 'message', config: { text: 'Hola {{contact_name}}. Te comparto las opciones disponibles y te ayudo a elegir la mejor.' } },
+      { type: 'buttons', config: { text: 'Que te gustaria hacer?', buttons: [{ id: 'btn_1', title: 'Ver planes' }, { id: 'btn_2', title: 'Hablar con asesor' }] } },
+      { type: 'action', config: { action_type: 'add_tag', tag: 'lead_interesado' } },
+    ],
+  },
+  {
+    id: 'booking',
+    title: 'Reservas o citas',
+    description: 'Pide datos clave para agendar sin perder el orden.',
+    flowName: 'Flujo de reservas',
+    flowDesc: 'Captura fecha, hora y datos para confirmar una reserva o cita.',
+    steps: [
+      { type: 'trigger', config: { keywords: 'reservar, cita, agenda, turno', match_mode: 'contains' } },
+      { type: 'message', config: { text: 'Perfecto. Te ayudo a coordinar la reserva.' } },
+      { type: 'question', config: { text: 'Que fecha y hora te gustaria reservar?', variable_name: 'fecha_hora' } },
+      { type: 'question', config: { text: 'A nombre de quien hacemos la reserva?', variable_name: 'nombre_reserva' } },
+      { type: 'message', config: { text: 'Gracias. Revisaremos disponibilidad y te confirmaremos por aqui.' } },
+    ],
+  },
+  {
+    id: 'support',
+    title: 'Soporte',
+    description: 'Ordena problemas y pide el detalle correcto.',
+    flowName: 'Flujo de soporte',
+    flowDesc: 'Recopila informacion para atender mejor un caso de ayuda.',
+    steps: [
+      { type: 'trigger', config: { keywords: 'ayuda, soporte, problema, error', match_mode: 'contains' } },
+      { type: 'message', config: { text: 'Gracias por escribirnos. Te ayudamos a revisar el caso.' } },
+      { type: 'question', config: { text: 'Cuentame brevemente que problema tienes.', variable_name: 'detalle_soporte' } },
+      { type: 'action', config: { action_type: 'add_tag', tag: 'soporte_pendiente' } },
+    ],
+  },
+]
+
 interface FlowWizardProps {
   assistantId: string
 }
@@ -353,6 +405,19 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
   const [steps, setSteps] = useState<WizardStep[]>([
     { id: crypto.randomUUID(), type: 'trigger', config: getDefaultStepConfig('trigger') },
   ])
+
+  const applyFlowRecipe = (recipe: FlowRecipe) => {
+    const nextSteps = recipe.steps.map(step => ({
+      id: crypto.randomUUID(),
+      type: step.type,
+      config: step.config,
+    }))
+    setFlowName(recipe.flowName)
+    setFlowDesc(recipe.flowDesc)
+    setSteps(nextSteps)
+    setExpandedStep(nextSteps[0]?.id || null)
+    setShowAddStep(false)
+  }
 
   const addStep = (type: WizardStep['type']) => {
     const newStep: WizardStep = {
@@ -487,6 +552,35 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
       <div className="flex gap-6 p-6 max-w-7xl mx-auto">
         {/* Left: Steps */}
         <div className={`${showPreview ? 'flex-1' : 'w-full max-w-3xl mx-auto'} space-y-3`}>
+          <div className="rounded-lg border border-black/[0.08] bg-white p-5 shadow-sm">
+            <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-cyan-700">Crear rapido</p>
+                <h2 className="mt-1 text-lg font-bold text-[#0F172A]">Empieza con un flujo profesional</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Elige una base, revisa los mensajes y guarda. Luego puedes ajustar el diagrama si lo necesitas.
+                </p>
+              </div>
+              <span className="rounded-lg border border-slate-200 bg-[#F7F8FA] px-3 py-2 text-xs font-semibold text-slate-500">
+                Paso a paso, sin complicarte
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {FLOW_RECIPES.map(recipe => (
+                <button
+                  key={recipe.id}
+                  type="button"
+                  onClick={() => applyFlowRecipe(recipe)}
+                  className="rounded-lg border border-black/[0.07] bg-[#F7F8FA] p-4 text-left transition-colors hover:border-cyan-300 hover:bg-cyan-50"
+                >
+                  <p className="text-sm font-bold text-[#0F172A]">{recipe.title}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500">{recipe.description}</p>
+                  <p className="mt-3 text-[11px] font-semibold text-cyan-700">{recipe.steps.length} pasos prearmados</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Info bar */}
           <div className="flex items-start gap-2 px-4 py-3 bg-cyan-50 border border-cyan-200 rounded-xl">
             <Info size={14} className="text-cyan-600 mt-0.5 flex-shrink-0" />

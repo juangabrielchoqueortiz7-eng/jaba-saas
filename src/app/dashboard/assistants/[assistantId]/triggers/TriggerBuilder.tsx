@@ -81,6 +81,19 @@ type TriggerActionPayload = {
   [key: string]: TriggerActionPayloadValue
 }
 
+type TriggerRecipe = {
+  id: string
+  title: string
+  description: string
+  result: string
+  type: TriggerType
+  name: string
+  triggerDescription: string
+  timeMinutes?: string
+  conditions: TriggerCondition[]
+  actions: TriggerAction[]
+}
+
 interface TriggerCondition {
   id?: string
   condition_type: ConditionType
@@ -371,6 +384,65 @@ function getInitialActions(triggerId?: string, initialTemplate?: TriggerTemplate
 }
 
 // ── CardPicker Modal ──────────────────────────────────────────────────────────
+
+const TRIGGER_RECIPES: TriggerRecipe[] = [
+  {
+    id: 'price',
+    title: 'Responder precios',
+    description: 'Cuando preguntan por precio, plan o costo.',
+    result: 'Envia informacion y marca al cliente como interesado.',
+    type: 'logic',
+    name: 'Consulta de precios',
+    triggerDescription: 'Cuando el cliente pregunta por precio, costo, planes o promociones.',
+    conditions: [{ condition_type: 'text_contains', operator: 'contains', value: 'precio, costo, plan, promo' }],
+    actions: [
+      { type: 'send_text', payload: { message: 'Hola. Te comparto la informacion para que elijas la mejor opcion. Si quieres, tambien puedo ayudarte a decidir.' }, delay_seconds: 0 },
+      { type: 'add_tag', payload: { tag: 'interesado' }, delay_seconds: 0 },
+    ],
+  },
+  {
+    id: 'no_reply',
+    title: 'Recordar si no responde',
+    description: 'Cuando el cliente queda en silencio.',
+    result: 'Espera 30 minutos y envia un recordatorio corto.',
+    type: 'time',
+    name: 'Recordatorio por inactividad',
+    triggerDescription: 'Cliente sin respuesta durante varios minutos.',
+    timeMinutes: '30',
+    conditions: [],
+    actions: [
+      { type: 'send_text', payload: { message: 'Hola. Te escribo para saber si todavia quieres que te ayude con esto. Estoy pendiente por aqui.' }, delay_seconds: 0 },
+    ],
+  },
+  {
+    id: 'support',
+    title: 'Avisar soporte',
+    description: 'Cuando piden ayuda o reportan un problema.',
+    result: 'Responde al cliente y te deja una alerta interna.',
+    type: 'logic',
+    name: 'Solicitud de soporte',
+    triggerDescription: 'Cuando el cliente pide ayuda, soporte, tiene un problema o reporta un error.',
+    conditions: [{ condition_type: 'text_matches_intent', operator: 'equals', value: 'soporte' }],
+    actions: [
+      { type: 'send_text', payload: { message: 'Gracias por avisarnos. Ya tengo tu caso en revision. Para ayudarte mejor, enviame el detalle o una captura si aplica.' }, delay_seconds: 0 },
+      { type: 'notify_admin', payload: { title: 'Cliente necesita soporte', message: 'Revisa esta conversacion porque el cliente pidio ayuda.' }, delay_seconds: 0 },
+    ],
+  },
+  {
+    id: 'tag_lead',
+    title: 'Guardar lead',
+    description: 'Cuando el cliente muestra interes.',
+    result: 'Etiqueta el chat y pide el siguiente dato.',
+    type: 'logic',
+    name: 'Lead interesado',
+    triggerDescription: 'Cuando el cliente dice que le interesa, quiere informacion o desea avanzar.',
+    conditions: [{ condition_type: 'text_contains', operator: 'contains', value: 'me interesa, quiero, informacion, comprar' }],
+    actions: [
+      { type: 'add_tag', payload: { tag: 'lead_interesado' }, delay_seconds: 0 },
+      { type: 'send_text', payload: { message: 'Perfecto. Para ayudarte con el siguiente paso, dime tu nombre y que opcion te interesa.' }, delay_seconds: 0 },
+    ],
+  },
+]
 
 function CardPickerModal({
   title, categories, advancedCategories, onSelect, onClose
@@ -1334,6 +1406,17 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
 
   const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
 
+  const applyRecipe = (recipe: TriggerRecipe) => {
+    setName(recipe.name)
+    setType(recipe.type)
+    setDescription(recipe.triggerDescription)
+    if (recipe.timeMinutes) setTimeMinutes(recipe.timeMinutes)
+    setConditions(recipe.conditions)
+    setActions(recipe.actions)
+    setConditionsLogic('AND')
+    setActiveTab('actions')
+  }
+
   // Load flows + templates + custom fields
   useEffect(() => {
     getFlows().then(setFlows)
@@ -1474,6 +1557,42 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
       </div>
 
       {/* ── Progress Stepper ── */}
+      {!triggerId && (
+        <div className="mb-6 rounded-lg border border-black/[0.08] bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Crear rapido</p>
+              <h2 className="mt-1 text-lg font-bold text-[#0F172A]">Elige una receta y ajusta solo lo necesario</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Esto arma el nombre, la activacion y las acciones base. Luego puedes editar el texto antes de guardar.
+              </p>
+            </div>
+            <span className="rounded-lg border border-slate-200 bg-[#F7F8FA] px-3 py-2 text-xs font-semibold text-slate-500">
+              Ideal para usuarios no tecnicos
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {TRIGGER_RECIPES.map(recipe => (
+              <button
+                key={recipe.id}
+                type="button"
+                onClick={() => applyRecipe(recipe)}
+                className="rounded-lg border border-black/[0.07] bg-[#F7F8FA] p-4 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded-md bg-white p-1.5 text-emerald-700">
+                    {recipe.type === 'time' ? <Clock size={14} /> : recipe.id === 'support' ? <AlertCircle size={14} /> : <Zap size={14} />}
+                  </span>
+                  <p className="text-sm font-bold text-[#0F172A]">{recipe.title}</p>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-500">{recipe.description}</p>
+                <p className="mt-3 text-[11px] font-semibold text-emerald-700">{recipe.result}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <div className="flex items-start gap-3">
           <Info size={18} className="mt-0.5 shrink-0 text-amber-700" />
