@@ -10,6 +10,7 @@ import {
 import MetaTemplateBuilder from './MetaTemplateBuilder'
 import SimpleTemplateWizard from './SimpleTemplateWizard'
 import BroadcastModal from './BroadcastModal'
+import AutomationSetupGuide from '@/components/dashboard/AutomationSetupGuide'
 import { toast } from 'sonner'
 
 type MetaTemplate = {
@@ -288,6 +289,7 @@ export default function TemplatesPage() {
 
     const handleBuilderClose = () => { setBuilderOpen(false); setUseAdvancedBuilder(false); setDuplicateBody(undefined) }
     const handleBuilderSuccess = async () => { handleBuilderClose(); await loadMetaTemplates() }
+    const openSimpleBuilder = () => { setBuilderOpen(true); setDuplicateBody(undefined); setUseAdvancedBuilder(false) }
 
     const filtered = metaTemplates
         .filter(t => statusFilter === 'ALL' || t.status === statusFilter)
@@ -314,7 +316,7 @@ export default function TemplatesPage() {
                     </div>
                     {!builderOpen && tab === 'templates' && (
                         <Button
-                            onClick={() => { setBuilderOpen(true); setDuplicateBody(undefined); setUseAdvancedBuilder(false) }}
+                            onClick={openSimpleBuilder}
                             className="bg-[#25D366] hover:bg-[#20B858] text-white gap-2 rounded-xl shadow-sm"
                         >
                             <Plus size={16} /> Nueva Plantilla
@@ -323,6 +325,10 @@ export default function TemplatesPage() {
                 </div>
 
                 {/* ── Builder ── */}
+                {!builderOpen && tab === 'templates' && (
+                    <AutomationSetupGuide section="templates" onCreateTemplate={openSimpleBuilder} />
+                )}
+
                 {builderOpen && !useAdvancedBuilder && (
                     <div className="mb-6">
                         <SimpleTemplateWizard
@@ -378,7 +384,7 @@ export default function TemplatesPage() {
                                 <p className="font-semibold text-slate-600 mb-1">Aún no tienes plantillas</p>
                                 <p className="text-xs text-slate-400 mb-4">Crea tu primera plantilla con el botón &quot;Nueva Plantilla&quot;</p>
                                 <Button
-                                    onClick={() => setBuilderOpen(true)}
+                                    onClick={openSimpleBuilder}
                                     className="bg-[#25D366] hover:bg-[#20B858] text-white gap-2 rounded-xl"
                                 >
                                     <Plus size={15} /> Crear primera plantilla

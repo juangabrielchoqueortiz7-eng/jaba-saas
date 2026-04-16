@@ -697,6 +697,28 @@ export async function getSequenceAutomationPanelData(): Promise<SequenceAutomati
             }
         }
 
+        if (row.cancel_reason === 'template_required_outside_24h') {
+            return {
+                id: row.id,
+                summary: `${contactName} quedo fuera de ventana`,
+                detail: `No se envio el seguimiento porque ya pasaron 24h y no hay plantilla Meta configurada${email ? ` - ${email}` : ''}`,
+                statusLabel: 'Requiere plantilla',
+                tone: 'amber' as const,
+                timestamp: row.cancelled_at || row.created_at || new Date().toISOString(),
+            }
+        }
+
+        if (row.cancel_reason === 'template_send_failed') {
+            return {
+                id: row.id,
+                summary: `${contactName} no recibio plantilla`,
+                detail: `Meta rechazo o no proceso la plantilla configurada${email ? ` - ${email}` : ''}`,
+                statusLabel: 'Plantilla fallo',
+                tone: 'amber' as const,
+                timestamp: row.cancelled_at || row.created_at || new Date().toISOString(),
+            }
+        }
+
         if (row.status === 'completed') {
             return {
                 id: row.id,
@@ -792,6 +814,12 @@ export async function saveSequenceAutomationConfig(
         secondDelayMinutes: number
         firstMessage: string
         secondMessage: string
+        firstTemplateName?: string
+        firstTemplateLanguage?: string
+        firstTemplateVariables?: string[]
+        secondTemplateName?: string
+        secondTemplateLanguage?: string
+        secondTemplateVariables?: string[]
     },
 ) {
     const supabase = await createClient()
@@ -828,6 +856,12 @@ export async function saveSequenceAutomationConfig(
                 secondDelayMinutes: config.secondDelayMinutes,
                 firstMessage: config.firstMessage,
                 secondMessage: config.secondMessage,
+                firstTemplateName: config.firstTemplateName || '',
+                firstTemplateLanguage: config.firstTemplateLanguage || 'es',
+                firstTemplateVariables: config.firstTemplateVariables || [],
+                secondTemplateName: config.secondTemplateName || '',
+                secondTemplateLanguage: config.secondTemplateLanguage || 'es',
+                secondTemplateVariables: config.secondTemplateVariables || [],
             },
         },
     }

@@ -278,6 +278,12 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                         <p className="text-sm text-slate-500 mb-5">
                             ¿Para qué vas a usar esta plantilla? Elige una opción para comenzar con un mensaje pre-armado.
                         </p>
+                        <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                            <p className="text-sm font-semibold text-[#0F172A]">Regla simple de WhatsApp</p>
+                            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                                Si el cliente no escribio en las ultimas 24 horas, usa una plantilla aprobada. Para conversaciones recientes puedes usar mensajes normales desde flujos o disparadores.
+                            </p>
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                             {PURPOSES.map(p => {
                                 const vars = VARIABLE_MAPPINGS[p.id] || []

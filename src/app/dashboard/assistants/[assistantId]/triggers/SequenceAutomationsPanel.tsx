@@ -44,6 +44,12 @@ type SequenceEditorState = {
     secondDelayMinutes: string
     firstMessage: string
     secondMessage: string
+    firstTemplateName: string
+    firstTemplateLanguage: string
+    firstTemplateVariables: string
+    secondTemplateName: string
+    secondTemplateLanguage: string
+    secondTemplateVariables: string
 }
 
 type SimulationScenario = 'no_reply' | 'reply_after_first' | 'payment_before_first' | 'payment_after_first'
@@ -287,7 +293,25 @@ function buildEditorState(item: SequenceAutomationListItem): SequenceEditorState
         secondDelayMinutes: String(item.secondDelayMinutes),
         firstMessage: item.firstMessage,
         secondMessage: item.secondMessage,
+        firstTemplateName: item.firstTemplateName,
+        firstTemplateLanguage: item.firstTemplateLanguage,
+        firstTemplateVariables: item.firstTemplateVariables.join('\n'),
+        secondTemplateName: item.secondTemplateName,
+        secondTemplateLanguage: item.secondTemplateLanguage,
+        secondTemplateVariables: item.secondTemplateVariables.join('\n'),
     }
+}
+
+function parseTemplateVariables(value: string): string[] {
+    return value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 10)
+}
+
+function needsTemplateWarning(delayMinutes: number): boolean {
+    return delayMinutes >= 23 * 60
 }
 
 function buildSimulationDraft(item: SequenceAutomationListItem): SimulationDraft {
@@ -571,6 +595,12 @@ function EditorModal({
             secondDelayMinutes: String(defaults.secondDelayMinutes),
             firstMessage: defaults.firstMessage,
             secondMessage: defaults.secondMessage,
+            firstTemplateName: defaults.firstTemplateName,
+            firstTemplateLanguage: defaults.firstTemplateLanguage,
+            firstTemplateVariables: defaults.firstTemplateVariables.join('\n'),
+            secondTemplateName: defaults.secondTemplateName,
+            secondTemplateLanguage: defaults.secondTemplateLanguage,
+            secondTemplateVariables: defaults.secondTemplateVariables.join('\n'),
         })
         setError(null)
     }
@@ -580,9 +610,21 @@ function EditorModal({
         const secondDelayMinutes = clampDelayValue(draft.secondDelayMinutes, item.secondDelayMinutes)
         const firstMessage = draft.firstMessage.trim()
         const secondMessage = draft.secondMessage.trim()
+        const firstTemplateName = draft.firstTemplateName.trim()
+        const secondTemplateName = draft.secondTemplateName.trim()
 
         if (!firstMessage || !secondMessage) {
             setError('Los dos mensajes deben tener contenido para que la secuencia funcione bien.')
+            return
+        }
+
+        if (needsTemplateWarning(firstDelayMinutes) && !firstTemplateName) {
+            setError('El primer seguimiento puede quedar fuera de la ventana de 24h. Configura una plantilla Meta o baja el tiempo.')
+            return
+        }
+
+        if (needsTemplateWarning(secondDelayMinutes) && !secondTemplateName) {
+            setError('El segundo seguimiento puede quedar fuera de la ventana de 24h. Configura una plantilla Meta o baja el tiempo.')
             return
         }
 
@@ -596,6 +638,12 @@ function EditorModal({
                     secondDelayMinutes,
                     firstMessage,
                     secondMessage,
+                    firstTemplateName,
+                    firstTemplateLanguage: draft.firstTemplateLanguage.trim() || 'es',
+                    firstTemplateVariables: parseTemplateVariables(draft.firstTemplateVariables),
+                    secondTemplateName,
+                    secondTemplateLanguage: draft.secondTemplateLanguage.trim() || 'es',
+                    secondTemplateVariables: parseTemplateVariables(draft.secondTemplateVariables),
                 })
 
                 onSaved({
@@ -605,6 +653,12 @@ function EditorModal({
                     secondDelayMinutes,
                     firstMessage,
                     secondMessage,
+                    firstTemplateName,
+                    firstTemplateLanguage: draft.firstTemplateLanguage.trim() || 'es',
+                    firstTemplateVariables: parseTemplateVariables(draft.firstTemplateVariables),
+                    secondTemplateName,
+                    secondTemplateLanguage: draft.secondTemplateLanguage.trim() || 'es',
+                    secondTemplateVariables: parseTemplateVariables(draft.secondTemplateVariables),
                 })
                 onClose()
             } catch (saveError) {
@@ -653,6 +707,11 @@ function EditorModal({
                                             className="mt-1"
                                         />
                                         <p className="text-[11px] text-slate-400 mt-1">Se enviara despues de {formatDelayLabel(clampDelayValue(draft.firstDelayMinutes, item.firstDelayMinutes))}.</p>
+                                        {needsTemplateWarning(clampDelayValue(draft.firstDelayMinutes, item.firstDelayMinutes)) && (
+                                            <p className="mt-1 text-[11px] font-medium text-amber-600">
+                                                Puede salir de la ventana de 24h. Necesita plantilla Meta aprobada.
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div>
@@ -666,6 +725,11 @@ function EditorModal({
                                             className="mt-1"
                                         />
                                         <p className="text-[11px] text-slate-400 mt-1">Se enviara despues de {formatDelayLabel(clampDelayValue(draft.secondDelayMinutes, item.secondDelayMinutes))}.</p>
+                                        {needsTemplateWarning(clampDelayValue(draft.secondDelayMinutes, item.secondDelayMinutes)) && (
+                                            <p className="mt-1 text-[11px] font-medium text-amber-600">
+                                                Puede salir de la ventana de 24h. Necesita plantilla Meta aprobada.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -693,6 +757,13 @@ function EditorModal({
                                     </div>
                                     <p className="text-[11px] text-slate-500 mt-3">
                                         Puedes dejarlas tal cual para que el sistema complete plan, monto, correo y CTA automaticamente.
+                                    </p>
+                                </div>
+
+                                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Regla de WhatsApp</p>
+                                    <p className="mt-2 text-[12px] text-amber-800">
+                                        Si el cliente escribio hace menos de 24h, se manda el mensaje normal. Si ya pasaron 24h, el sistema usa plantilla Meta. Si no hay plantilla configurada, no envia para evitar errores.
                                     </p>
                                 </div>
 
@@ -743,6 +814,84 @@ function EditorModal({
                                     onChange={(event) => setDraft((current) => ({ ...current, secondMessage: event.target.value }))}
                                     className="mt-3 min-h-[180px]"
                                 />
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                        <Card className="border-amber-200 bg-amber-50">
+                            <CardContent className="p-4">
+                                <p className="text-sm font-semibold text-[#0F172A]">Plantilla para el primer seguimiento</p>
+                                <p className="mt-1 text-xs text-amber-800">Solo se usa si la ventana de 24h ya cerro.</p>
+
+                                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_100px]">
+                                    <div>
+                                        <Label className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Nombre en Meta</Label>
+                                        <Input
+                                            value={draft.firstTemplateName}
+                                            onChange={(event) => setDraft((current) => ({ ...current, firstTemplateName: event.target.value }))}
+                                            placeholder="ej: seguimiento_pago_pendiente"
+                                            className="mt-1 bg-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Idioma</Label>
+                                        <Input
+                                            value={draft.firstTemplateLanguage}
+                                            onChange={(event) => setDraft((current) => ({ ...current, firstTemplateLanguage: event.target.value }))}
+                                            placeholder="es"
+                                            className="mt-1 bg-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mt-3">
+                                    <Label className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Variables, una por linea</Label>
+                                    <Textarea
+                                        value={draft.firstTemplateVariables}
+                                        onChange={(event) => setDraft((current) => ({ ...current, firstTemplateVariables: event.target.value }))}
+                                        className="mt-1 min-h-[110px] bg-white"
+                                    />
+                                    <p className="mt-2 text-[11px] text-amber-800">Deben coincidir en cantidad y orden con la plantilla aprobada por Meta.</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-amber-200 bg-amber-50">
+                            <CardContent className="p-4">
+                                <p className="text-sm font-semibold text-[#0F172A]">Plantilla para el segundo seguimiento</p>
+                                <p className="mt-1 text-xs text-amber-800">Recomendada cuando el segundo mensaje sea de 24h o mas.</p>
+
+                                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_100px]">
+                                    <div>
+                                        <Label className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Nombre en Meta</Label>
+                                        <Input
+                                            value={draft.secondTemplateName}
+                                            onChange={(event) => setDraft((current) => ({ ...current, secondTemplateName: event.target.value }))}
+                                            placeholder="ej: segundo_recordatorio_pago"
+                                            className="mt-1 bg-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Idioma</Label>
+                                        <Input
+                                            value={draft.secondTemplateLanguage}
+                                            onChange={(event) => setDraft((current) => ({ ...current, secondTemplateLanguage: event.target.value }))}
+                                            placeholder="es"
+                                            className="mt-1 bg-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mt-3">
+                                    <Label className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Variables, una por linea</Label>
+                                    <Textarea
+                                        value={draft.secondTemplateVariables}
+                                        onChange={(event) => setDraft((current) => ({ ...current, secondTemplateVariables: event.target.value }))}
+                                        className="mt-1 min-h-[110px] bg-white"
+                                    />
+                                    <p className="mt-2 text-[11px] text-amber-800">Puedes usar variables como {'{{planName}}'}, {'{{amount}}'}, {'{{serviceName}}'} o {'{{paymentMethods}}'}.</p>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -1067,6 +1216,12 @@ export default function SequenceAutomationsPanel() {
                 secondDelayMinutes: item.secondDelayMinutes,
                 firstMessage: item.firstMessage,
                 secondMessage: item.secondMessage,
+                firstTemplateName: item.firstTemplateName,
+                firstTemplateLanguage: item.firstTemplateLanguage,
+                firstTemplateVariables: item.firstTemplateVariables,
+                secondTemplateName: item.secondTemplateName,
+                secondTemplateLanguage: item.secondTemplateLanguage,
+                secondTemplateVariables: item.secondTemplateVariables,
             })
         } catch (toggleError) {
             setItems((current) => current.map((entry) => entry.key === item.key ? item : entry))
@@ -1491,6 +1646,15 @@ export default function SequenceAutomationsPanel() {
                                         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700">
                                             {item.activeRuns} chat{item.activeRuns === 1 ? '' : 's'} en espera
                                         </span>
+                                        {(item.firstTemplateName || item.secondTemplateName) ? (
+                                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700">
+                                                Plantilla 24h lista
+                                            </span>
+                                        ) : (
+                                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-500">
+                                                Sin plantilla fuera de 24h
+                                            </span>
+                                        )}
                                     </div>
 
                                     <div className="mt-4 rounded-lg border border-black/[0.06] bg-[#F7F8FA] px-3 py-3">

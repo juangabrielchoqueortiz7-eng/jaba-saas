@@ -16,6 +16,7 @@ import { TagAutocomplete } from '@/components/ui/tag-autocomplete'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import FlowTemplates from './FlowTemplates'
+import AutomationSetupGuide from '@/components/dashboard/AutomationSetupGuide'
 import { createClient } from '@/utils/supabase/client'
 import { COMMON_TIMEZONES } from '@/lib/timezone-utils'
 import { toast } from 'sonner'
@@ -794,6 +795,8 @@ export default function FlowsPage() {
             )}
 
             {/* ── Page Tabs ── */}
+            <AutomationSetupGuide section="flows" onCreateFlow={() => setShowTemplates(true)} />
+
             <div className="flex items-center justify-between">
                 <div className="flex gap-1 bg-white rounded-xl border border-black/[0.08] p-1 shadow-sm">
                     {([

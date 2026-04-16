@@ -496,6 +496,18 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
             </p>
           </div>
 
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+            {[
+              'Activador: que palabras inician el flujo.',
+              'Respuesta: que mensaje, pregunta o botones vera el cliente.',
+              'Cierre: etiqueta, espera, IA o accion final.',
+            ].map(item => (
+              <div key={item} className="rounded-lg border border-black/[0.07] bg-white px-3 py-2 text-xs text-slate-600">
+                {item}
+              </div>
+            ))}
+          </div>
+
           {/* Steps list */}
           {steps.map((step, index) => {
             const isExpanded = expandedStep === step.id

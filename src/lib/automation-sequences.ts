@@ -5,9 +5,10 @@ import {
   AUTOMATION_SEQUENCE_KEYS,
   getAutomationSequenceSetting,
   renderAutomationSequenceTemplate,
+  renderAutomationSequenceTemplateVariables,
   type AutomationSequenceKey,
 } from './automation-sequence-config'
-import { sendWhatsAppMessage } from './whatsapp'
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from './whatsapp'
 
 type SequenceStatus = 'active' | 'paused' | 'completed' | 'cancelled'
 type OrderKind = 'sale' | 'renewal'
@@ -82,6 +83,7 @@ interface SyncChatFollowupInput {
 }
 
 const MINUTE_MS = 60_000
+const CUSTOMER_SERVICE_WINDOW_MS = (23 * 60 + 50) * MINUTE_MS
 
 function addDelay(base: Date, delayMs: number): string {
   return new Date(base.getTime() + delayMs).toISOString()
@@ -212,6 +214,36 @@ function buildSequenceMessage(sequenceKey: AutomationSequenceKey, stepIndex: num
   const setting = getAutomationSequenceSetting(context.sequenceSettings, sequenceKey)
   const template = stepIndex === 0 ? setting.firstMessage : setting.secondMessage
   return renderAutomationSequenceTemplate(template, context)
+}
+
+function getTemplateFallback(sequenceKey: AutomationSequenceKey, stepIndex: number, context: SequenceContext) {
+  const setting = getAutomationSequenceSetting(context.sequenceSettings, sequenceKey)
+  const templateName = stepIndex === 0 ? setting.firstTemplateName : setting.secondTemplateName
+  const language = stepIndex === 0 ? setting.firstTemplateLanguage : setting.secondTemplateLanguage
+  const variables = stepIndex === 0 ? setting.firstTemplateVariables : setting.secondTemplateVariables
+
+  if (!templateName) {
+    return null
+  }
+
+  const renderedVariables = renderAutomationSequenceTemplateVariables(variables, context)
+  return {
+    templateName,
+    language: language || 'es',
+    components: renderedVariables.length > 0
+      ? [{
+          type: 'body',
+          parameters: renderedVariables.map((text) => ({ type: 'text', text: text || ' ' })),
+        }]
+      : [],
+  }
+}
+
+function isInsideCustomerServiceWindow(replyCutoffAt: string | null, now: Date): boolean {
+  if (!replyCutoffAt) return false
+  const cutoffTime = new Date(replyCutoffAt).getTime()
+  if (!Number.isFinite(cutoffTime)) return false
+  return now.getTime() - cutoffTime <= CUSTOMER_SERVICE_WINDOW_MS
 }
 
 export async function cancelActiveSequencesForChat(
@@ -583,15 +615,37 @@ export async function runDueAutomationSequences(
         continue
       }
 
+      const insideWindow = isInsideCustomerServiceWindow(sequence.reply_cutoff_at, now)
       const message = buildSequenceMessage(sequence.sequence_key, stepIndex, context)
-      const result = await sendWhatsAppMessage(
-        chat.phone_number,
-        message,
-        credentials.access_token,
-        credentials.phone_number_id,
-      )
+      const templateFallback = getTemplateFallback(sequence.sequence_key, stepIndex, context)
+      let sentContent = message
+      let result = null
+
+      if (insideWindow) {
+        result = await sendWhatsAppMessage(
+          chat.phone_number,
+          message,
+          credentials.access_token,
+          credentials.phone_number_id,
+        )
+      } else if (templateFallback) {
+        result = await sendWhatsAppTemplate(
+          chat.phone_number,
+          templateFallback.templateName,
+          templateFallback.language,
+          templateFallback.components,
+          credentials.access_token,
+          credentials.phone_number_id,
+        )
+        sentContent = `Plantilla enviada: ${templateFallback.templateName}`
+      } else {
+        await markSequenceCancelled(supabaseAdmin, sequence.id, 'template_required_outside_24h')
+        stats.cancelled++
+        continue
+      }
 
       if (!result) {
+        await markSequenceCancelled(supabaseAdmin, sequence.id, insideWindow ? 'message_send_failed' : 'template_send_failed')
         stats.failed++
         continue
       }
@@ -600,7 +654,7 @@ export async function runDueAutomationSequences(
       await supabaseAdmin.from('messages').insert({
         chat_id: sequence.chat_id,
         is_from_me: true,
-        content: message,
+        content: sentContent,
         status: 'delivered',
         ...(wamid ? { whatsapp_message_id: wamid } : {}),
       })
@@ -608,7 +662,7 @@ export async function runDueAutomationSequences(
       await supabaseAdmin
         .from('chats')
         .update({
-          last_message: message.slice(0, 100),
+          last_message: sentContent.slice(0, 100),
           last_message_time: new Date().toISOString(),
         })
         .eq('id', sequence.chat_id)

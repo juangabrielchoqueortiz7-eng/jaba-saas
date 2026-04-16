@@ -1474,6 +1474,23 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
       </div>
 
       {/* ── Progress Stepper ── */}
+      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="flex items-start gap-3">
+          <Info size={18} className="mt-0.5 shrink-0 text-amber-700" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-[#0F172A]">Configuralo como una frase simple</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              Piensa: cuando pase esto, el bot hace esto. Ejemplo: cuando el cliente escriba precio, enviar mensaje y poner etiqueta interesado.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-600 md:grid-cols-3">
+              <span className="rounded-lg bg-white px-3 py-2 border border-black/[0.06]">1. Nombre: para reconocerla luego.</span>
+              <span className="rounded-lg bg-white px-3 py-2 border border-black/[0.06]">2. Cuando se activa: palabra, tiempo o fecha.</span>
+              <span className="rounded-lg bg-white px-3 py-2 border border-black/[0.06]">3. Que hace: mensaje, plantilla, etiqueta o flujo.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center gap-2 mb-6 bg-white rounded-xl border border-black/[0.08] p-3">
         {[
           { num: 1, label: 'Información básica', section: 'config' as const, active: true },

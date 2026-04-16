@@ -14,6 +14,12 @@ export interface AutomationSequenceSetting {
   secondDelayMinutes: number
   firstMessage: string
   secondMessage: string
+  firstTemplateName: string
+  firstTemplateLanguage: string
+  firstTemplateVariables: string[]
+  secondTemplateName: string
+  secondTemplateLanguage: string
+  secondTemplateVariables: string[]
 }
 
 export interface AutomationSequencePresetDefinition {
@@ -42,6 +48,12 @@ export const AUTOMATION_SEQUENCE_PRESETS: Record<AutomationSequenceKey, Automati
       secondDelayMinutes: 24 * 60,
       firstMessage: 'Hola. Vi que dejaste pendiente tu pedido de *{{planName}}*{{amountWithParens}}.\n\nSolo me falta tu correo para dejar listo el acceso a *{{serviceName}}*.\n\n{{goalCta}}',
       secondMessage: 'Seguimos teniendo reservado tu pedido de *{{planName}}*{{amountWithParens}}.\n\nCuando me compartas tu correo, dejo listo el siguiente paso para activar *{{serviceName}}*.\n\n{{goalCta}}',
+      firstTemplateName: '',
+      firstTemplateLanguage: 'es',
+      firstTemplateVariables: ['{{planName}}', '{{serviceName}}'],
+      secondTemplateName: '',
+      secondTemplateLanguage: 'es',
+      secondTemplateVariables: ['{{planName}}', '{{serviceName}}'],
     },
   },
   sales_pending_payment_followup: {
@@ -58,6 +70,12 @@ export const AUTOMATION_SEQUENCE_PRESETS: Record<AutomationSequenceKey, Automati
       secondDelayMinutes: 24 * 60,
       firstMessage: 'Hola. Te escribo para recordarte que tu pedido de *{{planName}}*{{amountWithParens}} sigue pendiente de pago.{{customerEmailLine}}\n\nPuedes pagar por *{{paymentMethods}}* y enviarme el comprobante por aqui.\n\n{{goalCta}}',
       secondMessage: 'Sigo teniendo pendiente tu activacion de *{{planName}}*{{amountWithParens}}.{{customerEmailLine}}\n\nSi ya hiciste el pago, enviame el comprobante por aqui. Si aun no, tambien puedo ayudarte a retomarlo ahora mismo.\n\n{{goalCta}}',
+      firstTemplateName: '',
+      firstTemplateLanguage: 'es',
+      firstTemplateVariables: ['{{planName}}', '{{amount}}', '{{paymentMethods}}'],
+      secondTemplateName: '',
+      secondTemplateLanguage: 'es',
+      secondTemplateVariables: ['{{planName}}', '{{amount}}', '{{paymentMethods}}'],
     },
   },
   renewal_pending_payment_followup: {
@@ -74,6 +92,12 @@ export const AUTOMATION_SEQUENCE_PRESETS: Record<AutomationSequenceKey, Automati
       secondDelayMinutes: 24 * 60,
       firstMessage: 'Hola. Tu renovacion de *{{planName}}*{{amountWithParens}} sigue pendiente de pago.{{customerEmailLine}}\n\nSi ya quieres dejarla lista, puedes pagar por *{{paymentMethods}}* y enviarme el comprobante por este chat.\n\n{{goalCta}}',
       secondMessage: 'Te dejo un ultimo recordatorio de tu renovacion de *{{planName}}*{{amountWithParens}}.{{customerEmailLine}}\n\nSi ya realizaste el pago, enviame el comprobante por aqui y seguimos con la validacion.\n\n{{goalCta}}',
+      firstTemplateName: '',
+      firstTemplateLanguage: 'es',
+      firstTemplateVariables: ['{{planName}}', '{{amount}}', '{{paymentMethods}}'],
+      secondTemplateName: '',
+      secondTemplateLanguage: 'es',
+      secondTemplateVariables: ['{{planName}}', '{{amount}}', '{{paymentMethods}}'],
     },
   },
   lead_capture_followup: {
@@ -90,6 +114,12 @@ export const AUTOMATION_SEQUENCE_PRESETS: Record<AutomationSequenceKey, Automati
       secondDelayMinutes: 24 * 60,
       firstMessage: 'Hola{{contactNameWithComma}}. Queria dar seguimiento a tu consulta sobre *{{serviceName}}*.\n\nSi todavia te interesa, respondeme por aqui y te ayudo con el siguiente paso.\n\n{{goalCta}}',
       secondMessage: 'Te dejo un ultimo recordatorio para no perder tu consulta sobre *{{serviceName}}*.\n\nSi quieres avanzar, respondeme con el dato que te falte o cuentame que necesitas resolver.',
+      firstTemplateName: '',
+      firstTemplateLanguage: 'es',
+      firstTemplateVariables: ['{{serviceName}}'],
+      secondTemplateName: '',
+      secondTemplateLanguage: 'es',
+      secondTemplateVariables: ['{{serviceName}}'],
     },
   },
   booking_confirmation_reminder: {
@@ -106,6 +136,12 @@ export const AUTOMATION_SEQUENCE_PRESETS: Record<AutomationSequenceKey, Automati
       secondDelayMinutes: 12 * 60,
       firstMessage: 'Hola{{contactNameWithComma}}. Dejamos pendiente confirmar tu reserva o cita en *{{serviceName}}*.\n\nRespondeme con fecha, hora o el dato que falte y lo dejamos encaminado.',
       secondMessage: 'Seguimos teniendo pendiente tu confirmacion para la reserva o cita.\n\nSi aun quieres avanzar, escribeme por aqui y retomamos desde donde quedamos.',
+      firstTemplateName: '',
+      firstTemplateLanguage: 'es',
+      firstTemplateVariables: ['{{serviceName}}'],
+      secondTemplateName: '',
+      secondTemplateLanguage: 'es',
+      secondTemplateVariables: ['{{serviceName}}'],
     },
   },
   support_escalation_sla: {
@@ -122,6 +158,12 @@ export const AUTOMATION_SEQUENCE_PRESETS: Record<AutomationSequenceKey, Automati
       secondDelayMinutes: 4 * 60,
       firstMessage: 'Hola{{contactNameWithComma}}. Sigo pendiente de tu caso en *{{serviceName}}*.\n\nSi puedes, enviame el detalle que falta para ayudarte mejor. Si ya se resolvio, tambien puedes avisarme por aqui.',
       secondMessage: 'Te escribo para cerrar bien el seguimiento de tu caso.\n\nSi sigues necesitando ayuda, respondeme por aqui y lo mantenemos activo para el equipo.',
+      firstTemplateName: '',
+      firstTemplateLanguage: 'es',
+      firstTemplateVariables: ['{{serviceName}}'],
+      secondTemplateName: '',
+      secondTemplateLanguage: 'es',
+      secondTemplateVariables: ['{{serviceName}}'],
     },
   },
 }
@@ -234,6 +276,27 @@ function normalizeEnabled(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback
 }
 
+function normalizeTemplateName(value: unknown): string {
+  return typeof value === 'string' ? value.trim().slice(0, 120) : ''
+}
+
+function normalizeTemplateLanguage(value: unknown, fallback: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  return normalized.length > 0 ? normalized.slice(0, 16) : fallback
+}
+
+function normalizeTemplateVariables(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback
+
+  const variables = value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .slice(0, 10)
+
+  return variables.length > 0 ? variables : fallback
+}
+
 export function getDefaultAutomationSequenceSetting(
   key: AutomationSequenceKey,
 ): AutomationSequenceSetting {
@@ -244,6 +307,12 @@ export function getDefaultAutomationSequenceSetting(
     secondDelayMinutes: defaults.secondDelayMinutes,
     firstMessage: defaults.firstMessage,
     secondMessage: defaults.secondMessage,
+    firstTemplateName: defaults.firstTemplateName,
+    firstTemplateLanguage: defaults.firstTemplateLanguage,
+    firstTemplateVariables: defaults.firstTemplateVariables,
+    secondTemplateName: defaults.secondTemplateName,
+    secondTemplateLanguage: defaults.secondTemplateLanguage,
+    secondTemplateVariables: defaults.secondTemplateVariables,
   }
 }
 
@@ -263,6 +332,12 @@ export function normalizeAutomationSequenceSetting(
     secondDelayMinutes: clampDelay(source.secondDelayMinutes, defaults.secondDelayMinutes),
     firstMessage: normalizeMessage(source.firstMessage, defaults.firstMessage),
     secondMessage: normalizeMessage(source.secondMessage, defaults.secondMessage),
+    firstTemplateName: normalizeTemplateName(source.firstTemplateName),
+    firstTemplateLanguage: normalizeTemplateLanguage(source.firstTemplateLanguage, defaults.firstTemplateLanguage),
+    firstTemplateVariables: normalizeTemplateVariables(source.firstTemplateVariables, defaults.firstTemplateVariables),
+    secondTemplateName: normalizeTemplateName(source.secondTemplateName),
+    secondTemplateLanguage: normalizeTemplateLanguage(source.secondTemplateLanguage, defaults.secondTemplateLanguage),
+    secondTemplateVariables: normalizeTemplateVariables(source.secondTemplateVariables, defaults.secondTemplateVariables),
   }
 }
 
@@ -413,6 +488,13 @@ export function renderAutomationSequenceTemplate(
   }
 
   return message.trim()
+}
+
+export function renderAutomationSequenceTemplateVariables(
+  variables: string[],
+  context: AutomationSequenceSimulationContext,
+): string[] {
+  return variables.map((variable) => renderAutomationSequenceTemplate(variable, context) || ' ')
 }
 
 export function formatDelayLabel(totalMinutes: number): string {
