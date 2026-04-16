@@ -7,14 +7,13 @@ import { Card } from '@/components/ui/card'
 import {
     Search, Plus, Trash2, Edit, Zap, Clock, Workflow, Calendar, Play,
     CheckCircle, AlertCircle, Loader2, HelpCircle, ChevronDown, ChevronUp,
-    History, X, RefreshCw, Copy,
+    History, X, RefreshCw, Copy, BarChart3, BellRing,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getTriggers, toggleTrigger, deleteTrigger, duplicateTrigger } from './actions'
 import type { TriggerListItem } from './actions'
 import SequenceAutomationsPanel from './SequenceAutomationsPanel'
-import AutomationSetupGuide from '@/components/dashboard/AutomationSetupGuide'
 import AutomationDashboardPanel from './AutomationDashboardPanel'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -256,6 +255,8 @@ export default function TriggersPage() {
     const [runningId, setRunningId] = useState<string | null>(null)
     const [runResult, setRunResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null)
     const [logsModal, setLogsModal] = useState<{ id: string; name: string } | null>(null)
+    const [activeSection, setActiveSection] = useState<'rules' | 'insights'>('rules')
+    const [showFollowups, setShowFollowups] = useState(false)
 
     const loadTriggers = useCallback(async () => {
         const data = await getTriggers()
@@ -341,13 +342,106 @@ export default function TriggersPage() {
                 </Link>
             </div>
 
-            <AutomationDashboardPanel />
-
-            <AutomationSetupGuide section="triggers" />
-
-            <div id="seguimientos">
-                <SequenceAutomationsPanel />
+            <div className="mb-6 rounded-lg border border-black/[0.08] bg-white p-1 shadow-sm">
+                <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
+                    {[
+                        {
+                            id: 'rules' as const,
+                            title: 'Disparadores',
+                            desc: 'Crear reglas simples: cuando pase algo, el bot hace algo.',
+                            icon: <Zap size={16} />,
+                        },
+                        {
+                            id: 'insights' as const,
+                            title: 'Resumen y metricas',
+                            desc: 'Ver graficos, salud, conflictos, packs y plantillas vinculadas.',
+                            icon: <BarChart3 size={16} />,
+                        },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveSection(tab.id)}
+                            className={`rounded-lg px-4 py-3 text-left transition-colors ${
+                                activeSection === tab.id
+                                    ? 'bg-[#0F172A] text-white'
+                                    : 'text-slate-600 hover:bg-[#F7F8FA] hover:text-[#0F172A]'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2 text-sm font-semibold">
+                                {tab.icon}
+                                {tab.title}
+                            </div>
+                            <p className={`mt-1 text-xs ${activeSection === tab.id ? 'text-white/70' : 'text-slate-400'}`}>
+                                {tab.desc}
+                            </p>
+                        </button>
+                    ))}
+                </div>
             </div>
+
+            {activeSection === 'insights' ? (
+                <AutomationDashboardPanel />
+            ) : (
+                <>
+                    <div className="mb-6 rounded-lg border border-cyan-200 bg-cyan-50 p-5">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-cyan-700">Modo simple</p>
+                                <h2 className="mt-1 text-lg font-bold text-[#0F172A]">Crea solo la regla que necesitas ahora</h2>
+                                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
+                                    Si quieres algo avanzado como metricas, salud o packs, entra al apartado Resumen y metricas.
+                                </p>
+                            </div>
+                            <Link href={`/dashboard/assistants/${assistantId}/triggers/new`}>
+                                <Button className="rounded-lg bg-[#eab308] text-white hover:bg-[#ca8a04]">
+                                    <Plus size={16} className="mr-2" />
+                                    Crear regla
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div id="seguimientos" className="mb-6 rounded-lg border border-black/[0.08] bg-white p-5">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-start gap-3">
+                                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
+                                    <BellRing size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-[#0F172A]">Seguimientos automaticos</p>
+                                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                                        Opcional. Usalo solo si quieres recordatorios despues de minutos u horas sin respuesta.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowFollowups(value => !value)}
+                                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                            >
+                                {showFollowups ? 'Ocultar seguimientos' : 'Configurar seguimientos'}
+                            </button>
+                        </div>
+
+                        {!showFollowups ? (
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                                {[
+                                    'Instala un pack si quieres recuperar ventas, leads o renovaciones.',
+                                    'Edita mensajes solo cuando ya sepas que seguimiento necesitas.',
+                                    'Revisa metricas y conflictos desde el apartado Resumen y metricas.',
+                                ].map(item => (
+                                    <div key={item} className="rounded-lg border border-black/[0.06] bg-[#F7F8FA] p-3 text-xs text-slate-600">
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="mt-5">
+                                <SequenceAutomationsPanel />
+                            </div>
+                        )}
+                    </div>
 
             {/* Info Card */}
             <div className="mb-6 rounded-[14px] border border-[#eab308]/30 bg-[#fefce8] overflow-hidden">
@@ -536,6 +630,8 @@ export default function TriggersPage() {
                     </table>
                 </div>
             </Card>
+                </>
+            )}
         </div>
     )
 }
