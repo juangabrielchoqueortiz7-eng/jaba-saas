@@ -11,6 +11,13 @@ import {
     buildRuntimeBusinessFocusPrompt,
     buildRuntimeFallbackTrainingPrompt,
 } from '@/lib/business-training'
+import {
+    cancelActiveSequencesForChat,
+    cancelSequencesForOrder,
+    syncChatFollowupSequence,
+    syncOrderFollowupSequence,
+} from '@/lib/automation-sequences'
+import type { AutomationSequenceKey } from '@/lib/automation-sequence-config'
 
 // Token de verificación que configuraste en .env.local.
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN
@@ -261,6 +268,71 @@ function buildGoalAwareMessage(
             return ''
     }
 }
+
+function detectChatFollowupSequenceKey(
+    messageText: string,
+    goals: BusinessGoal[],
+): Extract<AutomationSequenceKey, 'lead_capture_followup' | 'booking_confirmation_reminder' | 'support_escalation_sla'> | null {
+    const normalized = messageText
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+
+    const supportWords = [
+        'ayuda',
+        'soporte',
+        'problema',
+        'error',
+        'falla',
+        'no funciona',
+        'reclamo',
+        'urgente',
+        'garantia',
+        'tecnico',
+    ]
+    const bookingWords = [
+        'cita',
+        'reserva',
+        'reservar',
+        'agendar',
+        'agenda',
+        'horario',
+        'turno',
+        'disponibilidad',
+        'mesa',
+        'consulta',
+    ]
+    const leadWords = [
+        'precio',
+        'info',
+        'informacion',
+        'catalogo',
+        'quiero',
+        'me interesa',
+        'cuanto',
+        'cotizacion',
+        'planes',
+        'servicio',
+    ]
+
+    if (supportWords.some((word) => normalized.includes(word))) {
+        return 'support_escalation_sla'
+    }
+
+    if (bookingWords.some((word) => normalized.includes(word)) || goals.includes('book_appointments')) {
+        return bookingWords.some((word) => normalized.includes(word))
+            ? 'booking_confirmation_reminder'
+            : null
+    }
+
+    if (leadWords.some((word) => normalized.includes(word)) || goals.includes('capture_leads')) {
+        return leadWords.some((word) => normalized.includes(word))
+            ? 'lead_capture_followup'
+            : null
+    }
+
+    return null
+}
 type SubscriptionAccountRow = {
     correo: string
     vencimiento?: string | null
@@ -336,7 +408,19 @@ export async function POST(request: Request) {
     }
 
     // --- HELPER FUNCTIONS ---
-    async function confirmOrder(productId: string, chatId: string, phoneNumber: string, contactName: string, tenantUserId: string, tenantCurrency: string = 'Bs') {
+    async function confirmOrder(
+        productId: string,
+        chatId: string,
+        phoneNumber: string,
+        contactName: string,
+        tenantUserId: string,
+        tenantCurrency: string = 'Bs',
+        tenantServiceName: string = 'tu servicio',
+        tenantPaymentMethods: string = 'los medios de pago disponibles',
+        businessType: string = 'subscriptions',
+        businessGoals: BusinessGoal[] = ['sell_more'],
+        sequenceSettings?: unknown,
+    ) {
         // Cargar producto desde la DB
         const { data: product } = await supabaseAdmin
             .from('products')
@@ -347,7 +431,7 @@ export async function POST(request: Request) {
 
         if (!product) return { error: 'Producto no encontrado' };
 
-        const { error: orderError } = await supabaseAdmin.from('orders').insert({
+        const { data: createdOrder, error: orderError } = await supabaseAdmin.from('orders').insert({
             user_id: tenantUserId,
             chat_id: chatId,
             phone_number: phoneNumber,
@@ -357,9 +441,29 @@ export async function POST(request: Request) {
             plan_name: product.name,
             amount: product.price,
             status: 'pending_email'
-        });
+        }).select('id, status, customer_email').single();
 
         if (orderError) return { error: orderError.message };
+
+        if (createdOrder?.id) {
+            await syncOrderFollowupSequence(supabaseAdmin, {
+                userId: tenantUserId,
+                chatId,
+                orderId: createdOrder.id,
+                orderStatus: createdOrder.status,
+                orderKind: 'sale',
+                businessType,
+                goals: businessGoals,
+                serviceName: tenantServiceName,
+                paymentMethods: tenantPaymentMethods,
+                currencySymbol: tenantCurrency,
+                planName: product.name,
+                amount: product.price,
+                customerEmail: createdOrder.customer_email || null,
+                replyCutoffAt: new Date().toISOString(),
+                sequenceSettings,
+            });
+        }
 
         console.log(`[SALES] Pedido creado: ${product.name} (${tenantCurrency} ${product.price}) para ${redactPhone(phoneNumber)}`);
 
@@ -368,7 +472,7 @@ export async function POST(request: Request) {
             last_message: `✅ Nuevo pedido: ${product.name} (${tenantCurrency} ${product.price})`
         }).eq('id', chatId);
 
-        return { success: true, product };
+        return { success: true, product, order: createdOrder };
     }
 
     try {
@@ -449,7 +553,7 @@ export async function POST(request: Request) {
                     tenantProfile?.business_profile &&
                         typeof tenantProfile.business_profile === 'object' &&
                         !Array.isArray(tenantProfile.business_profile)
-                        ? tenantProfile.business_profile as { goals?: unknown }
+                        ? tenantProfile.business_profile as { goals?: unknown; sequence_automation_settings?: unknown }
                         : {}
                 const businessGoals = normalizeBusinessGoalsForBusinessType(businessType, businessProfile.goals)
                 const tenantDisplayBusinessName =
@@ -610,6 +714,10 @@ export async function POST(request: Request) {
                     console.log(`[CRM] 🏷️ Auto-tagged nuevo: ${redactPreview(contactName)}`);
                 }
 
+                if (chatId) {
+                    await cancelActiveSequencesForChat(supabaseAdmin, chatId, 'customer_replied');
+                }
+
                 // 2. Guardar el MENSAJE inmediatamente (antes de descargar media)
                 // Esto garantiza que el mensaje quede registrado aunque la descarga de media falle o la función haga timeout
                 let savedMsgId: string | null = null
@@ -640,6 +748,26 @@ export async function POST(request: Request) {
                     }
                 } else {
                     console.error(`[Webhook] CRITICAL: chatId vacío, no se puede guardar mensaje de ${redactPhone(phoneNumber)}`)
+                }
+
+                if (chatId && messageType === 'text') {
+                    const chatFollowupKey = detectChatFollowupSequenceKey(messageText, businessGoals)
+                    if (chatFollowupKey) {
+                        await syncChatFollowupSequence(supabaseAdmin, {
+                            userId: tenantUserId,
+                            chatId,
+                            sequenceKey: chatFollowupKey,
+                            businessType,
+                            goals: businessGoals,
+                            serviceName: tenantServiceName,
+                            paymentMethods: tenantPaymentMethods,
+                            currencySymbol: tenantCurrency,
+                            contactName,
+                            triggerText: messageText,
+                            replyCutoffAt: new Date().toISOString(),
+                            sequenceSettings: businessProfile.sequence_automation_settings,
+                        })
+                    }
                 }
 
                 // 2b. Descargar CUALQUIER media de WhatsApp (imagen, audio, video, documento)
@@ -787,6 +915,7 @@ export async function POST(request: Request) {
                                     status: 'pending_review',
                                     updated_at: new Date().toISOString()
                                 }).eq('id', pendingOrder.id);
+                                await cancelSequencesForOrder(supabaseAdmin, pendingOrder.id, 'payment_under_review');
 
                                 const { sendWhatsAppMessage: sendWAMsg } = await import('@/lib/whatsapp');
                                 const reviewMsg = `📋 *Comprobante recibido*\n\n${verificationNote}\n\nNuestro equipo verificará tu pago manualmente. Te confirmaremos la renovación en breve. ⏳`;
@@ -809,6 +938,7 @@ export async function POST(request: Request) {
                                 status: 'completed',
                                 updated_at: new Date().toISOString()
                             }).eq('id', pendingOrder.id);
+                            await cancelSequencesForOrder(supabaseAdmin, pendingOrder.id, 'order_completed');
 
                             // Calcular nueva fecha de vencimiento según plan
                             const { data: planProduct } = await supabaseAdmin
@@ -1198,7 +1328,19 @@ export async function POST(request: Request) {
                     const productId = interactiveData.id.replace('product_', '');
                     console.log(`[Sales] Producto seleccionado vía interactivo: ${productId}`);
 
-                    const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId, tenantCurrency);
+                    const result = await confirmOrder(
+                        productId,
+                        chatId,
+                        phoneNumber,
+                        contactName,
+                        tenantUserId,
+                        tenantCurrency,
+                        tenantServiceName,
+                        tenantPaymentMethods,
+                        businessType,
+                        businessGoals,
+                        businessProfile.sequence_automation_settings,
+                    );
 
                     if (result.success && result.product) {
                         const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
@@ -1317,7 +1459,7 @@ export async function POST(request: Request) {
                     }
 
                     // Crear order tipo renewal
-                    const { error: orderError } = await supabaseAdmin.from('orders').insert({
+                    const { data: renewalOrder, error: orderError } = await supabaseAdmin.from('orders').insert({
                         user_id: tenantUserId,
                         chat_id: chatId,
                         phone_number: phoneNumber,
@@ -1329,11 +1471,31 @@ export async function POST(request: Request) {
                         customer_email: finalEmail,
                         equipo: subscription?.equipo || '',
                         status: 'pending_payment'
-                    });
+                    }).select('id, status, customer_email').single();
 
                     if (orderError) {
                         console.error('[Renewal] Error creating order:', orderError);
                         return new NextResponse('EVENT_RECEIVED', { status: 200 });
+                    }
+
+                    if (renewalOrder?.id) {
+                        await syncOrderFollowupSequence(supabaseAdmin, {
+                            userId: tenantUserId,
+                            chatId,
+                            orderId: renewalOrder.id,
+                            orderStatus: renewalOrder.status,
+                            orderKind: 'renewal',
+                            businessType,
+                            goals: businessGoals,
+                            serviceName: tenantServiceName,
+                            paymentMethods: tenantPaymentMethods,
+                            currencySymbol: tenantCurrency,
+                            planName: product.name,
+                            amount: product.price,
+                            customerEmail: renewalOrder.customer_email || finalEmail || null,
+                            replyCutoffAt: new Date().toISOString(),
+                            sequenceSettings: businessProfile.sequence_automation_settings,
+                        });
                     }
 
                     console.log(`[Renewal] Orden creada: ${product.name} (${tenantCurrency} ${product.price}) para ${customerEmail ? redactEmail(customerEmail) : redactPhone(phoneNumber)} (inactivo: ${isInactiveClient})`);
@@ -1622,6 +1784,7 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                                     renewed_at: new Date().toISOString()
                                 }
                             }).eq('id', activeOrder.id);
+                            await cancelSequencesForOrder(supabaseAdmin, activeOrder.id, 'order_completed');
 
                             // Crear registro en subscription_renewals para supervisión del admin
                             const triggeredBy = sub?.followup_sent ? 'followup' : 'reminder';
@@ -1693,6 +1856,13 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             goals: businessGoals,
                             serviceName: tenantServiceName,
                         })}`;
+
+                        await supabaseAdmin.from('orders').update({
+                            payment_proof_url: savedMediaUrl,
+                            status: 'pending_review',
+                            updated_at: new Date().toISOString()
+                        }).eq('id', activeOrder.id);
+                        await cancelSequencesForOrder(supabaseAdmin, activeOrder.id, 'payment_under_review');
 
                         await sendWhatsAppMessage(phoneNumber, confirmationMsg, tenantToken, phoneId);
 
@@ -1975,6 +2145,23 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
                                             status: 'pending_payment',
                                             updated_at: new Date().toISOString()
                                         }).eq('id', activeOrder.id);
+                                        await syncOrderFollowupSequence(supabaseAdmin, {
+                                            userId: tenantUserId,
+                                            chatId,
+                                            orderId: activeOrder.id,
+                                            orderStatus: 'pending_payment',
+                                            orderKind: activeOrder.product === 'renewal' ? 'renewal' : 'sale',
+                                            businessType,
+                                            goals: businessGoals,
+                                            serviceName: tenantServiceName,
+                                            paymentMethods: tenantPaymentMethods,
+                                            currencySymbol: tenantCurrency,
+                                            planName: activeOrder.plan_name,
+                                            amount: activeOrder.amount,
+                                            customerEmail: existingSub.correo,
+                                            replyCutoffAt: new Date().toISOString(),
+                                            sequenceSettings: businessProfile.sequence_automation_settings,
+                                        });
 
                                         // Enviar QR de pago automáticamente
                                         const { data: orderProduct } = await supabaseAdmin
@@ -2398,7 +2585,19 @@ ${chatHistory}`
 
                                     if (name === 'confirm_plan' && callArgs?.plan_id) {
                                         const productId = callArgs.plan_id as string
-                                        const result = await confirmOrder(productId, chatId, phoneNumber, contactName, tenantUserId, tenantCurrency);
+                                        const result = await confirmOrder(
+                                            productId,
+                                            chatId,
+                                            phoneNumber,
+                                            contactName,
+                                            tenantUserId,
+                                            tenantCurrency,
+                                            tenantServiceName,
+                                            tenantPaymentMethods,
+                                            businessType,
+                                            businessGoals,
+                                            businessProfile.sequence_automation_settings,
+                                        );
                                         if (result.success && result.product) {
                                             actionExecuted = true;
 
@@ -2434,6 +2633,23 @@ ${chatHistory}`
                                                         status: 'pending_payment',
                                                         updated_at: new Date().toISOString()
                                                     }).eq('id', latestOrder.id);
+                                                    await syncOrderFollowupSequence(supabaseAdmin, {
+                                                        userId: tenantUserId,
+                                                        chatId,
+                                                        orderId: latestOrder.id,
+                                                        orderStatus: 'pending_payment',
+                                                        orderKind: latestOrder.product === 'renewal' ? 'renewal' : 'sale',
+                                                        businessType,
+                                                        goals: businessGoals,
+                                                        serviceName: tenantServiceName,
+                                                        paymentMethods: tenantPaymentMethods,
+                                                        currencySymbol: tenantCurrency,
+                                                        planName: result.product.name,
+                                                        amount: result.product.price,
+                                                        customerEmail: selectedEmail,
+                                                        replyCutoffAt: new Date().toISOString(),
+                                                        sequenceSettings: businessProfile.sequence_automation_settings,
+                                                    });
 
                                                     // Enviar QR de pago automáticamente
                                                     const { data: qrProduct } = await supabaseAdmin
@@ -2511,6 +2727,23 @@ ${chatHistory}`
                                                     status: 'pending_payment',
                                                     updated_at: new Date().toISOString()
                                                 }).eq('id', pendingOrder.id)
+                                                await syncOrderFollowupSequence(supabaseAdmin, {
+                                                    userId: tenantUserId,
+                                                    chatId,
+                                                    orderId: pendingOrder.id,
+                                                    orderStatus: 'pending_payment',
+                                                    orderKind: pendingOrder.product === 'renewal' ? 'renewal' : 'sale',
+                                                    businessType,
+                                                    goals: businessGoals,
+                                                    serviceName: tenantServiceName,
+                                                    paymentMethods: tenantPaymentMethods,
+                                                    currencySymbol: tenantCurrency,
+                                                    planName: pendingOrder.plan_name,
+                                                    amount: pendingOrder.amount,
+                                                    customerEmail: email,
+                                                    replyCutoffAt: new Date().toISOString(),
+                                                    sequenceSettings: businessProfile.sequence_automation_settings,
+                                                })
 
                                                 console.log(`[SALES] Email registrado: ${redactEmail(email)} para pedido ${pendingOrder.id}`)
                                                 // DEBUG: Marcar éxito en chat

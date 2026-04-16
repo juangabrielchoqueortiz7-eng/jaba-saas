@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getTriggers, toggleTrigger, deleteTrigger, duplicateTrigger } from './actions'
 import type { TriggerListItem } from './actions'
+import SequenceAutomationsPanel from './SequenceAutomationsPanel'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -337,6 +338,8 @@ export default function TriggersPage() {
                     </Button>
                 </Link>
             </div>
+
+            <SequenceAutomationsPanel />
 
             {/* Info Card */}
             <div className="mb-6 rounded-[14px] border border-[#eab308]/30 bg-[#fefce8] overflow-hidden">

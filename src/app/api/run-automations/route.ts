@@ -15,6 +15,7 @@ import {
   resolveAutomationParam,
   SendStats,
 } from '@/lib/automation-jobs'
+import { runDueAutomationSequences } from '@/lib/automation-sequences'
 import { getLocalTime } from '@/lib/timezone-utils'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
 
@@ -67,9 +68,17 @@ export async function GET(request: Request) {
     }
 
     const jobs = asRecordArray(rawJobs).map(asAutomationJob)
+    const sequenceStats = await runDueAutomationSequences(supabaseAdmin, now)
+
     if (jobs.length === 0) {
       console.log('[RunAutomations] No active automation jobs')
-      return NextResponse.json({ ran: 0, skipped: 0, sent: 0, failed: 0 })
+      return NextResponse.json({
+        ran: 0,
+        skipped: 0,
+        sent: 0,
+        failed: 0,
+        sequenceStats,
+      })
     }
 
     console.log(`[RunAutomations] Found ${jobs.length} active jobs`)
@@ -107,7 +116,10 @@ export async function GET(request: Request) {
     }
 
     console.log(`[RunAutomations] Done - ran: ${stats.ran}, skipped: ${stats.skipped}, sent: ${stats.sent}, failed: ${stats.failed}`)
-    return NextResponse.json(stats)
+    return NextResponse.json({
+      ...stats,
+      sequenceStats,
+    })
   } catch (error) {
     console.error('[RunAutomations] Fatal error:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

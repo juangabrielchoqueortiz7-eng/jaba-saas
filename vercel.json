@@ -11,7 +11,7 @@
         },
         {
             "path": "/api/run-automations",
-            "schedule": "0 0 * * *"
+            "schedule": "*/30 * * * *"
         }
     ]
 }
