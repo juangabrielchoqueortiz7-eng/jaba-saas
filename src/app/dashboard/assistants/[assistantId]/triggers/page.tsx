@@ -15,6 +15,7 @@ import { getTriggers, toggleTrigger, deleteTrigger, duplicateTrigger } from './a
 import type { TriggerListItem } from './actions'
 import SequenceAutomationsPanel from './SequenceAutomationsPanel'
 import AutomationSetupGuide from '@/components/dashboard/AutomationSetupGuide'
+import AutomationDashboardPanel from './AutomationDashboardPanel'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -339,6 +340,8 @@ export default function TriggersPage() {
                     </Button>
                 </Link>
             </div>
+
+            <AutomationDashboardPanel />
 
             <AutomationSetupGuide section="triggers" />
 
