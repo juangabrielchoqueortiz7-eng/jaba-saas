@@ -393,6 +393,7 @@ export function ChatWindow({ chatId: externalChatId, showMobileBack = false, onB
 
     // ===== AUDIO RECORDING (Bug 4) =====
     const startRecording = async () => {
+        if (isRecording) return
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
             const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg'
@@ -464,8 +465,24 @@ export function ChatWindow({ chatId: externalChatId, showMobileBack = false, onB
     }
 
     // ===== DELETE MESSAGE (visual only, Bug 4) =====
-    const handleDeleteMessage = (msgId: string) => {
-        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, _deleted: true } : m))
+    const handleDeleteMessage = async (msgId: string) => {
+        const shouldDelete = window.confirm('Eliminar este mensaje del panel de conversaciones?')
+        if (!shouldDelete) return
+
+        const previousMessages = messages
+        setMessages(prev => prev.filter(message => message.id !== msgId))
+
+        // Mensajes optimistas todavia no existen en la base de datos.
+        if (/^\d+$/.test(msgId)) return
+
+        try {
+            const response = await fetch(`/api/chat/messages/${msgId}`, { method: 'DELETE' })
+            if (!response.ok) throw new Error('Delete failed')
+        } catch (error) {
+            console.error('Error deleting message:', error)
+            setMessages(previousMessages)
+            alert('No se pudo eliminar el mensaje. Intenta nuevamente.')
+        }
     }
 
     // ===== RESEND PLANS (Plan list interactiva) =====
@@ -870,7 +887,7 @@ export function ChatWindow({ chatId: externalChatId, showMobileBack = false, onB
                                     mediaUrl={msg.media_url}
                                     mediaType={msg.media_type}
                                     onImageClick={(url) => setLightboxUrl(url)}
-                                    onDelete={msg.is_from_me ? () => handleDeleteMessage(msg.id) : undefined}
+                                    onDelete={() => void handleDeleteMessage(msg.id)}
                                     onReply={() => setReplyingTo({ id: msg.id, content: msg.content, isMine: msg.is_from_me })}
                                     searchHighlight={messageSearch || undefined}
                                     quotedContent={msg._quoted_content}
@@ -1080,10 +1097,9 @@ export function ChatWindow({ chatId: externalChatId, showMobileBack = false, onB
                             </button>
                         ) : (
                             <button
-                                onMouseDown={startRecording}
-                                onTouchStart={startRecording}
+                                onClick={() => void startRecording()}
                                 className="bg-[#25D366] hover:bg-[#1fad52] text-black p-2.5 rounded-full transition-colors shrink-0"
-                                title="Mantén presionado para grabar audio"
+                                title="Toca para grabar audio"
                             >
                                 <Mic size={18} />
                             </button>

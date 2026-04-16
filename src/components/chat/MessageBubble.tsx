@@ -159,7 +159,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                     </div>
                 </div>
                 {!isMine && (
-                    <ActionButtons align="right" onReply={onReply} onCopy={handleCopy} />
+                    <ActionButtons align="right" onReply={onReply} onCopy={handleCopy} onDelete={onDelete} />
                 )}
             </div>
         )
@@ -190,7 +190,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                     align={isMine ? 'left' : 'right'}
                     onReply={onReply}
                     onCopy={handleCopy}
-                    onDelete={isMine ? onDelete : undefined}
+                    onDelete={onDelete}
                 />
                 {/* Bubble tail */}
                 {!isGroupedWithPrevious && (isMine ? (

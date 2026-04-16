@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Phone, Mail, Calendar, Package, ShoppingBag, User, Users, Database, Check, Pencil } from 'lucide-react'
+import { X, Phone, Mail, Calendar, Package, ShoppingBag, User, Users, Database, Check, Pencil, Copy, ExternalLink } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { cn } from '@/lib/utils'
 import { CRM_TAGS } from './ConversationList'
@@ -102,6 +102,21 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
         await supabase.from('chats').update({ custom_fields: updated }).eq('id', chatId)
     }
 
+    const normalizedPhone = phoneNumber.replace(/\D/g, '')
+    const activeSubscriptions = subscriptions.filter(sub => sub.estado?.toLowerCase() === 'activo').length
+    const totalSpent = orders
+        .filter(order => order.status !== 'cancelled')
+        .reduce((sum, order) => sum + (Number(order.amount) || 0), 0)
+    const latestOrder = orders[0]
+
+    const copyPhone = async () => {
+        try {
+            await navigator.clipboard.writeText(phoneNumber)
+        } catch {
+            // Clipboard can be blocked outside secure browser contexts.
+        }
+    }
+
     return (
         <div className="fixed inset-y-0 right-0 z-[90] w-[min(22rem,100vw)] border-l border-black/[0.08] bg-[#F7F8FA] flex flex-col h-full overflow-y-auto shrink-0 shadow-2xl md:static md:z-auto md:w-72 md:shadow-none">
             {/* Header */}
@@ -140,6 +155,20 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
                             })}
                         </div>
                     )}
+                    <div className="grid w-full grid-cols-2 gap-2 pt-1">
+                        <button
+                            onClick={() => void copyPhone()}
+                            className="rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-xs font-medium text-[#0F172A]/65 hover:text-[#0F172A] hover:bg-black/[0.03] transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <Copy size={12} /> Copiar
+                        </button>
+                        <button
+                            onClick={() => window.open(`https://wa.me/${normalizedPhone}`, '_blank', 'noopener,noreferrer')}
+                            className="rounded-xl border border-[#25D366]/20 bg-[#25D366]/10 px-3 py-2 text-xs font-medium text-[#075E54] hover:bg-[#25D366]/15 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <ExternalLink size={12} /> WhatsApp
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -149,6 +178,32 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
                 </div>
             ) : (
                 <div className="flex-1 p-3 space-y-3">
+                    {/* Resumen */}
+                    <div>
+                        <p className="text-[10px] font-bold text-[#0F172A]/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <User size={10} /> Resumen del cliente
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-xl border border-black/[0.08] bg-white p-3">
+                                <p className="text-[10px] text-[#0F172A]/35">Suscripciones activas</p>
+                                <p className="mt-1 text-lg font-bold text-[#0F172A]">{activeSubscriptions}</p>
+                            </div>
+                            <div className="rounded-xl border border-black/[0.08] bg-white p-3">
+                                <p className="text-[10px] text-[#0F172A]/35">Total vendido</p>
+                                <p className="mt-1 text-lg font-bold text-[#0F172A]">Bs {totalSpent}</p>
+                            </div>
+                        </div>
+                        {latestOrder && (
+                            <div className="mt-2 rounded-xl border border-black/[0.08] bg-white p-3">
+                                <p className="text-[10px] text-[#0F172A]/35">Ultimo pedido</p>
+                                <div className="mt-1 flex items-center justify-between gap-2">
+                                    <p className="truncate text-xs font-semibold text-[#0F172A]">{latestOrder.plan_name || 'Sin nombre'}</p>
+                                    <span className="shrink-0 text-xs font-bold text-[#25D366]">Bs {latestOrder.amount}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Suscripciones */}
                     <div>
                         <p className="text-[10px] font-bold text-[#0F172A]/35 uppercase tracking-wider mb-2 flex items-center gap-1.5">
