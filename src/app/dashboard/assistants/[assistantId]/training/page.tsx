@@ -84,6 +84,8 @@ export default function TrainingPage() {
     const [savedPrompt, setSavedPrompt] = useState('')
     const [mode, setMode] = useState<'form' | 'code'>('form')
     const [form, setForm] = useState<FormFields>(EMPTY_FORM)
+    const [suggestedPrompt, setSuggestedPrompt] = useState('')
+    const [usedSuggestedDraft, setUsedSuggestedDraft] = useState(false)
 
     // Simulator State
     const [simulatedMessages, setSimulatedMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([])
@@ -105,12 +107,22 @@ export default function TrainingPage() {
             setIsLoading(true)
             try {
                 const data = await getTrainingPrompt(assistantId)
+                const nextSuggestedPrompt = data?.suggested_prompt || ''
+                const nextSuggestedForm = data?.suggested_form || EMPTY_FORM
+
+                setSuggestedPrompt(nextSuggestedPrompt)
+                setForm(nextSuggestedForm)
+
                 if (data?.training_prompt) {
                     setPrompt(data.training_prompt)
                     setSavedPrompt(data.training_prompt)
+                    setMode('code')
+                    setUsedSuggestedDraft(false)
                 } else {
-                    setPrompt('')
+                    setPrompt(nextSuggestedPrompt)
                     setSavedPrompt('')
+                    setMode('form')
+                    setUsedSuggestedDraft(Boolean(nextSuggestedPrompt))
                 }
             } catch (error) {
                 console.error('Error loading prompt:', error)
@@ -183,6 +195,11 @@ export default function TrainingPage() {
                         <p className="text-sm text-slate-500 mt-1">
                             Configura cómo responde tu asistente de IA a tus clientes.
                         </p>
+                        {usedSuggestedDraft && (
+                            <div className="mt-3 rounded-lg border border-[#25D366]/20 bg-[#25D366]/5 px-3 py-2 text-xs text-[#128C7E]">
+                                Preparamos un borrador segun el rubro, los objetivos activos y la oferta actual de tu negocio. Revisalo y guardalo para activarlo.
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-3">
                         {/* Mode toggle */}
@@ -237,6 +254,29 @@ export default function TrainingPage() {
                             <div className="p-3 bg-indigo-50 border border-indigo-200/60 rounded-lg text-xs text-indigo-600">
                                 Completa los campos y el prompt se generará automáticamente. Puedes cambiar al modo &quot;Avanzado&quot; para editarlo manualmente.
                             </div>
+
+                            {suggestedPrompt && (
+                                <div className="rounded-lg border border-[#25D366]/20 bg-[#25D366]/5 p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs font-semibold text-[#128C7E] uppercase tracking-wider">Base sugerida</p>
+                                            <p className="text-xs text-[#0F172A]/50 mt-1">
+                                                Este formulario ya viene precargado con una propuesta segun tu rubro y objetivos.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPrompt(suggestedPrompt)
+                                                setUsedSuggestedDraft(true)
+                                            }}
+                                            className="px-3 py-1.5 rounded-md text-xs font-semibold bg-[#25D366] text-white hover:bg-[#128C7E] transition-colors"
+                                        >
+                                            Restaurar borrador
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">

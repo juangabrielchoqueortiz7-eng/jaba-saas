@@ -1322,7 +1322,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   // Trigger form
   const [name, setName] = useState(!triggerId && initialTemplate ? initialTemplate.name : '')
   const [type, setType] = useState<TriggerType>(!triggerId && initialTemplate ? initialTemplate.type : 'logic')
-  const [description, setDescription] = useState('')
+  const [description, setDescription] = useState(!triggerId && initialTemplate ? initialTemplate.description : '')
   const [timeMinutes, setTimeMinutes] = useState(!triggerId && initialTemplate?.type === 'time' && initialTemplate.timeMinutes ? initialTemplate.timeMinutes : '30')
   const [flows, setFlows] = useState<ConversationFlow[]>([])
   const [selectedFlowId, setSelectedFlowId] = useState('')

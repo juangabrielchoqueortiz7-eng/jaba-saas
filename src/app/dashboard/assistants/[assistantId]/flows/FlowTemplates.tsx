@@ -1,12 +1,22 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import {
   ChevronRight, MessageSquare, HelpCircle, ShoppingCart,
   UserPlus, ClipboardList, Clock, Star, Bell, Loader2, Wand2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createFlowFromTemplate } from './actions'
+import { createClient } from '@/utils/supabase/client'
+import type { BusinessType } from '@/lib/business-config'
+import {
+  getBusinessFocusDescription,
+  getBusinessFocusSummary,
+  getBusinessGoalTitles,
+  getDefaultGoalsForBusinessType,
+  normalizeBusinessGoalsForBusinessType,
+  type BusinessGoal,
+} from '@/lib/business-goals'
 
 // ── Template Types ─────────────────────────────────────────────────────────
 
@@ -33,6 +43,8 @@ interface FlowTemplate {
   badgeColor: string
   icon: React.ReactNode
   nodeCount: number
+  businessTypes?: BusinessType[]
+  businessGoals?: BusinessGoal[]
   nodes: TemplateNode[]
   edges: TemplateEdge[]
 }
@@ -48,6 +60,7 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     icon: <MessageSquare size={20} className="text-blue-500" />,
     nodeCount: 4,
+    businessTypes: ['custom', 'restaurant', 'store', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel'],
     nodes: [
       { type: 'trigger', label: 'Inicio', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['hola', 'buenas', 'inicio', 'menu', 'hi'], match_mode: 'contains' } },
       { type: 'message', label: 'Bienvenida', position_x: 400, position_y: 150, config: { text: 'Hola {{contact_name}}! Bienvenido/a. Estoy aqui para ayudarte. Elige una opcion:' } },
@@ -68,6 +81,7 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     icon: <HelpCircle size={20} className="text-emerald-500" />,
     nodeCount: 7,
+    businessTypes: ['custom', 'restaurant', 'store', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel'],
     nodes: [
       { type: 'trigger', label: 'FAQ Trigger', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['faq', 'preguntas', 'dudas', 'ayuda'], match_mode: 'contains' } },
       { type: 'list', label: 'Lista de preguntas', position_x: 400, position_y: 150, config: { body: 'Estas son las preguntas mas frecuentes. Elige la que necesites:', button_text: 'Ver preguntas', rows: [{ id: 'faq_1', title: 'Horarios de atencion', description: 'Cuando estamos disponibles' }, { id: 'faq_2', title: 'Metodos de pago', description: 'Como puedes pagar' }, { id: 'faq_3', title: 'Tiempos de entrega', description: 'Cuanto tarda tu pedido' }] } },
@@ -94,6 +108,8 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: <ShoppingCart size={20} className="text-blue-500" />,
     nodeCount: 5,
+    businessTypes: ['store', 'restaurant', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
+    businessGoals: ['sell_more'],
     nodes: [
       { type: 'trigger', label: 'Interes en comprar', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['precio', 'cuanto', 'comprar', 'catalogo', 'servicios', 'cotizacion'], match_mode: 'contains' } },
       { type: 'message', label: 'Intro servicios', position_x: 400, position_y: 150, config: { text: 'Hola {{contact_name}}! Gracias por tu interes. Te cuento lo que tenemos disponible:' } },
@@ -116,6 +132,8 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
     icon: <UserPlus size={20} className="text-purple-500" />,
     nodeCount: 8,
+    businessTypes: ['store', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
+    businessGoals: ['capture_leads'],
     nodes: [
       { type: 'trigger', label: 'Lead trigger', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['informacion', 'interesado', 'quiero saber', 'contacto'], match_mode: 'contains' } },
       { type: 'message', label: 'Saludo lead', position_x: 400, position_y: 150, config: { text: 'Genial que te interese! Para darte la mejor atencion, necesito unos datos rapidos (30 segundos):' } },
@@ -144,6 +162,8 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-orange-100 text-orange-700 border-orange-200',
     icon: <ClipboardList size={20} className="text-orange-500" />,
     nodeCount: 6,
+    businessTypes: ['technical_service', 'store', 'clinic', 'education', 'travel', 'custom'],
+    businessGoals: ['support_customers'],
     nodes: [
       { type: 'trigger', label: 'Soporte trigger', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['soporte', 'problema', 'ayuda', 'no funciona', 'error', 'reclamo'], match_mode: 'contains' } },
       { type: 'buttons', label: 'Tipo de problema', position_x: 400, position_y: 150, config: { text: 'Lamento que tengas un problema. Para ayudarte mejor, selecciona:', buttons: [{ id: 'sup_tecnico', title: 'Problema tecnico' }, { id: 'sup_pago', title: 'Problema de pago' }, { id: 'sup_humano', title: 'Hablar con agente' }] } },
@@ -168,6 +188,8 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-slate-100 text-slate-600 border-slate-200',
     icon: <Clock size={20} className="text-slate-500" />,
     nodeCount: 3,
+    businessTypes: ['restaurant', 'store', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
+    businessGoals: ['book_appointments'],
     nodes: [
       { type: 'trigger', label: 'Horario trigger', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['horario', 'hora', 'abierto', 'ubicacion', 'donde', 'direccion'], match_mode: 'contains' } },
       { type: 'message', label: 'Horario', position_x: 400, position_y: 150, config: { text: 'Nuestros horarios de atencion:\n\nLunes a Viernes: 9:00 - 18:00\nSabados: 9:00 - 13:00\nDomingos: Cerrado\n\nFeriados: Consultar' } },
@@ -186,6 +208,7 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
     icon: <Star size={20} className="text-indigo-500" />,
     nodeCount: 6,
+    businessTypes: ['restaurant', 'store', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
     nodes: [
       { type: 'trigger', label: 'Encuesta trigger', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['encuesta', 'calificar', 'opinion', 'feedback'], match_mode: 'contains' } },
       { type: 'message', label: 'Intro encuesta', position_x: 400, position_y: 150, config: { text: 'Hola {{contact_name}}! Nos gustaria saber tu opinion sobre nuestro servicio. Solo toma 1 minuto.' } },
@@ -210,6 +233,8 @@ const TEMPLATES: FlowTemplate[] = [
     badgeColor: 'bg-red-100 text-red-700 border-red-200',
     icon: <Bell size={20} className="text-red-500" />,
     nodeCount: 6,
+    businessTypes: ['subscriptions', 'gym'],
+    businessGoals: ['renew_clients'],
     nodes: [
       { type: 'trigger', label: 'Renovar trigger', position_x: 400, position_y: 0, config: { trigger_type: 'keyword', keywords: ['renovar', 'renovacion', 'vence', 'vencimiento', 'extender'], match_mode: 'contains' } },
       { type: 'message', label: 'Aviso renovacion', position_x: 400, position_y: 150, config: { text: 'Hola {{contact_name}}! Tu suscripcion esta proxima a vencer. Para no perder el acceso, te recomendamos renovar ahora.' } },
@@ -237,11 +262,70 @@ interface FlowTemplatesProps {
   onClose: () => void
 }
 
+function readBusinessGoals(
+  businessType: BusinessType,
+  businessProfile: unknown,
+): BusinessGoal[] {
+  const profileRecord =
+    businessProfile &&
+    typeof businessProfile === 'object' &&
+    !Array.isArray(businessProfile)
+      ? businessProfile as Record<string, unknown>
+      : {}
+
+  return normalizeBusinessGoalsForBusinessType(
+    businessType,
+    profileRecord.goals,
+    getDefaultGoalsForBusinessType(businessType),
+  )
+}
+
 export default function FlowTemplates({ assistantId, onStartBlank, onClose }: FlowTemplatesProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
+  const [businessType, setBusinessType] = useState<BusinessType | null>(null)
+  const [businessGoals, setBusinessGoals] = useState<BusinessGoal[]>([])
+  const focusSummary = getBusinessFocusSummary(businessGoals)
+  const focusDescription = getBusinessFocusDescription(businessGoals)
+  const focusTitles = getBusinessGoalTitles(businessGoals)
+
+  useEffect(() => {
+    async function loadBusinessType() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('business_type, business_profile')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (typeof profile?.business_type === 'string') {
+        const nextBusinessType = profile.business_type as BusinessType
+        setBusinessType(nextBusinessType)
+        setBusinessGoals(readBusinessGoals(nextBusinessType, profile.business_profile))
+      }
+    }
+
+    void loadBusinessType()
+  }, [])
+
+  const isRecommendedForBusinessType = (template: FlowTemplate) => {
+    return Boolean(businessType && template.businessTypes?.includes(businessType))
+  }
+
+  const isRecommendedForGoal = (template: FlowTemplate) => {
+    return businessGoals.length > 0 && Boolean(template.businessGoals?.some((goal) => businessGoals.includes(goal)))
+  }
+
+  const getRecommendationScore = (template: FlowTemplate) => {
+    return Number(isRecommendedForBusinessType(template)) * 2 + Number(isRecommendedForGoal(template))
+  }
+
+  const sortedTemplates = [...TEMPLATES].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
 
   const handleSelectTemplate = (template: FlowTemplate) => {
     setLoadingId(template.id)
@@ -273,6 +357,13 @@ export default function FlowTemplates({ assistantId, onStartBlank, onClose }: Fl
           <div>
             <h2 className="font-bold text-[#0F172A] text-lg">Nuevo Flujo Conversacional</h2>
             <p className="text-xs text-slate-400 mt-1">Elige una plantilla o empieza desde cero</p>
+            {focusTitles.length > 0 && (
+              <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/70 px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-700">Foco activo</p>
+                <p className="text-sm font-semibold text-[#0F172A] mt-1">{focusSummary}</p>
+                <p className="text-xs text-slate-500 mt-1">{focusDescription}</p>
+              </div>
+            )}
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-[#F7F8FA] text-slate-400 hover:text-slate-600 transition-colors text-lg">
             x
@@ -300,10 +391,19 @@ export default function FlowTemplates({ assistantId, onStartBlank, onClose }: Fl
           <h3 className="text-[11px] font-semibold text-[#0F172A]/40 uppercase tracking-wider pt-2">
             Plantillas predefinidas - Editables despues de crear
           </h3>
+          {focusTitles.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {focusTitles.map((goal) => (
+                <span key={goal} className="text-[10px] font-semibold px-2 py-1 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
+                  {goal}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Templates grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {TEMPLATES.map(template => (
+            {sortedTemplates.map(template => (
               <button
                 key={template.id}
                 onClick={() => handleSelectTemplate(template)}
@@ -322,6 +422,16 @@ export default function FlowTemplates({ assistantId, onStartBlank, onClose }: Fl
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {isRecommendedForBusinessType(template) && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-[#25D366]/10 text-[#128C7E] border-[#25D366]/20">
+                          Para tu rubro
+                        </span>
+                      )}
+                      {isRecommendedForGoal(template) && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
+                          Para tu objetivo
+                        </span>
+                      )}
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${template.badgeColor}`}>
                         {template.badge}
                       </span>

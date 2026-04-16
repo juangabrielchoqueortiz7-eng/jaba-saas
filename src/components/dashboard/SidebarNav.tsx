@@ -4,13 +4,27 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import {
-    LayoutDashboard, MessageSquare, Bot, Home, BrainCircuit,
-    ShoppingCart, Package, GitBranch, Zap, Bell,
-    FileText, Settings, Users, Trophy, CreditCard, ChevronRight, Building2
+    LayoutDashboard,
+    MessageSquare,
+    Bot,
+    Home,
+    BrainCircuit,
+    ShoppingCart,
+    Package,
+    GitBranch,
+    Zap,
+    Bell,
+    FileText,
+    Settings,
+    Users,
+    Trophy,
+    CreditCard,
+    ChevronRight,
+    Building2,
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
+import { SUBSCRIPTION_BUSINESS_MODULES, type BusinessModule } from '@/lib/business-config'
 
-// ── NavItem ──────────────────────────────────────────────────
 interface NavItemProps {
     href: string
     icon: React.ReactNode
@@ -32,7 +46,7 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
             >
                 {icon}
                 <span className="flex-1">{label}</span>
-                <span className="text-[10px]">🔒</span>
+                <span className="text-[10px]">Bloqueado</span>
             </div>
         )
     }
@@ -61,14 +75,14 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
             }}
             onMouseEnter={e => {
                 if (!active) {
-                    (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(37,211,102,0.07)'
-                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(15,23,42,0.85)'
+                    e.currentTarget.style.background = 'rgba(37,211,102,0.07)'
+                    e.currentTarget.style.color = 'rgba(15,23,42,0.85)'
                 }
             }}
             onMouseLeave={e => {
                 if (!active) {
-                    (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
-                    ;(e.currentTarget as HTMLAnchorElement).style.color = 'rgba(15,23,42,0.50)'
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = 'rgba(15,23,42,0.50)'
                 }
             }}
         >
@@ -91,7 +105,6 @@ function NavItem({ href, icon, label, active, badge, onNavigate, disabled, accen
     )
 }
 
-// ── SectionLabel ─────────────────────────────────────────────
 function SectionLabel({ label }: { label: string }) {
     return (
         <div className="px-4 pt-5 pb-1">
@@ -105,7 +118,14 @@ function SectionLabel({ label }: { label: string }) {
     )
 }
 
-// ── SidebarNav ────────────────────────────────────────────────
+function toBusinessModules(value: unknown): BusinessModule[] | null {
+    if (!Array.isArray(value) || value.length === 0) {
+        return null
+    }
+
+    return value.filter((module): module is BusinessModule => typeof module === 'string')
+}
+
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
     const params = useParams()
@@ -120,7 +140,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     })
     const [assistantName, setAssistantName] = useState<string>('')
     const [isAdmin, setIsAdmin] = useState(false)
-    const [hasSubscriptions, setHasSubscriptions] = useState(false)
+    const [enabledModules, setEnabledModules] = useState<BusinessModule[]>(SUBSCRIPTION_BUSINESS_MODULES)
     const currentAssistantId = paramId || activeId
 
     useEffect(() => {
@@ -141,144 +161,184 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 .eq('user_id', user.id)
 
             if (creds && creds.length > 0) {
-                setIsAdmin(creds.some(c => c.is_platform_admin === true))
+                setIsAdmin(creds.some(credential => credential.is_platform_admin === true))
                 const targetId = currentAssistantId || localStorage.getItem('jaba_active_assistant')
-                const active = creds.find(c => c.id === targetId) || creds[0]
+                const active = creds.find(credential => credential.id === targetId) || creds[0]
                 if (active) setAssistantName(active.bot_name || 'Mi Asistente')
             }
 
-            // Check if user has subscriptions (to conditionally show subscription-related nav)
-            const { count } = await supabase
-                .from('subscriptions')
-                .select('*', { count: 'exact', head: true })
-                .limit(1)
-            setHasSubscriptions((count ?? 0) > 0)
+            const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('enabled_modules')
+                .eq('id', user.id)
+                .maybeSingle()
+
+            const modules = toBusinessModules(profile?.enabled_modules)
+            if (modules) {
+                setEnabledModules(modules)
+            }
         }
+
         loadData()
     }, [currentAssistantId])
-
 
     const hasAssistant = !!currentAssistantId
     const nav = () => { if (onNavigate) onNavigate() }
     const is = (path: string) => pathname === path
     const startsWith = (path: string) => pathname.startsWith(path)
     const includes = (path: string) => pathname.includes(path)
+    const hasModule = (module: BusinessModule) => enabledModules.includes(module)
+
+    const showGeneral = hasModule('home') || hasModule('assistants')
+    const showCommunication = hasModule('chats') || hasModule('orders') || hasModule('products')
+    const showAutomation = hasModule('training') || hasModule('flows') || hasModule('triggers') || hasModule('templates')
+    const showManagement = hasModule('subscriptions') || hasModule('renewals') || hasModule('notifications') || (isAdmin && hasModule('admin_accounts'))
+    const showAccount = hasModule('recharges') || hasModule('achievements')
 
     return (
         <nav
             className="flex-1 overflow-y-auto py-2 space-y-0.5"
             style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(37,211,102,0.2) transparent' }}
         >
-            {/* ── GENERAL ── */}
-            <div className="px-3">
-                <NavItem href="/dashboard/home"
-                    icon={<Home size={17} />} label="Inicio"
-                    active={is('/dashboard/home')} onNavigate={nav}
-                    accentColor="#25D366" />
-                <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}` : '/dashboard'}
-                    icon={<LayoutDashboard size={17} />} label="Dashboard"
-                    active={is('/dashboard') || is(`/dashboard/assistants/${currentAssistantId}`)}
-                    onNavigate={nav} accentColor="#25D366" />
-                <NavItem href="/dashboard/assistants"
-                    icon={<Bot size={17} />} label="Asistentes"
-                    active={is('/dashboard/assistants') || is('/dashboard/assistants/new')}
-                    onNavigate={nav} accentColor="#25D366" />
-            </div>
-
-            {/* ── COMUNICACIÓN ── */}
-            <div className="px-3">
-                <SectionLabel label="Comunicación" />
-                <NavItem href="/dashboard/chats"
-                    icon={<MessageSquare size={17} />} label="Conversaciones"
-                    active={startsWith('/dashboard/chats')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-                <NavItem href="/dashboard/orders"
-                    icon={<ShoppingCart size={17} />} label="Pedidos"
-                    active={startsWith('/dashboard/orders')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-                <NavItem href="/dashboard/products"
-                    icon={<Package size={17} />} label="Catálogo"
-                    active={startsWith('/dashboard/products')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-            </div>
-
-            {/* ── AUTOMATIZACIÓN ── */}
-            <div className="px-3">
-                <SectionLabel label="Automatización" />
-                <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/training` : '#'}
-                    icon={<BrainCircuit size={17} />} label="Entrenamiento IA"
-                    active={includes('/training')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-                <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/flows` : '#'}
-                    icon={<GitBranch size={17} />} label="Flujos"
-                    active={includes('/flows')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-                <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/triggers` : '#'}
-                    icon={<Zap size={17} />} label="Disparadores"
-                    active={includes('/triggers')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-                <NavItem
-                    href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/templates` : '#'}
-                    icon={<FileText size={17} />} label="Plantillas"
-                    active={includes('/templates')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-            </div>
-
-            {/* ── GESTIÓN (admin) ── */}
-            {isAdmin && (
+            {showGeneral && (
                 <div className="px-3">
-                    <SectionLabel label="Gestión" />
-                    {hasSubscriptions && (
+                    {hasModule('home') && (
+                        <NavItem href="/dashboard/home"
+                            icon={<Home size={17} />} label="Inicio"
+                            active={is('/dashboard/home')} onNavigate={nav}
+                            accentColor="#25D366" />
+                    )}
+                    {hasModule('assistants') && (
                         <>
-                            <NavItem href="/dashboard/subscriptions"
-                                icon={<Users size={17} />} label="Suscripciones"
-                                active={is('/dashboard/subscriptions')} onNavigate={nav}
-                                accentColor="#25D366" />
-                            <NavItem href="/dashboard/renewals"
-                                icon={<CreditCard size={17} />} label="Renovaciones"
-                                active={is('/dashboard/renewals')} onNavigate={nav}
-                                accentColor="#25D366" />
+                            <NavItem
+                                href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}` : '/dashboard'}
+                                icon={<LayoutDashboard size={17} />} label="Dashboard"
+                                active={is('/dashboard') || is(`/dashboard/assistants/${currentAssistantId}`)}
+                                onNavigate={nav} accentColor="#25D366" />
+                            <NavItem href="/dashboard/assistants"
+                                icon={<Bot size={17} />} label="Asistentes"
+                                active={is('/dashboard/assistants') || is('/dashboard/assistants/new')}
+                                onNavigate={nav} accentColor="#25D366" />
                         </>
                     )}
-                    <NavItem href="/dashboard/notifications"
-                        icon={<Bell size={17} />} label="Notificaciones"
-                        active={is('/dashboard/notifications')} onNavigate={nav}
-                        accentColor="#25D366" />
-                    <NavItem href="/dashboard/admin-accounts"
-                        icon={<Building2 size={17} />} label="Cuentas"
-                        active={startsWith('/dashboard/admin-accounts')} onNavigate={nav}
-                        accentColor="#25D366" />
                 </div>
             )}
 
-            {/* ── MI CUENTA (no-admin) ── */}
-            {!isAdmin && (
+            {showCommunication && (
+                <div className="px-3">
+                    <SectionLabel label="Comunicacion" />
+                    {hasModule('chats') && (
+                        <NavItem href="/dashboard/chats"
+                            icon={<MessageSquare size={17} />} label="Conversaciones"
+                            active={startsWith('/dashboard/chats')} onNavigate={nav}
+                            disabled={!hasAssistant} accentColor="#25D366" />
+                    )}
+                    {hasModule('orders') && (
+                        <NavItem href="/dashboard/orders"
+                            icon={<ShoppingCart size={17} />} label="Pedidos"
+                            active={startsWith('/dashboard/orders')} onNavigate={nav}
+                            disabled={!hasAssistant} accentColor="#25D366" />
+                    )}
+                    {hasModule('products') && (
+                        <NavItem href="/dashboard/products"
+                            icon={<Package size={17} />} label="Catalogo"
+                            active={startsWith('/dashboard/products')} onNavigate={nav}
+                            disabled={!hasAssistant} accentColor="#25D366" />
+                    )}
+                </div>
+            )}
+
+            {showAutomation && (
+                <div className="px-3">
+                    <SectionLabel label="Automatizacion" />
+                    {hasModule('training') && (
+                        <NavItem
+                            href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/training` : '#'}
+                            icon={<BrainCircuit size={17} />} label="Entrenamiento IA"
+                            active={includes('/training')} onNavigate={nav}
+                            disabled={!hasAssistant} accentColor="#25D366" />
+                    )}
+                    {hasModule('flows') && (
+                        <NavItem
+                            href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/flows` : '#'}
+                            icon={<GitBranch size={17} />} label="Flujos"
+                            active={includes('/flows')} onNavigate={nav}
+                            disabled={!hasAssistant} accentColor="#25D366" />
+                    )}
+                    {hasModule('triggers') && (
+                        <NavItem
+                            href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/triggers` : '#'}
+                            icon={<Zap size={17} />} label="Disparadores"
+                            active={includes('/triggers')} onNavigate={nav}
+                            disabled={!hasAssistant} accentColor="#25D366" />
+                    )}
+                    {hasModule('templates') && (
+                        <NavItem
+                            href={hasAssistant ? `/dashboard/assistants/${currentAssistantId}/templates` : '#'}
+                            icon={<FileText size={17} />} label="Plantillas"
+                            active={includes('/templates')} onNavigate={nav}
+                            disabled={!hasAssistant} accentColor="#25D366" />
+                    )}
+                </div>
+            )}
+
+            {showManagement && (
+                <div className="px-3">
+                    <SectionLabel label="Gestion" />
+                    {hasModule('subscriptions') && (
+                        <NavItem href="/dashboard/subscriptions"
+                            icon={<Users size={17} />} label="Suscripciones"
+                            active={is('/dashboard/subscriptions')} onNavigate={nav}
+                            accentColor="#25D366" />
+                    )}
+                    {hasModule('renewals') && (
+                        <NavItem href="/dashboard/renewals"
+                            icon={<CreditCard size={17} />} label="Renovaciones"
+                            active={is('/dashboard/renewals')} onNavigate={nav}
+                            accentColor="#25D366" />
+                    )}
+                    {hasModule('notifications') && (
+                        <NavItem href="/dashboard/notifications"
+                            icon={<Bell size={17} />} label="Notificaciones"
+                            active={is('/dashboard/notifications')} onNavigate={nav}
+                            accentColor="#25D366" />
+                    )}
+                    {isAdmin && hasModule('admin_accounts') && (
+                        <NavItem href="/dashboard/admin-accounts"
+                            icon={<Building2 size={17} />} label="Cuentas"
+                            active={startsWith('/dashboard/admin-accounts')} onNavigate={nav}
+                            accentColor="#25D366" />
+                    )}
+                </div>
+            )}
+
+            {showAccount && (
                 <div className="px-3">
                     <SectionLabel label="Mi cuenta" />
-                    <NavItem href="/dashboard/recharges"
-                        icon={<CreditCard size={17} />} label="Recargas"
-                        active={includes('/recharges')} onNavigate={nav}
-                        accentColor="#25D366" />
-                    <NavItem href="/dashboard/achievements"
-                        icon={<Trophy size={17} />} label="Logros"
-                        active={includes('/achievements')} onNavigate={nav}
-                        accentColor="#25D366" />
+                    {hasModule('recharges') && (
+                        <NavItem href="/dashboard/recharges"
+                            icon={<CreditCard size={17} />} label="Recargas"
+                            active={includes('/recharges')} onNavigate={nav}
+                            accentColor="#25D366" />
+                    )}
+                    {hasModule('achievements') && (
+                        <NavItem href="/dashboard/achievements"
+                            icon={<Trophy size={17} />} label="Logros"
+                            active={includes('/achievements')} onNavigate={nav}
+                            accentColor="#25D366" />
+                    )}
                 </div>
             )}
 
-            {/* ── CONFIGURACIÓN ── */}
-            <div className="px-3 pt-2">
-                <NavItem href="/dashboard/settings"
-                    icon={<Settings size={17} />} label="Configuración"
-                    active={startsWith('/dashboard/settings')} onNavigate={nav}
-                    disabled={!hasAssistant} accentColor="#25D366" />
-            </div>
+            {hasModule('settings') && (
+                <div className="px-3 pt-2">
+                    <NavItem href="/dashboard/settings"
+                        icon={<Settings size={17} />} label="Configuracion"
+                        active={startsWith('/dashboard/settings')} onNavigate={nav}
+                        disabled={!hasAssistant} accentColor="#25D366" />
+                </div>
+            )}
 
-            {/* ── Asistente activo ── */}
             {hasAssistant && assistantName && (
                 <div
                     className="mx-3 mt-4 p-3 rounded-xl"
@@ -310,8 +370,8 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                             href="/dashboard/assistants"
                             className="flex items-center gap-1 mt-2 text-[11px] font-medium transition-colors"
                             style={{ color: 'rgba(37,211,102,0.45)' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#25D366')}
-                            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(37,211,102,0.45)')}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#25D366' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(37,211,102,0.45)' }}
                         >
                             Cambiar asistente <ChevronRight size={10} />
                         </Link>

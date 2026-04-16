@@ -3,16 +3,31 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Database, Plus, Trash2, type LucideIcon } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Bot, BrainCircuit, MessageSquare, Settings2, Save, Copy, Globe, DollarSign, CreditCard, Phone, Database, Plus, Trash2, Sparkles, RefreshCw, type LucideIcon } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
+import {
+    BUSINESS_MODULES,
+    BUSINESS_TYPE_OPTIONS,
+    getModulesForBusinessType,
+    normalizeBusinessModules,
+    type BusinessModule,
+    type BusinessType,
+} from '@/lib/business-config'
+import {
+    getBusinessGoalOptionsForBusinessType,
+    getDefaultGoalsForBusinessType,
+    normalizeBusinessGoalsForBusinessType,
+    type BusinessGoal,
+} from '@/lib/business-goals'
 
-import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode, registerWhatsAppNumber, testWebhook, sendTestWhatsAppMessage } from './actions'
-import { Smartphone, RefreshCw, X, Wifi, Send as SendIcon, FlaskConical } from "lucide-react"
+import { checkWhatsAppStatus, getSystemConfig, requestWhatsAppCode, verifyWhatsAppCode, registerWhatsAppNumber, testWebhook, sendTestWhatsAppMessage, installRecommendedStarterTemplates, updateBusinessProfileSettings } from './actions'
+import { Smartphone, X, Wifi, Send as SendIcon, FlaskConical } from "lucide-react"
 
 type WhatsAppStatus = {
     display_phone_number?: string
@@ -28,7 +43,34 @@ function getErrorMessage(error: unknown, fallback: string) {
     return error instanceof Error ? error.message : fallback
 }
 
+const MODULE_LABELS: Record<BusinessModule, { title: string; description: string }> = {
+    home: { title: 'Inicio', description: 'Resumen principal del sistema.' },
+    chats: { title: 'Conversaciones', description: 'Bandeja de mensajes y seguimiento.' },
+    assistants: { title: 'Asistentes', description: 'Gestion de bots y cuentas activas.' },
+    training: { title: 'Entrenamiento IA', description: 'Conocimiento y reglas del asistente.' },
+    flows: { title: 'Flujos', description: 'Recorridos guiados y automatizados.' },
+    triggers: { title: 'Disparadores', description: 'Reglas que reaccionan a eventos y mensajes.' },
+    templates: { title: 'Plantillas', description: 'Biblioteca de respuestas y bases reutilizables.' },
+    products: { title: 'Catalogo', description: 'Productos, servicios o paquetes.' },
+    orders: { title: 'Pedidos', description: 'Ventas, reservas u ordenes activas.' },
+    payments: { title: 'Pagos', description: 'Cobros, metodos y validaciones de pago.' },
+    subscriptions: { title: 'Suscripciones', description: 'Planes activos y renovaciones.' },
+    renewals: { title: 'Renovaciones', description: 'Seguimiento de vencimientos.' },
+    appointments: { title: 'Citas', description: 'Agenda, reservas y visitas.' },
+    patients: { title: 'Pacientes', description: 'Ficha o seguimiento de pacientes.' },
+    leads: { title: 'Leads', description: 'Prospectos y oportunidades comerciales.' },
+    support: { title: 'Soporte', description: 'Casos de ayuda y servicio tecnico.' },
+    notifications: { title: 'Notificaciones', description: 'Alertas internas y avisos.' },
+    recharges: { title: 'Recargas', description: 'Saldo o recargas del sistema.' },
+    achievements: { title: 'Logros', description: 'Metricas y reconocimiento.' },
+    settings: { title: 'Configuracion', description: 'Ajustes generales del negocio.' },
+    admin_accounts: { title: 'Cuentas admin', description: 'Solo para cuentas de plataforma.' },
+}
+
+const MODULES_VISIBLE_IN_SETTINGS = BUSINESS_MODULES.filter((module) => module !== 'admin_accounts')
+
 export default function SettingsPage() {
+    const router = useRouter()
 
 
     const WhatsAppStatusCard = ({ phoneNumberId, accessToken }: { phoneNumberId: string, accessToken: string }) => {
@@ -364,6 +406,9 @@ export default function SettingsPage() {
     const [currencySymbol, setCurrencySymbol] = useState('Bs')
     const [paymentMethods, setPaymentMethods] = useState('')
     const [countryCode, setCountryCode] = useState('591')
+    const [businessType, setBusinessType] = useState<BusinessType>('subscriptions')
+    const [enabledModules, setEnabledModules] = useState<BusinessModule[]>(() => normalizeBusinessModules(getModulesForBusinessType('subscriptions')))
+    const [businessGoals, setBusinessGoals] = useState<BusinessGoal[]>(() => getDefaultGoalsForBusinessType('subscriptions'))
 
     // Connection Fields
     const [phoneNumberId, setPhoneNumberId] = useState('')
@@ -385,6 +430,7 @@ export default function SettingsPage() {
     }, [])
 
     const [loading, setLoading] = useState(false)
+    const [templateInstalling, setTemplateInstalling] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
     // Test webhook state
@@ -423,6 +469,40 @@ export default function SettingsPage() {
         async function loadCredentials() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
+
+            const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('business_type, enabled_modules, business_profile')
+                .eq('id', user.id)
+                .maybeSingle()
+
+            const profileBusinessType =
+                profile?.business_type && typeof profile.business_type === 'string'
+                    ? profile.business_type as BusinessType
+                    : 'subscriptions'
+
+            setBusinessType(profileBusinessType)
+
+            const nextModules = normalizeBusinessModules(
+                profile?.enabled_modules,
+                getModulesForBusinessType(profileBusinessType)
+            )
+            setEnabledModules(nextModules)
+
+            const businessProfile =
+                profile?.business_profile &&
+                    typeof profile.business_profile === 'object' &&
+                    !Array.isArray(profile.business_profile)
+                    ? profile.business_profile as Record<string, unknown>
+                    : {}
+
+            setBusinessGoals(
+                normalizeBusinessGoalsForBusinessType(
+                    profileBusinessType,
+                    businessProfile.goals,
+                    getDefaultGoalsForBusinessType(profileBusinessType),
+                ),
+            )
 
             const { data } = await supabase
                 .from('whatsapp_credentials')
@@ -547,13 +627,103 @@ export default function SettingsPage() {
                 if (error) throw error
             }
 
+            const profileResult = await updateBusinessProfileSettings({
+                businessType,
+                enabledModules,
+                goals: businessGoals,
+            })
+
+            if (!profileResult.success) {
+                throw new Error(profileResult.error || 'No se pudo guardar la configuracion del negocio')
+            }
+
             setMessage({ type: 'success', text: 'Configuración guardada correctamente' })
+            router.refresh()
         } catch (error) {
             console.error(error)
             setMessage({ type: 'error', text: getErrorMessage(error, 'Error al guardar') })
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleInstallRecommendedTemplates = async () => {
+        setTemplateInstalling(true)
+        setMessage(null)
+
+        try {
+            const profileResult = await updateBusinessProfileSettings({
+                businessType,
+                enabledModules,
+                goals: businessGoals,
+            })
+
+            if (!profileResult.success) {
+                setMessage({ type: 'error', text: profileResult.error || 'No se pudo actualizar el perfil del negocio' })
+                return
+            }
+
+            const result = await installRecommendedStarterTemplates()
+            if (!result.success) {
+                setMessage({ type: 'error', text: result.error || 'No se pudieron instalar las plantillas' })
+                return
+            }
+
+            setMessage({
+                type: 'success',
+                text: `Plantillas recomendadas instaladas: ${result.flows ?? 0} flujo(s) y ${result.triggers ?? 0} disparador(es).`,
+            })
+            router.refresh()
+        } catch (error) {
+            setMessage({ type: 'error', text: getErrorMessage(error, 'No se pudieron instalar las plantillas') })
+        } finally {
+            setTemplateInstalling(false)
+        }
+    }
+
+    const applySuggestedModules = () => {
+        setEnabledModules(normalizeBusinessModules(getModulesForBusinessType(businessType)))
+    }
+
+    const applySuggestedGoals = () => {
+        setBusinessGoals(getDefaultGoalsForBusinessType(businessType))
+    }
+
+    const toggleBusinessModule = (module: BusinessModule, checked: boolean) => {
+        setEnabledModules((current) => {
+            if (module === 'settings') {
+                return current
+            }
+
+            if (checked) {
+                return normalizeBusinessModules([...current, module])
+            }
+
+            return normalizeBusinessModules(current.filter((item) => item !== module))
+        })
+    }
+
+    const toggleBusinessGoal = (goal: BusinessGoal, checked: boolean) => {
+        setBusinessGoals((current) => {
+            if (checked) {
+                return normalizeBusinessGoalsForBusinessType(businessType, [...current, goal], current)
+            }
+
+            const nextGoals = current.filter((item) => item !== goal)
+            if (nextGoals.length === 0) {
+                return [goal]
+            }
+
+            return normalizeBusinessGoalsForBusinessType(businessType, nextGoals, nextGoals)
+        })
+    }
+
+    const handleBusinessTypeChange = (nextType: BusinessType) => {
+        setBusinessType(nextType)
+        setBusinessGoals((current) => {
+            const nextGoals = normalizeBusinessGoalsForBusinessType(nextType, current, current)
+            return nextGoals.length > 0 ? nextGoals : getDefaultGoalsForBusinessType(nextType)
+        })
     }
 
     // Reuse components
@@ -758,6 +928,165 @@ export default function SettingsPage() {
                                     Configuración del Negocio
                                 </h3>
                                 <p className="text-sm text-[#0F172A]/40 mt-1">Estos datos se usan en los mensajes automáticos, recordatorios e IA.</p>
+                            </div>
+
+                            <div className="grid gap-3 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <Label htmlFor="businessType" className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                    <Globe className="w-4 h-4 text-[#25D366]" /> Tipo de negocio
+                                </Label>
+                                <div className="grid md:grid-cols-[1fr_300px] gap-4 items-start">
+                                    <select
+                                        id="businessType"
+                                        value={businessType}
+                                        onChange={e => handleBusinessTypeChange(e.target.value as BusinessType)}
+                                        className="h-11 w-full rounded-md border border-black/[0.08] bg-[#F7F8FA] px-3 text-sm text-[#0F172A] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                    >
+                                        {BUSINESS_TYPE_OPTIONS.map((option) => (
+                                            <option key={option.id} value={option.id}>
+                                                {option.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="text-sm text-[#0F172A]/40 leading-relaxed">
+                                        {BUSINESS_TYPE_OPTIONS.find((option) => option.id === businessType)?.description}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                    <div>
+                                        <Label className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-violet-500" /> Objetivos del negocio
+                                        </Label>
+                                        <p className="text-sm text-[#0F172A]/40 mt-1">
+                                            Esto afina las recomendaciones para que el sistema priorice ventas, reservas, soporte, leads o renovaciones.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={applySuggestedGoals}
+                                        className="bg-transparent border border-black/[0.08] text-[#0F172A] hover:bg-white"
+                                    >
+                                        Usar objetivos sugeridos
+                                    </Button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {getBusinessGoalOptionsForBusinessType(businessType).map((goal) => {
+                                        const checked = businessGoals.includes(goal.id)
+                                        const locked = checked && businessGoals.length === 1
+
+                                        return (
+                                            <label
+                                                key={goal.id}
+                                                className={cn(
+                                                    'rounded-lg border p-3 transition-colors flex gap-3 items-start',
+                                                    checked ? 'border-violet-500/30 bg-violet-500/5' : 'border-black/[0.08] bg-white'
+                                                )}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="mt-1 h-4 w-4 accent-violet-600"
+                                                    checked={checked}
+                                                    disabled={locked}
+                                                    onChange={e => toggleBusinessGoal(goal.id, e.target.checked)}
+                                                />
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-semibold text-[#0F172A]">{goal.title}</span>
+                                                        {locked && (
+                                                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-violet-500/20 bg-violet-500/10 text-violet-700">
+                                                                Minimo 1
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-[#0F172A]/40 mt-1">{goal.description}</p>
+                                                </div>
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 p-4 border border-black/[0.08] rounded-lg hover:border-black/[0.15] transition-colors bg-[#F7F8FA]">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                    <div>
+                                        <Label className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                            <Settings2 className="w-4 h-4 text-blue-500" /> Modulos habilitados
+                                        </Label>
+                                        <p className="text-sm text-[#0F172A]/40 mt-1">
+                                            Personaliza el menu y las funciones visibles para este negocio. Configuracion siempre queda activa.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={applySuggestedModules}
+                                        className="bg-transparent border border-black/[0.08] text-[#0F172A] hover:bg-white"
+                                    >
+                                        Usar modulos sugeridos
+                                    </Button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {MODULES_VISIBLE_IN_SETTINGS.map((module) => {
+                                        const meta = MODULE_LABELS[module]
+                                        const checked = enabledModules.includes(module)
+                                        const locked = module === 'settings'
+
+                                        return (
+                                            <label
+                                                key={module}
+                                                className={cn(
+                                                    'rounded-lg border p-3 transition-colors flex gap-3 items-start',
+                                                    checked ? 'border-[#25D366]/40 bg-[#25D366]/5' : 'border-black/[0.08] bg-white'
+                                                )}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="mt-1 h-4 w-4 accent-[#25D366]"
+                                                    checked={checked}
+                                                    disabled={locked}
+                                                    onChange={e => toggleBusinessModule(module, e.target.checked)}
+                                                />
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-semibold text-[#0F172A]">{meta.title}</span>
+                                                        {locked && (
+                                                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-black/[0.08] bg-black/[0.03] text-[#0F172A]/45">
+                                                                Siempre activo
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-[#0F172A]/40 mt-1">{meta.description}</p>
+                                                </div>
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 p-4 border border-[#25D366]/20 rounded-lg bg-[#25D366]/5">
+                                <div className="grid md:grid-cols-[1fr_260px] gap-4 items-center">
+                                    <div>
+                                        <Label className="text-base font-semibold text-[#0F172A] flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-[#25D366]" />
+                                            Plantillas recomendadas
+                                        </Label>
+                                        <p className="text-sm text-[#0F172A]/45 leading-relaxed mt-1">
+                                            Instala flujos y disparadores base segun el tipo de negocio configurado. No duplica plantillas existentes.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={handleInstallRecommendedTemplates}
+                                        disabled={templateInstalling}
+                                        className="bg-[#25D366] hover:bg-[#128C7E] text-black font-bold gap-2"
+                                    >
+                                        {templateInstalling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        {templateInstalling ? 'Instalando...' : 'Instalar plantillas'}
+                                    </Button>
+                                </div>
                             </div>
 
                             {/* Timezone */}

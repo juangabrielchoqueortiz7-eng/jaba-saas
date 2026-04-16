@@ -18,6 +18,16 @@ export default async function DashboardLayout({
         return redirect('/login')
     }
 
+    const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('business_type, onboarding_completed')
+        .eq('id', user.id)
+        .maybeSingle()
+
+    if (!profile?.business_type || !profile.onboarding_completed) {
+        return redirect('/welcome')
+    }
+
     const signOut = async () => {
         'use server'
         const supabase = await createClient()

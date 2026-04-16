@@ -5,6 +5,12 @@ import { createHmac } from 'crypto'
 import type { FunctionDeclaration } from '@google/generative-ai'
 import ConditionEvaluator, { EvaluationContext, TriggerConditionGroup } from '@/lib/trigger-conditions'
 import { executeActions, ActionContext } from '@/lib/trigger-actions'
+import { isBusinessType } from '@/lib/business-config'
+import { normalizeBusinessGoalsForBusinessType, type BusinessGoal } from '@/lib/business-goals'
+import {
+    buildRuntimeBusinessFocusPrompt,
+    buildRuntimeFallbackTrainingPrompt,
+} from '@/lib/business-training'
 
 // Token de verificación que configuraste en .env.local.
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN
@@ -93,6 +99,7 @@ type WhatsAppCredentials = {
     access_token: string
     bot_name?: string | null
     service_name?: string | null
+    service_description?: string | null
     promo_image_url?: string | null
     timezone?: string | null
     currency_symbol?: string | null
@@ -133,6 +140,126 @@ type ProductRow = {
     price: string | number
     description?: string | null
     qr_image_url?: string | null
+}
+
+type GoalAwareStage =
+    | 'accounts_available'
+    | 'accounts_fallback'
+    | 'request_email'
+    | 'plan_selected'
+    | 'payment_request'
+    | 'payment_received'
+    | 'renewal_completed'
+
+function buildGoalAwareMessage(
+    stage: GoalAwareStage,
+    options: {
+        goals: BusinessGoal[]
+        serviceName?: string | null
+        paymentMethods?: string | null
+    },
+): string {
+    const primaryGoal = options.goals[0] ?? null
+    const serviceName = options.serviceName?.trim() || 'tu servicio'
+    const paymentMethods = options.paymentMethods?.trim() || 'los medios disponibles'
+
+    switch (stage) {
+        case 'accounts_available':
+            switch (primaryGoal) {
+                case 'sell_more':
+                    return 'Elige la cuenta correcta y te llevo directo al plan que mejor te convenga.'
+                case 'capture_leads':
+                    return 'Asi dejamos identificada la cuenta correcta y continuamos sin perder contexto.'
+                case 'support_customers':
+                    return 'Elige la cuenta correcta y dejamos el caso listo para seguir sin repetir informacion.'
+                case 'renew_clients':
+                    return 'Elige la cuenta correcta y seguimos con la renovacion sin pedirte datos de nuevo.'
+                default:
+                    return 'Elige la cuenta correcta y seguimos con el siguiente paso.'
+            }
+        case 'accounts_fallback':
+            switch (primaryGoal) {
+                case 'renew_clients':
+                    return 'Comparteme el correo de la cuenta que quieres renovar y la busco por ti.'
+                case 'capture_leads':
+                    return 'Comparteme el correo correcto y dejo tu caso bien identificado para continuar.'
+                default:
+                    return 'Comparteme el correo correcto y continuamos desde ahi.'
+            }
+        case 'request_email':
+            switch (primaryGoal) {
+                case 'sell_more':
+                    return `Comparteme tu correo y dejo lista la activacion de ${serviceName}.`
+                case 'capture_leads':
+                    return `Comparteme tu correo y dejo tus datos completos para continuar con ${serviceName}.`
+                case 'book_appointments':
+                    return `Comparteme tu correo y te dejo lista la confirmacion de ${serviceName}.`
+                case 'support_customers':
+                    return `Comparteme tu correo y dejo el caso bien identificado para darte seguimiento en ${serviceName}.`
+                case 'renew_clients':
+                    return `Comparteme tu correo y dejo encaminada la renovacion de ${serviceName}.`
+                default:
+                    return `Comparteme tu correo y dejo listo el acceso a ${serviceName}.`
+            }
+        case 'plan_selected':
+            switch (primaryGoal) {
+                case 'sell_more':
+                    return 'Ya deje listo el siguiente paso para avanzar rapido.'
+                case 'capture_leads':
+                    return 'Ya deje registrado tu interes para continuar sin perder el contexto.'
+                case 'book_appointments':
+                    return 'Ya deje encaminada la gestion para confirmarla cuanto antes.'
+                case 'support_customers':
+                    return 'Ya tengo el caso encaminado para seguir sin repetir informacion.'
+                case 'renew_clients':
+                    return 'Ya deje lista la renovacion para que sigamos con el pago.'
+                default:
+                    return 'Ya deje listo el siguiente paso para continuar.'
+            }
+        case 'payment_request':
+            switch (primaryGoal) {
+                case 'sell_more':
+                    return `Puedes pagar por ${paymentMethods} y enviarme el comprobante aqui para activar el proceso.`
+                case 'capture_leads':
+                    return `Puedes pagar por ${paymentMethods} y enviarme el comprobante aqui para dejar tu caso completo.`
+                case 'book_appointments':
+                    return `Puedes pagar por ${paymentMethods} y enviarme el comprobante aqui para seguir con la confirmacion.`
+                case 'support_customers':
+                    return `Puedes pagar por ${paymentMethods} y enviarme el comprobante aqui para dejar el caso listo para revision.`
+                case 'renew_clients':
+                    return `Puedes pagar por ${paymentMethods} y enviarme el comprobante aqui para continuar la renovacion.`
+                default:
+                    return `Puedes pagar por ${paymentMethods} y enviarme el comprobante aqui para continuar.`
+            }
+        case 'payment_received':
+            switch (primaryGoal) {
+                case 'sell_more':
+                    return 'En cuanto terminemos la validacion, te confirmo el acceso o el siguiente paso.'
+                case 'capture_leads':
+                    return 'Con esto ya queda tu caso registrado y te confirmamos en breve.'
+                case 'book_appointments':
+                    return 'Con esto ya dejamos el proceso encaminado y te confirmamos lo siguiente en breve.'
+                case 'support_customers':
+                    return 'Con esto ya dejamos el caso en revision y te confirmamos el siguiente paso en breve.'
+                case 'renew_clients':
+                    return 'Con esto ya dejamos tu continuidad encaminada y te confirmamos en breve.'
+                default:
+                    return 'Con esto ya dejamos el proceso encaminado y te confirmamos en breve.'
+            }
+        case 'renewal_completed':
+            switch (primaryGoal) {
+                case 'sell_more':
+                    return 'Si luego quieres ver otro plan o una mejora, te ayudo por aqui.'
+                case 'support_customers':
+                    return 'Si necesitas ayuda adicional, ya deje este caso encaminado para el equipo.'
+                case 'renew_clients':
+                    return 'Si necesitas renovar otra cuenta o cambiar de plan, lo dejamos listo por aqui.'
+                default:
+                    return 'Si necesitas algo mas, seguimos por aqui.'
+            }
+        default:
+            return ''
+    }
 }
 type SubscriptionAccountRow = {
     correo: string
@@ -310,6 +437,25 @@ export async function POST(request: Request) {
                 const tenantTimezone = credentials.timezone || 'America/La_Paz'
                 const tenantCurrency = credentials.currency_symbol || 'Bs'
                 const tenantPaymentMethods = credentials.payment_methods || 'QR bancario'
+                const { data: tenantProfile } = await supabaseAdmin
+                    .from('user_profiles')
+                    .select('business_name, business_type, business_profile')
+                    .eq('id', tenantUserId)
+                    .maybeSingle()
+                const businessType = isBusinessType(tenantProfile?.business_type)
+                    ? tenantProfile.business_type
+                    : 'subscriptions'
+                const businessProfile =
+                    tenantProfile?.business_profile &&
+                        typeof tenantProfile.business_profile === 'object' &&
+                        !Array.isArray(tenantProfile.business_profile)
+                        ? tenantProfile.business_profile as { goals?: unknown }
+                        : {}
+                const businessGoals = normalizeBusinessGoalsForBusinessType(businessType, businessProfile.goals)
+                const tenantDisplayBusinessName =
+                    typeof tenantProfile?.business_name === 'string' && tenantProfile.business_name.trim().length > 0
+                        ? tenantProfile.business_name.trim()
+                        : tenantBusinessName
                 // ---------------------------
 
                 const messageObject = value.messages[0]
@@ -780,7 +926,10 @@ export async function POST(request: Request) {
 
                             // Enviar confirmación por WhatsApp
                             const { sendWhatsAppMessage: sendWAMsg } = await import('@/lib/whatsapp');
-                            const confirmMsg = `✅ *¡Pago recibido y renovación completada!* 🎉\n\n${verificationNote}\n\nTu acceso para *${orderEmail || targetSub?.correo || ''}* ha sido renovado.\n\n📋 *Detalle:*\n• Plan: ${pendingOrder.plan_name || planProduct?.name}\n• Monto: ${tenantCurrency} ${pendingOrder.amount}\n• Vigencia hasta: *${newExpiration}*\n\n¡Gracias por confiar en nosotros! 😊`;
+                            const confirmMsg = `✅ *Pago recibido y renovacion completada*\n\n${verificationNote}\n\nTu acceso para *${orderEmail || targetSub?.correo || ''}* ha sido renovado.\n\n📋 *Detalle:*\n• Plan: ${pendingOrder.plan_name || planProduct?.name}\n• Monto: ${tenantCurrency} ${pendingOrder.amount}\n• Vigencia hasta: *${newExpiration}*\n\n${buildGoalAwareMessage('renewal_completed', {
+                                goals: businessGoals,
+                                serviceName: tenantServiceName,
+                            })}`;
 
                             await sendWAMsg(phoneNumber, confirmMsg, tenantToken, phoneId);
 
@@ -1053,8 +1202,16 @@ export async function POST(request: Request) {
 
                     if (result.success && result.product) {
                         const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
-                        let responseText = `¡Excelente elección! Has seleccionado *${result.product.name}* (${tenantCurrency} ${result.product.price}).\n\n`;
-                        responseText += `Para continuar, por favor *escríbeme tu correo electrónico*:`;
+                        let responseText = `Excelente eleccion. Has seleccionado *${result.product.name}* (${tenantCurrency} ${result.product.price}).\n\n`;
+                        responseText += `${buildGoalAwareMessage('plan_selected', {
+                            goals: businessGoals,
+                            serviceName: tenantServiceName,
+                        })}\n\n`;
+                        responseText += `${buildGoalAwareMessage('request_email', {
+                            goals: businessGoals,
+                            serviceName: tenantServiceName,
+                        })}\n\n`;
+                        responseText += 'Por favor escribeme tu *correo electronico*:';
 
                         await sendWhatsAppMessage(phoneNumber, responseText, tenantToken, phoneId);
 
@@ -1139,10 +1296,19 @@ export async function POST(request: Request) {
 
                     // Si es cliente INACTIVO, confirmar correo antes de proceder
                     if (isInactiveClient && customerEmail) {
-                        const confirmMsg = `✅ *¡Plan seleccionado!*\n\n` +
+                        const confirmMsg = `✅ *Plan seleccionado*\n\n` +
                             `Hemos encontrado tu cuenta registrada: *${customerEmail}*\n\n` +
                             `¿Es esta la cuenta que deseas renovar con el plan *${product.name}* (${tenantCurrency} ${product.price})?\n\n` +
-                            `Si es correcto, continúa con el pago a continuación. Si no es tu cuenta, escríbenos el correo correcto.`;
+                            `${buildGoalAwareMessage('plan_selected', {
+                                goals: businessGoals,
+                                serviceName: tenantServiceName,
+                            })}\n\n` +
+                            `${buildGoalAwareMessage('payment_request', {
+                                goals: businessGoals,
+                                serviceName: tenantServiceName,
+                                paymentMethods: tenantPaymentMethods,
+                            })}\n\n` +
+                            `Si no es tu cuenta, escribeme el correo correcto.`;
                         await sendWhatsAppMessage(phoneNumber, confirmMsg, tenantToken, phoneId);
                         await supabaseAdmin.from('messages').insert({
                             chat_id: chatId, is_from_me: true, content: confirmMsg, status: 'delivered'
@@ -1175,9 +1341,17 @@ export async function POST(request: Request) {
                     // Solo enviar QR directamente si el cliente está ACTIVO (o es nuevo sin correo)
                     // Para inactivos ya se envió el mensaje de confirmación arriba
                     if (!isInactiveClient) {
-                        const renewMsg = `✅ *¡Plan seleccionado!*\n\n` +
+                        const renewMsg = `✅ *Plan seleccionado*\n\n` +
                             `Has elegido *${product.name}* (${tenantCurrency} ${product.price}) para renovar tu cuenta *${customerEmail || phoneNumber}*.\n\n` +
-                            `💳 Realiza el pago con el siguiente QR y envíanos la foto del comprobante por este medio:`;
+                            `${buildGoalAwareMessage('plan_selected', {
+                                goals: businessGoals,
+                                serviceName: tenantServiceName,
+                            })}\n\n` +
+                            `${buildGoalAwareMessage('payment_request', {
+                                goals: businessGoals,
+                                serviceName: tenantServiceName,
+                                paymentMethods: tenantPaymentMethods,
+                            })}`;
 
                         await sendWhatsAppMessage(phoneNumber, renewMsg, tenantToken, phoneId);
 
@@ -1481,8 +1655,14 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                             // MENSAJE DE CONFIRMACIÓN al cliente
                             // ============================================================
                             const successMsg = subUpdated
-                                ? `✅ *¡Renovación completada!* 🎉\n\nTu acceso para *${activeOrder.customer_email || sub?.correo || phoneNumber}* en *${bizName}* ha sido renovado con éxito.\n\n📋 *Detalle:*\n• Plan: ${activeOrder.plan_name}\n• Monto: ${tenantCurrency} ${activeOrder.amount}\n• Vigencia hasta: *${newExpStr}*\n\n¡Gracias por tu preferencia! 😊`
-                                : `📩 *¡Comprobante recibido!*\n\nGracias por tu pago del plan *${activeOrder.plan_name}* (${tenantCurrency} ${activeOrder.amount}). Tu cuenta está siendo procesada y te confirmaremos en breve. ⏳`;
+                                ? `✅ *Renovacion completada*\n\nTu acceso para *${activeOrder.customer_email || sub?.correo || phoneNumber}* en *${bizName}* ha sido renovado con exito.\n\n📋 *Detalle:*\n• Plan: ${activeOrder.plan_name}\n• Monto: ${tenantCurrency} ${activeOrder.amount}\n• Vigencia hasta: *${newExpStr}*\n\n${buildGoalAwareMessage('renewal_completed', {
+                                    goals: businessGoals,
+                                    serviceName: tenantServiceName,
+                                })}`
+                                : `📩 *Comprobante recibido*\n\nGracias por tu pago del plan *${activeOrder.plan_name}* (${tenantCurrency} ${activeOrder.amount}). Tu cuenta esta siendo procesada.\n\n${buildGoalAwareMessage('payment_received', {
+                                    goals: businessGoals,
+                                    serviceName: tenantServiceName,
+                                })}`;
 
                             await sendWhatsAppMessage(phoneNumber, successMsg, tenantToken, phoneId);
 
@@ -1509,7 +1689,10 @@ Si la imagen está borrosa o no encuentras ningún monto válido, responde "0".`
                         }
 
                         // --- FLUJO NORMAL (no renovación) ---
-                        const confirmationMsg = `✅ *¡Comprobante recibido!*\n\nEstamos verificando tu pago para el *${activeOrder.plan_name || activeOrder.product}* (${tenantCurrency} ${activeOrder.amount}).\n\nEn breve recibirás el acceso en tu correo electrónico: *${activeOrder.customer_email || '(no registrado)'}*\n\n¡Gracias por tu preferencia! 🙌`;
+                        const confirmationMsg = `✅ *Comprobante recibido*\n\nEstamos verificando tu pago para el *${activeOrder.plan_name || activeOrder.product}* (${tenantCurrency} ${activeOrder.amount}).\n\nEn breve recibiras el acceso en tu correo electronico: *${activeOrder.customer_email || '(no registrado)'}*\n\n${buildGoalAwareMessage('payment_received', {
+                            goals: businessGoals,
+                            serviceName: tenantServiceName,
+                        })}`;
 
                         await sendWhatsAppMessage(phoneNumber, confirmationMsg, tenantToken, phoneId);
 
@@ -1805,7 +1988,11 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
                                             await sendWhatsAppImage(
                                                 phoneNumber,
                                                 orderProduct.qr_image_url,
-                                                `📱 *QR de Pago*\n\nPlan: *${activeOrder.plan_name}*\nMonto: *${tenantCurrency} ${activeOrder.amount}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
+                                                `📱 *QR de Pago*\n\nPlan: *${activeOrder.plan_name}*\nMonto: *${tenantCurrency} ${activeOrder.amount}*\n\n${buildGoalAwareMessage('payment_request', {
+                                                    goals: businessGoals,
+                                                    serviceName: tenantServiceName,
+                                                    paymentMethods: tenantPaymentMethods,
+                                                })}`,
                                                 tenantToken,
                                                 phoneId
                                             );
@@ -1907,11 +2094,24 @@ INSTRUCCIÓN SOBRE NOTIFICACIONES: Si el cliente dice que ya pagó o que ya reno
                             const idMapping = hasProducts ? (tenantProducts || []).map(p =>
                                 `"${p.name}" = "${p.id}"`
                             ).join('\n') : ''
+                            const runtimeFocusPrompt = buildRuntimeBusinessFocusPrompt({
+                                businessType,
+                                goals: businessGoals,
+                            })
 
                             // Base del prompt: si tiene training_prompt usa eso como personalidad principal
                             const baseRole = aiConfig.training_prompt
                                 ? aiConfig.training_prompt
-                                : 'Eres el asistente oficial del negocio. Responde de forma profesional, amigable y concisa.'
+                                : buildRuntimeFallbackTrainingPrompt({
+                                    assistantName: aiConfig.bot_name,
+                                    businessName: tenantDisplayBusinessName,
+                                    businessType,
+                                    goals: businessGoals,
+                                    welcomeMessage: aiConfig.welcome_message,
+                                    serviceName: tenantServiceName,
+                                    serviceDescription: credentials.service_description,
+                                    products: tenantProducts || [],
+                                })
 
                             // Sección de catálogo (solo si tiene productos)
                             const catalogSection = hasProducts ? `
@@ -1933,6 +2133,7 @@ ${hasSubscriptionBusiness ? `2. "show_account_selection": Usa esta función cuan
 3. "process_email": Ejecútala cuando el cliente te escriba su correo electrónico válido.`}` : ''
 
                             const systemPrompt = `${baseRole}
+${runtimeFocusPrompt}
 ${catalogSection}
 ${toolsSection}
 
@@ -2182,10 +2383,16 @@ ${chatHistory}`
                                             });
 
                                             actionExecuted = true;
-                                            aiResponseText = `¡Claro que sí! Aquí tienes las cuentas disponibles para renovar. 👇\n\n📋 *Cuentas disponibles:*\n${accountsTextList}`;
+                                            aiResponseText = `Claro. Aqui tienes las cuentas disponibles.\n\n📋 *Cuentas disponibles:*\n${accountsTextList}\n\n${buildGoalAwareMessage('accounts_available', {
+                                                goals: businessGoals,
+                                                serviceName: tenantServiceName,
+                                            })}`;
                                         } else {
                                             // Fallback si por alguna razón no se encontraron cuentas válidas
-                                            aiResponseText = `Pude ver que quieres renovar, pero no logré encontrar cuentas registradas con tu número de teléfono actual. ¿Me pasas el correo electrónico de la cuenta que quieres recargar?`;
+                                            aiResponseText = `Pude ver que quieres renovar, pero no logre encontrar cuentas registradas con tu numero de telefono actual.\n\n${buildGoalAwareMessage('accounts_fallback', {
+                                                goals: businessGoals,
+                                                serviceName: tenantServiceName,
+                                            })}`;
                                         }
                                     }
 
@@ -2245,7 +2452,11 @@ ${chatHistory}`
                                                         await sendWhatsAppImage(
                                                             phoneNumber,
                                                             absQrUrl,
-                                                            `📱 *QR de Pago*\n\nPlan: *${result.product.name}*\nMonto: *${tenantCurrency} ${result.product.price}*\nCuenta: *${selectedEmail}*\n\nEscanea este QR para realizar el pago. Una vez hecho, envíame la foto del comprobante. ✅`,
+                                                            `📱 *QR de Pago*\n\nPlan: *${result.product.name}*\nMonto: *${tenantCurrency} ${result.product.price}*\nCuenta: *${selectedEmail}*\n\n${buildGoalAwareMessage('payment_request', {
+                                                                goals: businessGoals,
+                                                                serviceName: tenantServiceName,
+                                                                paymentMethods: tenantPaymentMethods,
+                                                            })}`,
                                                             tenantToken,
                                                             phoneId
                                                         );
@@ -2253,12 +2464,25 @@ ${chatHistory}`
                                                 }
 
                                                 if (!aiResponseText.trim()) {
-                                                    aiResponseText = `¡Excelente elección! 🚀 *${result.product.name}* por *${tenantCurrency} ${result.product.price}* para la cuenta *${selectedEmail}*.`;
+                                                    aiResponseText = `Excelente eleccion. *${result.product.name}* por *${tenantCurrency} ${result.product.price}* para la cuenta *${selectedEmail}*.\n\n${buildGoalAwareMessage('plan_selected', {
+                                                        goals: businessGoals,
+                                                        serviceName: tenantServiceName,
+                                                    })}\n\n${buildGoalAwareMessage('payment_request', {
+                                                        goals: businessGoals,
+                                                        serviceName: tenantServiceName,
+                                                        paymentMethods: tenantPaymentMethods,
+                                                    })}`;
                                                 }
                                             } else {
                                                 // Cliente NUEVO sin correo registrado → pedir email
                                                 if (!aiResponseText.trim()) {
-                                                    aiResponseText = `¡Excelente elección! 🚀 Has seleccionado el *${result.product.name}* por *${tenantCurrency} ${result.product.price}*.\n\nPara continuar, necesito tu *correo electrónico*. El acceso a *${tenantServiceName}* se enviará directamente a tu email. 📧`
+                                                    aiResponseText = `Excelente eleccion. Has seleccionado el *${result.product.name}* por *${tenantCurrency} ${result.product.price}*.\n\n${buildGoalAwareMessage('plan_selected', {
+                                                        goals: businessGoals,
+                                                        serviceName: tenantServiceName,
+                                                    })}\n\n${buildGoalAwareMessage('request_email', {
+                                                        goals: businessGoals,
+                                                        serviceName: tenantServiceName,
+                                                    })}`
                                                 }
                                             }
                                         } else if (result.success) {
@@ -2318,7 +2542,11 @@ ${chatHistory}`
                                                         const qrResult = await sendWhatsAppImage(
                                                             phoneNumber,
                                                             absQrUrl,
-                                                            `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *${tenantCurrency} ${orderProduct.price}*\n\nRealiza tu pago y envíame la foto del comprobante aquí 📸`,
+                                                            `💳 *QR de pago* - ${orderProduct.name}\n💰 Monto: *${tenantCurrency} ${orderProduct.price}*\n\n${buildGoalAwareMessage('payment_request', {
+                                                                goals: businessGoals,
+                                                                serviceName: tenantServiceName,
+                                                                paymentMethods: tenantPaymentMethods,
+                                                            })}`,
                                                             tenantToken,
                                                             phoneId
                                                         )
@@ -2355,15 +2583,25 @@ ${chatHistory}`
                                                 actionExecuted = true
                                                 if (!aiResponseText.trim()) {
                                                     if (qrSent) {
-                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *${tenantServiceName}* se activará en *${email}*.
+                                                        aiResponseText = `✅ Email registrado. Tu acceso a *${tenantServiceName}* se activara en *${email}*.
 
-Te he enviado el *QR de pago* aquí arriba ☝️ para tu *${orderProduct?.name || pendingOrder.plan_name}* (*${tenantCurrency} ${orderProduct?.price || pendingOrder.amount}*).
+Te he enviado el *QR de pago* aqui arriba para tu *${orderProduct?.name || pendingOrder.plan_name}* (*${tenantCurrency} ${orderProduct?.price || pendingOrder.amount}*).
 
-Una vez realices el pago, envíame la foto del comprobante por este chat. 📸`
+${buildGoalAwareMessage('payment_request', {
+                                                            goals: businessGoals,
+                                                            serviceName: tenantServiceName,
+                                                            paymentMethods: tenantPaymentMethods,
+                                                        })}`
                                                     } else {
-                                                        aiResponseText = `✅ ¡Email registrado! Tu invitación a *${tenantServiceName}* se activará en *${email}*.
+                                                        aiResponseText = `✅ Email registrado. Tu acceso a *${tenantServiceName}* se activara en *${email}*.
 
-En un momento te envío el *QR de pago* para tu *${orderProduct?.name || pendingOrder.plan_name}*. 💳`
+En un momento te envio el *QR de pago* para tu *${orderProduct?.name || pendingOrder.plan_name}*.
+
+${buildGoalAwareMessage('payment_request', {
+                                                            goals: businessGoals,
+                                                            serviceName: tenantServiceName,
+                                                            paymentMethods: tenantPaymentMethods,
+                                                        })}`
                                                     }
                                                 }
                                             } else {

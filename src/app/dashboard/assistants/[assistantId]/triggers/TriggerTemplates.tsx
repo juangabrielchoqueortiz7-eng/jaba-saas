@@ -1,8 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowRight, Zap, Clock, Calendar, Bell, Users, Workflow, Star, ChevronRight, Plus } from 'lucide-react'
+import { ArrowRight, Zap, Clock, Calendar, Bell, Users, Workflow, Star, ChevronRight, Plus, Sparkles } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
+import type { BusinessType } from '@/lib/business-config'
+import {
+  getBusinessFocusDescription,
+  getBusinessFocusSummary,
+  getBusinessGoalTitles,
+  getDefaultGoalsForBusinessType,
+  normalizeBusinessGoalsForBusinessType,
+  type BusinessGoal,
+} from '@/lib/business-goals'
+import {
+  createTriggerTemplateFromIntent,
+  getIntentDefinitionsForBusinessType,
+  type BusinessIntentDefinition,
+} from '@/lib/business-intents'
 
 // ── Types (mirrors TriggerBuilder) ───────────────────────────────────────────
 
@@ -27,6 +42,8 @@ export interface TriggerTemplate {
   badgeColor: string
   icon: ReactNode
   type: 'logic' | 'time' | 'scheduled' | 'flow'
+  businessTypes?: BusinessType[]
+  businessGoals?: BusinessGoal[]
   timeMinutes?: string
   conditionsLogic?: 'AND' | 'OR'
   conditions: TemplateCondition[]
@@ -49,6 +66,8 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     icon: <Zap size={20} className="text-yellow-500" />,
     type: 'logic',
+    businessTypes: ['store', 'restaurant', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
+    businessGoals: ['sell_more'],
     conditionsLogic: 'OR',
     conditions: [
       { condition_type: 'text_contains', operator: 'contains', value: 'precio', payload: { words: 'precio,cuánto,costo,tarifa,vale' } },
@@ -70,6 +89,7 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: <Clock size={20} className="text-blue-500" />,
     type: 'time',
+    businessTypes: ['store', 'restaurant', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
     timeMinutes: '60',
     conditions: [],
     actions: [
@@ -89,6 +109,7 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     icon: <Users size={20} className="text-emerald-500" />,
     type: 'logic',
+    businessTypes: ['subscriptions', 'store', 'restaurant', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
     conditionsLogic: 'AND',
     conditions: [
       { condition_type: 'message_count', operator: 'equals', value: '1', payload: { count: 1 } },
@@ -115,6 +136,8 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
     icon: <Calendar size={20} className="text-indigo-500" />,
     type: 'scheduled',
+    businessTypes: ['subscriptions', 'gym'],
+    businessGoals: ['renew_clients'],
     conditions: [],
     actions: [
       {
@@ -134,6 +157,8 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-orange-100 text-orange-700 border-orange-200',
     icon: <Bell size={20} className="text-orange-500" />,
     type: 'logic',
+    businessTypes: ['store', 'restaurant', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
+    businessGoals: ['support_customers'],
     conditionsLogic: 'OR',
     conditions: [
       { condition_type: 'text_contains', operator: 'contains', value: 'hablar con humano', payload: { words: 'hablar con humano,persona real,agente,operador,humano' } },
@@ -168,6 +193,7 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
     icon: <Star size={20} className="text-purple-500" />,
     type: 'logic',
+    businessTypes: ['subscriptions', 'store', 'restaurant', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
     conditionsLogic: 'AND',
     conditions: [
       { condition_type: 'message_count', operator: 'greater_equal', value: '15', payload: { count: 15 } },
@@ -195,6 +221,8 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-red-100 text-red-700 border-red-200',
     icon: <Bell size={20} className="text-red-500" />,
     type: 'scheduled',
+    businessTypes: ['subscriptions', 'gym'],
+    businessGoals: ['renew_clients'],
     conditions: [],
     actions: [
       {
@@ -214,6 +242,8 @@ const TEMPLATES: TriggerTemplate[] = [
     badgeColor: 'bg-teal-100 text-teal-700 border-teal-200',
     icon: <Workflow size={20} className="text-teal-500" />,
     type: 'logic',
+    businessTypes: ['subscriptions', 'restaurant', 'store', 'clinic', 'gym', 'education', 'real_estate', 'technical_service', 'travel', 'custom'],
+    businessGoals: ['sell_more', 'support_customers'],
     conditionsLogic: 'OR',
     conditions: [
       { condition_type: 'text_contains', operator: 'contains', value: 'menu', payload: { words: 'menu,menú,inicio,hola,empezar,start' } },
@@ -237,13 +267,92 @@ const TEMPLATES: TriggerTemplate[] = [
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+function intentToTriggerTemplate(intent: BusinessIntentDefinition): TriggerTemplate {
+  const template = createTriggerTemplateFromIntent(intent)
+  const timeCondition = template.conditions.find((condition) => condition.condition_type === 'last_message_time')
+
+  return {
+    ...template,
+    badge: 'Intencion',
+    badgeColor: 'bg-[#25D366]/10 text-[#128C7E] border-[#25D366]/20',
+    icon: <Sparkles size={20} className="text-[#128C7E]" />,
+    businessTypes: intent.businessTypes,
+    businessGoals: intent.goals,
+    timeMinutes: timeCondition?.value,
+  }
+}
+
 interface TriggerTemplatesProps {
   onSelectTemplate: (template: TriggerTemplate) => void
   onStartBlank: () => void
 }
 
+function readBusinessGoals(
+  businessType: BusinessType,
+  businessProfile: unknown,
+): BusinessGoal[] {
+  const profileRecord =
+    businessProfile &&
+    typeof businessProfile === 'object' &&
+    !Array.isArray(businessProfile)
+      ? businessProfile as Record<string, unknown>
+      : {}
+
+  return normalizeBusinessGoalsForBusinessType(
+    businessType,
+    profileRecord.goals,
+    getDefaultGoalsForBusinessType(businessType),
+  )
+}
+
 export default function TriggerTemplates({ onSelectTemplate, onStartBlank }: TriggerTemplatesProps) {
   const [hovered, setHovered] = useState<string | null>(null)
+  const [businessType, setBusinessType] = useState<BusinessType | null>(null)
+  const [businessGoals, setBusinessGoals] = useState<BusinessGoal[]>([])
+  const focusSummary = getBusinessFocusSummary(businessGoals)
+  const focusDescription = getBusinessFocusDescription(businessGoals)
+  const focusTitles = getBusinessGoalTitles(businessGoals)
+
+  useEffect(() => {
+    async function loadBusinessType() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('business_type, business_profile')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (typeof profile?.business_type === 'string') {
+        const nextBusinessType = profile.business_type as BusinessType
+        setBusinessType(nextBusinessType)
+        setBusinessGoals(readBusinessGoals(nextBusinessType, profile.business_profile))
+      }
+    }
+
+    void loadBusinessType()
+  }, [])
+
+  const isRecommendedForBusinessType = (template: TriggerTemplate) => {
+    return Boolean(businessType && template.businessTypes?.includes(businessType))
+  }
+
+  const isRecommendedForGoal = (template: TriggerTemplate) => {
+    return businessGoals.length > 0 && Boolean(template.businessGoals?.some((goal) => businessGoals.includes(goal)))
+  }
+
+  const getRecommendationScore = (template: TriggerTemplate) => {
+    return Number(isRecommendedForBusinessType(template)) * 2 + Number(isRecommendedForGoal(template))
+  }
+
+  const intentTemplates = businessType
+    ? getIntentDefinitionsForBusinessType(businessType).map(intentToTriggerTemplate)
+    : []
+
+  const sortedIntentTemplates = [...intentTemplates].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
+  const sortedTemplates = [...TEMPLATES].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
 
   return (
     <div className="p-8 max-w-7xl mx-auto text-slate-700">
@@ -253,6 +362,13 @@ export default function TriggerTemplates({ onSelectTemplate, onStartBlank }: Tri
         <p className="text-[rgba(15,23,42,0.45)]">
           Elige una plantilla lista para usar, o crea una desde cero.
         </p>
+        {focusTitles.length > 0 && (
+          <div className="mt-4 rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 px-4 py-3 max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#128C7E]">Foco activo</p>
+            <p className="text-sm font-semibold text-[#0F172A] mt-1">{focusSummary}</p>
+            <p className="text-xs text-slate-500 mt-1">{focusDescription}</p>
+          </div>
+        )}
       </div>
 
       {/* Start from scratch */}
@@ -270,13 +386,102 @@ export default function TriggerTemplates({ onSelectTemplate, onStartBlank }: Tri
         <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-[#ca8a04] transition-colors" />
       </button>
 
+      {intentTemplates.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-[#0F172A]/50 uppercase tracking-wider">
+                Intenciones recomendadas
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Automatizaciones listas segun el rubro y los objetivos de esta cuenta.
+              </p>
+              {focusTitles.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {focusTitles.map((goal) => (
+                    <span key={goal} className="text-[10px] font-semibold px-2 py-1 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
+                      {goal}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <span className="text-[10px] font-semibold px-2 py-1 rounded-full border bg-[#25D366]/10 text-[#128C7E] border-[#25D366]/20">
+              {intentTemplates.length} sugerencias
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {sortedIntentTemplates.map(template => (
+              <button
+                key={template.id}
+                onClick={() => onSelectTemplate(template)}
+                onMouseEnter={() => setHovered(template.id)}
+                onMouseLeave={() => setHovered(null)}
+                className={`text-left p-5 rounded-[14px] border transition-all group ${
+                  hovered === template.id
+                    ? 'border-[#25D366]/40 bg-[#25D366]/5 shadow-sm scale-[1.01]'
+                    : 'border-black/[0.07] bg-white hover:border-[#25D366]/30 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="h-9 w-9 rounded-lg bg-[#25D366]/10 border border-[#25D366]/15 flex items-center justify-center flex-shrink-0">
+                    {template.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${template.badgeColor}`}>
+                        {template.badge}
+                      </span>
+                      {isRecommendedForGoal(template) && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
+                          Para tu objetivo
+                        </span>
+                      )}
+                      <span className="text-[10px] text-slate-400 capitalize">{template.type}</span>
+                    </div>
+                    <p className="font-semibold text-sm text-[#0F172A] leading-tight">{template.name}</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-400 leading-relaxed mb-3">{template.description}</p>
+
+                <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
+                    {template.conditions.length} {template.conditions.length === 1 ? 'condicion' : 'condiciones'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                    {template.actions.length} {template.actions.length === 1 ? 'accion' : 'acciones'}
+                  </span>
+                  {template.conditionsLogic && template.conditions.length > 1 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block" />
+                      Logica {template.conditionsLogic}
+                    </span>
+                  )}
+                </div>
+
+                <div className={`mt-3 flex items-center gap-1 text-xs font-medium transition-colors ${
+                  hovered === template.id ? 'text-[#128C7E]' : 'text-slate-300'
+                }`}>
+                  Usar intencion
+                  <ArrowRight size={12} />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Templates */}
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-[#0F172A]/50 uppercase tracking-wider mb-4">
           Plantillas predefinidas — Editables después
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4">
-          {TEMPLATES.map(template => (
+          {sortedTemplates.map(template => (
             <button
               key={template.id}
               onClick={() => onSelectTemplate(template)}
@@ -294,6 +499,16 @@ export default function TriggerTemplates({ onSelectTemplate, onStartBlank }: Tri
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    {isRecommendedForBusinessType(template) && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-[#25D366]/10 text-[#128C7E] border-[#25D366]/20">
+                        Para tu rubro
+                      </span>
+                    )}
+                    {isRecommendedForGoal(template) && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
+                        Para tu objetivo
+                      </span>
+                    )}
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${template.badgeColor}`}>
                       {template.badge}
                     </span>

@@ -1,5 +1,19 @@
 'use server'
 
+import { createClient } from '@/utils/supabase/server'
+import {
+    getModulesForBusinessType,
+    isBusinessType,
+    normalizeBusinessModules,
+    type BusinessModule,
+} from '@/lib/business-config'
+import {
+    getDefaultGoalsForBusinessType,
+    normalizeBusinessGoalsForBusinessType,
+    type BusinessGoal,
+} from '@/lib/business-goals'
+import { seedStarterTemplatesForBusinessType } from '@/lib/business-starter-seed'
+
 type MetaErrorPayload = {
     message?: string
     error_user_msg?: string
@@ -59,6 +73,124 @@ function requiresRegistration(health: MetaHealthStatus | undefined) {
     const isBlocked = health.CAN_SEND_MESSAGE === 'BLOCKED'
     const hasIssues = Boolean(health.entities && health.entities.length > 0)
     return isBlocked || hasIssues
+}
+
+type UpdateBusinessProfileInput = {
+    businessType: string
+    enabledModules: string[]
+    goals?: string[]
+}
+
+export async function updateBusinessProfileSettings(input: UpdateBusinessProfileInput) {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+        return { success: false, error: 'No autorizado' }
+    }
+
+    if (!isBusinessType(input.businessType)) {
+        return { success: false, error: 'Selecciona un tipo de negocio valido' }
+    }
+
+    const businessType = input.businessType
+    const fallbackModules = getModulesForBusinessType(businessType)
+    const enabledModules = normalizeBusinessModules(input.enabledModules, fallbackModules)
+    const goals = normalizeBusinessGoalsForBusinessType(businessType, input.goals)
+
+    const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('business_profile')
+        .eq('id', user.id)
+        .maybeSingle()
+
+    const currentBusinessProfile =
+        existingProfile?.business_profile &&
+            typeof existingProfile.business_profile === 'object' &&
+            !Array.isArray(existingProfile.business_profile)
+            ? existingProfile.business_profile as Record<string, unknown>
+            : {}
+
+    const nextBusinessProfile = {
+        ...currentBusinessProfile,
+        goals,
+        configured_from_settings: true,
+        updated_from_settings_at: new Date().toISOString(),
+    }
+
+    const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+            id: user.id,
+            business_type: businessType,
+            enabled_modules: enabledModules as BusinessModule[],
+            onboarding_completed: true,
+            business_profile: nextBusinessProfile,
+            updated_at: new Date().toISOString(),
+        })
+
+    if (error) {
+        console.error('[Settings] Error updating business profile:', error)
+        return { success: false, error: 'No se pudo actualizar la configuracion del negocio' }
+    }
+
+    return {
+        success: true,
+        businessType,
+        modules: enabledModules,
+        goals: goals as BusinessGoal[],
+    }
+}
+
+export async function installRecommendedStarterTemplates() {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+        return { success: false, error: 'No autorizado' }
+    }
+
+    const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('business_type, business_profile')
+        .eq('id', user.id)
+        .maybeSingle()
+
+    if (profileError) {
+        return { success: false, error: 'No se pudo leer el perfil del negocio' }
+    }
+
+    if (!isBusinessType(profile?.business_type)) {
+        return { success: false, error: 'Primero selecciona el tipo de negocio en el onboarding' }
+    }
+
+    try {
+        const businessProfile =
+            profile?.business_profile &&
+                typeof profile.business_profile === 'object' &&
+                !Array.isArray(profile.business_profile)
+                ? profile.business_profile as Record<string, unknown>
+                : {}
+
+        const goals = normalizeBusinessGoalsForBusinessType(
+            profile.business_type,
+            businessProfile.goals,
+            getDefaultGoalsForBusinessType(profile.business_type),
+        )
+
+        const result = await seedStarterTemplatesForBusinessType(supabase, user.id, profile.business_type, goals)
+        return {
+            success: true,
+            flows: result.flows.length,
+            triggers: result.triggers.length,
+        }
+    } catch (error) {
+        console.error('[Settings] Error installing starter templates:', error)
+        return {
+            success: false,
+            error: getErrorMessage(error, 'No se pudieron instalar las plantillas'),
+        }
+    }
 }
 
 export async function checkWhatsAppStatus(phoneNumberId: string, accessToken: string) {

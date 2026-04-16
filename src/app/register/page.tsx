@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Bot, Lock, Mail, ArrowRight, User, Building2, Phone } from 'lucide-react'
+import { DEFAULT_NEW_BUSINESS_MODULES } from '@/lib/business-config'
 
 export default async function Register({
     searchParams,
@@ -57,6 +58,10 @@ export default async function Register({
                 full_name: fullName,
                 business_name: businessName,
                 phone,
+                business_type: null,
+                enabled_modules: DEFAULT_NEW_BUSINESS_MODULES,
+                onboarding_completed: false,
+                business_profile: {},
             })
         }
 

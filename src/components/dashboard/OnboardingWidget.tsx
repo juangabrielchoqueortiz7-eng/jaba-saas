@@ -5,6 +5,11 @@ import { createClient } from '@/utils/supabase/client'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
+    getBusinessFocusSummary,
+    normalizeBusinessGoalsForBusinessType,
+} from '@/lib/business-goals'
+import type { BusinessType } from '@/lib/business-config'
+import {
     Bot, BookOpen, ShoppingBag, Zap, MessageSquare, Users,
     CheckCircle2, ChevronUp, ChevronDown, Sparkles
 } from 'lucide-react'
@@ -22,6 +27,7 @@ type Step = {
 
 export function OnboardingWidget() {
     const [steps, setSteps] = useState<Step[]>([])
+    const [focusSummary, setFocusSummary] = useState('Sin objetivos definidos')
     const [loading, setLoading] = useState(true)
     const [isOpen, setIsOpen] = useState(false)
     const [dismissed, setDismissed] = useState(() => {
@@ -42,17 +48,32 @@ export function OnboardingWidget() {
                 { data: flows },
                 { count: chatsCount },
                 { count: subsCount },
+                { data: profile },
             ] = await Promise.all([
                 supabase.from('whatsapp_credentials').select('id, training_prompt').eq('user_id', user.id),
                 supabase.from('products').select('id').eq('user_id', user.id).limit(1),
-                supabase.from('flows').select('id').eq('user_id', user.id).limit(1),
+                supabase.from('conversation_flows').select('id').eq('user_id', user.id).limit(1),
                 supabase.from('chats').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
                 supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+                supabase.from('user_profiles').select('business_type, business_profile').eq('id', user.id).maybeSingle(),
             ])
 
             const hasAssistant = (assistants?.length ?? 0) > 0
             const hasTraining = assistants?.some(a => a.training_prompt && a.training_prompt.trim().length > 50) ?? false
             const assistantId = assistants?.[0]?.id
+            const businessType =
+                profile?.business_type && typeof profile.business_type === 'string'
+                    ? profile.business_type as BusinessType
+                    : 'subscriptions'
+            const businessProfile =
+                profile?.business_profile &&
+                    typeof profile.business_profile === 'object' &&
+                    !Array.isArray(profile.business_profile)
+                    ? profile.business_profile as { goals?: unknown }
+                    : {}
+            const goals = normalizeBusinessGoalsForBusinessType(businessType, businessProfile.goals)
+
+            setFocusSummary(getBusinessFocusSummary(goals))
 
             setSteps([
                 { id: 'assistant',     done: hasAssistant,              title: 'Conecta tu WhatsApp',     href: '/dashboard/settings',                                                                       icon: Bot,           color: '#25D366', rgb: '37,211,102' },
@@ -95,6 +116,7 @@ export function OnboardingWidget() {
                                 Configuración inicial
                             </h3>
                             <p className="text-xs text-[#0F172A]/40 mt-0.5">{completedCount} de {totalCount} completados</p>
+                            <p className="text-[11px] text-[#0F172A]/45 mt-1">Foco activo: {focusSummary}</p>
                         </div>
                         <button onClick={() => setIsOpen(false)} className="text-[#0F172A]/35 hover:text-[#0F172A]/65 p-1 transition-colors">
                             <ChevronDown size={16} />
