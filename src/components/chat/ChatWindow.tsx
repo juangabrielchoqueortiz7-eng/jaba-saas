@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Paperclip, Smile, Mic, X, Bell, Image as ImageIcon, Tag, Zap, Search, Info, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback, useDeferredValue, useMemo } from 'react'
+import { Send, Paperclip, Smile, Mic, X, Bell, Image as ImageIcon, Zap, Search, Info, ChevronDown, ArrowLeft, MoreVertical } from 'lucide-react'
 import { MessageBubble } from './MessageBubble'
 import { ContactInfoSidebar } from './ContactInfoSidebar'
 import { createClient } from '@/utils/supabase/client'
@@ -17,7 +17,7 @@ interface Message {
     content: string
     is_from_me: boolean
     created_at: string
-    status: 'sent' | 'delivered' | 'read'
+    status: 'sent' | 'delivered' | 'read' | 'failed'
     media_url?: string | null
     media_type?: string | null
     _deleted?: boolean
@@ -33,9 +33,13 @@ interface ChatDetails {
 
 interface ChatWindowProps {
     chatId?: string | null
+    showMobileBack?: boolean
+    onBack?: () => void
 }
 
-export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
+const MESSAGE_PAGE_SIZE = 50
+
+export function ChatWindow({ chatId: externalChatId, showMobileBack = false, onBack }: ChatWindowProps = {}) {
     const [messages, setMessages] = useState<Message[]>([])
     const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null)
     const [newMessage, setNewMessage] = useState('')
@@ -48,10 +52,14 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     const [reminderResult, setReminderResult] = useState<string | null>(null)
     const [isResendingPlans, setIsResendingPlans] = useState(false)
     const [resendPlansResult, setResendPlansResult] = useState<string | null>(null)
-    const [showTagMenu, setShowTagMenu] = useState(false)
     const [showContactInfo, setShowContactInfo] = useState(false)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [messageSearch, setMessageSearch] = useState('')
+    const deferredMessageSearch = useDeferredValue(messageSearch)
+    const [hasMoreOlder, setHasMoreOlder] = useState(false)
+    const [loadingOlder, setLoadingOlder] = useState(false)
+    const [newIncomingCount, setNewIncomingCount] = useState(0)
+    const [showActionsMenu, setShowActionsMenu] = useState(false)
 
     // Reply, scroll button
     const [replyingTo, setReplyingTo] = useState<{ id: string; content: string; isMine: boolean } | null>(null)
@@ -111,11 +119,29 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
     const activeChatId = externalChatId !== undefined ? externalChatId : searchParams.get('chatId')
     const scrollRef = useRef<HTMLDivElement>(null)
 
+    const isNearBottom = useCallback(() => {
+        if (!scrollRef.current) return true
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+        return scrollHeight - scrollTop - clientHeight < 120
+    }, [])
+
+    const scrollToBottom = useCallback(() => {
+        setTimeout(() => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+                setNewIncomingCount(0)
+            }
+        }, 100)
+    }, [])
+
     useEffect(() => {
         if (!activeChatId) return
 
         const fetchMessages = async () => {
             setLoading(true)
+            setMessages([])
+            setHasMoreOlder(false)
+            setNewIncomingCount(0)
             const { data: chat } = await supabase
                 .from('chats')
                 .select('contact_name, phone_number, tags')
@@ -128,9 +154,13 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 .from('messages')
                 .select('*')
                 .eq('chat_id', activeChatId)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: false })
+                .limit(MESSAGE_PAGE_SIZE)
 
-            if (msgs) setMessages(msgs)
+            if (msgs) {
+                setMessages([...msgs].reverse() as Message[])
+                setHasMoreOlder(msgs.length === MESSAGE_PAGE_SIZE)
+            }
             setLoading(false)
             scrollToBottom()
         }
@@ -154,6 +184,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 filter: `chat_id=eq.${activeChatId}`
             }, (payload) => {
                 const newMsg = payload.new as Message
+                const shouldStickToBottom = isNearBottom() || newMsg.is_from_me
                 setMessages((prev) => {
                     if (prev.some(m => m.id === newMsg.id)) return prev
                     const filtered = prev.filter(m => {
@@ -164,7 +195,11 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                     })
                     return [...filtered, newMsg]
                 })
-                scrollToBottom()
+                if (shouldStickToBottom) {
+                    scrollToBottom()
+                } else {
+                    setNewIncomingCount(count => count + 1)
+                }
             })
             .on('postgres_changes', {
                 event: 'UPDATE',
@@ -177,21 +212,48 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             .subscribe()
 
         return () => { supabase.removeChannel(channel) }
-    }, [activeChatId, supabase])
+    }, [activeChatId, isNearBottom, scrollToBottom, supabase])
 
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            if (scrollRef.current) {
-                scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-            }
-        }, 100)
-    }
+    const loadOlderMessages = useCallback(async () => {
+        if (!activeChatId || loadingOlder || !hasMoreOlder || messages.length === 0) return
+        const oldestMessage = messages[0]
+        const previousScrollHeight = scrollRef.current?.scrollHeight ?? 0
+        setLoadingOlder(true)
+
+        const { data } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('chat_id', activeChatId)
+            .lt('created_at', oldestMessage.created_at)
+            .order('created_at', { ascending: false })
+            .limit(MESSAGE_PAGE_SIZE)
+
+        if (data) {
+            const olderMessages = [...data].reverse() as Message[]
+            setMessages(prev => {
+                const existingIds = new Set(prev.map(message => message.id))
+                return [...olderMessages.filter(message => !existingIds.has(message.id)), ...prev]
+            })
+            setHasMoreOlder(data.length === MESSAGE_PAGE_SIZE)
+            setTimeout(() => {
+                if (!scrollRef.current) return
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight - previousScrollHeight
+            }, 0)
+        }
+
+        setLoadingOlder(false)
+    }, [activeChatId, hasMoreOlder, loadingOlder, messages, supabase])
 
     const handleScroll = useCallback(() => {
         if (!scrollRef.current) return
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-        setShowScrollBtn(scrollHeight - scrollTop - clientHeight > 120)
-    }, [])
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+        setShowScrollBtn(distanceFromBottom > 120)
+        if (distanceFromBottom < 80) setNewIncomingCount(0)
+        if (scrollTop < 80 && hasMoreOlder && !loadingOlder) {
+            void loadOlderMessages()
+        }
+    }, [hasMoreOlder, loadOlderMessages, loadingOlder])
 
     const adjustTextareaHeight = useCallback(() => {
         const el = textareaRef.current
@@ -226,13 +288,15 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
         }
 
         try {
-            await fetch('/api/chat/send', {
+            const response = await fetch('/api/chat/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chatId: activeChatId, content: tempMsg.content })
             })
+            if (!response.ok) throw new Error('Message send failed')
         } catch (error) {
             console.error('Error sending message:', error)
+            setMessages(prev => prev.map(message => message.id === tempMsg.id ? { ...message, status: 'failed' } : message))
         }
     }
 
@@ -462,6 +526,17 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
         }
     }
 
+    const displayMessages = useMemo(() => {
+        const normalizedSearch = deferredMessageSearch.trim().toLowerCase()
+        if (!normalizedSearch) return messages
+        return messages.filter(message => message.content?.toLowerCase().includes(normalizedSearch))
+    }, [deferredMessageSearch, messages])
+
+    const visibleMessages = useMemo(
+        () => displayMessages.filter(message => !message._deleted),
+        [displayMessages]
+    )
+
     if (!activeChatId) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden" style={{ background: '#EFEAE2' }}>
@@ -479,10 +554,6 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             </div>
         )
     }
-
-    const displayMessages = messageSearch
-        ? messages.filter(m => m.content?.toLowerCase().includes(messageSearch.toLowerCase()))
-        : messages
 
     return (
         <div className="flex-1 flex h-full min-h-0">
@@ -597,35 +668,60 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
             {/* Header — WhatsApp style */}
             <div className="shrink-0" style={{ background: '#F0F2F5', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                <div className="h-[60px] flex items-center justify-between px-4 gap-2">
+                <div className="h-[60px] flex items-center justify-between px-3 sm:px-4 gap-2">
+                    {showMobileBack && (
+                        <button
+                            onClick={onBack}
+                            className="md:hidden -ml-2 p-2 rounded-full text-[#111B21]/60 hover:bg-black/[0.06] transition-colors"
+                            title="Volver a conversaciones"
+                        >
+                            <ArrowLeft size={21} />
+                        </button>
+                    )}
                     {/* Avatar + info — clickeable para abrir sidebar */}
                     <button
                         onClick={() => setShowContactInfo(v => !v)}
                         className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90 transition-opacity"
                     >
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm" style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
                             {chatDetails?.contact_name?.charAt(0)?.toUpperCase() || '#'}
                         </div>
                         <div className="min-w-0">
                             <h3 className="font-semibold text-[#111B21] text-[15px] truncate leading-tight">{chatDetails?.contact_name || 'Desconocido'}</h3>
-                            <span className="text-xs text-[#111B21]/45 font-normal">{chatDetails?.phone_number}</span>
+                            <span className="hidden sm:inline text-xs text-[#111B21]/45 font-normal">{chatDetails?.phone_number}</span>
                         </div>
                     </button>
 
                     <div className="flex items-center gap-1 shrink-0">
-                        {/* Tags CRM */}
+                        {/* Acciones de negocio */}
                         <div className="relative">
                             <button
-                                onClick={() => setShowTagMenu(!showTagMenu)}
-                                className="flex items-center gap-1 p-2 rounded-xl text-xs bg-black/[0.05] hover:bg-black/[0.08] text-[#0F172A]/55 transition-colors"
+                                onClick={() => setShowActionsMenu(v => !v)}
+                                className="p-2 rounded-full text-[#111B21]/50 hover:text-[#111B21] hover:bg-black/[0.05] transition-colors"
+                                title="Más acciones"
                             >
-                                <Tag size={14} />
-                                {(chatDetails?.tags?.length || 0) > 0 && (
-                                    <span className="text-[10px] bg-[#25D366] text-black px-1 rounded-full font-bold">{chatDetails?.tags?.length}</span>
-                                )}
+                                <MoreVertical size={18} />
                             </button>
-                            {showTagMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-black/[0.08] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
+                            {showActionsMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-[min(16rem,calc(100vw-1rem))] bg-white border border-black/[0.08] rounded-xl shadow-xl z-50 py-1 animate-in fade-in slide-in-from-top-2">
+                                    <p className="px-3 py-2 text-[10px] text-[#0F172A]/30 uppercase tracking-wider font-medium">Acciones</p>
+                                    <button
+                                        onClick={() => { setShowActionsMenu(false); void handleResendPlans() }}
+                                        disabled={isResendingPlans}
+                                        className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-black/[0.04] disabled:opacity-50 text-[#0F172A]"
+                                    >
+                                        <Zap size={14} className="text-[#25D366]" />
+                                        {isResendingPlans ? 'Enviando planes...' : 'Reenviar lista de planes'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowActionsMenu(false); void handleSendReminder() }}
+                                        disabled={isSendingReminder}
+                                        className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-black/[0.04] disabled:opacity-50 text-[#0F172A]"
+                                    >
+                                        <Bell size={14} className="text-amber-600" />
+                                        {isSendingReminder ? 'Enviando recordatorio...' : 'Reenviar recordatorio'}
+                                    </button>
+                                    <div className="border-t border-black/[0.06] my-1" />
                                     <p className="px-3 py-1.5 text-[10px] text-[#0F172A]/30 uppercase tracking-wider font-medium">Etiquetas CRM</p>
                                     {Object.entries(CRM_TAGS).map(([key, tag]) => {
                                         const isActive = chatDetails?.tags?.includes(key)
@@ -654,7 +750,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                                     isActive ? tag.color + ' font-medium' : 'text-[#0F172A]'
                                                 )}
                                             >
-                                                <span>{tag.icon}</span>
+                                                <span className={cn("w-5 h-5 rounded-full text-[10px] flex items-center justify-center", tag.bg, tag.color)}>{tag.icon}</span>
                                                 <span className="flex-1">{tag.label}</span>
                                                 {isActive && <span className="text-[10px]">✓</span>}
                                             </button>
@@ -662,46 +758,9 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                     })}
                                 </div>
                             )}
-                        </div>
-
-                        {/* Planes */}
-                        <div className="relative">
-                            <button
-                                onClick={handleResendPlans}
-                                disabled={isResendingPlans}
-                                title="Reenviar lista de planes"
-                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all ${isResendingPlans
-                                    ? 'bg-[#25D366]/10 text-[#25D366] cursor-wait'
-                                    : 'bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075E54]'
-                                    }`}
-                            >
-                                <span>{isResendingPlans ? '⏳' : '📋'}</span>
-                                <span className="hidden lg:inline text-[11px]">{isResendingPlans ? 'Enviando...' : 'Planes'}</span>
-                            </button>
-                            {resendPlansResult && (
+                            {(resendPlansResult || reminderResult) && (
                                 <div className="absolute top-10 right-0 bg-white text-xs text-[#111B21] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
-                                    {resendPlansResult}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Recordatorio */}
-                        <div className="relative">
-                            <button
-                                onClick={handleSendReminder}
-                                disabled={isSendingReminder}
-                                title="Reenviar recordatorio de renovación"
-                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all ${isSendingReminder
-                                    ? 'bg-amber-500/10 text-amber-600 cursor-wait'
-                                    : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700'
-                                    }`}
-                            >
-                                <Bell size={13} className={isSendingReminder ? 'animate-bounce' : ''} />
-                                <span className="hidden lg:inline text-[11px]">{isSendingReminder ? 'Enviando...' : 'Recordatorio'}</span>
-                            </button>
-                            {reminderResult && (
-                                <div className="absolute top-10 right-0 bg-white text-xs text-[#111B21] px-3 py-1.5 rounded-xl shadow-lg border border-black/[0.08] whitespace-nowrap z-10">
-                                    {reminderResult}
+                                    {resendPlansResult || reminderResult}
                                 </div>
                             )}
                         </div>
@@ -728,7 +787,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
                 {/* Search bar */}
                 {isSearchOpen && (
-                    <div className="px-4 pb-3 flex items-center gap-2">
+                    <div className="px-3 sm:px-4 pb-3 flex items-center gap-2">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0F172A]/30" size={14} />
                             <input
@@ -742,7 +801,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         </div>
                         {messageSearch && (
                             <span className="text-xs text-[#0F172A]/30 shrink-0">
-                                {displayMessages.filter(m => !m._deleted).length} resultado{displayMessages.filter(m => !m._deleted).length !== 1 ? 's' : ''}
+                                {visibleMessages.length} resultado{visibleMessages.length !== 1 ? 's' : ''}
                             </span>
                         )}
                     </div>
@@ -754,7 +813,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 <div
                     ref={scrollRef}
                     onScroll={handleScroll}
-                    className="h-full overflow-y-auto px-3 py-4"
+                    className="h-full overflow-y-auto px-2 sm:px-6 lg:px-10 py-4"
                     style={{
                         background: '#EFEAE2',
                         backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Cpath d=\'M10 10 Q20 0 30 10 Q40 20 50 10 Q60 0 70 10\' fill=\'none\' stroke=\'%2300000008\' stroke-width=\'1\'/%3E%3C/svg%3E")',
@@ -770,12 +829,32 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         </div>
                     )}
 
-                    {displayMessages.filter(m => !m._deleted).map((msg, index) => {
-                        const visibleMessages = displayMessages.filter(m => !m._deleted)
+                    {hasMoreOlder && (
+                        <div className="flex justify-center pb-3">
+                            <button
+                                onClick={() => void loadOlderMessages()}
+                                disabled={loadingOlder}
+                                className="bg-white/80 backdrop-blur-sm text-[#111B21]/55 text-[12px] px-4 py-1.5 rounded-full shadow-sm font-medium hover:bg-white disabled:opacity-60"
+                            >
+                                {loadingOlder ? 'Cargando...' : 'Cargar mensajes anteriores'}
+                            </button>
+                        </div>
+                    )}
+
+                    {visibleMessages.map((msg, index) => {
                         const prevMsg = index > 0 ? visibleMessages[index - 1] : null
+                        const nextMsg = index < visibleMessages.length - 1 ? visibleMessages[index + 1] : null
                         const showDateSeparator = !prevMsg || isDifferentDay(prevMsg.created_at, msg.created_at)
+                        const isGroupedWithPrevious = !!prevMsg &&
+                            prevMsg.is_from_me === msg.is_from_me &&
+                            !isDifferentDay(prevMsg.created_at, msg.created_at) &&
+                            Math.abs(new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime()) < 5 * 60 * 1000
+                        const isGroupedWithNext = !!nextMsg &&
+                            nextMsg.is_from_me === msg.is_from_me &&
+                            !isDifferentDay(nextMsg.created_at, msg.created_at) &&
+                            Math.abs(new Date(nextMsg.created_at).getTime() - new Date(msg.created_at).getTime()) < 5 * 60 * 1000
                         return (
-                            <div key={msg.id} className="mb-0.5">
+                            <div key={msg.id} className={cn("mx-auto w-full max-w-[920px]", isGroupedWithNext ? "mb-0.5" : "mb-2")}>
                                 {showDateSeparator && (
                                     <div className="flex items-center justify-center my-4">
                                         <div className="bg-white/80 backdrop-blur-sm text-[#111B21]/55 text-[12px] px-4 py-1 rounded-full shadow-sm font-medium">
@@ -796,6 +875,8 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                                     searchHighlight={messageSearch || undefined}
                                     quotedContent={msg._quoted_content}
                                     quotedIsMine={msg._quoted_is_mine}
+                                    isGroupedWithPrevious={isGroupedWithPrevious}
+                                    isGroupedWithNext={isGroupedWithNext}
                                 />
                             </div>
                         )
@@ -807,8 +888,9 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                 {showScrollBtn && (
                     <button
                         onClick={() => scrollToBottom()}
-                        className="absolute bottom-3 right-4 z-10 bg-white border border-black/[0.08] rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                        className="absolute bottom-3 right-4 z-10 bg-white border border-black/[0.08] rounded-full px-3 py-2 shadow-lg hover:bg-gray-50 transition-colors flex items-center gap-1 text-xs text-[#111B21]/60"
                     >
+                        {newIncomingCount > 0 && <span>{newIncomingCount} nuevo{newIncomingCount !== 1 ? 's' : ''}</span>}
                         <ChevronDown size={18} className="text-[#111B21]/60" />
                     </button>
                 )}
@@ -867,7 +949,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
             )}
 
             {/* Input Area */}
-            <div className="px-3 py-2.5 shrink-0 relative" style={{ background: '#F0F2F5' }}>
+            <div className="px-2 sm:px-3 py-2 sm:py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shrink-0 relative" style={{ background: '#F0F2F5' }}>
                 {/* Reply preview */}
                 {replyingTo && (
                     <div className="mb-2 flex items-center gap-2">
@@ -937,7 +1019,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-1.5">
+                    <div className="mx-auto flex max-w-[920px] items-center gap-1 sm:gap-1.5">
                         <button
                             className={cn("p-2 rounded-full transition-colors", showEmojiPicker ? "text-[#25D366]" : "text-[#111B21]/40 hover:text-[#111B21] hover:bg-black/[0.05]")}
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -965,7 +1047,7 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
                         <textarea
                             ref={textareaRef}
                             rows={1}
-                            className="flex-1 bg-white border-0 rounded-2xl px-4 py-2.5 text-[#111B21] text-sm focus:outline-none shadow-sm placeholder:text-[#111B21]/35 min-w-0 resize-none overflow-hidden leading-[20px]"
+                            className="flex-1 bg-white border-0 rounded-2xl px-4 py-2.5 text-[#111B21] text-[16px] sm:text-sm focus:outline-none shadow-sm placeholder:text-[#111B21]/35 min-w-0 resize-none overflow-hidden leading-[20px]"
                             style={{ minHeight: 42, maxHeight: 120 }}
                             placeholder="Escribe un mensaje..."
                             value={newMessage}
@@ -1013,13 +1095,19 @@ export function ChatWindow({ chatId: externalChatId }: ChatWindowProps = {}) {
 
         {/* Contact Info Sidebar */}
         {showContactInfo && chatDetails && activeChatId && (
-            <ContactInfoSidebar
-                phoneNumber={chatDetails.phone_number}
-                chatId={activeChatId}
-                contactName={chatDetails.contact_name}
-                tags={chatDetails.tags}
-                onClose={() => setShowContactInfo(false)}
-            />
+            <>
+                <div
+                    className="fixed inset-0 z-[80] bg-black/30 md:hidden"
+                    onClick={() => setShowContactInfo(false)}
+                />
+                <ContactInfoSidebar
+                    phoneNumber={chatDetails.phone_number}
+                    chatId={activeChatId}
+                    contactName={chatDetails.contact_name}
+                    tags={chatDetails.tags}
+                    onClose={() => setShowContactInfo(false)}
+                />
+            </>
         )}
         </div>
     )

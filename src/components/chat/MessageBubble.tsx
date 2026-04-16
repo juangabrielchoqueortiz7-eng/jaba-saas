@@ -18,18 +18,20 @@ interface MessageBubbleProps {
     searchHighlight?: string
     quotedContent?: string | null
     quotedIsMine?: boolean
+    isGroupedWithPrevious?: boolean
+    isGroupedWithNext?: boolean
 }
 
 // Detectar si el mensaje es una lista de planes enviada via WhatsApp interactivo
 function isPlanListMessage(content: string) {
-    return content?.startsWith('📋 *Planes Enviados:*') || content?.startsWith('📋 *Lista de Planes')
+    return content?.includes('*Planes Enviados:*') || content?.includes('*Lista de Planes')
 }
 
 function parsePlanLines(content: string): string[] {
     return content
         .split('\n')
-        .filter(line => line.startsWith('• '))
-        .map(line => line.replace('• ', '').trim())
+        .filter(line => /^(\u2022|-)\s+/.test(line))
+        .map(line => line.replace(/^(\u2022|-)\s+/, '').trim())
 }
 
 function highlightText(text: string, highlight: string) {
@@ -74,9 +76,12 @@ function parseWhatsAppFormatting(text: string) {
 }
 
 // Shared action buttons shown on hover
-function ActionButtons({ onReply, onCopy, onDelete }: { onReply?: () => void; onCopy?: () => void; onDelete?: () => void }) {
+function ActionButtons({ onReply, onCopy, onDelete, align }: { onReply?: () => void; onCopy?: () => void; onDelete?: () => void; align: 'left' | 'right' }) {
     return (
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity self-end pb-1 shrink-0">
+        <div className={cn(
+            "hidden sm:flex absolute top-1 z-10 items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
+            align === 'left' ? "-left-24" : "-right-16"
+        )}>
             {onReply && (
                 <button
                     onClick={onReply}
@@ -108,7 +113,7 @@ function ActionButtons({ onReply, onCopy, onDelete }: { onReply?: () => void; on
     )
 }
 
-export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType, onImageClick, onDelete, onRetry, onReply, searchHighlight, quotedContent, quotedIsMine }: MessageBubbleProps) {
+export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, mediaType, onImageClick, onDelete, onRetry, onReply, searchHighlight, quotedContent, quotedIsMine, isGroupedWithPrevious }: MessageBubbleProps) {
     const [imageError, setImageError] = useState(false)
     const [imageLoaded, setImageLoaded] = useState(false)
     const audioRef = useRef<HTMLAudioElement>(null)
@@ -123,14 +128,14 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
     if (isPlanListMessage(content)) {
         const plans = parsePlanLines(content)
         return (
-            <div className={cn('flex w-full mb-1.5 group items-end gap-1.5', isMine ? 'justify-end' : 'justify-start')}>
+            <div className={cn('flex w-full mb-1.5 group items-end gap-1.5 relative', isMine ? 'justify-end' : 'justify-start')}>
                 {isMine && (
-                    <ActionButtons onReply={onReply} onCopy={handleCopy} onDelete={onDelete} />
+                    <ActionButtons align="left" onReply={onReply} onCopy={handleCopy} onDelete={onDelete} />
                 )}
                 <div className={cn(
                     'rounded-2xl overflow-hidden shadow-sm',
                     isMine ? 'bg-[#DCF8C6] rounded-tr-sm' : 'bg-white rounded-tl-sm'
-                )} style={{ minWidth: 220, maxWidth: '65%' }}>
+                )} style={{ minWidth: 220, maxWidth: 'min(82vw, 360px)' }}>
                     <div className="px-3 pt-2.5 pb-1">
                         <div className="flex items-center gap-1.5 mb-2">
                             <span className="text-[#075E54] text-xs font-bold uppercase tracking-wide">📋 Lista de Planes Enviada</span>
@@ -154,7 +159,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                     </div>
                 </div>
                 {!isMine && (
-                    <ActionButtons onReply={onReply} onCopy={handleCopy} />
+                    <ActionButtons align="right" onReply={onReply} onCopy={handleCopy} />
                 )}
             </div>
         )
@@ -167,25 +172,28 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
     }
 
     return (
-        <div className={cn("flex w-full mb-0.5 group items-end gap-1.5", isMine ? "justify-end" : "justify-start")}>
-            {/* Action buttons — left side for sent messages */}
-            {isMine && (
-                <ActionButtons onReply={onReply} onCopy={handleCopy} onDelete={onDelete} />
-            )}
-
+        <div className={cn("flex w-full group items-end", isMine ? "justify-end" : "justify-start")}>
             {/* Bubble */}
             <div
                 className={cn(
-                    "max-w-[65%] relative overflow-visible",
-                    isMine ? "rounded-2xl rounded-tr-sm" : "rounded-2xl rounded-tl-sm",
+                    "max-w-[82%] sm:max-w-[74%] md:max-w-[66%] relative overflow-visible",
+                    isMine
+                        ? isGroupedWithPrevious ? "rounded-2xl rounded-tr-md" : "rounded-2xl rounded-tr-sm"
+                        : isGroupedWithPrevious ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-tl-sm",
                     isMine
                         ? isFailed ? "bg-red-50 shadow-sm" : "bg-[#DCF8C6] shadow-sm"
                         : "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.13)]",
                     mediaUrl && detectedType !== 'audio' ? "p-0" : "px-3 py-2"
                 )}
             >
+                <ActionButtons
+                    align={isMine ? 'left' : 'right'}
+                    onReply={onReply}
+                    onCopy={handleCopy}
+                    onDelete={isMine ? onDelete : undefined}
+                />
                 {/* Bubble tail */}
-                {isMine ? (
+                {!isGroupedWithPrevious && (isMine ? (
                     <div
                         className="absolute top-0 -right-[7px] w-0 h-0"
                         style={{
@@ -201,7 +209,7 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                             borderRight: '8px solid transparent',
                         }}
                     />
-                )}
+                ))}
 
                 {/* Quoted message */}
                 {quotedContent && (
@@ -363,11 +371,6 @@ export function MessageBubble({ content, isMine, timestamp, status, mediaUrl, me
                     {isMine && <StatusIcon status={status} overlay={!!(mediaUrl && detectedType !== 'audio')} />}
                 </div>
             </div>
-
-            {/* Action buttons — right side for received messages */}
-            {!isMine && (
-                <ActionButtons onReply={onReply} onCopy={handleCopy} />
-            )}
         </div>
     )
 }

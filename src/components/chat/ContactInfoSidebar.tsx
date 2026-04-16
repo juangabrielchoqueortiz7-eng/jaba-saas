@@ -103,7 +103,7 @@ export function ContactInfoSidebar({ phoneNumber, chatId, contactName, tags, onC
     }
 
     return (
-        <div className="w-72 border-l border-black/[0.08] bg-[#F7F8FA] flex flex-col h-full overflow-y-auto shrink-0">
+        <div className="fixed inset-y-0 right-0 z-[90] w-[min(22rem,100vw)] border-l border-black/[0.08] bg-[#F7F8FA] flex flex-col h-full overflow-y-auto shrink-0 shadow-2xl md:static md:z-auto md:w-72 md:shadow-none">
             {/* Header */}
             <div className="p-4 border-b border-black/[0.08] bg-white flex items-center justify-between shrink-0">
                 <h3 className="text-[#0F172A] font-semibold text-sm flex items-center gap-2">

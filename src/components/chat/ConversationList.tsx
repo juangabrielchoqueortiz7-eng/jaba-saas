@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { Search, Check, CheckCheck, Filter, X, Tag, Archive, ArchiveRestore } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -9,16 +9,16 @@ import { cn } from '@/lib/utils'
 import { formatChatListTime } from '@/lib/formatTime'
 
 // ============================================================
-// CRM TAG SYSTEM — Colores y etiquetas predefinidas
+// CRM TAG SYSTEM - Colores y etiquetas predefinidas
 // ============================================================
 export const CRM_TAGS: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-    'nuevo': { label: 'Nuevo', color: 'text-blue-600', bg: 'bg-blue-500/10', icon: '🆕' },
-    'cliente_potencial': { label: 'Potencial', color: 'text-cyan-600', bg: 'bg-cyan-500/10', icon: '🎯' },
-    'pago': { label: 'Pagó', color: 'text-green-600', bg: 'bg-green-500/10', icon: '✅' },
-    'renovacion_pendiente': { label: 'Renovación', color: 'text-yellow-600', bg: 'bg-yellow-500/10', icon: '⚠️' },
-    'vencido': { label: 'Vencido', color: 'text-red-600', bg: 'bg-red-500/10', icon: '🔴' },
-    'soporte': { label: 'Soporte', color: 'text-purple-600', bg: 'bg-purple-500/10', icon: '🛟' },
-    'no_interesado': { label: 'No Interesado', color: 'text-slate-500', bg: 'bg-slate-500/10', icon: '❌' },
+    'nuevo': { label: 'Nuevo', color: 'text-blue-600', bg: 'bg-blue-500/10', icon: 'N' },
+    'cliente_potencial': { label: 'Potencial', color: 'text-cyan-600', bg: 'bg-cyan-500/10', icon: 'P' },
+    'pago': { label: 'Pago', color: 'text-green-600', bg: 'bg-green-500/10', icon: '$' },
+    'renovacion_pendiente': { label: 'Renovacion', color: 'text-yellow-600', bg: 'bg-yellow-500/10', icon: 'R' },
+    'vencido': { label: 'Vencido', color: 'text-red-600', bg: 'bg-red-500/10', icon: '!' },
+    'soporte': { label: 'Soporte', color: 'text-purple-600', bg: 'bg-purple-500/10', icon: 'S' },
+    'no_interesado': { label: 'No Interesado', color: 'text-slate-500', bg: 'bg-slate-500/10', icon: 'X' },
 }
 
 interface Chat {
@@ -52,6 +52,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
     const [showFilterMenu, setShowFilterMenu] = useState(false)
     const [showArchived, setShowArchived] = useState(false)
     const [contextMenu, setContextMenu] = useState<{ chatId: string; x: number; y: number; archived: boolean } | null>(null)
+    const deferredSearchTerm = useDeferredValue(searchTerm)
     const router = useRouter()
     const searchParams = useSearchParams()
     const activeChatId = externalChatId !== undefined ? externalChatId : searchParams.get('chatId')
@@ -60,8 +61,9 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
         const fetchChats = async () => {
             const { data, error } = await supabase
                 .from('chats')
-                .select('*')
+                .select('id, contact_name, last_message, last_message_time, unread_count, phone_number, last_message_status, tags, archived')
                 .order('last_message_time', { ascending: false })
+                .limit(100)
 
             if (error) {
                 console.error('Error fetching chats:', error)
@@ -109,14 +111,18 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
         setContextMenu(null)
     }
 
-    const filteredChats = chats.filter(chat => {
-        const matchesSearch =
-            (chat.contact_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (chat.phone_number || '').includes(searchTerm)
-        const matchesTag = !activeTagFilter || (chat.tags && chat.tags.includes(activeTagFilter))
-        const matchesArchive = showArchived ? chat.archived === true : !chat.archived
-        return matchesSearch && matchesTag && matchesArchive
-    })
+    const filteredChats = useMemo(() => {
+        const normalizedSearch = deferredSearchTerm.trim().toLowerCase()
+        return chats.filter(chat => {
+            const matchesSearch =
+                !normalizedSearch ||
+                (chat.contact_name?.toLowerCase() || '').includes(normalizedSearch) ||
+                (chat.phone_number || '').includes(normalizedSearch)
+            const matchesTag = !activeTagFilter || (chat.tags && chat.tags.includes(activeTagFilter))
+            const matchesArchive = showArchived ? chat.archived === true : !chat.archived
+            return matchesSearch && matchesTag && matchesArchive
+        })
+    }, [activeTagFilter, chats, deferredSearchTerm, showArchived])
 
     const getStatusIcon = (status?: string) => {
         switch (status) {
@@ -126,16 +132,16 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
         }
     }
 
-    const tagCounts = Object.keys(CRM_TAGS).reduce((acc, tag) => {
+    const tagCounts = useMemo(() => Object.keys(CRM_TAGS).reduce((acc, tag) => {
         acc[tag] = chats.filter(c => c.tags?.includes(tag)).length
         return acc
-    }, {} as Record<string, number>)
+    }, {} as Record<string, number>), [chats])
 
     return (
-        <div className="w-full border-r border-black/[0.08] bg-white flex flex-col h-full">
+        <div className="w-full bg-white flex flex-col h-full min-h-0">
             {/* Header — WhatsApp style */}
             <div className="border-b border-black/[0.08]" style={{ background: '#F0F2F5' }}>
-                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                <div className="flex items-center justify-between px-3 sm:px-4 pt-3 pb-2">
                     <h2 className="text-[17px] font-bold text-[#111B21]">Chats</h2>
                     <button className="bg-[#25D366] hover:bg-[#128C7E] text-white p-2 rounded-full transition-colors shadow-sm">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
@@ -145,7 +151,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                 </div>
 
                 {/* Tabs: Chats / Archivados */}
-                <div className="flex gap-1 mb-3 bg-black/[0.04] rounded-xl p-1">
+                <div className="mx-3 sm:mx-4 flex gap-1 mb-3 bg-black/[0.04] rounded-xl p-1">
                     <button
                         onClick={() => setShowArchived(false)}
                         className={cn(
@@ -166,7 +172,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                     </button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="px-3 sm:px-4 pb-3 flex gap-2">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#111B21]/35" size={15} />
                         <input
@@ -229,7 +235,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                 </div>
 
                 {activeTagFilter && CRM_TAGS[activeTagFilter] && (
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="px-3 sm:px-4 pb-3 flex items-center gap-2">
                         <span className={cn("text-xs px-2 py-1 rounded-full flex items-center gap-1", CRM_TAGS[activeTagFilter].bg, CRM_TAGS[activeTagFilter].color)}>
                             {CRM_TAGS[activeTagFilter].icon} {CRM_TAGS[activeTagFilter].label}
                             <button onClick={() => setActiveTagFilter(null)} className="ml-1 hover:opacity-70">
@@ -302,7 +308,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                             setContextMenu({ chatId: chat.id, x: e.clientX, y: e.clientY, archived: !!chat.archived })
                         }}
                         className={cn(
-                            "px-4 py-3 cursor-pointer transition-colors relative",
+                            "px-3 sm:px-4 py-3 min-h-[72px] cursor-pointer transition-colors relative",
                             activeChatId === chat.id
                                 ? "bg-[#F0F2F5]"
                                 : "hover:bg-[#F5F6F6]"
@@ -317,7 +323,7 @@ export function ConversationList({ onSelectChat, selectedChatId: externalChatId 
                         <div className="flex gap-3">
                             {/* Avatar — gradient like WA */}
                             <div
-                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-base shadow-sm"
+                                className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold shrink-0 text-base shadow-sm"
                                 style={{ background: avatarColor(chat.contact_name || chat.phone_number) }}
                             >
                                 {(chat.contact_name || chat.phone_number || '#').charAt(0).toUpperCase()}
