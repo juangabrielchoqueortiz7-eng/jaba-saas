@@ -57,7 +57,7 @@ export interface TriggerTemplate {
 
 // ── Template Definitions ───────────────────────────────────────────────────
 
-const TEMPLATES: TriggerTemplate[] = [
+export const TRIGGER_TEMPLATES: TriggerTemplate[] = [
   {
     id: 'price_inquiry',
     name: 'Respuesta automática a consulta de precio',
@@ -352,7 +352,7 @@ export default function TriggerTemplates({ onSelectTemplate, onStartBlank }: Tri
     : []
 
   const sortedIntentTemplates = [...intentTemplates].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
-  const sortedTemplates = [...TEMPLATES].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
+  const sortedTemplates = [...TRIGGER_TEMPLATES].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
 
   return (
     <div className="p-8 max-w-7xl mx-auto text-slate-700">

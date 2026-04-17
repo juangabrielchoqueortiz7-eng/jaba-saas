@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp,
-  Eye, EyeOff, Info,
+  Eye, EyeOff, Info, CheckCircle2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createFlow, saveFlowCanvas } from './actions'
@@ -29,6 +29,22 @@ function TriggerStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
         <p className="text-[10px] text-slate-400 mt-1">
           Cuando un cliente escriba cualquiera de estas palabras, el flujo se activara automaticamente.
         </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            { label: 'Ventas', value: 'precio, planes, comprar, info' },
+            { label: 'Soporte', value: 'ayuda, soporte, problema, error' },
+            { label: 'Reservas', value: 'reservar, cita, agenda, turno' },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => onChange({ ...step.config, keywords: preset.value })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Modo de coincidencia</label>
@@ -60,6 +76,22 @@ function MessageStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
       <p className="text-[10px] text-slate-400">
         Variables: {'{{contact_name}}'}, {'{{phone_number}}'}, {'{{service_name}}'}
       </p>
+      <div className="flex flex-wrap gap-2">
+        {[
+          'Hola {{contact_name}}. Gracias por escribirnos. Ya te ayudo con esto.',
+          'Perfecto. Te comparto la informacion y te guio con el siguiente paso.',
+          'Gracias por contactarnos. Enseguida te mostramos las opciones disponibles.',
+        ].map((preset, presetIndex) => (
+          <button
+            key={`${presetIndex}-${preset}`}
+            type="button"
+            onClick={() => onChange({ ...step.config, text: preset })}
+            className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+          >
+            Texto sugerido
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -77,9 +109,53 @@ function ButtonsStepEditor({ step, onChange }: { step: WizardStep; onChange: (co
           rows={2}
           className="w-full px-3 py-2 bg-[#F7F8FA] border border-black/[0.06] rounded-lg text-sm text-[#0F172A] resize-y"
         />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            'Elige una opcion para continuar.',
+            'Estoy aqui para ayudarte. Toca una opcion.',
+            'Para avanzar mas rapido, elige una de estas opciones.',
+          ].map((preset, presetIndex) => (
+            <button
+              key={`${presetIndex}-${preset}`}
+              type="button"
+              onClick={() => onChange({ ...step.config, text: preset })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              Texto sugerido
+            </button>
+          ))}
+        </div>
       </div>
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Botones (maximo 3)</label>
+        <div className="mb-2 flex flex-wrap gap-2">
+          {[
+            {
+              label: 'Precio / Horarios / Soporte',
+              buttons: [
+                { id: 'btn_1', title: 'Precio' },
+                { id: 'btn_2', title: 'Horarios' },
+                { id: 'btn_3', title: 'Soporte' },
+              ],
+            },
+            {
+              label: 'Ver planes / Asesor',
+              buttons: [
+                { id: 'btn_1', title: 'Ver planes' },
+                { id: 'btn_2', title: 'Hablar con asesor' },
+              ],
+            },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => onChange({ ...step.config, buttons: preset.buttons })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
         <div className="space-y-2">
           {buttons.map((btn: FlowButton, i: number) => (
             <div key={i} className="flex items-center gap-2">
@@ -131,6 +207,22 @@ function ListStepEditor({ step, onChange }: { step: WizardStep; onChange: (confi
           rows={2}
           className="w-full px-3 py-2 bg-[#F7F8FA] border border-black/[0.06] rounded-lg text-sm text-[#0F172A] resize-y"
         />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            'Selecciona una opcion del menu.',
+            'Aqui tienes varias opciones para continuar.',
+            'Abre la lista y elige lo que necesitas.',
+          ].map((preset, presetIndex) => (
+            <button
+              key={`${presetIndex}-${preset}`}
+              type="button"
+              onClick={() => onChange({ ...step.config, text: preset })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              Texto sugerido
+            </button>
+          ))}
+        </div>
       </div>
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Texto del boton para abrir la lista</label>
@@ -140,9 +232,50 @@ function ListStepEditor({ step, onChange }: { step: WizardStep; onChange: (confi
           placeholder="Ver opciones"
           className="bg-[#F7F8FA] border-black/[0.06] text-[#0F172A] h-9 text-sm"
         />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {['Ver opciones', 'Abrir menu', 'Elegir opcion'].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => onChange({ ...step.config, button_text: preset })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
       </div>
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Opciones de la lista (max 10)</label>
+        <div className="mb-2 flex flex-wrap gap-2">
+          {[
+            {
+              label: 'Menu comercial',
+              rows: [
+                { id: 'opt_1', title: 'Planes', description: 'Opciones disponibles' },
+                { id: 'opt_2', title: 'Precios', description: 'Costos y promos' },
+                { id: 'opt_3', title: 'Hablar con asesor', description: 'Atencion personalizada' },
+              ],
+            },
+            {
+              label: 'Menu soporte',
+              rows: [
+                { id: 'opt_1', title: 'Tengo un problema', description: 'Reportar incidencia' },
+                { id: 'opt_2', title: 'Necesito ayuda', description: 'Asistencia rapida' },
+                { id: 'opt_3', title: 'Hablar con soporte', description: 'Atencion humana' },
+              ],
+            },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => onChange({ ...step.config, rows: preset.rows })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
         <div className="space-y-2">
           {rows.map((row: FlowListRow, i: number) => (
             <div key={i} className="flex items-start gap-2">
@@ -205,6 +338,23 @@ function QuestionStepEditor({ step, onChange }: { step: WizardStep; onChange: (c
           rows={2}
           className="w-full px-3 py-2 bg-[#F7F8FA] border border-black/[0.06] rounded-lg text-sm text-[#0F172A] resize-y"
         />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            { label: 'Nombre', text: 'Cual es tu nombre?' },
+            { label: 'Telefono', text: 'Cual es tu numero de telefono?' },
+            { label: 'Correo', text: 'Cual es tu correo electronico?' },
+            { label: 'Fecha y hora', text: 'Que fecha y hora te gustaria?' },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => onChange({ ...step.config, text: preset.text })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">Guardar respuesta como</label>
@@ -217,6 +367,18 @@ function QuestionStepEditor({ step, onChange }: { step: WizardStep; onChange: (c
         <p className="text-[10px] text-slate-400 mt-1">
           Podras usar esta respuesta despues como {'{{nombre_variable}}'} en otros mensajes.
         </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {['nombre', 'telefono', 'email', 'fecha_hora'].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => onChange({ ...step.config, variable_name: preset })}
+              className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -236,6 +398,22 @@ function AIStepEditor({ step, onChange }: { step: WizardStep; onChange: (config:
         rows={3}
         className="w-full px-3 py-2 bg-[#F7F8FA] border border-black/[0.06] rounded-lg text-sm text-[#0F172A] resize-y"
       />
+      <div className="flex flex-wrap gap-2">
+        {[
+          'Responde de forma amable y orientada a venta.',
+          'Ayuda al cliente paso a paso y haz preguntas claras.',
+          'Prioriza resolver dudas y luego ofrece hablar con un asesor.',
+        ].map((preset, presetIndex) => (
+          <button
+            key={`${presetIndex}-${preset}`}
+            type="button"
+            onClick={() => onChange({ ...step.config, system_prompt: preset })}
+            className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+          >
+            Instruccion sugerida
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -264,6 +442,18 @@ function ActionStepEditor({ step, onChange }: { step: WizardStep; onChange: (con
             placeholder="vip, lead-nuevo, interesado..."
             className="bg-[#F7F8FA] border-black/[0.06] text-[#0F172A] h-9 text-sm"
           />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {['lead_interesado', 'soporte_pendiente', 'cliente_vip'].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => onChange({ ...step.config, tag: preset })}
+                className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {step.config.action_type === 'send_image' && (
@@ -306,6 +496,18 @@ function DelayStepEditor({ step, onChange }: { step: WizardStep; onChange: (conf
           className="flex-1 accent-cyan-500"
         />
         <span className="text-sm font-bold text-[#0F172A] w-12 text-center">{step.config.seconds || 3}s</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {[2, 5, 10, 15].map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => onChange({ ...step.config, seconds: preset })}
+            className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+          >
+            {preset}s
+          </button>
+        ))}
       </div>
     </div>
   )
@@ -501,6 +703,50 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
     }
   }
 
+  const triggerStep = steps[0]
+  const keywordSource = triggerStep?.config.keywords
+  const triggerKeywords = Array.isArray(keywordSource)
+    ? keywordSource.map(k => k.trim()).filter(Boolean)
+    : (keywordSource || '').split(',').map(k => k.trim()).filter(Boolean)
+  const responseSteps = steps.filter(step => ['message', 'buttons', 'list', 'question', 'ai_response'].includes(step.type))
+  const closingSteps = steps.filter(step => ['action', 'delay'].includes(step.type))
+  const hasGuidanceStep = steps.some(step => ['buttons', 'list', 'question'].includes(step.type))
+  const flowChecklist = [
+    { label: 'Nombre del flujo', ok: flowName.trim().length > 0 },
+    { label: 'Palabras de inicio', ok: triggerKeywords.length > 0 },
+    { label: 'Respuesta al cliente', ok: responseSteps.length > 0 },
+  ]
+  const nextRecommendedStep: WizardStep['type'] =
+    responseSteps.length === 0 ? 'message'
+      : !hasGuidanceStep ? 'buttons'
+        : closingSteps.length === 0 ? 'action'
+          : 'delay'
+  const nextRecommendedCopy =
+    responseSteps.length === 0
+      ? 'Empieza por un mensaje corto para que el cliente entienda de inmediato que hacer.'
+      : !hasGuidanceStep
+        ? 'El siguiente paso ideal es guiar al cliente con botones, lista o una pregunta.'
+        : closingSteps.length === 0
+          ? 'Ahora conviene agregar una accion final, como etiquetar o derivar.'
+          : 'Ya tienes una base util. Si quieres, agrega una pausa o un mensaje extra.'
+  const flowSummary = [
+    {
+      title: 'Activador',
+      value: triggerKeywords.length > 0 ? triggerKeywords.slice(0, 3).join(', ') : 'Todavia no definiste palabras de inicio.',
+      tone: triggerKeywords.length > 0 ? 'text-cyan-700 bg-cyan-50 border-cyan-200' : 'text-slate-500 bg-[#F7F8FA] border-black/[0.06]',
+    },
+    {
+      title: 'Respuesta principal',
+      value: responseSteps.length > 0 ? `${responseSteps.length} paso(s) para responder o guiar al cliente.` : 'Agrega al menos un mensaje, pregunta u opcion.',
+      tone: responseSteps.length > 0 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200',
+    },
+    {
+      title: 'Cierre o accion final',
+      value: closingSteps.length > 0 ? `${closingSteps.length} accion(es) de cierre o seguimiento.` : 'Todavia no hay accion final. Puede estar bien si el flujo termina con mensaje.',
+      tone: closingSteps.length > 0 ? 'text-indigo-700 bg-indigo-50 border-indigo-200' : 'text-slate-500 bg-[#F7F8FA] border-black/[0.06]',
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-[#F7F8FA]">
       {/* Top bar */}
@@ -577,6 +823,35 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
                   <p className="mt-2 text-xs leading-relaxed text-slate-500">{recipe.description}</p>
                   <p className="mt-3 text-[11px] font-semibold text-cyan-700">{recipe.steps.length} pasos prearmados</p>
                 </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-black/[0.08] bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-cyan-700">Guia dentro del flujo</p>
+                <h2 className="mt-1 text-lg font-bold text-[#0F172A]">Lo que ya definiste y lo que falta</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  La estructura ideal es simple: como empieza, como responde y como termina o continua.
+                </p>
+              </div>
+              <div className="grid gap-2 text-xs text-slate-600">
+                {flowChecklist.map((item) => (
+                  <div key={item.label} className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 ${item.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-black/[0.06] bg-[#F7F8FA] text-slate-500'}`}>
+                    <CheckCircle2 size={13} className={item.ok ? 'text-emerald-600' : 'text-slate-300'} />
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {flowSummary.map((item) => (
+                <div key={item.title} className={`rounded-xl border px-3 py-3 ${item.tone}`}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
+                  <p className="mt-1 text-sm font-medium leading-relaxed">{item.value}</p>
+                </div>
               ))}
             </div>
           </div>
@@ -677,6 +952,32 @@ export default function FlowWizard({ assistantId }: FlowWizardProps) {
           {/* Add step button */}
           <div className="flex justify-center pt-2">
             <div className="w-0.5 h-4 bg-slate-200 rounded-full mb-2" />
+          </div>
+
+          <div className="rounded-xl border border-black/[0.07] bg-white px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-700">Siguiente paso sugerido</p>
+            <p className="mt-1 text-sm text-slate-600">{nextRecommendedCopy}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => addStep(nextRecommendedStep)}
+                className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700"
+              >
+                Agregar {STEP_LABELS[nextRecommendedStep]}
+              </button>
+              {['message', 'buttons', 'question', 'action']
+                .filter((type): type is WizardStep['type'] => type !== nextRecommendedStep)
+                .map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => addStep(type)}
+                    className="rounded-lg border border-black/[0.08] bg-[#F7F8FA] px-3 py-2 text-xs font-medium text-slate-600"
+                  >
+                    {STEP_LABELS[type]}
+                  </button>
+                ))}
+            </div>
           </div>
 
           {showAddStep ? (

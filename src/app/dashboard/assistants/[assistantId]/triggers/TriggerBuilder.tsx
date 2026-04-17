@@ -10,14 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Plus, Save, ArrowLeft, Trash2, Filter, AlertCircle, Calendar,
   Users, Clock, ChevronDown, ChevronUp, Zap,
-  Webhook, Info,
+  Webhook, Info, CheckCircle2,
 } from 'lucide-react'
 import { HelpTooltip } from '@/components/ui/help-tooltip'
 import { TagAutocomplete } from '@/components/ui/tag-autocomplete'
 import { useRouter } from 'next/navigation'
 import { saveTrigger, getTrigger } from './actions'
 import { getFlows, type ConversationFlow } from '../flows/actions'
-import { AVAILABLE_VARIABLES } from '@/lib/trigger-variables'
+import { AVAILABLE_VARIABLES, resolveVariables, type VariableContext } from '@/lib/trigger-variables'
 import type { TriggerTemplate } from './TriggerTemplates'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -156,6 +156,15 @@ interface LoadedTrigger {
   conditions_logic?: 'AND' | 'OR'
 }
 
+type ScheduledMessageGuide = {
+  label: string
+  summary: string
+  templateSummary: string
+  tone: string
+  textPresets: Array<{ label: string; text: string }>
+  suggestedVariables: string[]
+}
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const CONDITION_CATEGORIES = [
@@ -219,6 +228,137 @@ const ACTION_CATEGORIES = [
     ]
   },
 ]
+
+const SCHEDULED_MESSAGE_GUIDES: Record<ScheduleConfig['send_days'], ScheduledMessageGuide> = {
+  expiration: {
+    label: 'Vence hoy',
+    summary: 'Aqui conviene un mensaje corto, claro y con salida rapida a la renovacion.',
+    templateSummary: 'Usa una plantilla de aviso urgente suave: recuerda que vence hoy y abre la renovacion sin rodeos.',
+    tone: 'Directo y accionable',
+    textPresets: [
+      {
+        label: 'Urgencia suave',
+        text: 'Hola {{contact.name}}. Hoy vence tu suscripcion a {{subscription.service}}. Si quieres mantenerla activa, te ayudo a renovarla ahora.'
+      },
+      {
+        label: 'Recordatorio final',
+        text: 'Hola {{contact.name}}. Te recuerdo que {{subscription.service}} vence hoy, {{subscription.expires_at}}. Si quieres seguir con el servicio, te ayudo con la renovacion en este momento.'
+      },
+    ],
+    suggestedVariables: ['{{contact.name}}', '{{subscription.service}}', '{{subscription.expires_at}}'],
+  },
+  '1_day_before': {
+    label: 'Vence manana',
+    summary: 'Funciona mejor un recordatorio preventivo: amable, claro y con tiempo para resolver.',
+    templateSummary: 'Usa una plantilla de pre-vencimiento: anticipa la fecha y ofrece renovacion sin meter presion.',
+    tone: 'Preventivo y ordenado',
+    textPresets: [
+      {
+        label: 'Recordatorio preventivo',
+        text: 'Hola {{contact.name}}. Te recuerdo que tu suscripcion a {{subscription.service}} vence manana, {{subscription.expires_at}}. Si quieres renovarla con tiempo, te ayudo ahora.'
+      },
+      {
+        label: 'Renovacion con tiempo',
+        text: 'Hola {{contact.name}}. Queria avisarte con tiempo que {{subscription.service}} vence manana. Si ya quieres dejar tu renovacion lista, te acompano en este paso.'
+      },
+    ],
+    suggestedVariables: ['{{contact.name}}', '{{subscription.service}}', '{{subscription.expires_at}}'],
+  },
+  '3_days_before': {
+    label: 'Faltan 3 dias',
+    summary: 'Aqui conviene un mensaje suave: recordar, dar contexto y dejar la renovacion abierta sin apuro.',
+    templateSummary: 'Usa una plantilla de recordatorio anticipado: tono tranquilo, con foco en orden y continuidad.',
+    tone: 'Suave y preventivo',
+    textPresets: [
+      {
+        label: 'Recordatorio anticipado',
+        text: 'Hola {{contact.name}}. Tu suscripcion a {{subscription.service}} vence en {{subscription.days_remaining}} dias. Te escribo con tiempo para que puedas renovarla sin apuro.'
+      },
+      {
+        label: 'Continuidad del servicio',
+        text: 'Hola {{contact.name}}. Te dejo este recordatorio porque {{subscription.service}} vence pronto, el {{subscription.expires_at}}. Si quieres dejarlo resuelto desde ahora, te ayudo.'
+      },
+    ],
+    suggestedVariables: ['{{contact.name}}', '{{subscription.service}}', '{{subscription.days_remaining}}'],
+  },
+  '7_days_before': {
+    label: 'Falta una semana',
+    summary: 'Conviene una salida informativa y muy ligera. Sirve para ordenar renovaciones con tiempo.',
+    templateSummary: 'Usa una plantilla de aviso temprano: tono tranquilo, recordatorio simple y opcion de renovar mas adelante.',
+    tone: 'Ligero e informativo',
+    textPresets: [
+      {
+        label: 'Aviso temprano',
+        text: 'Hola {{contact.name}}. Te aviso con tiempo que tu suscripcion a {{subscription.service}} vence en una semana. Cuando quieras dejar lista la renovacion, te acompano.'
+      },
+      {
+        label: 'Organizar renovacion',
+        text: 'Hola {{contact.name}}. Solo paso a recordarte que {{subscription.service}} vence el {{subscription.expires_at}}. Asi puedes organizar la renovacion con calma.'
+      },
+    ],
+    suggestedVariables: ['{{contact.name}}', '{{subscription.service}}', '{{subscription.expires_at}}'],
+  },
+  daily: {
+    label: 'Seguimiento diario',
+    summary: 'Aqui funciona mejor un seguimiento amable, breve y con salida facil para no sentirse insistente.',
+    templateSummary: 'Usa una plantilla de seguimiento corto: retoma la renovacion sin repetir demasiado y deja salida clara.',
+    tone: 'Amable y no invasivo',
+    textPresets: [
+      {
+        label: 'Seguimiento amable',
+        text: 'Hola {{contact.name}}. Te dejo este recordatorio sobre {{subscription.service}} por si todavia quieres renovarla. Si ya lo hiciste, puedes ignorar este mensaje.'
+      },
+      {
+        label: 'Retomar renovacion',
+        text: 'Hola {{contact.name}}. Retomo este mensaje por si aun quieres renovar {{subscription.service}}. Cuando quieras, te ayudo a dejarlo resuelto.'
+      },
+    ],
+    suggestedVariables: ['{{contact.name}}', '{{subscription.service}}'],
+  },
+}
+
+const SCHEDULED_TEMPLATE_KEYWORDS: Record<ScheduleConfig['send_days'], string[]> = {
+  expiration: ['vence hoy', 'vencimiento', 'urgente', 'urgencia', 'renovar', 'renovacion', 'hoy'],
+  '1_day_before': ['manana', '1 dia', 'pre vencimiento', 'recordatorio', 'renovar', 'renovacion'],
+  '3_days_before': ['3 dias', 'vence pronto', 'recordatorio', 'anticipado', 'renovacion'],
+  '7_days_before': ['7 dias', 'semana', 'aviso', 'recordatorio', 'renovacion'],
+  daily: ['seguimiento', 'retomar', 'recordatorio', 'renovacion', 'pendiente'],
+}
+
+function getTemplateBodyText(template: MetaTemplate): string {
+  return template.components
+    .filter(component => component.type === 'BODY' && component.text)
+    .map(component => component.text)
+    .join(' ')
+}
+
+function getTemplateMatchScore(
+  template: MetaTemplate,
+  sendDays: ScheduleConfig['send_days']
+): number {
+  const keywords = SCHEDULED_TEMPLATE_KEYWORDS[sendDays]
+  const haystack = `${template.name} ${getTemplateBodyText(template)}`.toLowerCase()
+
+  return keywords.reduce((score, keyword) => (
+    haystack.includes(keyword) ? score + 1 : score
+  ), 0)
+}
+
+function rankTemplatesForSchedule(
+  templates: MetaTemplate[],
+  sendDays: ScheduleConfig['send_days']
+): Array<MetaTemplate & { matchScore: number }> {
+  return templates
+    .map((template, index) => {
+      const matchScore = getTemplateMatchScore(template, sendDays)
+
+      return { ...template, matchScore, originalIndex: index }
+    })
+    .sort((a, b) => {
+      if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore
+      return a.originalIndex - b.originalIndex
+    })
+}
 
 const ACTION_CATEGORIES_ADVANCED = [
   {
@@ -286,11 +426,141 @@ const ACTION_LABELS: Record<ActionType, string> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+const ADVANCED_CONDITION_TYPES: ConditionType[] = [
+  'text_regex',
+  'message_rate',
+  'custom_field',
+  'hour_range',
+]
+
+const ADVANCED_ACTION_TYPES: ActionType[] = [
+  'send_text_ai',
+  'send_media',
+  'update_field',
+  'notify_webhook',
+]
+
+function describeCondition(condition: TriggerCondition) {
+  const value = condition.value || 'sin definir'
+
+  switch (condition.condition_type) {
+    case 'text_contains':
+      return `Se activa cuando el mensaje ${condition.operator === 'not_contains' ? 'no contiene' : 'contiene'}: ${value}.`
+    case 'text_matches_intent':
+      return `Se activa cuando la IA detecta una intencion de tipo: ${value}.`
+    case 'last_message_time':
+      return `Se activa despues de ${value} minutos sin respuesta.`
+    case 'message_count':
+      return `Se activa segun la cantidad de mensajes del cliente: ${value}.`
+    case 'has_tag':
+      return `Se activa si el cliente tiene la etiqueta ${value}.`
+    case 'not_tag':
+      return `Se activa si el cliente no tiene la etiqueta ${value}.`
+    case 'chat_status':
+      return `Se activa segun el tipo de cliente: ${value}.`
+    case 'day_of_week':
+      return `Solo corre en los dias elegidos: ${value}.`
+    case 'hour_range':
+      return `Solo corre dentro del horario ${value}.`
+    case 'expiration_days':
+      return `Se activa cuando faltan ${value} dias para vencer.`
+    case 'subscription_status':
+      return `Se activa segun el estado de la suscripcion: ${value}.`
+    case 'custom_field':
+      return `Se fija en el campo ${condition.payload?.field_name || 'personalizado'} y espera el valor ${value}.`
+    case 'text_regex':
+      return 'Usa una regla avanzada de texto.'
+    case 'message_rate':
+      return `Se activa segun la frecuencia de mensajes: ${value}.`
+    case 'creation_date':
+      return `Se activa segun los dias desde registro: ${value}.`
+    default:
+      return 'Condicion configurada.'
+  }
+}
+
+function describeAction(action: TriggerAction) {
+  switch (action.type) {
+    case 'send_text':
+      return action.payload.message
+        ? `El bot enviara este mensaje: "${String(action.payload.message).slice(0, 90)}${String(action.payload.message).length > 90 ? '...' : ''}".`
+        : 'El bot enviara un mensaje de texto.'
+    case 'send_template':
+      return action.payload.template_name
+        ? `El bot enviara la plantilla aprobada ${action.payload.template_name}.`
+        : 'El bot enviara una plantilla de WhatsApp.'
+    case 'send_interactive':
+      return 'El bot mostrara opciones para que el cliente toque y responda mas facil.'
+    case 'add_tag':
+      return `El bot pondra la etiqueta ${action.payload.tag || 'sin definir'}.`
+    case 'remove_tag':
+      return `El bot quitara la etiqueta ${action.payload.tag || 'sin definir'}.`
+    case 'set_status':
+      return `El bot cambiara el tipo de cliente a ${action.payload.status || 'sin definir'}.`
+    case 'start_flow':
+      return 'El bot iniciara una conversacion guiada.'
+    case 'notify_admin':
+      return 'Te llegara una alerta para revisar esta conversacion.'
+    case 'pause':
+      return `El bot esperara ${action.payload.seconds || 5} segundos antes del siguiente paso.`
+    case 'send_text_ai':
+      return 'La IA respondera segun las instrucciones que le des.'
+    case 'send_media':
+      return 'El bot enviara un archivo o una imagen.'
+    case 'update_field':
+      return 'Se actualizara un campo personalizado.'
+    case 'notify_webhook':
+      return 'Se enviaran datos a otra aplicacion.'
+    default:
+      return 'Accion configurada.'
+  }
+}
+
 function detectTemplateVars(components: MetaTemplate['components']): number {
   const body = components.find(c => c.type === 'BODY')
   if (!body?.text) return 0
   const matches = body.text.match(/\{\{(\d+)\}\}/g)
   return matches ? new Set(matches).size : 0
+}
+
+function getPreviewExpirationDate(sendDays: ScheduleConfig['send_days']): Date {
+  const date = new Date()
+  const dayOffsets: Record<ScheduleConfig['send_days'], number> = {
+    expiration: 0,
+    '1_day_before': 1,
+    '3_days_before': 3,
+    '7_days_before': 7,
+    daily: 2,
+  }
+
+  date.setDate(date.getDate() + dayOffsets[sendDays])
+  return date
+}
+
+function getScheduledPreviewContext(sendDays: ScheduleConfig['send_days']): VariableContext {
+  return {
+    contactName: 'Maria Fernanda',
+    phoneNumber: '+59170000000',
+    subscriptionService: 'Netflix Premium',
+    subscriptionEmail: 'maria@email.com',
+    subscriptionExpiresAt: getPreviewExpirationDate(sendDays),
+    subscriptionStatus: sendDays === 'expiration' ? 'por vencer hoy' : 'activa',
+    tenantName: 'Jaba',
+    tenantServiceName: 'Renovaciones',
+  }
+}
+
+function resolvePreviewVariable(variable: string, context: VariableContext): string {
+  return resolveVariables(variable, context) || variable
+}
+
+function renderTemplatePreview(body: string, values: string[]): string {
+  if (!body) return ''
+
+  return body.replace(/\{\{(\d+)\}\}/g, (_, rawIndex: string) => {
+    const value = values[Number(rawIndex) - 1]
+    return value || `Dato ${rawIndex}`
+  })
 }
 
 // Map legacy condition types to new ones when loading
@@ -609,29 +879,53 @@ function ConditionEditor({
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold text-red-500 uppercase tracking-wider">{CONDITION_LABELS[ct] || ct}</span>
               {found?.desc && <HelpTooltip text={found.desc} size={12} />}
+              {ADVANCED_CONDITION_TYPES.includes(ct) && (
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  Avanzada
+                </span>
+              )}
             </div>
           )
         })()}
 
         {/* ── text_contains ── */}
+        <div className="rounded-xl border border-black/[0.06] bg-[#F7F8FA] px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">En simple</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">{describeCondition(condition)}</p>
+        </div>
+
         {ct === 'text_contains' && (
-          <div className="grid grid-cols-2 gap-2">
-            <Select value={condition.operator} onValueChange={v => onUpdate(index, { operator: v as ConditionOperator })}>
-              <SelectTrigger className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {OPERATORS_TEXT.map(op => (
-                  <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs"
-              placeholder="Ej: precio, ayuda, error"
-              value={condition.value}
-              onChange={e => onUpdate(index, { value: e.target.value })}
-            />
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={condition.operator} onValueChange={v => onUpdate(index, { operator: v as ConditionOperator })}>
+                <SelectTrigger className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OPERATORS_TEXT.map(op => (
+                    <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs"
+                placeholder="Ej: precio, ayuda, error"
+                value={condition.value}
+                onChange={e => onUpdate(index, { value: e.target.value })}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {['precio, costo, plan', 'ayuda, soporte, problema', 'renovar, vencimiento, pago'].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => onUpdate(index, { value: preset })}
+                  className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -680,7 +974,8 @@ function ConditionEditor({
 
         {/* ── last_message_time, message_count, message_rate, creation_date, expiration_days ── */}
         {['last_message_time', 'message_count', 'message_rate', 'creation_date', 'expiration_days'].includes(ct) && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
             <Select value={condition.operator} onValueChange={v => onUpdate(index, { operator: v as ConditionOperator })}>
               <SelectTrigger className="h-9 bg-[#F7F8FA] border-black/[0.08] text-xs">
                 <SelectValue />
@@ -708,6 +1003,49 @@ function ConditionEditor({
                 {ct === 'expiration_days' && 'días'}
               </span>
             </div>
+            </div>
+            {ct === 'last_message_time' && (
+              <div className="flex flex-wrap gap-2">
+                {['15', '30', '60', '120'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => onUpdate(index, { value: preset })}
+                    className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                  >
+                    {preset} min
+                  </button>
+                ))}
+              </div>
+            )}
+            {ct === 'message_count' && (
+              <div className="flex flex-wrap gap-2">
+                {['1', '3', '5', '10'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => onUpdate(index, { value: preset })}
+                    className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                  >
+                    {preset} msg
+                  </button>
+                ))}
+              </div>
+            )}
+            {ct === 'expiration_days' && (
+              <div className="flex flex-wrap gap-2">
+                {['1', '3', '7', '15'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => onUpdate(index, { value: preset })}
+                    className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                  >
+                    faltan {preset} dias
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -887,17 +1225,52 @@ function ConditionEditor({
 // ── ActionEditor ───────────────────────────────────────────────────────────────
 
 function ActionEditor({
-  action, index, flows, metaTemplates, customFieldDefs, onUpdate, onRemove
+  action, index, flows, metaTemplates, customFieldDefs, triggerType, scheduleConfig, onUpdate, onRemove
 }: {
   action: TriggerAction
   index: number
   flows: ConversationFlow[]
   metaTemplates: MetaTemplate[]
   customFieldDefs: { field_name: string; description: string | null }[]
+  triggerType: TriggerType
+  scheduleConfig?: ScheduleConfig
   onUpdate: (i: number, update: Partial<TriggerAction>) => void
   onRemove: (i: number) => void
 }) {
   const at = action.type
+  const [showTimingOptions, setShowTimingOptions] = useState(Boolean(action.delay_seconds))
+  const scheduledGuide = triggerType === 'scheduled'
+    ? SCHEDULED_MESSAGE_GUIDES[scheduleConfig?.send_days || 'expiration']
+    : null
+  const previewContext = triggerType === 'scheduled'
+    ? getScheduledPreviewContext(scheduleConfig?.send_days || 'expiration')
+    : getScheduledPreviewContext('3_days_before')
+  const rankedTemplates = triggerType === 'scheduled' && scheduleConfig
+    ? rankTemplatesForSchedule(metaTemplates, scheduleConfig.send_days)
+    : metaTemplates.map(template => ({ ...template, matchScore: 0 }))
+  const recommendedTemplates = rankedTemplates.filter(template => template.matchScore > 0).slice(0, 3)
+  const selectedTemplateName = action.payload.template_name || action.payload.templateName || ''
+  const selectedTemplate = selectedTemplateName
+    ? metaTemplates.find(template => template.name === selectedTemplateName)
+    : undefined
+  const selectedTemplateBody = selectedTemplate?.components.find(component => component.type === 'BODY')?.text || ''
+  const selectedTemplateVarCount = selectedTemplate ? detectTemplateVars(selectedTemplate.components) : 0
+  const templatePreviewValues = Array.from({ length: selectedTemplateVarCount }, (_, valueIndex) => {
+    const typedValue = (action.payload.variables || [])[valueIndex]
+    if (typedValue) return typedValue
+
+    const suggestedVariable = scheduledGuide?.suggestedVariables[valueIndex]
+    if (suggestedVariable) return resolvePreviewVariable(suggestedVariable, previewContext)
+
+    const fallbackValues = ['Maria Fernanda', 'Netflix Premium', '24/04/2026', '3']
+    return fallbackValues[valueIndex] || `Dato ${valueIndex + 1}`
+  })
+  const resolvedTextPreview = at === 'send_text' && action.payload.message
+    ? resolveVariables(action.payload.message, previewContext)
+    : ''
+  const renderedTemplatePreview = selectedTemplateBody
+    ? renderTemplatePreview(selectedTemplateBody, templatePreviewValues)
+    : ''
 
   const updatePayload = (key: string, value: TriggerActionPayloadValue) => {
     onUpdate(index, { payload: { ...action.payload, [key]: value } })
@@ -906,6 +1279,21 @@ function ActionEditor({
   const insertVariable = (key: string, field: string) => {
     const current = action.payload[field] || ''
     updatePayload(field, current + key)
+  }
+
+  const applyTemplateSelection = (templateName: string) => {
+    const template = metaTemplates.find(item => item.name === templateName)
+    const varCount = template ? detectTemplateVars(template.components) : 0
+
+    onUpdate(index, {
+      payload: {
+        ...action.payload,
+        template_name: templateName,
+        templateName: templateName,
+        language: template?.language || 'es',
+        variables: Array(varCount).fill(''),
+      }
+    })
   }
 
   return (
@@ -926,11 +1314,44 @@ function ActionEditor({
           const found = allItems.find(i => i.value === at)
           return found?.desc ? <HelpTooltip text={found.desc} size={12} /> : null
         })()}
+        {ADVANCED_ACTION_TYPES.includes(at) && (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+            Avanzada
+          </span>
+        )}
+      </div>
+
+      <div className="mb-4 rounded-xl border border-black/[0.06] bg-[#F7F8FA] px-3 py-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">En simple</p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">{describeAction(action)}</p>
       </div>
 
       {/* ── send_text ── */}
       {at === 'send_text' && (
         <div className="space-y-2">
+          {scheduledGuide && (
+            <div className="rounded-xl border border-sky-100 bg-sky-50/80 px-3 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-700">
+                Salida recomendada para {scheduledGuide.label.toLowerCase()}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">{scheduledGuide.summary}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="rounded-full border border-sky-200 bg-white px-2 py-1 text-[10px] font-medium text-sky-700">
+                  Tono: {scheduledGuide.tone}
+                </span>
+                {scheduledGuide.suggestedVariables.map(variable => (
+                  <button
+                    key={variable}
+                    type="button"
+                    onClick={() => insertVariable(variable, 'message')}
+                    className="rounded-full border border-sky-200 bg-white px-2 py-1 text-[10px] font-medium text-sky-700"
+                  >
+                    {variable}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <Label className="text-xs text-slate-400">Mensaje</Label>
             <VariablePicker onInsert={v => insertVariable(v, 'message')} />
@@ -941,6 +1362,43 @@ function ActionEditor({
             value={action.payload.message || ''}
             onChange={e => updatePayload('message', e.target.value)}
           />
+          <div className="flex flex-wrap gap-2">
+            {scheduledGuide?.textPresets.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => updatePayload('message', preset.text)}
+                className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[10px] font-medium text-sky-700"
+              >
+                {preset.label}
+              </button>
+            ))}
+            {[
+              'Hola. Estoy aqui para ayudarte con esto.',
+              'Perfecto. Te comparto la informacion y si quieres te guio con el siguiente paso.',
+              'Gracias por escribirnos. En un momento seguimos contigo.',
+            ].map((preset, presetIndex) => (
+              <button
+                key={`${preset}-${presetIndex}`}
+                type="button"
+                onClick={() => updatePayload('message', preset)}
+                className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+              >
+                Texto sugerido
+              </button>
+            ))}
+          </div>
+          {scheduledGuide && resolvedTextPreview && (
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Asi sonaria con datos reales</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Vista previa para una clienta de ejemplo antes de activar la automatizacion.
+              </p>
+              <div className="mt-2 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm leading-relaxed text-[#0F172A]">
+                {resolvedTextPreview}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1020,58 +1478,103 @@ function ActionEditor({
       {/* ── send_template ── */}
       {at === 'send_template' && (
         <div className="space-y-3">
+          {scheduledGuide && (
+            <div className="rounded-xl border border-violet-100 bg-violet-50/80 px-3 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-700">Que plantilla conviene aqui</p>
+              <p className="mt-1 text-sm font-medium text-[#0F172A]">{scheduledGuide.label}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">{scheduledGuide.templateSummary}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="rounded-full border border-violet-200 bg-white px-2 py-1 text-[10px] font-medium text-violet-700">
+                  Busca una plantilla breve y facil de identificar
+                </span>
+                {scheduledGuide.suggestedVariables.map(variable => (
+                  <span
+                    key={variable}
+                    className="rounded-full border border-violet-200 bg-white px-2 py-1 text-[10px] font-medium text-violet-700"
+                  >
+                    {variable}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {metaTemplates.length === 0 ? (
             <p className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
               No tienes plantillas aprobadas en WhatsApp. Ve a Ajustes, configura tu cuenta de WhatsApp Business, y luego crea una plantilla desde la sección Plantillas.
             </p>
           ) : (
             <>
+              {scheduledGuide && (
+                <div className="rounded-xl border border-violet-100 bg-white px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Plantillas que encajan mejor</p>
+                  {recommendedTemplates.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {recommendedTemplates.map(template => (
+                        <button
+                          key={template.id}
+                          type="button"
+                          onClick={() => applyTemplateSelection(template.name)}
+                          className={`rounded-full border px-2.5 py-1 text-[10px] font-medium ${
+                            (action.payload.template_name || action.payload.templateName) === template.name
+                              ? 'border-violet-300 bg-violet-100 text-violet-700'
+                              : 'border-violet-200 bg-violet-50 text-violet-700'
+                          }`}
+                        >
+                          {template.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                      Aun no veo una plantilla claramente orientada a {scheduledGuide.label.toLowerCase()}. Puedes elegir cualquiera abajo, pero te conviene una que mencione renovacion, recordatorio o vencimiento.
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="space-y-1">
                 <Label className="text-xs text-slate-400">Plantilla aprobada *</Label>
                 <Select
                   value={action.payload.template_name || action.payload.templateName || ''}
-                  onValueChange={v => {
-                    const tpl = metaTemplates.find(t => t.name === v)
-                    const varCount = tpl ? detectTemplateVars(tpl.components) : 0
-                    onUpdate(index, {
-                      payload: {
-                        ...action.payload,
-                        template_name: v,
-                        templateName: v,
-                        language: tpl?.language || 'es',
-                        variables: Array(varCount).fill(''),
-                      }
-                    })
-                  }}
+                  onValueChange={applyTemplateSelection}
                 >
                   <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-xs">
                     <SelectValue placeholder="Selecciona una plantilla..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {metaTemplates.map(tpl => (
+                    {rankedTemplates.map(tpl => (
                       <SelectItem key={tpl.id} value={tpl.name}>
                         <span className="font-mono text-xs">{tpl.name}</span>
                         <span className="text-slate-500 text-xs ml-2">{tpl.language}</span>
+                        {tpl.matchScore > 0 && (
+                          <span className="ml-2 rounded-full border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[9px] font-semibold text-violet-700">
+                            Recomendado
+                          </span>
+                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {action.payload.template_name && (() => {
-                const tpl = metaTemplates.find(t => t.name === action.payload.template_name)
-                const body = tpl?.components.find(c => c.type === 'BODY')
-                if (!body?.text) return null
-                return (
-                  <div className="p-3 rounded-lg bg-[#F7F8FA] text-xs text-slate-500 font-mono whitespace-pre-wrap">
-                    {body.text}
-                  </div>
-                )
-              })()}
+              {selectedTemplateBody && (
+                <div className="p-3 rounded-lg bg-[#F7F8FA] text-xs text-slate-500 font-mono whitespace-pre-wrap">
+                  {selectedTemplateBody}
+                </div>
+              )}
 
-              {action.payload.template_name && detectTemplateVars(
-                metaTemplates.find(t => t.name === action.payload.template_name)?.components || []
-              ) > 0 && (
+              {scheduledGuide && renderedTemplatePreview && (
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Vista previa con datos de ejemplo</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    Asi veria esta salida una clienta con renovacion pendiente antes de enviar la plantilla real.
+                  </p>
+                  <div className="mt-2 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm leading-relaxed text-[#0F172A]">
+                    {renderedTemplatePreview}
+                  </div>
+                </div>
+              )}
+
+              {selectedTemplateVarCount > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Variables</p>
@@ -1084,9 +1587,7 @@ function ActionEditor({
                       updatePayload('variables', vars)
                     }} />
                   </div>
-                  {Array.from({ length: detectTemplateVars(
-                    metaTemplates.find(t => t.name === action.payload.template_name)?.components || []
-                  ) }).map((_, vi) => (
+                  {Array.from({ length: selectedTemplateVarCount }).map((_, vi) => (
                     <div key={vi} className="flex items-center gap-2">
                       <span className="text-xs text-indigo-400 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full shrink-0">Variable {vi + 1}</span>
                       <Input
@@ -1122,6 +1623,22 @@ function ActionEditor({
               value={action.payload.body || ''}
               onChange={e => updatePayload('body', e.target.value)}
             />
+            <div className="flex flex-wrap gap-2">
+              {[
+                'Elige la opcion que mejor describe lo que necesitas.',
+                'Estoy aqui para ayudarte. Toca una opcion para seguir.',
+                'Para avanzar mas rapido, elige una de estas opciones.',
+              ].map((preset, presetIndex) => (
+                <button
+                  key={`${preset}-${presetIndex}`}
+                  type="button"
+                  onClick={() => updatePayload('body', preset)}
+                  className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                >
+                  Texto sugerido
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Botones */}
@@ -1141,6 +1658,35 @@ function ActionEditor({
                   <Plus size={10} /> Agregar
                 </button>
               )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                {
+                  label: 'Precio / Horarios / Soporte',
+                  buttons: [
+                    { id: 'btn1', title: 'Precio' },
+                    { id: 'btn2', title: 'Horarios' },
+                    { id: 'btn3', title: 'Soporte' },
+                  ],
+                },
+                {
+                  label: 'Renovar / Pagar / Asesor',
+                  buttons: [
+                    { id: 'btn1', title: 'Renovar' },
+                    { id: 'btn2', title: 'Pagar' },
+                    { id: 'btn3', title: 'Hablar con asesor' },
+                  ],
+                },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => updatePayload('buttons', preset.buttons)}
+                  className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
             {(action.payload.buttons || []).map((btn, bi) => (
               <div key={bi} className="flex gap-2 items-center">
@@ -1261,6 +1807,18 @@ function ActionEditor({
               value={action.payload.title || ''}
               onChange={e => updatePayload('title', e.target.value)}
             />
+            <div className="flex flex-wrap gap-2">
+              {['Cliente necesita soporte', 'Seguimiento pendiente', 'Pago reportado'].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => updatePayload('title', preset)}
+                  className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-1">
             <div className="flex justify-between">
@@ -1273,6 +1831,22 @@ function ActionEditor({
               value={action.payload.message || ''}
               onChange={e => updatePayload('message', e.target.value)}
             />
+            <div className="flex flex-wrap gap-2">
+              {[
+                'Revisa esta conversacion porque el cliente pidio ayuda.',
+                'El cliente respondio y necesita seguimiento manual.',
+                'Se detecto una oportunidad para cerrar venta.',
+              ].map((preset, presetIndex) => (
+                <button
+                  key={`${preset}-${presetIndex}`}
+                  type="button"
+                  onClick={() => updatePayload('message', preset)}
+                  className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                >
+                  Mensaje sugerido
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -1363,18 +1937,31 @@ function ActionEditor({
 
       {/* ── Delay opcional para todas las acciones (excepto pause) ── */}
       {at !== 'pause' && (
-        <div className="pt-3 mt-3 border-t border-black/[0.06] flex items-center gap-2">
-          <Clock size={12} className="text-slate-400" />
-          <Label className="text-[10px] text-slate-400 whitespace-nowrap">Esperar antes de este paso:</Label>
-          <Input
-            type="number"
-            min={0}
-            max={60}
-            className="h-7 w-20 text-xs bg-[#F7F8FA] border-black/[0.06]"
-            value={action.delay_seconds || 0}
-            onChange={e => onUpdate(index, { delay_seconds: parseInt(e.target.value) || 0 })}
-          />
-          <span className="text-[10px] text-slate-400">seg</span>
+        <div className="pt-3 mt-3 border-t border-black/[0.06]">
+          <button
+            type="button"
+            onClick={() => setShowTimingOptions(!showTimingOptions)}
+            className="flex items-center gap-2 text-[11px] font-semibold text-slate-500"
+          >
+            <Clock size={12} className="text-slate-400" />
+            Ajustes de tiempo
+            {showTimingOptions ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+
+          {showTimingOptions && (
+            <div className="mt-2 flex items-center gap-2">
+              <Label className="text-[10px] text-slate-400 whitespace-nowrap">Esperar antes de este paso:</Label>
+              <Input
+                type="number"
+                min={0}
+                max={60}
+                className="h-7 w-20 text-xs bg-[#F7F8FA] border-black/[0.06]"
+                value={action.delay_seconds || 0}
+                onChange={e => onUpdate(index, { delay_seconds: parseInt(e.target.value) || 0 })}
+              />
+              <span className="text-[10px] text-slate-400">seg</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1387,7 +1974,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(!!triggerId && !initialTemplate)
-  const [activeTab, setActiveTab] = useState<'conditions' | 'actions'>('conditions')
+  const [activeTab, setActiveTab] = useState<'conditions' | 'actions' | 'review'>('conditions')
   const [showConditionPicker, setShowConditionPicker] = useState(false)
   const [showActionPicker, setShowActionPicker] = useState(false)
 
@@ -1405,6 +1992,12 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>(() => getInitialScheduleConfig(triggerId, initialTemplate))
 
   const [customFieldDefs, setCustomFieldDefs] = useState<{ field_name: string; description: string | null }[]>([])
+  const triggerTypeCopy: Record<TriggerType, string> = {
+    logic: 'Se activa por una situacion o mensaje del cliente',
+    time: 'Se activa despues de un tiempo sin respuesta',
+    flow: 'Se activa para iniciar una conversacion guiada',
+    scheduled: 'Se activa en una fecha o recordatorio programado',
+  }
 
   const applyRecipe = (recipe: TriggerRecipe) => {
     setName(recipe.name)
@@ -1525,6 +2118,209 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
 
   // ── Loading skeleton ──
 
+  const basicReady = name.trim().length > 0
+  const activationReady = (
+    (type === 'logic' && description.trim().length > 0) ||
+    (type === 'time' && Boolean(timeMinutes) && parseInt(timeMinutes) > 0) ||
+    (type === 'flow' && Boolean(selectedFlowId)) ||
+    (type === 'scheduled' && (scheduleConfig.audience_type === 'all' || Boolean(scheduleConfig.audience_value)))
+  )
+  const actionsReady = actions.length > 0
+  const scheduledHasTemplateAction = actions.some(action => action.type === 'send_template')
+  const responseActionIndex = actions.findIndex(action =>
+    ['send_text', 'send_template', 'send_interactive', 'send_text_ai', 'start_flow'].includes(action.type)
+  )
+  const responseAction = responseActionIndex >= 0 ? actions[responseActionIndex] : null
+  const followupActions = actions.filter((_, index) => index !== responseActionIndex)
+  const responseReady = responseActionIndex >= 0
+  const followupReady = followupActions.length > 0
+  const reviewReady = basicReady && activationReady && actionsReady
+  const reviewScheduledGuide = type === 'scheduled' ? SCHEDULED_MESSAGE_GUIDES[scheduleConfig.send_days] : null
+  const reviewPreviewContext = type === 'scheduled' ? getScheduledPreviewContext(scheduleConfig.send_days) : null
+  const reviewTemplateAction = actions.find(action => action.type === 'send_template') || null
+  const reviewTemplate = reviewTemplateAction
+    ? metaTemplates.find(template => template.name === (reviewTemplateAction.payload.template_name || reviewTemplateAction.payload.templateName || ''))
+    : null
+  const reviewTemplateVarCount = reviewTemplate ? detectTemplateVars(reviewTemplate.components) : 0
+  const reviewTemplatePreviewValues = Array.from({ length: reviewTemplateVarCount }, (_, valueIndex) => {
+    const typedValue = (reviewTemplateAction?.payload.variables || [])[valueIndex]
+    if (typedValue) return typedValue
+
+    const suggestedVariable = reviewScheduledGuide?.suggestedVariables[valueIndex]
+    if (suggestedVariable && reviewPreviewContext) {
+      return resolvePreviewVariable(suggestedVariable, reviewPreviewContext)
+    }
+
+    const fallbackValues = ['Maria Fernanda', 'Netflix Premium', '24/04/2026', '3']
+    return fallbackValues[valueIndex] || `Dato ${valueIndex + 1}`
+  })
+  const responseTextSource =
+    responseAction?.type === 'send_text'
+      ? String(responseAction.payload.message || '')
+      : responseAction?.type === 'send_interactive'
+        ? String(responseAction.payload.body || '')
+        : responseAction?.type === 'send_template'
+          ? (reviewTemplate?.components.find(component => component.type === 'BODY')?.text || '')
+          : ''
+  const responsePreviewText = responseAction?.type === 'send_template'
+    ? renderTemplatePreview(responseTextSource, reviewTemplatePreviewValues)
+    : reviewPreviewContext
+      ? resolveVariables(responseTextSource, reviewPreviewContext)
+      : responseTextSource
+  const responsePreviewLower = responsePreviewText.toLowerCase()
+  const responseHasClearCTA = /renov|ayud|continu|respond|escrib|elige|toca|confirm|paga|pago|retoma/i.test(responsePreviewText)
+  const responseSoundsUrgent = /urgente|ultimo|ultima|hoy|ahora mismo|final/i.test(responsePreviewLower)
+  const responseWordCount = responsePreviewText.trim().split(/\s+/).filter(Boolean).length
+  const stateChangeActionsCount = actions.filter(action =>
+    ['add_tag', 'remove_tag', 'set_status', 'update_field'].includes(action.type)
+  ).length
+  const stopSignalsConfigured = conditions.some(condition =>
+    ['not_tag', 'subscription_status', 'expiration_days'].includes(condition.condition_type)
+  ) || stateChangeActionsCount > 0
+  const toneMatchesMoment = type !== 'scheduled'
+    ? true
+    : scheduleConfig.send_days === 'expiration'
+      ? /vence|hoy|renov|continu/i.test(responsePreviewText)
+      : scheduleConfig.send_days === 'daily'
+        ? !responseSoundsUrgent
+        : true
+  const templateFitsMoment = type !== 'scheduled'
+    ? true
+    : !reviewTemplate || getTemplateMatchScore(reviewTemplate, scheduleConfig.send_days) > 0
+  const repetitionFeelsControlled = type !== 'scheduled'
+    ? true
+    : scheduleConfig.send_days !== 'daily' || stopSignalsConfigured
+  const firstCondition = conditions[0]
+  const firstAction = actions[0]
+  const nextStepMessage = !basicReady
+    ? 'Ponle un nombre facil de reconocer.'
+    : !activationReady
+      ? 'Ahora define claramente cuando debe activarse.'
+      : !actionsReady
+        ? 'El siguiente paso es decirle al bot que debe hacer.'
+        : 'Ya tienes la base. Revisa el mensaje principal y guarda.'
+  const triggerSummary = [
+    {
+      title: 'Nombre interno',
+      value: basicReady ? name : 'Todavia sin nombre',
+      tone: basicReady ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-[#F7F8FA] border-black/[0.06]',
+    },
+    {
+      title: 'Como se activa',
+      value: triggerTypeCopy[type],
+      tone: activationReady ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200',
+    },
+    {
+      title: 'Primera regla',
+      value: firstCondition ? CONDITION_LABELS[firstCondition.condition_type] : 'Sin regla extra. Se guiara solo por el tipo de activacion.',
+      tone: firstCondition ? 'text-cyan-700 bg-cyan-50 border-cyan-200' : 'text-slate-500 bg-[#F7F8FA] border-black/[0.06]',
+    },
+    {
+      title: 'Primera accion',
+      value: firstAction ? ACTION_LABELS[firstAction.type] : 'Todavia no definiste que hara el bot.',
+      tone: actionsReady ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200',
+    },
+  ]
+  const activationChecklist = [
+    { label: 'Nombre claro', ok: basicReady },
+    { label: 'Activacion definida', ok: activationReady },
+    { label: 'Accion configurada', ok: actionsReady },
+  ]
+  const automationFlowSummary = [
+    {
+      title: '1. Que la activa',
+      value: activationReady
+        ? (type === 'logic'
+          ? description
+          : type === 'time'
+            ? `Despues de ${timeMinutes || '?'} minutos sin respuesta.`
+            : type === 'flow'
+              ? 'Cuando deba iniciar una conversacion guiada.'
+              : 'En una fecha o recordatorio programado.')
+        : 'Todavia falta definir claramente el disparador.',
+      tone: activationReady ? 'text-red-700 bg-red-50 border-red-200' : 'text-slate-500 bg-[#F7F8FA] border-black/[0.06]',
+    },
+    {
+      title: '2. Que responde primero',
+      value: responseAction
+        ? describeAction(responseAction)
+        : 'Todavia no definiste la respuesta principal del bot.',
+      tone: responseReady ? 'text-green-700 bg-green-50 border-green-200' : 'text-amber-700 bg-amber-50 border-amber-200',
+    },
+    {
+      title: '3. Que hace despues',
+      value: followupReady
+        ? `${followupActions.length} paso(s) extra para seguimiento, clasificacion o pausa.`
+        : 'No hay pasos extra. Puede bastar si solo quieres una respuesta simple.',
+      tone: followupReady ? 'text-cyan-700 bg-cyan-50 border-cyan-200' : 'text-slate-500 bg-[#F7F8FA] border-black/[0.06]',
+    },
+    {
+      title: '4. Antes de activar',
+      value: reviewReady
+        ? 'Ya puedes revisar el resultado final y guardar.'
+        : 'Completa los bloques principales antes de activarla.',
+      tone: reviewReady ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200',
+    },
+  ]
+  const reviewChecklist = [
+    { label: 'Tiene una razon clara para activarse', ok: activationReady },
+    { label: 'Tiene una respuesta principal', ok: responseReady },
+    { label: 'Tiene seguimiento o cierre', ok: followupReady || actionsReady },
+    ...(type === 'scheduled' ? [{ label: 'Usa plantilla aprobada para salir de 24h', ok: scheduledHasTemplateAction }] : []),
+    { label: 'Lista para revisar y guardar', ok: reviewReady },
+  ]
+  const reviewScenarios = [
+    activationReady
+      ? `Escenario 1: ${type === 'logic' ? 'el cliente escribe algo parecido a tu descripcion' : type === 'time' ? `pasan ${timeMinutes || '?'} minutos sin respuesta` : type === 'scheduled' ? 'llega el dia programado' : 'se inicia el flujo elegido'}.`
+      : 'Escenario 1: todavia falta definir con claridad cuando se activa.',
+    responseReady
+      ? 'Escenario 2: revisa si la primera respuesta suena natural y va directo al punto.'
+      : 'Escenario 2: agrega primero un mensaje, plantilla, botones o flujo de respuesta.',
+    followupReady
+      ? 'Escenario 3: confirma que los pasos extra no insistan de mas y realmente ayuden.'
+      : 'Escenario 3: si quieres mas control, agrega una etiqueta, aviso interno o pausa.',
+  ]
+  const humanChecks = [
+    {
+      title: 'La salida se entiende facil',
+      ok: responseReady && responseHasClearCTA && responseWordCount <= 40,
+      detail: !responseReady
+        ? 'Aun falta una respuesta principal clara.'
+        : !responseHasClearCTA
+          ? 'El mensaje suena correcto, pero aun no deja una salida clara para renovar, responder o continuar.'
+          : responseWordCount > 40
+            ? 'El mensaje ya se entiende, pero esta algo largo para una automatizacion.'
+            : 'La salida es clara y deja al cliente saber que puede hacer despues.',
+    },
+    ...(type === 'scheduled' ? [
+      {
+        title: 'El tono coincide con el momento',
+        ok: toneMatchesMoment,
+        detail: toneMatchesMoment
+          ? `El mensaje suena alineado con ${reviewScheduledGuide?.label.toLowerCase()}.`
+          : scheduleConfig.send_days === 'expiration'
+            ? 'Para un vencimiento de hoy conviene ser un poco mas directo con la renovacion.'
+            : 'Para un seguimiento diario conviene bajar la urgencia para no sentirse insistente.',
+      },
+      {
+        title: 'La plantilla coincide con el caso',
+        ok: templateFitsMoment,
+        detail: !reviewTemplate
+          ? 'No hay plantilla seleccionada todavia para revisar esta parte.'
+          : templateFitsMoment
+            ? 'La plantilla elegida parece coherente con este momento de la renovacion.'
+            : 'La plantilla elegida no se ve tan alineada con este escenario. Te conviene una que hable de recordatorio, renovacion o vencimiento.',
+      },
+      {
+        title: 'No parece insistente de mas',
+        ok: repetitionFeelsControlled,
+        detail: repetitionFeelsControlled
+          ? 'La automatizacion ya tiene alguna senal para no repetir siempre igual.'
+          : 'Si esto corre a diario, te conviene agregar una etiqueta, cambio de estado o condicion de corte para no insistir de mas.',
+      },
+    ] : []),
+  ]
+
   if (isLoading) return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 animate-pulse">
       <div className="h-8 w-48 bg-black/[0.06] rounded-md" />
@@ -1593,6 +2389,33 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
         </div>
       )}
 
+      <div className="mb-6 rounded-2xl border border-black/[0.08] bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-cyan-700">Guia dentro del builder</p>
+            <h2 className="mt-1 text-lg font-bold text-[#0F172A]">Lo que estas armando, explicado en simple</h2>
+            <p className="mt-1 text-sm text-slate-500">{nextStepMessage}</p>
+          </div>
+          <div className="grid gap-2 text-xs text-slate-600">
+            {activationChecklist.map((item) => (
+              <div key={item.label} className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 ${item.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-black/[0.06] bg-[#F7F8FA] text-slate-500'}`}>
+                <CheckCircle2 size={13} className={item.ok ? 'text-emerald-600' : 'text-slate-300'} />
+                {item.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {triggerSummary.map((item) => (
+            <div key={item.title} className={`rounded-xl border px-3 py-3 ${item.tone}`}>
+              <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
+              <p className="mt-1 text-sm font-medium leading-relaxed">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <div className="flex items-start gap-3">
           <Info size={18} className="mt-0.5 shrink-0 text-amber-700" />
@@ -1649,6 +2472,15 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
         ))}
       </div>
 
+      <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {automationFlowSummary.map((item) => (
+          <div key={item.title} className={`rounded-xl border px-4 py-3 ${item.tone}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
+            <p className="mt-1 text-sm font-medium leading-relaxed">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* ── LEFT: Config ── */}
         <div className="lg:col-span-4 space-y-4">
@@ -1691,6 +2523,46 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                     placeholder="Describe con tus palabras cuándo se activa. Ej: Cuando un cliente envía un comprobante de pago"
                     className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A] h-24 resize-none text-sm"
                   />
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {[
+                      'Cuando un cliente pregunta por precio o planes',
+                      'Cuando un cliente pide ayuda o reporta un problema',
+                      'Cuando un cliente envia un comprobante de pago',
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDescription(preset)}
+                        className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                      >
+                        Texto sugerido
+                      </button>
+                    ))}
+                  </div>
+                  <div className={`rounded-lg border px-3 py-3 text-xs ${
+                    scheduledHasTemplateAction
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                  }`}>
+                    <p className="font-semibold">{scheduledHasTemplateAction ? 'Plantilla lista para la programada' : 'Te falta una plantilla aprobada'}</p>
+                    <p className="mt-1 leading-relaxed">
+                      {scheduledHasTemplateAction
+                        ? 'Esta automatizacion ya tiene una accion de plantilla y puede enviar fuera de la ventana de 24 horas.'
+                        : 'Para recordatorios y vencimientos, agrega una accion de plantilla aprobada en la pestaña "Â¿QuÃ© hace?".'}
+                    </p>
+                    {!scheduledHasTemplateAction && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('actions')
+                          addAction('send_template')
+                        }}
+                        className="mt-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-[11px] font-semibold text-amber-700"
+                      >
+                        Agregar plantilla aprobada
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1708,6 +2580,18 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                     Activar si el cliente no responde en {timeMinutes || '?'} min
                     {parseInt(timeMinutes) >= 60 && ` (${Math.round(parseInt(timeMinutes) / 60 * 10) / 10}h)`}
                   </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {['15', '30', '60', '120', '1440'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setTimeMinutes(preset)}
+                        className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                      >
+                        {preset === '1440' ? '1 dia' : `${preset} min`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1734,6 +2618,26 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                     <Calendar size={13} className="shrink-0 mt-0.5" />
                     <span>Se ejecuta automáticamente una vez al día. En la sección &quot;¿Qué hace?&quot; agrega una <strong>Plantilla de WhatsApp</strong>.</span>
                   </div>
+                  <div className="rounded-lg border border-black/[0.06] bg-[#F7F8FA] p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Programaciones comunes</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {[
+                        { label: 'El mismo dia', config: { send_days: 'expiration', audience_type: 'all', audience_value: '' } },
+                        { label: '1 dia antes', config: { send_days: '1_day_before', audience_type: 'all', audience_value: '' } },
+                        { label: '3 dias antes', config: { send_days: '3_days_before', audience_type: 'all', audience_value: '' } },
+                        { label: 'Todos los dias', config: { send_days: 'daily', audience_type: 'all', audience_value: '' } },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setScheduleConfig(prev => ({ ...prev, ...preset.config } as ScheduleConfig))}
+                          className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div>
                     <Label className="text-xs text-slate-400 flex items-center gap-1"><Users size={12} /> Audiencia</Label>
                     <Select
@@ -1753,6 +2657,29 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                         <SelectItem value="all">Todas las activas</SelectItem>
                       </SelectContent>
                     </Select>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setScheduleConfig(prev => ({ ...prev, audience_type: 'all', audience_value: '' }))}
+                        className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                      >
+                        Todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScheduleConfig(prev => ({ ...prev, audience_type: 'service', audience_value: prev.audience_value || 'NETFLIX' }))}
+                        className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                      >
+                        Por servicio
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScheduleConfig(prev => ({ ...prev, audience_type: 'tag', audience_value: prev.audience_value || 'VIP' }))}
+                        className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                      >
+                        Por etiqueta
+                      </button>
+                    </div>
                   </div>
                   {scheduleConfig.audience_type === 'service' && (
                     <Select
@@ -1772,12 +2699,26 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                     </Select>
                   )}
                   {scheduleConfig.audience_type === 'tag' && (
-                    <Input
-                      className="bg-[#F7F8FA] border-black/[0.08] text-sm"
-                      placeholder="Ej: VIP, CLIENTE_ACTIVO"
-                      value={scheduleConfig.audience_value}
-                      onChange={e => setScheduleConfig(prev => ({ ...prev, audience_value: e.target.value }))}
-                    />
+                    <div className="space-y-2">
+                      <Input
+                        className="bg-[#F7F8FA] border-black/[0.08] text-sm"
+                        placeholder="Ej: VIP, CLIENTE_ACTIVO"
+                        value={scheduleConfig.audience_value}
+                        onChange={e => setScheduleConfig(prev => ({ ...prev, audience_value: e.target.value }))}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {['VIP', 'CLIENTE_ACTIVO', 'RENOVACION_PENDIENTE'].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setScheduleConfig(prev => ({ ...prev, audience_value: preset }))}
+                            className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                   <div>
                     <Label className="text-xs text-slate-400 flex items-center gap-1"><Clock size={12} /> Cuándo enviar</Label>
@@ -1796,6 +2737,23 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                         <SelectItem value="daily">Todos los días</SelectItem>
                       </SelectContent>
                     </Select>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {[
+                        { label: 'Vence hoy', value: 'expiration' },
+                        { label: '1 dia antes', value: '1_day_before' },
+                        { label: '3 dias antes', value: '3_days_before' },
+                        { label: '7 dias antes', value: '7_days_before' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setScheduleConfig(prev => ({ ...prev, send_days: preset.value as ScheduleConfig['send_days'] }))}
+                          className="rounded-full border border-black/[0.08] bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600"
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="p-2.5 rounded-lg bg-[#F7F8FA] text-xs text-slate-500">
                     <p className="font-semibold text-[#0F172A] mb-1">Resumen:</p>
@@ -1879,11 +2837,26 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
             >
               ¿Qué hace? {actions.length > 0 && `(${actions.length})`}
             </button>
+            <button
+              onClick={() => setActiveTab('review')}
+              className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
+                activeTab === 'review' ? 'border-cyan-500 text-cyan-600' : 'border-transparent text-slate-400 hover:text-[#0F172A]'
+              }`}
+            >
+              Antes de activar
+            </button>
           </div>
 
           {/* ── CONDITIONS TAB ── */}
           {activeTab === 'conditions' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-left-4">
+              <div className="rounded-xl border border-red-100 bg-red-50/60 px-4 py-3">
+                <p className="text-sm font-semibold text-[#0F172A]">Empieza por una sola regla clara</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                  Si esta parte se complica, usa solo una condicion al inicio. Luego puedes sumar mas cuando ya veas que la automatizacion responde bien.
+                </p>
+              </div>
+
               {/* Condition Picker Modal */}
               {showConditionPicker && (
                 <CardPickerModal
@@ -1991,6 +2964,33 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           {/* ── ACTIONS TAB ── */}
           {activeTab === 'actions' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+              <div className="rounded-xl border border-green-100 bg-green-50/60 px-4 py-3">
+                <p className="text-sm font-semibold text-[#0F172A]">Define primero la respuesta principal</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                  Lo mas amigable suele ser responder con un mensaje corto o iniciar un flujo. Las etiquetas y acciones extra vienen despues.
+                </p>
+              </div>
+
+              {type === 'scheduled' && (
+                <div className={`rounded-xl border px-4 py-3 ${
+                  scheduledHasTemplateAction ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'
+                }`}>
+                  <p className="text-sm font-semibold text-[#0F172A]">En programadas, la salida ideal es una plantilla aprobada</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    Asi evitas problemas con la ventana de 24 horas en recordatorios, renovaciones y avisos de vencimiento.
+                  </p>
+                  {!scheduledHasTemplateAction && (
+                    <button
+                      type="button"
+                      onClick={() => addAction('send_template')}
+                      className="mt-3 rounded-lg border border-amber-200 bg-white px-3 py-2 text-[11px] font-semibold text-amber-700"
+                    >
+                      Agregar plantilla aprobada
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Action Picker Modal */}
               {showActionPicker && (
                 <CardPickerModal
@@ -2051,12 +3051,120 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                       flows={flows}
                       metaTemplates={metaTemplates}
                       customFieldDefs={customFieldDefs}
+                      triggerType={type}
+                      scheduleConfig={type === 'scheduled' ? scheduleConfig : undefined}
                       onUpdate={updateAction}
                       onRemove={removeAction}
                     />
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'review' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 px-4 py-3">
+                <p className="text-sm font-semibold text-[#0F172A]">Antes de activar, revísala como si fueras el cliente</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                  La idea es simple: entender qué la activa, qué responde primero y qué pasa después para no insistir de más.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {automationFlowSummary.map((item) => (
+                  <div key={item.title} className={`rounded-xl border px-4 py-3 ${item.tone}`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
+                    <p className="mt-1 text-sm font-medium leading-relaxed">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-xl border border-black/[0.08] bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Checklist funcional</p>
+                <div className="mt-3 grid gap-2">
+                  {reviewChecklist.map((item) => (
+                    <div
+                      key={item.label}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
+                        item.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-black/[0.06] bg-[#F7F8FA] text-slate-500'
+                      }`}
+                    >
+                      <CheckCircle2 size={13} className={item.ok ? 'text-emerald-600' : 'text-slate-300'} />
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-black/[0.08] bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Chequeo humano</p>
+                <div className="mt-3 space-y-2">
+                  {humanChecks.map((check) => (
+                    <div
+                      key={check.title}
+                      className={`rounded-xl border px-3 py-3 ${
+                        check.ok
+                          ? 'border-emerald-200 bg-emerald-50/70'
+                          : 'border-amber-200 bg-amber-50/70'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {check.ok ? (
+                          <CheckCircle2 size={15} className="mt-0.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <AlertCircle size={15} className="mt-0.5 text-amber-600 shrink-0" />
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold text-[#0F172A]">{check.title}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600">{check.detail}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-black/[0.08] bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Prueba mental rápida</p>
+                <div className="mt-3 space-y-2">
+                  {reviewScenarios.map((scenario, index) => (
+                    <div key={index} className="rounded-lg border border-black/[0.06] bg-[#F7F8FA] px-3 py-2 text-sm text-slate-600">
+                      {scenario}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {!activationReady && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('conditions')}
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
+                    >
+                      Revisar activación
+                    </button>
+                  )}
+                  {!actionsReady && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('actions')}
+                      className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700"
+                    >
+                      Revisar respuesta
+                    </button>
+                  )}
+                  {reviewReady && (
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={isPending}
+                      className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700"
+                    >
+                      Guardar automatización
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

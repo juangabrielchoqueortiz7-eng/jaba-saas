@@ -35,7 +35,7 @@ interface TemplateEdge {
   label: string
 }
 
-interface FlowTemplate {
+export interface FlowTemplate {
   id: string
   name: string
   description: string
@@ -51,7 +51,7 @@ interface FlowTemplate {
 
 // ── Template Definitions ───────────────────────────────────────────────────
 
-const TEMPLATES: FlowTemplate[] = [
+export const FLOW_TEMPLATES: FlowTemplate[] = [
   {
     id: 'welcome_menu',
     name: 'Bienvenida y Menu',
@@ -325,7 +325,7 @@ export default function FlowTemplates({ assistantId, onStartBlank, onClose }: Fl
     return Number(isRecommendedForBusinessType(template)) * 2 + Number(isRecommendedForGoal(template))
   }
 
-  const sortedTemplates = [...TEMPLATES].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
+  const sortedTemplates = [...FLOW_TEMPLATES].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
 
   const handleSelectTemplate = (template: FlowTemplate) => {
     setLoadingId(template.id)

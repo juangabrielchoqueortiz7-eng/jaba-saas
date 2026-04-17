@@ -102,6 +102,51 @@ const ACCEPT: Record<string, string> = {
     DOCUMENT: 'application/pdf',
 }
 
+const TEMPLATE_STARTERS = [
+    {
+        label: 'Renovacion',
+        apply: {
+            name: 'recordatorio_renovacion',
+            category: 'UTILITY' as TemplateCategory,
+            body: 'Hola {{1}}.\n\nTu acceso a *{{2}}* vence en *{{3}} dias*.\n\nSi quieres renovarlo hoy, responde este mensaje y te ayudamos enseguida.',
+            bodyExamples: ['Juan', 'Netflix Premium', '7'],
+            footer: 'Si ya renovaste, ignora este mensaje',
+        },
+    },
+    {
+        label: 'Bienvenida',
+        apply: {
+            name: 'bienvenida_acceso',
+            category: 'UTILITY' as TemplateCategory,
+            body: 'Hola {{1}}.\n\nTu acceso a *{{2}}* ya esta listo.\n\nUsuario: {{3}}\nContrasena: {{4}}',
+            bodyExamples: ['Juan', 'Netflix Premium', 'juan@email.com', 'Pass2024'],
+            footer: 'Si necesitas ayuda, responde este mensaje',
+        },
+    },
+    {
+        label: 'Seguimiento',
+        apply: {
+            name: 'seguimiento_cliente',
+            category: 'MARKETING' as TemplateCategory,
+            body: 'Hola {{1}}.\n\nSeguimos pendientes con *{{2}}*.\n\nSi todavia quieres avanzar, responde este mensaje y retomamos desde donde quedamos.',
+            bodyExamples: ['Juan', 'tu solicitud'],
+            footer: 'Estamos aqui para ayudarte',
+        },
+    },
+]
+
+const BODY_PRESETS = [
+    'Hola {{1}}.\n\nTu acceso a *{{2}}* vence en *{{3}} dias*.\n\nSi quieres renovarlo hoy, responde este mensaje.',
+    'Hola {{1}}.\n\nTu acceso a *{{2}}* ya esta listo.\n\nUsuario: {{3}}\nContrasena: {{4}}',
+    'Hola {{1}}.\n\nQueremos saber si todo va bien con *{{2}}*.\n\nSi necesitas ayuda, respondemos por aqui.',
+]
+
+const FOOTER_PRESETS = [
+    'Si ya lo resolviste, ignora este mensaje',
+    'Si necesitas ayuda, responde este mensaje',
+    'Valido por tiempo limitado',
+]
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function detectVars(text: string): number[] {
@@ -255,6 +300,13 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
 
     const qrCount  = form.buttons.filter(b => b.kind === 'QUICK_REPLY').length
     const ctaCount = form.buttons.filter(b => b.kind !== 'QUICK_REPLY').length
+    const bodyVars = detectVars(form.body)
+    const advancedChecklist = [
+        { label: 'Nombre listo', ok: form.name.trim().length > 0 },
+        { label: 'Mensaje listo', ok: form.body.trim().length > 0 },
+        { label: 'Ejemplos completos', ok: bodyVars.every((_, i) => Boolean(form.bodyExamples[i]?.trim())) || bodyVars.length === 0 },
+        { label: 'Header valido', ok: !isMediaHeaderFormat(form.headerFormat) || Boolean(form.headerHandle) },
+    ]
 
     // ── Validation ───────────────────────────────────────────────────────────
 
@@ -382,6 +434,51 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
             </div>
 
             <div className="p-6 space-y-8">
+
+                <div className="rounded-xl border border-black/[0.08] bg-[#F7F8FA] p-4 space-y-4">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-500">Modo avanzado con ayuda</p>
+                            <h3 className="mt-1 text-base font-semibold text-[#0F172A]">Empieza con una base y luego ajusta lo necesario</h3>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Aqui puedes usar header, botones e imagenes, pero no hace falta llenar todo desde cero.
+                            </p>
+                        </div>
+                        <div className="grid gap-2 text-xs">
+                            {advancedChecklist.map(item => (
+                                <div
+                                    key={item.label}
+                                    className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 ${
+                                        item.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-black/[0.06] bg-white text-slate-500'
+                                    }`}
+                                >
+                                    <span className={`h-2 w-2 rounded-full ${item.ok ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                    {item.label}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        {TEMPLATE_STARTERS.map(starter => (
+                            <button
+                                key={starter.label}
+                                type="button"
+                                onClick={() => setForm(prev => ({
+                                    ...prev,
+                                    ...starter.apply,
+                                    headerFormat: 'NONE',
+                                    headerText: '',
+                                    headerTextExample: '',
+                                    buttons: [],
+                                }))}
+                                className="rounded-lg border border-black/[0.08] bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                            >
+                                Usar base de {starter.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
                 {/* ══ 1. BASIC CONFIG ══════════════════════════════════════════ */}
                 <div>
@@ -574,11 +671,30 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                     />
                     <p className="text-[11px] text-slate-500 mt-1">{form.body.length} caracteres · Usa *negrita*, _cursiva_, {'{{n}}'} variables</p>
 
+                    <div className="mt-3 rounded-xl border border-black/[0.08] bg-[#F7F8FA] p-4 space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold text-slate-600">Textos sugeridos</p>
+                            <span className="text-[10px] text-slate-400">Bases listas para editar</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {BODY_PRESETS.map((preset, presetIndex) => (
+                                <button
+                                    key={`${presetIndex}-${preset}`}
+                                    type="button"
+                                    onClick={() => setForm(prev => ({ ...prev, body: preset }))}
+                                    className="rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                                >
+                                    Texto sugerido
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Dynamic variable examples */}
-                    {detectVars(form.body).length > 0 && (
+                    {bodyVars.length > 0 && (
                         <div className="mt-3 p-4 rounded-xl bg-[#F7F8FA] border border-black/[0.08] space-y-2">
                             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Ejemplos de variables (requerido por Meta)</p>
-                            {detectVars(form.body).map((varNum, idx) => (
+                            {bodyVars.map((varNum, idx) => (
                                 <div key={varNum} className="flex items-center gap-3">
                                     <span className="font-mono text-xs text-indigo-400 w-10 shrink-0">{`{{${varNum}}}`}</span>
                                     <Input
@@ -635,6 +751,29 @@ export default function MetaTemplateBuilder({ onSuccess, onCancel }: Props) {
                 {/* ══ 5. BUTTONS ═══════════════════════════════════════════════ */}
                 <div>
                     <SectionLabel>5 · Botones interactivos <span className="text-slate-500 text-xs font-normal normal-case ml-1">(opcional, máx. 10)</span></SectionLabel>
+
+                    <div className="mb-4 flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => set('buttons', [
+                                { id: crypto.randomUUID(), kind: 'QUICK_REPLY', text: 'Renovar ahora' },
+                                { id: crypto.randomUUID(), kind: 'QUICK_REPLY', text: 'Hablar con asesor' },
+                            ])}
+                            className="rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                        >
+                            Botones de renovacion
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => set('buttons', [
+                                { id: crypto.randomUUID(), kind: 'QUICK_REPLY', text: 'Ver planes' },
+                                { id: crypto.randomUUID(), kind: 'QUICK_REPLY', text: 'Necesito ayuda' },
+                            ])}
+                            className="rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                        >
+                            Botones de ayuda
+                        </button>
+                    </div>
 
                     {/* Add buttons row */}
                     <div className="flex flex-wrap gap-2 mb-4">

@@ -92,6 +92,32 @@ const PURPOSES = [
 
 type Purpose = typeof PURPOSES[number]
 
+const BODY_SUGGESTIONS: Record<string, { label: string; text: string }[]> = {
+    renovacion: [
+        { label: 'Recordatorio amable', text: 'Hola {{1}}.\n\nTu acceso a {{2}} vence en {{3}} dias.\n\nSi quieres renovarlo hoy, responde este mensaje y te ayudamos enseguida.' },
+        { label: 'Urgencia suave', text: 'Hola {{1}}.\n\nTe avisamos que tu acceso a {{2}} esta por vencer en {{3}} dias.\n\nSi quieres evitar una pausa en el servicio, escribenos y lo dejamos listo.' },
+    ],
+    bienvenida: [
+        { label: 'Entrega de acceso', text: 'Hola {{1}}.\n\nTu acceso a {{2}} ya esta listo.\n\nUsuario: {{3}}\nContrasena: {{4}}\n\nSi necesitas ayuda para ingresar, responde este mensaje.' },
+        { label: 'Bienvenida corta', text: 'Bienvenido, {{1}}.\n\nTu servicio {{2}} ya esta activo.\n\nUsuario: {{3}}\nContrasena: {{4}}' },
+    ],
+    seguimiento: [
+        { label: 'Seguimiento amable', text: 'Hola {{1}}.\n\nSeguimos pendientes con {{2}}.\n\nSi todavia quieres avanzar, responde este mensaje y retomamos desde donde quedamos.' },
+        { label: 'Ayuda rapida', text: 'Hola {{1}}.\n\nQueremos saber si todo va bien con {{2}}.\n\nSi necesitas ayuda, respondemos por aqui.' },
+    ],
+    personalizada: [
+        { label: 'Mensaje base', text: 'Hola {{1}}.\n\nQueria escribirte para compartirte esta informacion.\n\nSi necesitas ayuda, responde este mensaje.' },
+        { label: 'Cierre simple', text: 'Hola {{1}}.\n\nTe comparto esto para que puedas revisarlo con calma.\n\nQuedo atento si quieres continuar.' },
+    ],
+}
+
+const NAME_SUGGESTIONS: Record<string, string[]> = {
+    renovacion: ['renovacion_7_dias', 'recordatorio_renovacion', 'aviso_vencimiento'],
+    bienvenida: ['bienvenida_acceso', 'entrega_de_acceso', 'alta_cliente'],
+    seguimiento: ['seguimiento_cliente', 'retomar_conversacion', 'seguimiento_servicio'],
+    personalizada: ['mensaje_personalizado', 'plantilla_general', 'aviso_simple'],
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function extractVariables(body: string): string[] {
@@ -145,6 +171,16 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
 
     const currentMappings = purpose ? (VARIABLE_MAPPINGS[purpose.id] || VARIABLE_MAPPINGS.personalizada) : []
     const detectedVars = extractVariables(body)
+    const bodySuggestions = purpose ? (BODY_SUGGESTIONS[purpose.id] || BODY_SUGGESTIONS.personalizada) : []
+    const nameSuggestions = purpose ? (NAME_SUGGESTIONS[purpose.id] || NAME_SUGGESTIONS.personalizada) : []
+    const bodyReady = body.trim().length > 0
+    const nameReady = name.trim().length > 0
+    const variableReady = detectedVars.length > 0
+    const simpleChecklist = [
+        { label: 'Mensaje base listo', ok: bodyReady },
+        { label: 'Variables detectadas', ok: variableReady },
+        { label: 'Nombre interno listo', ok: nameReady },
+    ]
 
     // Build dynamic mappings for any variables beyond the purpose defaults
     const allMappings: VariableMapping[] = detectedVars.map(v => {
@@ -330,6 +366,19 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                             <span className="text-slate-500">— {purpose.categoryDesc}</span>
                         </div>
 
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                            {[
+                                { title: 'Objetivo', value: purpose.label },
+                                { title: 'Variables', value: variableReady ? `${detectedVars.length} detectadas` : 'Agrega al menos una variable' },
+                                { title: 'Siguiente paso', value: 'Ajusta el texto para que suene a tu negocio' },
+                            ].map(item => (
+                                <div key={item.title} className="rounded-xl border border-black/[0.06] bg-[#F7F8FA] px-3 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{item.title}</p>
+                                    <p className="mt-1 text-sm font-medium text-[#0F172A]">{item.value}</p>
+                                </div>
+                            ))}
+                        </div>
+
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                             {/* Left: Editor + Variable picker */}
                             <div className="space-y-4">
@@ -345,6 +394,27 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                                         className="bg-[#F7F8FA] border-slate-200 text-[#0F172A] font-mono text-sm resize-none"
                                         placeholder="Escribe tu mensaje aquí…"
                                     />
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-[#F7F8FA] p-4 space-y-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs font-semibold text-slate-600">Textos sugeridos</span>
+                                        <span className="text-[10px] text-slate-400">Base lista para editar</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {bodySuggestions.map(suggestion => (
+                                            <button
+                                                key={suggestion.label}
+                                                onClick={() => setBody(suggestion.text)}
+                                                className="rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                                            >
+                                                {suggestion.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[11px] leading-relaxed text-slate-500">
+                                        Piensa el mensaje como una sola idea clara: que paso, que debe hacer el cliente y como puede responderte.
+                                    </p>
                                 </div>
 
                                 {/* Variable picker */}
@@ -526,6 +596,18 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                                     Este nombre es único e inmutable una vez aprobado.
                                 </p>
 
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {nameSuggestions.map(suggestion => (
+                                        <button
+                                            key={suggestion}
+                                            onClick={() => setName(suggestion)}
+                                            className="rounded-lg border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                                        >
+                                            {suggestion}
+                                        </button>
+                                    ))}
+                                </div>
+
                                 {/* Variable mapping summary */}
                                 {allMappings.length > 0 && (
                                     <div className="mt-4 rounded-xl border border-slate-200 bg-[#F7F8FA] p-3 space-y-1.5">
@@ -547,6 +629,19 @@ export default function SimpleTemplateWizard({ onSuccess, onCancel, onAdvancedMo
                                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">
                                     Resumen
                                 </label>
+                                <div className="mb-4 grid gap-2">
+                                    {simpleChecklist.map(item => (
+                                        <div
+                                            key={item.label}
+                                            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
+                                                item.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-black/[0.06] bg-[#F7F8FA] text-slate-500'
+                                            }`}
+                                        >
+                                            <span className={`h-2 w-2 rounded-full ${item.ok ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                            {item.label}
+                                        </div>
+                                    ))}
+                                </div>
                                 <div className="space-y-0 divide-y divide-slate-100 text-sm">
                                     {[
                                         { label: 'Propósito', value: `${purpose.emoji} ${purpose.label}` },
