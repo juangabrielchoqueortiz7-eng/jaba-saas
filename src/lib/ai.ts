@@ -4,6 +4,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = process.env.GOOGLE_API_KEY;
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const FALLBACK_GEMINI_MODELS = ['gemini-2.0-flash'];
+const DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 180;
+const CONCISE_CHAT_INSTRUCTIONS = `
+
+REGLAS DE BREVEDAD PARA CHAT:
+- Responde como WhatsApp: corto, natural y facil de leer.
+- Usa maximo 2 parrafos cortos o 3 bullets breves.
+- No repitas toda la informacion del negocio si el cliente no la pidio.
+- Si el cliente pregunta algo simple, responde directo en 1 a 3 frases.
+- Haz solo una pregunta al final para avanzar la venta o entender mejor al cliente.
+- Da mas detalle solo si el cliente lo pide explicitamente.
+`;
 
 interface RetryableApiError {
     message?: string;
@@ -43,6 +54,18 @@ function isMissingModelError(error: unknown): boolean {
         || message.includes('is not found');
 }
 
+function getChatMaxOutputTokens(): number {
+    const configuredValue = Number(process.env.AI_CHAT_MAX_OUTPUT_TOKENS || process.env.GEMINI_CHAT_MAX_OUTPUT_TOKENS);
+    if (Number.isFinite(configuredValue) && configuredValue >= 80 && configuredValue <= 500) {
+        return configuredValue;
+    }
+    return DEFAULT_CHAT_MAX_OUTPUT_TOKENS;
+}
+
+function buildConciseSystemInstruction(systemPrompt: string): string {
+    return `${systemPrompt.trim()}\n${CONCISE_CHAT_INSTRUCTIONS}`;
+}
+
 export async function generateAIResponse(userMessage: string, systemPrompt?: string): Promise<string> {
     if (!apiKey) {
         console.error("GOOGLE_API_KEY no está configurada");
@@ -51,7 +74,7 @@ export async function generateAIResponse(userMessage: string, systemPrompt?: str
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const prompt = `
-      ${systemPrompt || 'Eres un asistente amable.'}
+      ${buildConciseSystemInstruction(systemPrompt || 'Eres un asistente amable.')}
       
       Mensaje del usuario:
       "${userMessage}"
@@ -94,13 +117,14 @@ export async function generateChatResponse(history: { role: 'user' | 'model', pa
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({
                 model: DEFAULT_GEMINI_MODEL,
-                systemInstruction: systemPrompt
+                systemInstruction: buildConciseSystemInstruction(systemPrompt)
             });
 
             const chat = model.startChat({
                 history: history,
                 generationConfig: {
-                    maxOutputTokens: 500,
+                    maxOutputTokens: getChatMaxOutputTokens(),
+                    temperature: 0.7,
                 },
             });
 
