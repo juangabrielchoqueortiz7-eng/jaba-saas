@@ -7,14 +7,13 @@ import { Card } from '@/components/ui/card'
 import {
     Search, Plus, Trash2, Edit, Zap, Clock, Workflow, Calendar, Play,
     CheckCircle, AlertCircle, Loader2, HelpCircle, ChevronDown, ChevronUp,
-    History, X, RefreshCw, Copy, BarChart3, BellRing,
+    History, X, RefreshCw, Copy, BellRing,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getTriggers, toggleTrigger, deleteTrigger, duplicateTrigger } from './actions'
 import type { TriggerListItem } from './actions'
 import SequenceAutomationsPanel from './SequenceAutomationsPanel'
-import AutomationDashboardPanel from './AutomationDashboardPanel'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -255,7 +254,6 @@ export default function TriggersPage() {
     const [runningId, setRunningId] = useState<string | null>(null)
     const [runResult, setRunResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null)
     const [logsModal, setLogsModal] = useState<{ id: string; name: string } | null>(null)
-    const [activeSection, setActiveSection] = useState<'rules' | 'insights'>('rules')
     const [showFollowups, setShowFollowups] = useState(false)
 
     const loadTriggers = useCallback(async () => {
@@ -342,55 +340,14 @@ export default function TriggersPage() {
                 </Link>
             </div>
 
-            <div className="mb-6 rounded-lg border border-black/[0.08] bg-white p-1 shadow-sm">
-                <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
-                    {[
-                        {
-                            id: 'rules' as const,
-                            title: 'Disparadores',
-                            desc: 'Crear reglas simples: cuando pase algo, el bot hace algo.',
-                            icon: <Zap size={16} />,
-                        },
-                        {
-                            id: 'insights' as const,
-                            title: 'Resumen y metricas',
-                            desc: 'Ver graficos, salud, conflictos, packs y plantillas vinculadas.',
-                            icon: <BarChart3 size={16} />,
-                        },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => setActiveSection(tab.id)}
-                            className={`rounded-lg px-4 py-3 text-left transition-colors ${
-                                activeSection === tab.id
-                                    ? 'bg-[#0F172A] text-white'
-                                    : 'text-slate-600 hover:bg-[#F7F8FA] hover:text-[#0F172A]'
-                            }`}
-                        >
-                            <div className="flex items-center gap-2 text-sm font-semibold">
-                                {tab.icon}
-                                {tab.title}
-                            </div>
-                            <p className={`mt-1 text-xs ${activeSection === tab.id ? 'text-white/70' : 'text-slate-400'}`}>
-                                {tab.desc}
-                            </p>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {activeSection === 'insights' ? (
-                <AutomationDashboardPanel />
-            ) : (
-                <>
+            <>
                     <div className="mb-6 rounded-lg border border-cyan-200 bg-cyan-50 p-5">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-cyan-700">Modo simple</p>
                                 <h2 className="mt-1 text-lg font-bold text-[#0F172A]">Crea solo la regla que necesitas ahora</h2>
                                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-                                    Si quieres algo avanzado como metricas, salud o packs, entra al apartado Resumen y metricas.
+                                    Define cuándo actúa el bot y qué hace: responder, etiquetar, enviar plantillas o iniciar un flujo.
                                 </p>
                             </div>
                             <Link href={`/dashboard/assistants/${assistantId}/triggers/new`}>
@@ -425,11 +382,10 @@ export default function TriggersPage() {
                         </div>
 
                         {!showFollowups ? (
-                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                                 {[
-                                    'Instala un pack si quieres recuperar ventas, leads o renovaciones.',
-                                    'Edita mensajes solo cuando ya sepas que seguimiento necesitas.',
-                                    'Revisa metricas y conflictos desde el apartado Resumen y metricas.',
+                                    'Úsalo para recuperar ventas, leads o renovaciones sin respuesta.',
+                                    'Edita los mensajes solo cuando ya sepas qué seguimiento necesitas.',
                                 ].map(item => (
                                     <div key={item} className="rounded-lg border border-black/[0.06] bg-[#F7F8FA] p-3 text-xs text-slate-600">
                                         {item}
@@ -630,8 +586,7 @@ export default function TriggersPage() {
                     </table>
                 </div>
             </Card>
-                </>
-            )}
+            </>
         </div>
     )
 }

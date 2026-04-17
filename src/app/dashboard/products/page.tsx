@@ -446,40 +446,6 @@ export default function ProductsPage() {
                 </div>
             </div>
 
-            {/* ── ¿Cómo funciona el remarketing automático? ── */}
-            <div className="mb-8 rounded-2xl border border-[#25D366]/20 bg-[rgba(37,211,102,0.03)] overflow-hidden">
-                <div className="flex items-center gap-3 px-6 py-4 border-b border-[#25D366]/15">
-                    <div className="w-8 h-8 rounded-full bg-[#25D366]/10 flex items-center justify-center text-base">🔄</div>
-                    <div>
-                        <p className="font-bold text-[#0F172A] text-sm">¿Cómo funciona el remarketing automático?</p>
-                        <p className="text-xs text-[#0F172A]/45 mt-0.5">Tu bot envía mensajes de renovación en 3 pasos sin que hagas nada</p>
-                    </div>
-                </div>
-                <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {[
-                        { step: '1', time: '13:00 UTC (9am BOT)', icon: '📤', color: 'bg-blue-50 border-blue-200', textColor: 'text-blue-700', title: 'Plantilla Meta enviada', desc: 'Se envía la plantilla de WhatsApp a clientes que vencen en 7 días. Abre una ventana de 24h para mensajes normales.' },
-                        { step: '2', time: '22:00 UTC (6pm BOT)', icon: '💬', color: 'bg-emerald-50 border-emerald-200', textColor: 'text-emerald-700', title: 'Seguimiento gratuito', desc: 'Si aún no renovó, se envía un mensaje normal (sin costo Meta) dentro de la ventana de 24h.' },
-                        { step: '3', time: '13:00 UTC día siguiente', icon: '⚡', color: 'bg-amber-50 border-amber-200', textColor: 'text-amber-700', title: 'Último aviso urgente', desc: 'Para quienes vencen HOY se envía un último recordatorio con urgencia.' },
-                    ].map((item) => (
-                        <div key={item.step} className={`rounded-xl border p-4 ${item.color}`}>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">{item.icon}</span>
-                                <span className={`text-[10px] font-bold uppercase tracking-wider ${item.textColor}`}>Paso {item.step}</span>
-                            </div>
-                            <p className={`font-semibold text-sm mb-1 ${item.textColor}`}>{item.title}</p>
-                            <p className="text-xs text-[#0F172A]/55 leading-relaxed mb-2">{item.desc}</p>
-                            <p className={`text-[10px] font-mono ${item.textColor} opacity-70`}>{item.time}</p>
-                        </div>
-                    ))}
-                </div>
-                <div className="px-6 pb-5">
-                    <div className="bg-white border border-black/[0.07] rounded-xl px-4 py-3 text-xs text-[#0F172A]/60 leading-relaxed">
-                        <strong>💡 Personaliza el contenido:</strong> Ve a <strong>Plantillas</strong> para editar los mensajes de cada paso.
-                        Los mensajes de seguimiento (paso 2 y 3) se configuran desde la sección de <strong>Plantillas Meta → Configuración de Servicios</strong>.
-                    </div>
-                </div>
-            </div>
-
             {/* Create/Edit Form */}
             {isCreating && (
                 <Card className="mb-8 border-black/[0.08] bg-white shadow-sm">

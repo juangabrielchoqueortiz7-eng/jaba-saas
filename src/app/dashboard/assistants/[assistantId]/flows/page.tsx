@@ -1007,36 +1007,6 @@ export default function FlowsPage() {
             {/* ══════════════════════════════════════════ */}
             {pageTab === 'flows' && (
                 <>
-                    {/* Info Card */}
-                    <div className="rounded-[14px] border border-cyan-500/25 bg-cyan-500/[0.04] overflow-hidden">
-                        <button onClick={() => setShowHelp(v => !v)}
-                            className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-none cursor-pointer text-left">
-                            <HelpCircle size={16} className="text-cyan-600 shrink-0" />
-                            <span className="flex-1 font-semibold text-sm text-[#0F172A]">¿Qué son las Conversaciones Guiadas?</span>
-                            {showHelp ? <ChevronUp size={16} className="text-cyan-600" /> : <ChevronDown size={16} className="text-cyan-600" />}
-                        </button>
-                        {showHelp && (
-                            <div className="px-5 pb-5 space-y-4">
-                                <p className="text-sm text-[#0F172A]/65 leading-relaxed">
-                                    Un flujo es una <strong>conversación diseñada por ti, paso a paso</strong>, que tu bot sigue automáticamente.
-                                </p>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {[
-                                        { icon: <ShoppingCart size={18} />, title: 'Flujo de Ventas', desc: 'Guía al cliente desde el interés hasta la compra.' },
-                                        { icon: <MessageSquare size={18} />, title: 'Flujo de Soporte', desc: 'Responde preguntas frecuentes automáticamente.' },
-                                        { icon: <Zap size={18} />, title: 'Flujo Automatizado', desc: 'Envía plantillas y mensajes programados.' },
-                                    ].map((item, i) => (
-                                        <div key={i} className="bg-white border border-black/[0.07] rounded-xl p-3">
-                                            <div className="text-cyan-600 mb-2">{item.icon}</div>
-                                            <p className="font-bold text-xs text-[#0F172A] mb-1">{item.title}</p>
-                                            <p className="text-[11px] text-[#0F172A]/50 leading-relaxed">{item.desc}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
                     {/* Search */}
                     <div className="relative">
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
