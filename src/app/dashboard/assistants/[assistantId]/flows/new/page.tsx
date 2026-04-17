@@ -1,11 +1,48 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import SimpleCreationHub from '@/components/dashboard/SimpleCreationHub'
 import FlowWizard from '../FlowWizard'
+import FlowTemplates from '../FlowTemplates'
 
 export default function NewFlowPage() {
     const params = useParams()
+    const router = useRouter()
     const assistantId = params?.assistantId as string
+    const [mode, setMode] = useState<'recipes' | 'builder'>('recipes')
 
-    return <FlowWizard assistantId={assistantId} />
+    if (mode === 'recipes') {
+        return (
+            <div className="min-h-screen bg-[#F7F8FA]">
+                <div className="mx-auto max-w-7xl p-6 md:p-8">
+                    <div className="mb-6">
+                        <SimpleCreationHub assistantId={assistantId} surface="flows" />
+                    </div>
+                    <FlowTemplates
+                        assistantId={assistantId}
+                        onStartBlank={() => setMode('builder')}
+                        onClose={() => router.push(`/dashboard/assistants/${assistantId}/flows`)}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="min-h-screen bg-[#F7F8FA]">
+            <div className="mx-auto max-w-7xl p-6 md:p-8">
+                <button
+                    type="button"
+                    onClick={() => setMode('recipes')}
+                    className="mb-4 inline-flex items-center gap-2 rounded-xl border border-black/[0.08] bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:text-[#0F172A]"
+                >
+                    <ArrowLeft size={15} />
+                    Volver a recetas
+                </button>
+                <FlowWizard assistantId={assistantId} />
+            </div>
+        </div>
+    )
 }

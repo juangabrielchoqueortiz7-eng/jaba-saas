@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import SimpleCreationHub from '@/components/dashboard/SimpleCreationHub'
 import TriggerBuilder from '../TriggerBuilder'
 import TriggerTemplates, { type TriggerTemplate } from '../TriggerTemplates'
 
@@ -14,10 +15,17 @@ export default function NewTriggerPage() {
     // Step 1: Show template gallery
     if (selectedTemplate === null) {
         return (
-            <TriggerTemplates
-                onSelectTemplate={(t) => setSelectedTemplate(t)}
-                onStartBlank={() => setSelectedTemplate('blank')}
-            />
+            <div className="min-h-screen bg-[#F7F8FA]">
+                <div className="mx-auto max-w-7xl p-6 md:p-8">
+                    <div className="mb-6">
+                        <SimpleCreationHub assistantId={assistantId} surface="triggers" />
+                    </div>
+                    <TriggerTemplates
+                        onSelectTemplate={(t) => setSelectedTemplate(t)}
+                        onStartBlank={() => setSelectedTemplate('blank')}
+                    />
+                </div>
+            </div>
         )
     }
 
