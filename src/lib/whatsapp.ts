@@ -9,9 +9,9 @@
  */
 type WhatsAppInteractiveListPayload = Record<string, unknown>
 
-interface WhatsAppTemplateComponent {
+export interface WhatsAppTemplateComponent {
     type: string
-    parameters?: Array<{ type: string; text?: string; image?: { link: string } }>
+    parameters?: Array<{ type: string; text?: string; image?: { link?: string; id?: string } }>
 }
 
 export async function sendWhatsAppMessage(to: string, body: string, token?: string, phoneNumberId?: string) {

@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight,
     ChevronDown, ChevronUp, HelpCircle, Zap, MessageSquare, ShoppingCart,
-    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon, Copy
+    Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon, Copy,
+    Upload, Loader2, AlertCircle
 } from 'lucide-react'
 import { getFlows, deleteFlow, updateFlow, type ConversationFlow } from './actions'
 import { HelpTooltip } from '@/components/ui/help-tooltip'
@@ -26,13 +27,22 @@ type PageTab = 'flows' | 'automations'
 type TargetType = 'subscriptions_expiring' | 'all_contacts' | 'tagged_contacts'
 
 type TemplateParam = { label: string; value: string }
-type TargetConfig = { tags?: string[] }
+type TargetConfig = {
+    tags?: string[]
+    header_media_id?: string
+    header_media_url?: string
+    header_media_name?: string
+    template_language?: string
+}
 type MetaTemplateButton = { type: string; text: string }
 type MetaTemplateComponent = {
     type: string
     text?: string
     format?: string
     buttons?: MetaTemplateButton[]
+    example?: {
+        header_handle?: string[]
+    }
 }
 
 type AutomationJob = {
@@ -54,6 +64,7 @@ type MetaTemplate = {
     id: string
     name: string
     status: string
+    language?: string
     components: MetaTemplateComponent[]
 }
 
@@ -73,6 +84,12 @@ const EMPTY_JOB = {
     target_type: 'all_contacts' as TargetType,
     target_config: {} as TargetConfig,
     is_active: true,
+}
+
+function getTemplateHeaderImageUrl(template?: MetaTemplate): string {
+    const header = template?.components.find(c => c.type === 'HEADER' && c.format === 'IMAGE')
+    const handle = header?.example?.header_handle?.[0]
+    return typeof handle === 'string' ? handle : ''
 }
 
 // ── WhatsApp Template Preview ─────────────────────────────────────────────────
@@ -370,12 +387,34 @@ function AutomationModal({
         is_active: job.is_active,
     } : { ...EMPTY_JOB })
     const [saving, setSaving] = useState(false)
+    const [uploadingHeader, setUploadingHeader] = useState(false)
 
     const selectedTpl = templates.find(t => t.name === form.template_name)
+    const requiresHeaderImage = selectedTpl?.components.some(c => c.type === 'HEADER' && c.format === 'IMAGE') ?? false
+    const approvedHeaderImageUrl = getTemplateHeaderImageUrl(selectedTpl)
     // Extraer parámetros del body de la plantilla (variables {{1}}, {{2}}, etc.)
     const bodyText = selectedTpl?.components.find(c => c.type === 'BODY')?.text || ''
     const varMatches = [...bodyText.matchAll(/\{\{(\d+)\}\}/g)]
     const varCount = varMatches.length
+
+    useEffect(() => {
+        if (!requiresHeaderImage || !approvedHeaderImageUrl) return
+        if (form.target_config.header_media_id || form.target_config.header_media_url) return
+
+        setForm(p => ({
+            ...p,
+            target_config: {
+                ...p.target_config,
+                header_media_url: approvedHeaderImageUrl,
+                header_media_name: 'Imagen aprobada en Meta',
+            },
+        }))
+    }, [
+        approvedHeaderImageUrl,
+        form.target_config.header_media_id,
+        form.target_config.header_media_url,
+        requiresHeaderImage,
+    ])
 
     // Sincronizar template_params cuando cambia la plantilla
     const handleTemplateChange = (name: string) => {
@@ -386,12 +425,63 @@ function AutomationModal({
             label: `Variable ${i + 1}`,
             value: form.template_params[i]?.value || '',
         }))
-        setForm(p => ({ ...p, template_name: name, template_params: params }))
+        const hasImageHeader = tpl?.components.some(c => c.type === 'HEADER' && c.format === 'IMAGE')
+        const defaultHeaderUrl = getTemplateHeaderImageUrl(tpl)
+        setForm(p => ({
+            ...p,
+            template_name: name,
+            template_params: params,
+            target_config: {
+                ...p.target_config,
+                template_language: tpl?.language || p.target_config.template_language || 'es',
+                ...(hasImageHeader && defaultHeaderUrl && !p.target_config.header_media_id ? {
+                    header_media_url: defaultHeaderUrl,
+                    header_media_name: 'Imagen aprobada en Meta',
+                } : {}),
+                ...(!hasImageHeader ? {
+                    header_media_id: undefined,
+                    header_media_url: undefined,
+                    header_media_name: undefined,
+                } : {}),
+            },
+        }))
+    }
+
+    const handleHeaderUpload = async (file: File) => {
+        setUploadingHeader(true)
+        try {
+            const fd = new FormData()
+            fd.append('file', file)
+            const res = await fetch('/api/whatsapp-media/upload', { method: 'POST', body: fd })
+            const data = await res.json() as { mediaId?: string; error?: string }
+            if (!res.ok || !data.mediaId) {
+                throw new Error(data.error || 'No se pudo subir la imagen a WhatsApp')
+            }
+
+            setForm(p => ({
+                ...p,
+                target_config: {
+                    ...p.target_config,
+                    header_media_id: data.mediaId,
+                    header_media_url: undefined,
+                    header_media_name: file.name,
+                },
+            }))
+            toast.success('Imagen lista para esta automatizacion')
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'No se pudo subir la imagen')
+        } finally {
+            setUploadingHeader(false)
+        }
     }
 
     const handleSubmit = async () => {
         if (!form.name.trim()) { toast.error('El nombre es requerido'); return }
         if (!form.template_name) { toast.error('Selecciona una plantilla'); return }
+        if (requiresHeaderImage && !form.target_config.header_media_id && !form.target_config.header_media_url?.trim()) {
+            toast.error('Esta plantilla tiene imagen. Sube o pega la imagen que se enviara.')
+            return
+        }
         setSaving(true)
         try { await onSave(form) }
         finally { setSaving(false) }
@@ -460,6 +550,63 @@ function AutomationModal({
                         </div>
 
                         {/* Parámetros dinámicos */}
+                        {requiresHeaderImage && (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-amber-900">Esta plantilla lleva imagen</p>
+                                        <p className="text-xs text-amber-800/80 leading-relaxed mt-0.5">
+                                            {approvedHeaderImageUrl
+                                                ? 'Detectamos la imagen aprobada en Meta y la usaremos como predeterminada. Puedes cambiarla si necesitas otra.'
+                                                : 'Meta no devolvio la imagen aprobada para esta plantilla. Sube aqui la imagen real que recibira el cliente.'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                                    <Input
+                                        placeholder="O pega una URL publica https://..."
+                                        value={form.target_config.header_media_url || ''}
+                                        onChange={e => setForm(p => ({
+                                            ...p,
+                                            target_config: {
+                                                ...p.target_config,
+                                                header_media_url: e.target.value,
+                                                header_media_id: e.target.value ? undefined : p.target_config.header_media_id,
+                                                header_media_name: e.target.value ? undefined : p.target_config.header_media_name,
+                                            },
+                                        }))}
+                                        className="bg-white border-amber-200 text-[#0F172A]"
+                                    />
+                                    <label className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer transition-colors ${
+                                        uploadingHeader ? 'bg-slate-100 text-slate-400' : 'bg-[#0F172A] text-white hover:bg-[#1E293B]'
+                                    }`}>
+                                        {uploadingHeader ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+                                        {uploadingHeader ? 'Subiendo...' : 'Subir imagen'}
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp"
+                                            className="hidden"
+                                            disabled={uploadingHeader}
+                                            onChange={e => {
+                                                const file = e.target.files?.[0]
+                                                if (file) void handleHeaderUpload(file)
+                                                e.target.value = ''
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+
+                                {(form.target_config.header_media_id || form.target_config.header_media_url) && (
+                                    <p className="text-xs font-medium text-emerald-700 flex items-center gap-1">
+                                        <CheckCircle2 size={13} />
+                                        Imagen configurada{form.target_config.header_media_name ? `: ${form.target_config.header_media_name}` : ''}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
                         {varCount > 0 && (
                             <VariableParamsEditor
                                 varCount={varCount}
@@ -986,6 +1133,15 @@ export default function FlowsPage() {
                                                 <CheckCircle2 size={11} className="text-emerald-500" />
                                                 {job.template_name}
                                             </span>
+                                            {metaTemplates.find(t => t.name === job.template_name)?.components.some(c => c.type === 'HEADER' && c.format === 'IMAGE') && (
+                                                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                                                    job.target_config?.header_media_id || job.target_config?.header_media_url
+                                                        ? 'bg-emerald-50 text-emerald-700'
+                                                        : 'bg-amber-50 text-amber-700'
+                                                }`}>
+                                                    {job.target_config?.header_media_id || job.target_config?.header_media_url ? 'Imagen lista' : 'Falta imagen'}
+                                                </span>
+                                            )}
                                             <span className="text-xs text-slate-400 flex items-center gap-1">
                                                 <Clock size={11} />
                                                 {String(job.hour).padStart(2, '0')}:00 hs

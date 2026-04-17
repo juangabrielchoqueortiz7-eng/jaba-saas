@@ -211,13 +211,11 @@ export async function POST(request: Request) {
                 credentials.phone_number_id,
             ) as BroadcastTemplateResult | null
 
-            if (result?.messages?.[0]?.id || result?.error === undefined) {
+            if (result?.messages?.[0]?.id) {
                 results.sent++
             } else {
                 results.failed++
-                if (result.error?.message) {
-                    results.errors.push(`${contact.phone}: ${result.error.message}`)
-                }
+                results.errors.push(`${contact.phone}: ${result?.error?.message || 'Meta no devolvio id de mensaje'}`)
             }
         } catch (error) {
             results.failed++

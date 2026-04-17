@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(vercel alias:*)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' https://jabachat.com__TRACKED_VAR__)",
+      "Bash(cat src/app/api/chat/messages/*/route.ts)",
+      "Bash(find src/app/api/chat/messages -name \"*.ts\" -exec cat {} \\\\;)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); deps=data.get\\('deployments', data\\) if isinstance\\(data, dict\\) else data; [print\\(d.get\\('url',''\\), d.get\\('state',''\\), d.get\\('created',''\\)\\) for d in deps[:3]]\")",
+      "Bash(grep -v \"//.*AAAA\")",
+      "Bash(vercel env:*)",
+      "Bash(python3 -c \" import sys, json try: data = json.load\\(sys.stdin\\) deps = data.get\\('deployments', data\\) if isinstance\\(data, dict\\) else data for d in deps[:3]: print\\(d.get\\('url',''\\), d.get\\('state',''\\), d.get\\('created',''\\), d.get\\('meta',{}\\).get\\('githubCommitSha',''\\)[:8]\\) except: print\\('parse error'\\) \")",
+      "Bash(vercel --prod --yes)",
+      "Bash(python3 -c \"import sys,json; p=json.load\\(sys.stdin\\); deps={**p.get\\('dependencies',{}\\), **p.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in deps.items\\(\\)]\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); const d={...p.dependencies,...p.devDependencies}; Object.entries\\(d\\).forEach\\(\\([k,v]\\)=>console.log\\(k,v\\)\\)\")"
     ]
   }
 }

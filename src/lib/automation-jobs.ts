@@ -25,6 +25,7 @@ export interface WhatsAppCredentials {
   access_token: string
   phone_number_id: string
   country_code: string
+  waba_id?: string
 }
 
 export interface AutomationRecipient {
@@ -135,6 +136,7 @@ export function asCredentials(record: AutomationRecord | null): WhatsAppCredenti
     access_token: accessToken,
     phone_number_id: phoneNumberId,
     country_code: getString(record, 'country_code') || DEFAULT_COUNTRY_CODE,
+    waba_id: getString(record, 'waba_id') || undefined,
   }
 }
 

@@ -17,7 +17,7 @@ import {
 } from '@/lib/automation-jobs'
 import { runDueAutomationSequences } from '@/lib/automation-sequences'
 import { getLocalTime } from '@/lib/timezone-utils'
-import { sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { sendWhatsAppTemplate, type WhatsAppTemplateComponent } from '@/lib/whatsapp'
 
 const serviceRoleKey = process.env.JABA_ADMIN_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!serviceRoleKey) throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno')
@@ -28,6 +28,11 @@ const supabaseAdmin = createClient(
 )
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+type WhatsAppTemplateResult = {
+  messages?: Array<{ id?: string }>
+  error?: { message?: string; code?: number; error_subcode?: number }
+}
 
 function timingSafeCompare(a: string, b: string): boolean {
   try {
@@ -159,7 +164,7 @@ async function executeJob(job: AutomationJob, now: Date): Promise<SendStats> {
 async function getCredentials(userId: string) {
   const { data } = await supabaseAdmin
     .from('whatsapp_credentials')
-    .select('access_token, phone_number_id, country_code')
+    .select('access_token, phone_number_id, country_code, waba_id')
     .eq('user_id', userId)
     .single()
 
@@ -235,6 +240,7 @@ async function sendToRecipients(
   recipients: AutomationRecipient[],
 ): Promise<SendStats> {
   const stats = { sent: 0, failed: 0 }
+  const headerImage = await getHeaderImageComponent(job, credentials)
 
   for (const recipient of recipients) {
     if (!recipient.phone || recipient.phone.length < 8) {
@@ -248,24 +254,30 @@ async function sendToRecipients(
         text: resolveAutomationParam(param.value, recipient.data),
       }))
 
-      const components = bodyParameters.length > 0
+      const components: WhatsAppTemplateComponent[] = bodyParameters.length > 0
         ? [{ type: 'body' as const, parameters: bodyParameters }]
         : []
+
+      if (headerImage) {
+        components.unshift(headerImage)
+      }
 
       const result = await sendWhatsAppTemplate(
         recipient.phone,
         job.template_name,
-        'es',
+        getAutomationLanguage(job),
         components,
         credentials.access_token,
         credentials.phone_number_id,
-      )
+      ) as WhatsAppTemplateResult | null
 
-      if (result) {
+      if (result?.messages?.[0]?.id) {
         stats.sent++
         console.log(`[RunAutomations] Sent "${job.template_name}" to ${recipient.phone.slice(-4)}`)
       } else {
         stats.failed++
+        const errorMessage = result?.error?.message || 'Meta no devolvio id de mensaje'
+        console.error(`[RunAutomations] Failed "${job.template_name}" to ${recipient.phone.slice(-4)}: ${errorMessage}`)
       }
 
       await delay(1500)
@@ -276,4 +288,78 @@ async function sendToRecipients(
   }
 
   return stats
+}
+
+function getAutomationLanguage(job: AutomationJob): string {
+  const language = job.target_config.template_language
+  return typeof language === 'string' && language.trim() ? language : 'es'
+}
+
+async function getHeaderImageComponent(
+  job: AutomationJob,
+  credentials: NonNullable<Awaited<ReturnType<typeof getCredentials>>>,
+): Promise<WhatsAppTemplateComponent | null> {
+  const mediaId = job.target_config.header_media_id
+  const mediaUrl = job.target_config.header_media_url
+
+  if (typeof mediaId === 'string' && mediaId.trim()) {
+    return {
+      type: 'header' as const,
+      parameters: [{
+        type: 'image' as const,
+        image: { id: mediaId.trim() },
+      }],
+    }
+  }
+
+  if (typeof mediaUrl === 'string' && mediaUrl.trim()) {
+    return {
+      type: 'header' as const,
+      parameters: [{
+        type: 'image' as const,
+        image: { link: mediaUrl.trim() },
+      }],
+    }
+  }
+
+  const approvedHeaderUrl = await getApprovedTemplateHeaderImageUrl(job, credentials)
+  if (approvedHeaderUrl) {
+    return {
+      type: 'header',
+      parameters: [{
+        type: 'image',
+        image: { link: approvedHeaderUrl },
+      }],
+    }
+  }
+
+  return null
+}
+
+async function getApprovedTemplateHeaderImageUrl(
+  job: AutomationJob,
+  credentials: NonNullable<Awaited<ReturnType<typeof getCredentials>>>,
+): Promise<string> {
+  if (!credentials.waba_id || !job.template_name) {
+    return ''
+  }
+
+  try {
+    const templatesRes = await fetch(
+      `https://graph.facebook.com/v21.0/${credentials.waba_id}/message_templates?limit=100&fields=name,components`,
+      { headers: { Authorization: `Bearer ${credentials.access_token}` } },
+    )
+    const templatesData = await templatesRes.json()
+    const template = Array.isArray(templatesData.data)
+      ? templatesData.data.find((item: { name?: string }) => item.name === job.template_name)
+      : null
+    const header = template?.components?.find((component: { type?: string; format?: string }) =>
+      component.type === 'HEADER' && component.format === 'IMAGE',
+    )
+    const handle = header?.example?.header_handle?.[0]
+    return typeof handle === 'string' ? handle : ''
+  } catch (error) {
+    console.error(`[RunAutomations] Could not resolve approved header image for ${job.template_name}:`, error)
+    return ''
+  }
 }
