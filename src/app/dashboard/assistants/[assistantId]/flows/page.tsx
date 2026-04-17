@@ -15,6 +15,7 @@ import { getFlows, deleteFlow, updateFlow, type ConversationFlow } from './actio
 import { HelpTooltip } from '@/components/ui/help-tooltip'
 import { TagAutocomplete } from '@/components/ui/tag-autocomplete'
 import Link from 'next/link'
+import NextImage from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import FlowTemplates from './FlowTemplates'
 import AutomationSetupGuide from '@/components/dashboard/AutomationSetupGuide'
@@ -94,7 +95,15 @@ function getTemplateHeaderImageUrl(template?: MetaTemplate): string {
 
 // ── WhatsApp Template Preview ─────────────────────────────────────────────────
 
-function WhatsAppPreview({ template, params }: { template: MetaTemplate | undefined; params?: { label: string; value: string }[] }) {
+function WhatsAppPreview({
+    template,
+    params,
+    headerImageUrl,
+}: {
+    template: MetaTemplate | undefined
+    params?: { label: string; value: string }[]
+    headerImageUrl?: string
+}) {
     if (!template) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center p-6">
@@ -138,8 +147,19 @@ function WhatsAppPreview({ template, params }: { template: MetaTemplate | undefi
                     <div className="bg-[#DCF8C6] rounded-lg shadow-sm overflow-hidden">
                         {/* Header */}
                         {header && header.format === 'IMAGE' && (
-                            <div className="bg-slate-200 h-32 flex items-center justify-center">
-                                <ImageIcon size={32} className="text-slate-400" />
+                            <div className="bg-slate-200 h-32 relative overflow-hidden flex items-center justify-center">
+                                {headerImageUrl ? (
+                                    <NextImage
+                                        src={headerImageUrl}
+                                        alt="Imagen aprobada de la plantilla"
+                                        fill
+                                        sizes="260px"
+                                        className="object-cover"
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <ImageIcon size={32} className="text-slate-400" />
+                                )}
                             </div>
                         )}
                         {header && header.format === 'TEXT' && header.text && (
@@ -741,7 +761,11 @@ function AutomationModal({
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vista previa WhatsApp</span>
                         </div>
                         <div className="flex-1 rounded-2xl overflow-hidden border border-black/[0.08] shadow-lg bg-white">
-                            <WhatsAppPreview template={selectedTpl} params={form.template_params} />
+                            <WhatsAppPreview
+                                template={selectedTpl}
+                                params={form.template_params}
+                                headerImageUrl={form.target_config.header_media_url || approvedHeaderImageUrl}
+                            />
                         </div>
                     </div>
                 </div>

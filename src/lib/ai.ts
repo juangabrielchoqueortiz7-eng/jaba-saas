@@ -2,6 +2,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GOOGLE_API_KEY;
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+const FALLBACK_GEMINI_MODELS = ['gemini-2.0-flash'];
 
 interface RetryableApiError {
     message?: string;
@@ -27,33 +29,52 @@ function getErrorMessage(error: unknown): string {
     return JSON.stringify(error);
 }
 
+function getConfiguredGeminiModels(): string[] {
+    const configuredModel = process.env.GOOGLE_GEMINI_MODEL || process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+    return [configuredModel, DEFAULT_GEMINI_MODEL, ...FALLBACK_GEMINI_MODELS]
+        .filter((model, index, models) => model && models.indexOf(model) === index);
+}
+
+function isMissingModelError(error: unknown): boolean {
+    const message = getErrorMessage(error).toLowerCase();
+    return message.includes('404')
+        || message.includes('not found')
+        || message.includes('not supported')
+        || message.includes('is not found');
+}
+
 export async function generateAIResponse(userMessage: string, systemPrompt?: string): Promise<string> {
     if (!apiKey) {
         console.error("GOOGLE_API_KEY no está configurada");
         return "Lo siento, tengo un problema de configuración. Contacta al administrador.";
     }
 
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-
-        // Prompt enriquecido con el System Prompt del usuario
-        const prompt = `
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const prompt = `
       ${systemPrompt || 'Eres un asistente amable.'}
       
       Mensaje del usuario:
       "${userMessage}"
     `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+    for (const modelName of getConfiguredGeminiModels()) {
+        try {
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+        } catch (error) {
+            if (isMissingModelError(error)) {
+                console.warn(`[AI] Modelo Gemini no disponible (${modelName}). Probando fallback...`);
+                continue;
+            }
 
-        return text;
-    } catch (error) {
-        console.error("Error generando respuesta de AI:", error);
-        return "Lo siento, no puedo procesar tu mensaje en este momento.";
+            console.error("Error generando respuesta de AI:", error);
+            return "Lo siento, no puedo procesar tu mensaje en este momento.";
+        }
     }
+
+    return "Lo siento, el modelo de IA configurado no esta disponible en este momento.";
 }
 
 // New function for Chat Simulator with History
@@ -72,7 +93,7 @@ export async function generateChatResponse(history: { role: 'user' | 'model', pa
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-pro",
+                model: DEFAULT_GEMINI_MODEL,
                 systemInstruction: systemPrompt
             });
 
