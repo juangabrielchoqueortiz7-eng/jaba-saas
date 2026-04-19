@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
     Plus, Search, Trash2, GitBranch, Power, PowerOff, ArrowRight,
-    ChevronDown, ChevronUp, HelpCircle, Zap, MessageSquare, ShoppingCart,
+    Zap, MessageSquare,
     Clock, Globe, Bell, BellOff, CheckCircle2, Pencil, X, Save, Eye, Image as ImageIcon, Copy,
     Upload, Loader2, AlertCircle
 } from 'lucide-react'
@@ -18,7 +18,6 @@ import Link from 'next/link'
 import NextImage from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import FlowTemplates from './FlowTemplates'
-import AutomationSetupGuide from '@/components/dashboard/AutomationSetupGuide'
 import { createClient } from '@/utils/supabase/client'
 import { COMMON_TIMEZONES } from '@/lib/timezone-utils'
 import { toast } from 'sonner'
@@ -797,7 +796,6 @@ export default function FlowsPage() {
     const [flows, setFlows] = useState<ConversationFlow[]>([])
     const [search, setSearch] = useState('')
     const [, startTransition] = useTransition()
-    const [showHelp, setShowHelp] = useState(false)
     const [showTemplates, setShowTemplates] = useState(false)
 
     // Automations tab
@@ -966,8 +964,6 @@ export default function FlowsPage() {
             )}
 
             {/* ── Page Tabs ── */}
-            <AutomationSetupGuide section="flows" onCreateFlow={() => setShowTemplates(true)} />
-
             <div className="flex items-center justify-between">
                 <div className="flex gap-1 bg-white rounded-xl border border-black/[0.08] p-1 shadow-sm">
                     {([

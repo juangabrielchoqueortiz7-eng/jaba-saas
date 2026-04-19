@@ -41,6 +41,10 @@ export interface WizardStepConfig {
   action_type?: string
   tag?: string
   image_url?: string
+  document_url?: string
+  video_url?: string
+  audio_url?: string
+  filename?: string
   caption?: string
   seconds?: number
   template_name?: string

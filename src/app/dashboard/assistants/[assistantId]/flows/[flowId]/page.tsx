@@ -26,6 +26,7 @@ import '@xyflow/react/dist/style.css'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import MediaUploadField from '@/components/flow-builder/MediaUploadField'
 import {
     Save, ArrowLeft, Power, PowerOff, Trash2, Copy,
     MessageSquare, MousePointerClick, GitBranch, Bot, Clock, Zap, ListOrdered, Send
@@ -81,7 +82,14 @@ function isNodeConfigured(nodeType: string, config: WizardStepConfig): boolean {
     if (nodeType === 'list') return !!config.body?.trim() && ((config.rows?.length ?? 0) > 0)
     if (nodeType === 'condition') return !!config.value?.trim()
     if (nodeType === 'wait_input') return !!config.variable_name?.trim()
-    if (nodeType === 'action') return !!config.action_type
+    if (nodeType === 'action') {
+        if (!config.action_type) return false
+        if (config.action_type === 'send_image') return !!config.image_url?.trim()
+        if (config.action_type === 'send_document') return !!config.document_url?.trim()
+        if (config.action_type === 'send_video') return !!config.video_url?.trim()
+        if (config.action_type === 'send_audio') return !!config.audio_url?.trim()
+        return true
+    }
     if (nodeType === 'send_template') return !!config.template_name?.trim()
     return true
 }
@@ -95,13 +103,13 @@ function FlowNode({ data, selected }: { data: FlowNodeData; selected: boolean })
     return (
         <div style={{
             background: colors.bg,
-            border: `2px solid ${selected ? '#fff' : configured ? colors.border : '#ef4444'}`,
+            border: `2px solid ${selected ? '#0F172A' : configured ? colors.border : '#ef4444'}`,
             borderRadius: 12,
             padding: '12px 16px',
             minWidth: 180,
             maxWidth: 260,
             backdropFilter: 'blur(8px)',
-            boxShadow: selected ? '0 0 20px rgba(74,222,128,0.3)' : '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: selected ? '0 0 0 3px rgba(34,197,94,0.25), 0 8px 24px rgba(15,23,42,0.08)' : '0 2px 8px rgba(15,23,42,0.06)',
             position: 'relative' as const,
         }}>
             {/* Target Handle (top) — all nodes except trigger */}
@@ -122,7 +130,7 @@ function FlowNode({ data, selected }: { data: FlowNodeData; selected: boolean })
                     {data.nodeType}
                 </span>
             </div>
-            <div style={{ color: '#e2e8f0', fontSize: '0.85rem', fontWeight: 500 }}>
+            <div style={{ color: '#0F172A', fontSize: '0.85rem', fontWeight: 500 }}>
                 {data.label || 'Sin configurar'}
             </div>
             {!configured && (
@@ -131,7 +139,7 @@ function FlowNode({ data, selected }: { data: FlowNodeData; selected: boolean })
                 </div>
             )}
             {data.preview && configured && (
-                <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                <div style={{ color: '#475569', fontSize: '0.75rem', marginTop: 4, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {data.preview}
                 </div>
             )}
@@ -267,31 +275,31 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
     return (
         <div style={{
             position: 'absolute', right: 0, top: 0, bottom: 0, width: 340,
-            background: 'rgba(15,15,25,0.95)', borderLeft: '1px solid rgba(255,255,255,0.1)',
+            background: '#FFFFFF', borderLeft: '1px solid rgba(15,23,42,0.1)',
             padding: 20, overflowY: 'auto', zIndex: 50, backdropFilter: 'blur(12px)'
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1rem' }}>Configurar paso</h3>
-                <Button onClick={onClose} style={{ color: '#94a3b8', padding: 4, background: 'transparent' }}>✕</Button>
+                <h3 style={{ color: '#0F172A', fontWeight: 700, fontSize: '1rem' }}>Configurar paso</h3>
+                <Button onClick={onClose} style={{ color: '#475569', padding: 4, background: 'transparent' }}>✕</Button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Nombre de este paso</label>
+                <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Nombre de este paso</label>
                 <Input
                     value={label}
                     onChange={e => updateLabel(e.target.value)}
                     placeholder="Nombre descriptivo"
-                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                 />
 
                 {/* TRIGGER CONFIG */}
                 {nodeType === 'trigger' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Cómo se activa este flujo?</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>¿Cómo se activa este flujo?</label>
                         <select
                             value={config.trigger_type || 'keyword'}
                             onChange={e => updateConfig('trigger_type', e.target.value)}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px' }}
                         >
                             <option value="keyword">📝 Palabra o frase clave (recomendado)</option>
                             <option value="button_id">🔘 Respuesta a un botón</option>
@@ -301,17 +309,17 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
 
                         {config.trigger_type === 'keyword' && (
                             <>
-                                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué palabras activan este flujo? (separadas por coma)</label>
+                                <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué palabras activan este flujo? (separadas por coma)</label>
                                 <Input
                                     value={Array.isArray(config.keywords) ? config.keywords.join(', ') : (config.keywords || '')}
                                     onChange={e => updateConfig('keywords', e.target.value.split(',').map((k: string) => k.trim()).filter(Boolean))}
                                     placeholder="hola, bienvenido, inicio"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                                 />
                                 <select
                                     value={config.match_mode || 'contains'}
                                     onChange={e => updateConfig('match_mode', e.target.value)}
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px' }}
                                 >
                                     <option value="contains">Cuando el mensaje contiene la palabra</option>
                                     <option value="exact">Cuando el mensaje es exactamente igual</option>
@@ -322,12 +330,12 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
 
                         {config.trigger_type === 'button_id' && (
                             <>
-                                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>ID del botón (usa * para wildcard)</label>
+                                <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>ID del botón (usa * para wildcard)</label>
                                 <Input
                                     value={config.button_id || ''}
                                     onChange={e => updateConfig('button_id', e.target.value)}
                                     placeholder="renew_plan_*"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                                 />
                             </>
                         )}
@@ -337,14 +345,14 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* MESSAGE CONFIG */}
                 {nodeType === 'message' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje</label>
                         <FlowVariableButtons onInsert={v => appendToField('text', v)} />
                         <textarea
                             value={config.text || ''}
                             onChange={e => updateConfig('text', e.target.value)}
                             placeholder="¡Hola! Bienvenido. Haz clic en los botones de arriba para personalizar con el nombre del cliente, fecha, etc."
                             rows={4}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
                     </>
                 )}
@@ -352,16 +360,16 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* BUTTONS CONFIG */}
                 {nodeType === 'buttons' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje</label>
                         <FlowVariableButtons onInsert={v => appendToField('text', v)} />
                         <textarea
                             value={config.text || ''}
                             onChange={e => updateConfig('text', e.target.value)}
                             placeholder="Elige una opción:"
                             rows={2}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Botones (máx 3)</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Botones (máx 3)</label>
                         {(config.buttons || [{ id: '', title: '' }]).map((btn: FlowButton, i: number) => (
                             <div key={i} style={{ display: 'flex', gap: 6 }}>
                                 <Input
@@ -372,7 +380,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                         updateConfig('buttons', btns)
                                     }}
                                     placeholder="ID"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', flex: 1 }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', flex: 1 }}
                                 />
                                 <Input
                                     value={btn.title}
@@ -382,7 +390,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                         updateConfig('buttons', btns)
                                     }}
                                     placeholder="Texto"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', flex: 2 }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', flex: 2 }}
                                 />
                             </div>
                         ))}
@@ -398,27 +406,27 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* LIST CONFIG */}
                 {nodeType === 'list' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje principal</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Mensaje principal</label>
                         <textarea
                             value={config.body || ''}
                             onChange={e => updateConfig('body', e.target.value)}
                             placeholder="Selecciona una opción del menú:"
                             rows={3}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Texto del botón que abre el menú</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Texto del botón que abre el menú</label>
                         <Input
                             value={config.button_text || ''}
                             onChange={e => updateConfig('button_text', e.target.value)}
                             placeholder="Ver opciones"
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                         />
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>
                             Opciones de la lista
                             <span style={{ color: '#4b5563', fontWeight: 400, marginLeft: 6 }}>máx 10</span>
                         </label>
                         {(config.rows || [{ id: '', title: '', description: '' }]).map((row: FlowListRow, i: number) => (
-                            <div key={i} style={{ background: 'rgba(15,15,25,0.6)', borderRadius: 8, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div key={i} style={{ background: '#F7F8FA', borderRadius: 8, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid rgba(15,23,42,0.06)' }}>
                                 <div style={{ display: 'flex', gap: 6 }}>
                                     <Input
                                         value={row.id}
@@ -428,7 +436,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                             updateConfig('rows', rows)
                                         }}
                                         placeholder={`ID (ej: opt_${i + 1})`}
-                                        style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#e2e8f0', flex: 1, fontSize: '0.8rem' }}
+                                        style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 6, color: '#0F172A', flex: 1, fontSize: '0.8rem' }}
                                     />
                                     <Button
                                     onClick={() => updateConfig('rows', (config.rows || []).filter((_, idx) => idx !== i))}
@@ -443,7 +451,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                         updateConfig('rows', rows)
                                     }}
                                     placeholder="Título de la opción"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#e2e8f0', fontSize: '0.8rem' }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 6, color: '#0F172A', fontSize: '0.8rem' }}
                                 />
                                 <Input
                                     value={row.description || ''}
@@ -453,7 +461,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                         updateConfig('rows', rows)
                                     }}
                                     placeholder="Descripción (opcional)"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#94a3b8', fontSize: '0.75rem' }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 6, color: '#475569', fontSize: '0.75rem' }}
                                 />
                             </div>
                         ))}
@@ -465,12 +473,12 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                 + Agregar opción
                             </Button>
                         )}
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Pie de página (opcional)</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Pie de página (opcional)</label>
                         <Input
                             value={config.footer || ''}
                             onChange={e => updateConfig('footer', e.target.value)}
                             placeholder="Texto del footer..."
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                         />
                     </>
                 )}
@@ -478,11 +486,11 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* CONDITION CONFIG */}
                 {nodeType === 'condition' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué debe revisar?</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué debe revisar?</label>
                         <select
                             value={config.condition_type || 'contains'}
                             onChange={e => updateConfig('condition_type', e.target.value)}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px' }}
                         >
                             <option value="contains">El mensaje contiene la palabra</option>
                             <option value="equals">El mensaje es exactamente</option>
@@ -490,12 +498,12 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                             <option value="has_variable">Si una variable tiene valor</option>
                             <option value="interactive_id">El cliente respondió al botón con ID</option>
                         </select>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué valor comparar?</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué valor comparar?</label>
                         <Input
                             value={config.value || ''}
                             onChange={e => updateConfig('value', e.target.value)}
                             placeholder={config.condition_type === 'message_type' ? 'image' : 'texto a comparar'}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                         />
                         <p style={{ color: '#4b5563', fontSize: '0.7rem' }}>
                             Las conexiones con handle "true" se seguirán si la condición se cumple, "false" si no.
@@ -506,12 +514,12 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* WAIT INPUT CONFIG */}
                 {nodeType === 'wait_input' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Cómo llamar a la respuesta del cliente?</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>¿Cómo llamar a la respuesta del cliente?</label>
                         <Input
                             value={config.variable_name || ''}
                             onChange={e => updateConfig('variable_name', e.target.value)}
                             placeholder="email, respuesta, etc."
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                         />
                         <p style={{ color: '#4b5563', fontSize: '0.7rem' }}>
                             La respuesta del usuario se guardará en esta variable para usarla después.
@@ -522,14 +530,14 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* DELAY CONFIG */}
                 {nodeType === 'delay' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Cuántos segundos esperar antes de continuar?</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>¿Cuántos segundos esperar antes de continuar?</label>
                         <Input
                             type="number"
                             value={config.seconds || 2}
                             onChange={e => updateConfig('seconds', parseInt(e.target.value) || 1)}
                             min={1}
                             max={30}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                         />
                     </>
                 )}
@@ -537,39 +545,97 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* ACTION CONFIG */}
                 {nodeType === 'action' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué acción ejecutar?</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>¿Qué acción ejecutar?</label>
                         <select
                             value={config.action_type || 'add_tag'}
                             onChange={e => updateConfig('action_type', e.target.value)}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px' }}
                         >
                             <option value="add_tag">🏷️ Poner etiqueta al cliente</option>
                             <option value="remove_tag">🏷️ Quitarle etiqueta al cliente</option>
                             <option value="send_image">🖼️ Enviar una imagen</option>
+                            <option value="send_document">📄 Enviar un documento (PDF, etc.)</option>
+                            <option value="send_video">🎥 Enviar un video</option>
+                            <option value="send_audio">🎵 Enviar un audio</option>
                         </select>
                         {(config.action_type === 'add_tag' || config.action_type === 'remove_tag') && (
                             <Input
                                 value={config.tag || ''}
                                 onChange={e => updateConfig('tag', e.target.value)}
                                 placeholder="Nombre de la etiqueta"
-                                style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                                style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                             />
                         )}
                         {config.action_type === 'send_image' && (
                             <>
-                                <Input
-                                    value={config.image_url || ''}
-                                    onChange={e => updateConfig('image_url', e.target.value)}
-                                    placeholder="URL de la imagen o {{qr_image_url}}"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                                <MediaUploadField
+                                    kind="image"
+                                    value={config.image_url as string || ''}
+                                    onChange={url => updateConfig('image_url', url)}
+                                    placeholder="JPG, PNG, WEBP — máx. 5 MB"
                                 />
                                 <Input
-                                    value={config.caption || ''}
+                                    value={config.caption as string || ''}
                                     onChange={e => updateConfig('caption', e.target.value)}
-                                    placeholder="Caption (opcional)"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                                    placeholder="Pie de imagen (opcional)"
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                                 />
                             </>
+                        )}
+                        {config.action_type === 'send_document' && (
+                            <>
+                                <MediaUploadField
+                                    kind="document"
+                                    value={config.document_url as string || ''}
+                                    onChange={url => {
+                                        updateConfig('document_url', url)
+                                        // Auto-completar nombre del archivo
+                                        if (url && !config.filename) {
+                                            const name = url.split('/').pop()?.split('?')[0] || ''
+                                            // Remove timestamp prefix (e.g. "1714500000000-catalogo.pdf" → "catalogo.pdf")
+                                            const clean = name.replace(/^\d+-/, '')
+                                            updateConfig('filename', clean)
+                                        }
+                                    }}
+                                    placeholder="PDF, Word, Excel — máx. 100 MB"
+                                />
+                                <Input
+                                    value={config.filename as string || ''}
+                                    onChange={e => updateConfig('filename', e.target.value)}
+                                    placeholder="Nombre visible del archivo (ej: catalogo.pdf)"
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                                <Input
+                                    value={config.caption as string || ''}
+                                    onChange={e => updateConfig('caption', e.target.value)}
+                                    placeholder="Descripción del archivo (opcional)"
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                            </>
+                        )}
+                        {config.action_type === 'send_video' && (
+                            <>
+                                <MediaUploadField
+                                    kind="video"
+                                    value={config.video_url as string || ''}
+                                    onChange={url => updateConfig('video_url', url)}
+                                    placeholder="MP4, MOV — máx. 16 MB"
+                                />
+                                <Input
+                                    value={config.caption as string || ''}
+                                    onChange={e => updateConfig('caption', e.target.value)}
+                                    placeholder="Descripción del video (opcional)"
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                            </>
+                        )}
+                        {config.action_type === 'send_audio' && (
+                            <MediaUploadField
+                                kind="audio"
+                                value={config.audio_url as string || ''}
+                                onChange={url => updateConfig('audio_url', url)}
+                                placeholder="MP3, OGG, WAV — máx. 16 MB"
+                            />
                         )}
                     </>
                 )}
@@ -577,7 +643,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* SEND TEMPLATE CONFIG */}
                 {nodeType === 'send_template' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Plantilla Meta aprobada</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Plantilla Meta aprobada</label>
                         {metaTemplates && metaTemplates.length > 0 ? (
                             <select
                                 value={config.template_name || ''}
@@ -595,7 +661,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                         updateConfig('params', params)
                                     }
                                 }}
-                                style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', width: '100%' }}
+                                style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px', width: '100%' }}
                             >
                                 <option value="">— Selecciona una plantilla —</option>
                                 {metaTemplates.map(t => (
@@ -607,15 +673,15 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                 value={config.template_name || ''}
                                 onChange={e => updateConfig('template_name', e.target.value)}
                                 placeholder="ej: recordatorio_renovacion_v1"
-                                style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0' }}
+                                style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
                             />
                         )}
                         {config.template_name && metaTemplates?.find(t => t.name === config.template_name)?.body && (
-                            <p style={{ color: '#64748b', fontSize: '0.7rem', lineHeight: 1.4, background: 'rgba(30,30,50,0.6)', padding: '8px 10px', borderRadius: 6 }}>
+                            <p style={{ color: '#64748b', fontSize: '0.7rem', lineHeight: 1.4, background: '#F7F8FA', padding: '8px 10px', borderRadius: 6 }}>
                                 {metaTemplates.find(t => t.name === config.template_name)!.body}
                             </p>
                         )}
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>
                             Parámetros del cuerpo{' '}
                             <span style={{ color: '#4b5563', fontWeight: 400 }}>({'{{1}}'}, {'{{2}}'}, ...)</span>
                         </label>
@@ -630,7 +696,7 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                         updateConfig('params', params)
                                     }}
                                     placeholder="{{contact.name}}"
-                                    style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', flex: 1, fontSize: '0.8rem' }}
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', flex: 1, fontSize: '0.8rem' }}
                                 />
                                 <Button
                                     onClick={() => updateConfig('params', (config.params || []).filter((_, idx) => idx !== i))}
@@ -657,14 +723,14 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                 {/* AI RESPONSE CONFIG */}
                 {nodeType === 'ai_response' && (
                     <>
-                        <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Instrucciones para la IA (opcional)</label>
+                        <label style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 600 }}>Instrucciones para la IA (opcional)</label>
                         <FlowVariableButtons onInsert={v => appendToField('system_prompt', v)} />
                         <textarea
                             value={config.system_prompt || ''}
                             onChange={e => updateConfig('system_prompt', e.target.value)}
                             placeholder="Ej: Responde de forma amigable. Ofrece los productos disponibles y sus precios."
                             rows={4}
-                            style={{ background: 'rgba(30,30,50,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#e2e8f0', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
+                            style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                         />
                         <p style={{ color: '#4b5563', fontSize: '0.7rem' }}>
                             Si lo dejas vacío, usará el entrenamiento principal del asistente.
@@ -770,7 +836,13 @@ export default function FlowEditorPage() {
         if (type === 'condition') return `${config.condition_type}: ${config.value || ''}`
         if (type === 'delay') return `${config.seconds || 2}s de pausa`
         if (type === 'wait_input') return `Guarda en: ${config.variable_name || 'respuesta'}`
-        if (type === 'action') return config.action_type || 'Acción'
+        if (type === 'action') {
+            if (config.action_type === 'send_image') return `🖼️ ${config.image_url?.split('/').pop()?.split('?')[0] || 'imagen'}`
+            if (config.action_type === 'send_document') return `📄 ${config.filename || config.document_url?.split('/').pop()?.split('?')[0] || 'documento'}`
+            if (config.action_type === 'send_video') return `🎥 ${config.video_url?.split('/').pop()?.split('?')[0] || 'video'}`
+            if (config.action_type === 'send_audio') return `🎵 ${config.audio_url?.split('/').pop()?.split('?')[0] || 'audio'}`
+            return config.action_type || 'Acción'
+        }
         return ''
     }
 
@@ -932,18 +1004,18 @@ export default function FlowEditorPage() {
     }
 
     return (
-        <div style={{ display: 'flex', height: 'calc(100vh - 64px)', width: '100%', position: 'relative', background: '#0a0a14' }}>
+        <div style={{ display: 'flex', height: 'calc(100vh - 64px)', width: '100%', position: 'relative', background: '#F7F8FA' }}>
             {/* Sidebar — Node Catalog */}
             <div style={{
-                width: 220, background: 'rgba(15,15,25,0.95)', borderRight: '1px solid rgba(255,255,255,0.08)',
+                width: 220, background: '#FFFFFF', borderRight: '1px solid rgba(15,23,42,0.08)',
                 padding: '16px 12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <Button onClick={() => router.push(`/dashboard/assistants/${assistantId}/flows`)}
-                        style={{ padding: 6, color: '#94a3b8', background: 'transparent' }}>
+                        style={{ padding: 6, color: '#475569', background: 'transparent' }}>
                         <ArrowLeft size={18} />
                     </Button>
-                    <span style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '0.9rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.9rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {flowName}
                     </span>
                 </div>
@@ -960,12 +1032,12 @@ export default function FlowEditorPage() {
                             onClick={() => addNode(item.type)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                                background: 'rgba(30,30,50,0.5)', border: '1px solid rgba(255,255,255,0.06)',
+                                background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.06)',
                                 borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-                                color: '#e2e8f0',
+                                color: '#0F172A',
                             }}
                             onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(74,222,128,0.1)' }}
-                            onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(30,30,50,0.5)' }}
+                            onMouseLeave={e => { (e.target as HTMLElement).style.background = '#F7F8FA' }}
                         >
                             <Icon size={16} style={{ color: nodeColors[item.type]?.border || '#25D366', flexShrink: 0 }} />
                             <div>
@@ -987,12 +1059,12 @@ export default function FlowEditorPage() {
                         pointerEvents: 'none',
                     }}>
                         <div style={{
-                            background: 'rgba(15,15,30,0.85)', border: '1px solid rgba(255,255,255,0.1)',
+                            background: '#FFFFFF', border: '1px solid rgba(15,23,42,0.1)',
                             borderRadius: 16, padding: '28px 36px', maxWidth: 420, textAlign: 'center',
                             backdropFilter: 'blur(12px)',
                         }}>
                             <div style={{ fontSize: '2rem', marginBottom: 12 }}>🗺️</div>
-                            <p style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>
+                            <p style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>
                                 Tu flujo está vacío
                             </p>
                             <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.6, marginBottom: 16 }}>
@@ -1006,7 +1078,7 @@ export default function FlowEditorPage() {
                                 ].map(s => (
                                     <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                                         <span style={{ background: '#25D366', color: '#000', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0 }}>{s.step}</span>
-                                        <span style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5 }}>{s.text}</span>
+                                        <span style={{ color: '#475569', fontSize: '0.82rem', lineHeight: 1.5 }}>{s.text}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1025,15 +1097,15 @@ export default function FlowEditorPage() {
                     nodeTypes={nodeTypes}
                     deleteKeyCode={['Backspace', 'Delete']}
                     fitView
-                    colorMode="dark"
+                    colorMode="light"
                     defaultEdgeOptions={{
                         animated: true,
                         style: { stroke: '#25D366' },
                         markerEnd: { type: MarkerType.ArrowClosed, color: '#25D366' },
                     }}
                 >
-                    <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255,255,255,0.05)" />
-                    <Controls style={{ background: 'rgba(15,15,25,0.9)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)' }} />
+                    <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(15,23,42,0.08)" />
+                    <Controls style={{ background: '#FFFFFF', borderRadius: 10, border: '1px solid rgba(15,23,42,0.1)' }} />
 
                     <Panel position="top-right">
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1046,8 +1118,8 @@ export default function FlowEditorPage() {
                                 onClick={handleToggleActive}
                                 style={{
                                     background: isActive ? 'rgba(34,197,94,0.15)' : 'rgba(100,116,139,0.15)',
-                                    border: `1px solid ${isActive ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                                    color: isActive ? '#22c55e' : '#94a3b8',
+                                    border: `1px solid ${isActive ? 'rgba(34,197,94,0.3)' : 'rgba(15,23,42,0.1)'}`,
+                                    color: isActive ? '#22c55e' : '#475569',
                                     borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.85rem'
                                 }}
                             >
@@ -1077,13 +1149,13 @@ export default function FlowEditorPage() {
                             position: 'fixed',
                             left: contextMenu.x,
                             top: contextMenu.y,
-                            background: 'rgba(15,15,30,0.98)',
-                            border: '1px solid rgba(255,255,255,0.15)',
+                            background: '#FFFFFF',
+                            border: '1px solid rgba(15,23,42,0.08)',
                             borderRadius: 10,
                             padding: 4,
                             zIndex: 100,
                             minWidth: 160,
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                            boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
                             backdropFilter: 'blur(12px)',
                         }}
                         onClick={e => e.stopPropagation()}
@@ -1092,7 +1164,7 @@ export default function FlowEditorPage() {
                             onClick={() => handleDuplicateNode(contextMenu.nodeId)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-                                background: 'transparent', border: 'none', color: '#e2e8f0',
+                                background: 'transparent', border: 'none', color: '#0F172A',
                                 borderRadius: 8, cursor: 'pointer', width: '100%', textAlign: 'left',
                                 fontSize: '0.85rem', fontWeight: 500,
                             }}
@@ -1102,7 +1174,7 @@ export default function FlowEditorPage() {
                             <Copy size={15} style={{ color: '#25D366' }} />
                             Duplicar nodo
                         </button>
-                        <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 8px' }} />
+                        <div style={{ height: 1, background: 'rgba(15,23,42,0.08)', margin: '2px 8px' }} />
                         <button
                             onClick={() => handleDeleteNode(contextMenu.nodeId)}
                             style={{

@@ -248,8 +248,8 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
                 body: JSON.stringify({
                     messaging_product: "whatsapp",
                     to: to,
-                    type: "document",
-                    document: videoPayload
+                    type: "video",
+                    video: videoPayload
                 }),
             }
         );
@@ -262,6 +262,64 @@ export async function sendWhatsAppVideo(to: string, videoUrl: string, caption?: 
         return data;
     } catch (error) {
         console.error("Excepción enviando video:", error);
+        return null;
+    }
+}
+
+/**
+ * Envía un documento (PDF, DOCX, etc.) a un usuario de WhatsApp mediante la Graph API de Meta.
+ * @param to Número de teléfono del destinatario
+ * @param documentUrl URL pública del documento
+ * @param caption Texto opcional debajo del documento
+ * @param filename Nombre del archivo que verá el usuario (ej: "catalogo.pdf")
+ * @param token Token de acceso
+ * @param phoneNumberId ID del teléfono emisor
+ */
+export async function sendWhatsAppDocument(to: string, documentUrl: string, caption?: string, filename?: string, token?: string, phoneNumberId?: string) {
+    const apiToken = token || process.env.WHATSAPP_API_TOKEN;
+    const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!apiToken || !phoneId) {
+        console.error("ERROR: Faltan credenciales para enviar documento.");
+        return null;
+    }
+
+    try {
+        const documentPayload: Record<string, string> = {
+            filename: filename || documentUrl.split('/').pop()?.split('?')[0] || 'documento.pdf'
+        };
+        if (documentUrl.startsWith('http')) {
+            documentPayload.link = documentUrl;
+        } else {
+            documentPayload.id = documentUrl;
+        }
+        if (caption) documentPayload.caption = caption;
+
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: to,
+                    type: "document",
+                    document: documentPayload
+                }),
+            }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error("Error enviando documento a WhatsApp:", JSON.stringify(data, null, 2));
+            return null;
+        }
+        return data;
+    } catch (error) {
+        console.error("Excepción enviando documento:", error);
         return null;
     }
 }

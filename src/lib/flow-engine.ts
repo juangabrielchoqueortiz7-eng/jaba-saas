@@ -47,6 +47,9 @@ type FlowAction =
     | { type: 'send_buttons'; payload: { text: string; buttons: Array<{ id: string; title: string }> } }
     | { type: 'send_list'; payload: { text: string; buttonText: string; sections: unknown[] } }
     | { type: 'send_image'; payload: { imageUrl: string; caption: string } }
+    | { type: 'send_document'; payload: { documentUrl: string; caption: string; filename: string } }
+    | { type: 'send_video'; payload: { videoUrl: string; caption: string } }
+    | { type: 'send_audio'; payload: { audioUrl: string } }
     | { type: 'send_template'; payload: { templateName: string; language: string; components: Array<{ type: 'body'; parameters: Array<{ type: 'text'; text: string }> }> } }
     | { type: 'wait_input'; payload: Record<string, never> }
     | { type: 'ai_response'; payload: { systemPrompt: string | null; maxTokens: number } }
@@ -502,18 +505,10 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: FlowVariab
         }
 
         case 'action': {
-            actions.push({
-                type: 'system_action',
-                payload: {
-                    actionType: getConfigString(config, 'action_type'),
-                    params: asFlowConfig(config.params),
-                    tag: getConfigString(config, 'tag') || null,
-                    imageUrl: getConfigString(config, 'image_url') ? replaceVariables(getConfigString(config, 'image_url'), vars, ctx) : null
-                }
-            })
+            const actionType = getConfigString(config, 'action_type')
 
-            // Special handling for send_image action
-            if (getConfigString(config, 'action_type') === 'send_image' && getConfigString(config, 'image_url')) {
+            // Media actions emit their own typed FlowAction — no system_action needed
+            if (actionType === 'send_image' && getConfigString(config, 'image_url')) {
                 actions.push({
                     type: 'send_image',
                     payload: {
@@ -521,7 +516,52 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: FlowVariab
                         caption: getConfigString(config, 'caption') ? replaceVariables(getConfigString(config, 'caption'), vars, ctx) : ''
                     }
                 })
+                break
             }
+
+            if (actionType === 'send_document' && getConfigString(config, 'document_url')) {
+                actions.push({
+                    type: 'send_document',
+                    payload: {
+                        documentUrl: replaceVariables(getConfigString(config, 'document_url'), vars, ctx),
+                        caption: getConfigString(config, 'caption') ? replaceVariables(getConfigString(config, 'caption'), vars, ctx) : '',
+                        filename: getConfigString(config, 'filename') || ''
+                    }
+                })
+                break
+            }
+
+            if (actionType === 'send_video' && getConfigString(config, 'video_url')) {
+                actions.push({
+                    type: 'send_video',
+                    payload: {
+                        videoUrl: replaceVariables(getConfigString(config, 'video_url'), vars, ctx),
+                        caption: getConfigString(config, 'caption') ? replaceVariables(getConfigString(config, 'caption'), vars, ctx) : ''
+                    }
+                })
+                break
+            }
+
+            if (actionType === 'send_audio' && getConfigString(config, 'audio_url')) {
+                actions.push({
+                    type: 'send_audio',
+                    payload: {
+                        audioUrl: replaceVariables(getConfigString(config, 'audio_url'), vars, ctx)
+                    }
+                })
+                break
+            }
+
+            // Tag / variable actions → system_action
+            actions.push({
+                type: 'system_action',
+                payload: {
+                    actionType,
+                    params: asFlowConfig(config.params),
+                    tag: getConfigString(config, 'tag') || null,
+                    imageUrl: null
+                }
+            })
             break
         }
 
@@ -623,7 +663,7 @@ export async function executeFlowActions(
     actions: FlowAction[],
     ctx: MessageContext
 ): Promise<void> {
-    const { sendWhatsAppMessage, sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppImage, sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+    const { sendWhatsAppMessage, sendWhatsAppButtons, sendWhatsAppList, sendWhatsAppImage, sendWhatsAppTemplate, sendWhatsAppDocument, sendWhatsAppVideo, sendWhatsAppAudio } = await import('@/lib/whatsapp')
 
     for (const action of actions) {
         switch (action.type) {
@@ -673,6 +713,57 @@ export async function executeFlowActions(
                     content: action.payload.caption || '📷 Imagen enviada',
                     media_url: imgUrl,
                     media_type: 'image',
+                    status: 'delivered'
+                })
+                break
+            }
+
+            case 'send_document': {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                const docUrl = action.payload.documentUrl.startsWith('http')
+                    ? action.payload.documentUrl
+                    : `${baseUrl}${action.payload.documentUrl}`
+                await sendWhatsAppDocument(ctx.phoneNumber, docUrl, action.payload.caption || '', action.payload.filename || '', ctx.tenantToken, ctx.phoneId)
+                await supabaseAdmin.from('messages').insert({
+                    chat_id: ctx.chatId,
+                    is_from_me: true,
+                    content: action.payload.caption || `📄 ${action.payload.filename || 'Documento enviado'}`,
+                    media_url: docUrl,
+                    media_type: 'document',
+                    status: 'delivered'
+                })
+                break
+            }
+
+            case 'send_video': {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                const vidUrl = action.payload.videoUrl.startsWith('http')
+                    ? action.payload.videoUrl
+                    : `${baseUrl}${action.payload.videoUrl}`
+                await sendWhatsAppVideo(ctx.phoneNumber, vidUrl, action.payload.caption || '', ctx.tenantToken, ctx.phoneId)
+                await supabaseAdmin.from('messages').insert({
+                    chat_id: ctx.chatId,
+                    is_from_me: true,
+                    content: action.payload.caption || '🎥 Video enviado',
+                    media_url: vidUrl,
+                    media_type: 'video',
+                    status: 'delivered'
+                })
+                break
+            }
+
+            case 'send_audio': {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+                const audUrl = action.payload.audioUrl.startsWith('http')
+                    ? action.payload.audioUrl
+                    : `${baseUrl}${action.payload.audioUrl}`
+                await sendWhatsAppAudio(ctx.phoneNumber, audUrl, ctx.tenantToken, ctx.phoneId)
+                await supabaseAdmin.from('messages').insert({
+                    chat_id: ctx.chatId,
+                    is_from_me: true,
+                    content: '🎵 Audio enviado',
+                    media_url: audUrl,
+                    media_type: 'audio',
                     status: 'delivered'
                 })
                 break
