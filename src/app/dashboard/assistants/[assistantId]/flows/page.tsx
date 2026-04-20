@@ -804,13 +804,49 @@ export default function FlowsPage() {
     const [modalOpen, setModalOpen] = useState(false)
     const [editingJob, setEditingJob] = useState<AutomationJob | null>(null)
 
+    // Reminder days config
+    const [notifyDaysBefore, setNotifyDaysBefore] = useState(3)
+    const [savingDays, setSavingDays] = useState(false)
+
     useEffect(() => { loadFlows() }, [])
     useEffect(() => {
         if (pageTab === 'automations') {
             loadAutomations()
             loadMetaTemplates()
+            loadReminderDays()
         }
     }, [pageTab])
+
+    const loadReminderDays = async () => {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase
+            .from('subscription_settings')
+            .select('notify_days_before')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        if (data && typeof data.notify_days_before === 'number') {
+            setNotifyDaysBefore(data.notify_days_before)
+        }
+    }
+
+    const saveReminderDays = async (days: number) => {
+        setSavingDays(true)
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            await supabase.from('subscription_settings').upsert(
+                { user_id: user.id, notify_days_before: days },
+                { onConflict: 'user_id' }
+            )
+            setNotifyDaysBefore(days)
+            toast.success(`Recordatorio configurado: ${days} día${days > 1 ? 's' : ''} antes del vencimiento`)
+        } finally {
+            setSavingDays(false)
+        }
+    }
 
     const loadFlows = async () => {
         const data = await getFlows()
@@ -1065,6 +1101,40 @@ export default function FlowsPage() {
                                 Envía cualquier plantilla Meta aprobada automáticamente según el número de días antes o después del vencimiento de una suscripción.
                                 Cada automatización corre de forma independiente — puedes crear tantas como necesites.
                             </p>
+                        </div>
+                    </div>
+
+                    {/* ── Recordatorio automático del sistema ── */}
+                    <div className="rounded-[14px] border border-black/[0.08] bg-white px-5 py-4">
+                        <div className="flex items-start gap-3 mb-4">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                                <Bell size={16} className="text-[#25D366]" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-[#0F172A]">Recordatorio automático del sistema</p>
+                                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                    El sistema envía un aviso automático por WhatsApp cuando falta este número de días para el vencimiento de una suscripción.
+                                    Funciona independientemente de las automatizaciones de abajo.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {[1, 2, 3, 5, 7, 10, 15].map(d => (
+                                <button
+                                    key={d}
+                                    type="button"
+                                    disabled={savingDays}
+                                    onClick={() => saveReminderDays(d)}
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${
+                                        notifyDaysBefore === d
+                                            ? 'bg-[#25D366] border-[#25D366] text-white shadow-sm'
+                                            : 'bg-[#F7F8FA] border-black/[0.08] text-slate-500 hover:border-[#25D366] hover:text-[#25D366]'
+                                    }`}
+                                >
+                                    {d} {d === 1 ? 'día' : 'días'} antes
+                                </button>
+                            ))}
+                            {savingDays && <span className="text-xs text-slate-400 ml-1">Guardando...</span>}
                         </div>
                     </div>
 

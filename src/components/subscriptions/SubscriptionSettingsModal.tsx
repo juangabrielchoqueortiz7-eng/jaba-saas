@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Save, X, Bell } from 'lucide-react';
+import { MessageSquare, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SubscriptionSettingsModalProps {
@@ -131,42 +131,6 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <p className="font-semibold mb-1">¿Cómo funciona?</p>
                             <p className="opacity-90">Estos mensajes se cargarán automáticamente cuando hagas clic en el botón de WhatsApp de un cliente. El sistema elegirá el mensaje correcto según la fecha de vencimiento.</p>
                         </div>
-                    </div>
-
-                    {/* ── Cuándo enviar recordatorio ── */}
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600">
-                                <Bell size={18} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-slate-800">¿Cuándo enviar el recordatorio?</p>
-                                <p className="text-xs text-slate-400">El bot avisará automáticamente cuando falten este número de días para el vencimiento.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 flex-1">
-                                {[1, 2, 3, 5, 7, 10, 15].map(d => (
-                                    <button
-                                        key={d}
-                                        type="button"
-                                        onClick={() => setNotifyDaysBefore(d)}
-                                        className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-all ${
-                                            notifyDaysBefore === d
-                                                ? 'bg-[#25D366] border-[#25D366] text-white shadow-sm'
-                                                : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-[#25D366] hover:text-[#25D366]'
-                                        }`}
-                                    >
-                                        {d}d
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-3">
-                            {notifyDaysBefore === 0
-                                ? 'Solo se enviará el día que vence.'
-                                : `Se enviará cuando falten ${notifyDaysBefore} día${notifyDaysBefore > 1 ? 's' : ''} o menos para el vencimiento.`}
-                        </p>
                     </div>
 
                     <div className="space-y-6">
