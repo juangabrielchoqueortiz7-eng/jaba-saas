@@ -309,13 +309,8 @@ async function processReminders(
     if (subscription.auto_notify_paused || !hasValidSubscriptionPhone(subscription)) {
       return false
     }
-
-    if (force) {
-      return true
-    }
-
-    const diffDays = getSubscriptionDateDiff(subscription, today)
-    return diffDays !== null && diffDays <= 0
+    // When force=true bypass the day check — per-user day limit is applied later
+    return true
   })
 
   results.total = candidates.length
@@ -345,7 +340,7 @@ async function processReminders(
 
     const { data: settingsRow } = await supabaseAdmin
       .from('subscription_settings')
-      .select('reminder_msg, expired_grace_msg, enable_auto_notifications, template_config')
+      .select('reminder_msg, expired_grace_msg, enable_auto_notifications, template_config, notify_days_before')
       .eq('user_id', userId)
       .single()
 
@@ -356,6 +351,26 @@ async function processReminders(
       results.total -= userSubscriptions.length
       continue
     }
+
+    // Filter by notify_days_before — each user controls how many days in advance to send
+    const daysThreshold = settings.notify_days_before  // e.g. 3 = send up to 3 days before expiry
+    const eligibleSubs = force
+      ? userSubscriptions
+      : userSubscriptions.filter(sub => {
+          const diff = getSubscriptionDateDiff(sub, today)
+          // diff <= daysThreshold: include subs expiring within N days AND already expired
+          return diff !== null && diff <= daysThreshold
+        })
+
+    if (eligibleSubs.length === 0) {
+      console.log(`[Reminders] No eligible subs for user ${userId} within ${daysThreshold} days threshold`)
+      results.skipped += userSubscriptions.length
+      results.total -= userSubscriptions.length
+      continue
+    }
+
+    results.total -= (userSubscriptions.length - eligibleSubs.length)
+    results.skipped += (userSubscriptions.length - eligibleSubs.length)
 
     const { data: productRows } = await supabaseAdmin
       .from('products')
@@ -374,7 +389,7 @@ async function processReminders(
     const defaultReminder = `⚠️ *Accion requerida: Tu acceso a ${serviceName} necesita atencion*\n\n¡Hola! Notamos que tu suscripcion vencio el {vencimiento} de tu cuenta {correo}\n\nPorque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.\n\n📋 *Planes disponibles para renovar:*\n{planes}\n\nPor favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨\n\nRef: {equipo}`
     const defaultExpiredGrace = `⚠️ *Accion requerida: Tu acceso a ${serviceName} necesita atencion*\n\n¡Hola! Notamos que tu suscripcion vencio el {vencimiento} de tu cuenta {correo}\n\nPorque valoramos tu preferencia, hemos mantenido activo un acceso temporal para que no pierdas tu ritmo. ⏳ Sin embargo, este periodo de gracia es limitado.\n\n📋 *Planes disponibles para renovar:*\n{planes}\n\nPor favor, renueva lo antes posible para evitar cortes definitivos y seguir disfrutando de todos los beneficios de ${serviceName}. *¡Te esperamos!* ✨\n\nRef: {equipo}`
 
-    for (const subscription of userSubscriptions) {
+    for (const subscription of eligibleSubs) {
       try {
         const fullPhone = normalizePhone(subscription.numero, credentials.country_code)
         const diffDays = getSubscriptionDateDiff(subscription, today) ?? 0

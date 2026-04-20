@@ -38,6 +38,7 @@ export interface SubscriptionSettingsRecord {
   expired_grace_msg: string | null
   reminder_msg: string | null
   template_config: Record<string, TemplateConfigEntry>
+  notify_days_before: number
 }
 
 export interface SubscriptionCredentials {
@@ -165,14 +166,19 @@ export function toSettings(record: unknown): SubscriptionSettingsRecord {
       expired_grace_msg: null,
       reminder_msg: null,
       template_config: {},
+      notify_days_before: 3,
     }
   }
+
+  const rawDays = data.notify_days_before
+  const notify_days_before = typeof rawDays === 'number' && rawDays >= 0 ? rawDays : 3
 
   return {
     enable_auto_notifications: getBoolean(data, 'enable_auto_notifications', true),
     expired_grace_msg: getNullableString(data, 'expired_grace_msg'),
     reminder_msg: getNullableString(data, 'reminder_msg'),
     template_config: getTemplateConfig(data.template_config),
+    notify_days_before,
   }
 }
 

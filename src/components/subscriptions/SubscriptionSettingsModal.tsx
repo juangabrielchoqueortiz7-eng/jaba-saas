@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Save, X } from 'lucide-react';
+import { MessageSquare, Save, X, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SubscriptionSettingsModalProps {
@@ -20,6 +20,7 @@ const DEFAULT_MESSAGES = {
 export default function SubscriptionSettingsModal({ isOpen, onClose }: SubscriptionSettingsModalProps) {
     const supabase = createClient();
     const [loading, setLoading] = useState(false);
+    const [notifyDaysBefore, setNotifyDaysBefore] = useState(3);
     const [messages, setMessages] = useState({
         reminder_msg: DEFAULT_MESSAGES.reminder,
         expired_grace_msg: DEFAULT_MESSAGES.expired_grace,
@@ -54,6 +55,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                 .single();
 
             if (!cancelled && data) {
+                setNotifyDaysBefore(typeof data.notify_days_before === 'number' ? data.notify_days_before : 3);
                 setMessages({
                     reminder_msg: data.reminder_msg || DEFAULT_MESSAGES.reminder,
                     expired_grace_msg: data.expired_grace_msg || DEFAULT_MESSAGES.expired_grace,
@@ -80,6 +82,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
         setLoading(true);
         const { error } = await supabase.from('subscription_settings').upsert({
             user_id: user.id,
+            notify_days_before: notifyDaysBefore,
             ...messages
         }, { onConflict: 'user_id' });
 
@@ -130,6 +133,42 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                         </div>
                     </div>
 
+                    {/* ── Cuándo enviar recordatorio ── */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600">
+                                <Bell size={18} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-slate-800">¿Cuándo enviar el recordatorio?</p>
+                                <p className="text-xs text-slate-400">El bot avisará automáticamente cuando falten este número de días para el vencimiento.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 flex-1">
+                                {[1, 2, 3, 5, 7, 10, 15].map(d => (
+                                    <button
+                                        key={d}
+                                        type="button"
+                                        onClick={() => setNotifyDaysBefore(d)}
+                                        className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-all ${
+                                            notifyDaysBefore === d
+                                                ? 'bg-[#25D366] border-[#25D366] text-white shadow-sm'
+                                                : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-[#25D366] hover:text-[#25D366]'
+                                        }`}
+                                    >
+                                        {d}d
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-3">
+                            {notifyDaysBefore === 0
+                                ? 'Solo se enviará el día que vence.'
+                                : `Se enviará cuando falten ${notifyDaysBefore} día${notifyDaysBefore > 1 ? 's' : ''} o menos para el vencimiento.`}
+                        </p>
+                    </div>
+
                     <div className="space-y-6">
                         {/* Reminder */}
                         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group">
@@ -139,7 +178,7 @@ export default function SubscriptionSettingsModal({ isOpen, onClose }: Subscript
                             <label className="block text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 ⏳ Recordatorio Preventivo
                             </label>
-                            <p className="text-xs text-[#0F172A]/35 mb-3">Se envía cuando faltan 3 días o menos.</p>
+                            <p className="text-xs text-[#0F172A]/35 mb-3">Se envía según los días configurados arriba.</p>
                             <textarea
                                 className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#25D366] focus:border-[#25D366] min-h-[80px] text-sm text-slate-700 bg-slate-50 focus:bg-white transition-all resize-y"
                                 value={messages.reminder_msg}
