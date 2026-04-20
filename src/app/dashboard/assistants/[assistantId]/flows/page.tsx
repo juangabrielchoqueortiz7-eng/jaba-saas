@@ -796,7 +796,7 @@ export default function FlowsPage() {
     const [flows, setFlows] = useState<ConversationFlow[]>([])
     const [search, setSearch] = useState('')
     const [, startTransition] = useTransition()
-    const [showTemplates, setShowTemplates] = useState(false)
+    const [showTemplates] = useState(false)
 
     // Automations tab
     const [pageTab, setPageTab] = useState<PageTab>('flows')
@@ -985,7 +985,7 @@ export default function FlowsPage() {
                 </div>
 
                 {pageTab === 'flows' && (
-                    <Button onClick={() => setShowTemplates(true)}
+                    <Button onClick={() => router.push(`/dashboard/assistants/${assistantId}/flows/new`)}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 rounded-xl px-5 py-2.5 font-semibold">
                         <Plus size={18} /> Nuevo Flujo
                     </Button>
@@ -1016,7 +1016,7 @@ export default function FlowsPage() {
                             <GitBranch size={48} className="text-slate-300 mx-auto mb-4" />
                             <p className="text-slate-500 text-lg">No hay conversaciones guiadas</p>
                             <p className="text-slate-400 text-sm mt-1 mb-5">Crea tu primer flujo para guiar a tus clientes automáticamente</p>
-                            <Button onClick={() => setShowTemplates(true)}
+                            <Button onClick={() => router.push(`/dashboard/assistants/${assistantId}/flows/new`)}
                                 className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 rounded-xl px-6 py-2.5 font-semibold mx-auto">
                                 <Plus size={18} /> Crear mi primer flujo
                             </Button>
