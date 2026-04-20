@@ -88,6 +88,10 @@ function isNodeConfigured(nodeType: string, config: WizardStepConfig): boolean {
         if (config.action_type === 'send_document') return !!config.document_url?.trim()
         if (config.action_type === 'send_video') return !!config.video_url?.trim()
         if (config.action_type === 'send_audio') return !!config.audio_url?.trim()
+        if (config.action_type === 'send_plans_list') return true
+        if (config.action_type === 'create_renewal_order') return true
+        if (config.action_type === 'send_qr_payment') return true
+        if (config.action_type === 'renew_subscription') return true
         return true
     }
     if (nodeType === 'send_template') return !!config.template_name?.trim()
@@ -551,12 +555,22 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                             onChange={e => updateConfig('action_type', e.target.value)}
                             style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px' }}
                         >
-                            <option value="add_tag">🏷️ Poner etiqueta al cliente</option>
-                            <option value="remove_tag">🏷️ Quitarle etiqueta al cliente</option>
-                            <option value="send_image">🖼️ Enviar una imagen</option>
-                            <option value="send_document">📄 Enviar un documento (PDF, etc.)</option>
-                            <option value="send_video">🎥 Enviar un video</option>
-                            <option value="send_audio">🎵 Enviar un audio</option>
+                            <optgroup label="Etiquetas">
+                                <option value="add_tag">🏷️ Poner etiqueta al cliente</option>
+                                <option value="remove_tag">🏷️ Quitarle etiqueta al cliente</option>
+                            </optgroup>
+                            <optgroup label="Medios">
+                                <option value="send_image">🖼️ Enviar una imagen</option>
+                                <option value="send_document">📄 Enviar un documento (PDF, etc.)</option>
+                                <option value="send_video">🎥 Enviar un video</option>
+                                <option value="send_audio">🎵 Enviar un audio</option>
+                            </optgroup>
+                            <optgroup label="Renovación / Pagos">
+                                <option value="send_plans_list">📋 Mostrar planes disponibles</option>
+                                <option value="create_renewal_order">🧾 Crear orden de pago</option>
+                                <option value="send_qr_payment">📱 Enviar QR de pago</option>
+                                <option value="renew_subscription">✅ Renovar suscripción</option>
+                            </optgroup>
                         </select>
                         {(config.action_type === 'add_tag' || config.action_type === 'remove_tag') && (
                             <Input
@@ -636,6 +650,87 @@ function NodeConfigPanel({ node, onUpdate, onClose, metaTemplates }: { node: Flo
                                 onChange={url => updateConfig('audio_url', url)}
                                 placeholder="MP3, OGG, WAV — máx. 16 MB"
                             />
+                        )}
+
+                        {/* ── Renovación / Pagos ── */}
+                        {config.action_type === 'send_plans_list' && (
+                            <>
+                                <p style={{ color: '#64748b', fontSize: '0.72rem', background: 'rgba(34,197,94,0.06)', padding: '8px 10px', borderRadius: 8, margin: 0 }}>
+                                    📋 Carga automáticamente los planes activos de tu catálogo y los envía al cliente como lista interactiva de WhatsApp.
+                                </p>
+                                <Input
+                                    value={config.list_title as string || ''}
+                                    onChange={e => updateConfig('list_title', e.target.value)}
+                                    placeholder="Mensaje sobre la lista (ej: Estos son nuestros planes)"
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                                <Input
+                                    value={config.button_text as string || ''}
+                                    onChange={e => updateConfig('button_text', e.target.value)}
+                                    placeholder='Texto del botón (ej: "Ver planes")'
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                                <Input
+                                    value={config.variable_name as string || ''}
+                                    onChange={e => updateConfig('variable_name', e.target.value)}
+                                    placeholder='Variable donde guardar selección (ej: plan_id)'
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                            </>
+                        )}
+
+                        {config.action_type === 'create_renewal_order' && (
+                            <>
+                                <p style={{ color: '#64748b', fontSize: '0.72rem', background: 'rgba(34,197,94,0.06)', padding: '8px 10px', borderRadius: 8, margin: 0 }}>
+                                    🧾 Registra la orden del plan que el cliente seleccionó. Usa la variable donde guardaste su selección.
+                                </p>
+                                <Input
+                                    value={config.plan_variable as string || ''}
+                                    onChange={e => updateConfig('plan_variable', e.target.value)}
+                                    placeholder='Variable con el plan elegido (ej: plan_id)'
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                            </>
+                        )}
+
+                        {config.action_type === 'send_qr_payment' && (
+                            <>
+                                <p style={{ color: '#64748b', fontSize: '0.72rem', background: 'rgba(34,197,94,0.06)', padding: '8px 10px', borderRadius: 8, margin: 0 }}>
+                                    📱 Envía el QR del plan que el cliente eligió. El QR se toma automáticamente de tu catálogo de productos.
+                                </p>
+                                <Input
+                                    value={config.qr_message as string || ''}
+                                    onChange={e => updateConfig('qr_message', e.target.value)}
+                                    placeholder='Mensaje junto al QR (ej: Realiza tu pago y envía el comprobante aquí)'
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                            </>
+                        )}
+
+                        {config.action_type === 'renew_subscription' && (
+                            <>
+                                <p style={{ color: '#64748b', fontSize: '0.72rem', background: 'rgba(34,197,94,0.06)', padding: '8px 10px', borderRadius: 8, margin: 0 }}>
+                                    ✅ Renueva la suscripción del cliente automáticamente. Asegúrate de que el nodo anterior haya capturado el comprobante de pago.
+                                </p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <label style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}>Meses a agregar:</label>
+                                    <select
+                                        value={config.duration_months as number || 1}
+                                        onChange={e => updateConfig('duration_months', Number(e.target.value))}
+                                        style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A', padding: '8px 12px', flex: 1 }}
+                                    >
+                                        {[1, 2, 3, 6, 12].map(m => (
+                                            <option key={m} value={m}>{m} {m === 1 ? 'mes' : 'meses'}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <Input
+                                    value={config.confirm_message as string || ''}
+                                    onChange={e => updateConfig('confirm_message', e.target.value)}
+                                    placeholder='Mensaje de confirmación (ej: ✅ ¡Renovación completada!)'
+                                    style={{ background: '#F7F8FA', border: '1px solid rgba(15,23,42,0.1)', borderRadius: 8, color: '#0F172A' }}
+                                />
+                            </>
                         )}
                     </>
                 )}
@@ -841,6 +936,10 @@ export default function FlowEditorPage() {
             if (config.action_type === 'send_document') return `📄 ${config.filename || config.document_url?.split('/').pop()?.split('?')[0] || 'documento'}`
             if (config.action_type === 'send_video') return `🎥 ${config.video_url?.split('/').pop()?.split('?')[0] || 'video'}`
             if (config.action_type === 'send_audio') return `🎵 ${config.audio_url?.split('/').pop()?.split('?')[0] || 'audio'}`
+            if (config.action_type === 'send_plans_list') return '📋 Planes disponibles'
+            if (config.action_type === 'create_renewal_order') return `🧾 Orden: ${config.plan_variable || 'plan_id'}`
+            if (config.action_type === 'send_qr_payment') return '📱 QR de pago'
+            if (config.action_type === 'renew_subscription') return `✅ Renovar ${config.duration_months || 1} mes(es)`
             return config.action_type || 'Acción'
         }
         return ''

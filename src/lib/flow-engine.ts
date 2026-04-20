@@ -336,6 +336,12 @@ async function continueFlow(state: FlowState, ctx: MessageContext): Promise<Flow
             updatedVars[`${variableName}_id`] = ctx.interactiveData.id
         }
 
+        // If user sent an image/media, store the URL so renew_subscription can use it
+        if (ctx.mediaUrl) {
+            updatedVars['last_media_url'] = ctx.mediaUrl
+            updatedVars['last_media_type'] = ctx.messageType
+        }
+
         await saveFlowState({
             chat_id: ctx.chatId,
             user_id: ctx.tenantUserId,
@@ -547,6 +553,66 @@ async function executeNode(node: FlowNode, ctx: MessageContext, vars: FlowVariab
                     type: 'send_audio',
                     payload: {
                         audioUrl: replaceVariables(getConfigString(config, 'audio_url'), vars, ctx)
+                    }
+                })
+                break
+            }
+
+            // Renewal / payment actions — pass their config fields as params
+            if (actionType === 'send_plans_list') {
+                actions.push({
+                    type: 'system_action',
+                    payload: {
+                        actionType,
+                        params: {
+                            title: replaceVariables(getConfigString(config, 'list_title') || '📋 Planes disponibles', vars, ctx),
+                            button_text: getConfigString(config, 'button_text') || 'Ver planes',
+                            variable_name: getConfigString(config, 'variable_name') || 'plan_id',
+                        },
+                        tag: null,
+                        imageUrl: null
+                    }
+                })
+                break
+            }
+
+            if (actionType === 'create_renewal_order') {
+                actions.push({
+                    type: 'system_action',
+                    payload: {
+                        actionType,
+                        params: { plan_variable: getConfigString(config, 'plan_variable') || 'plan_id' },
+                        tag: null,
+                        imageUrl: null
+                    }
+                })
+                break
+            }
+
+            if (actionType === 'send_qr_payment') {
+                actions.push({
+                    type: 'system_action',
+                    payload: {
+                        actionType,
+                        params: { message: replaceVariables(getConfigString(config, 'qr_message'), vars, ctx) },
+                        tag: null,
+                        imageUrl: null
+                    }
+                })
+                break
+            }
+
+            if (actionType === 'renew_subscription') {
+                actions.push({
+                    type: 'system_action',
+                    payload: {
+                        actionType,
+                        params: {
+                            duration_months: getConfigNumber(config, 'duration_months', 1),
+                            message: replaceVariables(getConfigString(config, 'confirm_message'), vars, ctx),
+                        },
+                        tag: null,
+                        imageUrl: null
                     }
                 })
                 break
@@ -830,6 +896,274 @@ async function executeSystemAction(payload: Extract<FlowAction, { type: 'system_
 
         case 'set_variable': {
             // Variables are managed in the flow state, this is a no-op at the system level
+            break
+        }
+
+        case 'send_plans_list': {
+            // Fetch active products for this tenant and send as WhatsApp list
+            const { sendWhatsAppList } = await import('@/lib/whatsapp')
+            const { data: productRows } = await supabaseAdmin
+                .from('products')
+                .select('id, name, price, description')
+                .eq('user_id', ctx.tenantUserId)
+                .eq('is_active', true)
+                .order('sort_order', { ascending: true })
+
+            const products = productRows || []
+            if (products.length === 0) {
+                const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
+                await sendWhatsAppMessage(ctx.phoneNumber, 'No hay planes disponibles en este momento.', ctx.tenantToken, ctx.phoneId)
+                break
+            }
+
+            const currencySymbol = (payload.params?.currency_symbol as string) || 'Bs'
+            const title = (payload.params?.title as string) || '📋 Planes disponibles'
+            const buttonText = (payload.params?.button_text as string) || 'Ver planes'
+
+            const rows = products.map(p => ({
+                id: `renew_plan_${p.id}`,
+                title: String(p.name).substring(0, 24),
+                description: `${currencySymbol} ${p.price}`
+            }))
+
+            await sendWhatsAppList(
+                ctx.phoneNumber,
+                title,
+                buttonText,
+                [{ title: 'Planes', rows }],
+                ctx.tenantToken,
+                ctx.phoneId
+            )
+
+            await supabaseAdmin.from('messages').insert({
+                chat_id: ctx.chatId,
+                is_from_me: true,
+                content: `${title}\n[Lista de planes enviada]`,
+                status: 'delivered'
+            })
+            break
+        }
+
+        case 'create_renewal_order': {
+            // Look up the plan the user selected (stored as renew_plan_{id} in flow vars)
+            const { data: flowState } = await supabaseAdmin
+                .from('chat_flow_state')
+                .select('variables')
+                .eq('chat_id', ctx.chatId)
+                .eq('status', 'active')
+                .maybeSingle()
+
+            const vars = flowState?.variables || {}
+            const planVarName = (payload.params?.plan_variable as string) || 'plan_id'
+            const rawPlanId = vars[planVarName] || vars[`${planVarName}_id`] || ''
+
+            // Extract UUID from "renew_plan_{uuid}"
+            const productId = rawPlanId.startsWith('renew_plan_')
+                ? rawPlanId.replace('renew_plan_', '')
+                : rawPlanId
+
+            if (!productId) {
+                console.warn('[FlowEngine] create_renewal_order: no productId found in vars', vars)
+                break
+            }
+
+            const { data: product } = await supabaseAdmin
+                .from('products')
+                .select('id, name, price, qr_image_url')
+                .eq('id', productId)
+                .eq('user_id', ctx.tenantUserId)
+                .maybeSingle()
+
+            if (!product) break
+
+            // Delete previous pending orders for this chat
+            await supabaseAdmin
+                .from('orders')
+                .delete()
+                .eq('chat_id', ctx.chatId)
+                .eq('status', 'pending_payment')
+
+            // Create new order
+            await supabaseAdmin.from('orders').insert({
+                user_id: ctx.tenantUserId,
+                chat_id: ctx.chatId,
+                phone_number: ctx.phoneNumber,
+                contact_name: ctx.contactName,
+                product: product.name,
+                plan: product.id,
+                plan_name: product.name,
+                amount: product.price,
+                status: 'pending_payment'
+            })
+
+            // Save plan info into flow variables
+            await supabaseAdmin
+                .from('chat_flow_state')
+                .update({
+                    variables: {
+                        ...vars,
+                        plan_name: product.name,
+                        plan_price: String(product.price),
+                        plan_id: product.id,
+                        qr_image_url: product.qr_image_url || ''
+                    }
+                })
+                .eq('chat_id', ctx.chatId)
+                .eq('status', 'active')
+            break
+        }
+
+        case 'send_qr_payment': {
+            // Find the pending order and send its QR image
+            const { data: order } = await supabaseAdmin
+                .from('orders')
+                .select('plan, plan_name, amount')
+                .eq('chat_id', ctx.chatId)
+                .eq('status', 'pending_payment')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            if (!order) {
+                console.warn('[FlowEngine] send_qr_payment: no pending order for chat', ctx.chatId)
+                break
+            }
+
+            const { data: product } = await supabaseAdmin
+                .from('products')
+                .select('name, price, qr_image_url')
+                .eq('id', order.plan)
+                .maybeSingle()
+
+            if (!product?.qr_image_url) {
+                console.warn('[FlowEngine] send_qr_payment: product has no qr_image_url', order.plan)
+                break
+            }
+
+            const { sendWhatsAppImage } = await import('@/lib/whatsapp')
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jabachat.com'
+            const qrUrl = product.qr_image_url.startsWith('http')
+                ? product.qr_image_url
+                : `${baseUrl}${product.qr_image_url}`
+
+            const qrCaption = (payload.params?.message as string)
+                || `Realiza tu pago por *${product.name}* y envía el comprobante aquí.`
+
+            await sendWhatsAppImage(ctx.phoneNumber, qrUrl, qrCaption, ctx.tenantToken, ctx.phoneId)
+            await supabaseAdmin.from('messages').insert({
+                chat_id: ctx.chatId,
+                is_from_me: true,
+                content: qrCaption,
+                media_url: qrUrl,
+                media_type: 'image',
+                status: 'delivered'
+            })
+            break
+        }
+
+        case 'renew_subscription': {
+            // Find the pending order for this chat
+            const { data: order } = await supabaseAdmin
+                .from('orders')
+                .select('id, plan, plan_name, amount')
+                .eq('chat_id', ctx.chatId)
+                .eq('status', 'pending_payment')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            if (!order) {
+                console.warn('[FlowEngine] renew_subscription: no pending order for chat', ctx.chatId)
+                break
+            }
+
+            // Find the active subscription for this phone number
+            const { data: subscription } = await supabaseAdmin
+                .from('subscriptions')
+                .select('id, vencimiento, correo')
+                .eq('user_id', ctx.tenantUserId)
+                .ilike('numero', `%${ctx.phoneNumber.replace(/^\+/, '')}%`)
+                .eq('estado', 'ACTIVO')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            // Calculate new expiration (+30 days from today or from current expiry)
+            const durationMonths = Number(payload.params?.duration_months) || 1
+            const now = new Date()
+            let baseDate = now
+            if (subscription?.vencimiento) {
+                const parts = subscription.vencimiento.split('/')
+                if (parts.length === 3) {
+                    const parsed = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+                    if (!isNaN(parsed.getTime()) && parsed > now) baseDate = parsed
+                }
+            }
+            baseDate.setMonth(baseDate.getMonth() + durationMonths)
+            const dd = String(baseDate.getDate()).padStart(2, '0')
+            const mm = String(baseDate.getMonth() + 1).padStart(2, '0')
+            const yyyy = baseDate.getFullYear()
+            const newExpiration = `${dd}/${mm}/${yyyy}`
+
+            // Get flow state for media URL (payment receipt)
+            const { data: flowState } = await supabaseAdmin
+                .from('chat_flow_state')
+                .select('variables')
+                .eq('chat_id', ctx.chatId)
+                .eq('status', 'active')
+                .maybeSingle()
+            const receiptUrl = flowState?.variables?.last_media_url || null
+
+            // Update subscription
+            if (subscription) {
+                await supabaseAdmin
+                    .from('subscriptions')
+                    .update({
+                        vencimiento: newExpiration,
+                        estado: 'ACTIVO',
+                        notified: false,
+                        notified_at: null,
+                        followup_sent: false,
+                        urgency_sent: false
+                    })
+                    .eq('id', subscription.id)
+            }
+
+            // Mark order as completed
+            await supabaseAdmin
+                .from('orders')
+                .update({ status: 'completed' })
+                .eq('id', order.id)
+
+            // Record the renewal
+            await supabaseAdmin.from('subscription_renewals').insert({
+                user_id: ctx.tenantUserId,
+                subscription_id: subscription?.id || null,
+                order_id: order.id,
+                chat_id: ctx.chatId,
+                phone_number: ctx.phoneNumber,
+                customer_email: subscription?.correo || '',
+                plan_name: order.plan_name || '',
+                amount: order.amount,
+                old_expiration: subscription?.vencimiento || '',
+                new_expiration: newExpiration,
+                payment_proof_url: receiptUrl,
+                status: 'auto_approved',
+                triggered_by: 'flow',
+                reviewed_at: new Date().toISOString()
+            })
+
+            // Send confirmation message
+            const confirmMsg = (payload.params?.message as string)
+                || `✅ ¡Renovación completada! Tu acceso ha sido renovado hasta el *${newExpiration}*.`
+            const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
+            await sendWhatsAppMessage(ctx.phoneNumber, confirmMsg, ctx.tenantToken, ctx.phoneId)
+            await supabaseAdmin.from('messages').insert({
+                chat_id: ctx.chatId,
+                is_from_me: true,
+                content: confirmMsg,
+                status: 'delivered'
+            })
             break
         }
 
