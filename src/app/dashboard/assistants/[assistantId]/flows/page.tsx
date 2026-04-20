@@ -17,7 +17,6 @@ import { TagAutocomplete } from '@/components/ui/tag-autocomplete'
 import Link from 'next/link'
 import NextImage from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
-import FlowTemplates from './FlowTemplates'
 import { createClient } from '@/utils/supabase/client'
 import { COMMON_TIMEZONES } from '@/lib/timezone-utils'
 import { toast } from 'sonner'
@@ -796,7 +795,6 @@ export default function FlowsPage() {
     const [flows, setFlows] = useState<ConversationFlow[]>([])
     const [search, setSearch] = useState('')
     const [, startTransition] = useTransition()
-    const [showTemplates] = useState(false)
 
     // Automations tab
     const [pageTab, setPageTab] = useState<PageTab>('flows')
@@ -948,18 +946,6 @@ export default function FlowsPage() {
                     templates={metaTemplates}
                     onSave={handleSaveAutomation}
                     onClose={() => { setModalOpen(false); setEditingJob(null) }}
-                />
-            )}
-
-            {/* Templates Modal */}
-            {showTemplates && (
-                <FlowTemplates
-                    assistantId={assistantId}
-                    onStartBlank={() => {
-                        setShowTemplates(false)
-                        router.push(`/dashboard/assistants/${assistantId}/flows/new`)
-                    }}
-                    onClose={() => setShowTemplates(false)}
                 />
             )}
 
