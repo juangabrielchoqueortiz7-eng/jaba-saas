@@ -1974,7 +1974,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(!!triggerId && !initialTemplate)
-  const [activeTab, setActiveTab] = useState<'conditions' | 'actions' | 'review'>('conditions')
+  const [activeTab, setActiveTab] = useState<'conditions' | 'actions'>('actions')
   const [showConditionPicker, setShowConditionPicker] = useState(false)
   const [showActionPicker, setShowActionPicker] = useState(false)
 
@@ -2389,98 +2389,6 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
         </div>
       )}
 
-      <div className="mb-6 rounded-2xl border border-black/[0.08] bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-cyan-700">Guia dentro del builder</p>
-            <h2 className="mt-1 text-lg font-bold text-[#0F172A]">Lo que estas armando, explicado en simple</h2>
-            <p className="mt-1 text-sm text-slate-500">{nextStepMessage}</p>
-          </div>
-          <div className="grid gap-2 text-xs text-slate-600">
-            {activationChecklist.map((item) => (
-              <div key={item.label} className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 ${item.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-black/[0.06] bg-[#F7F8FA] text-slate-500'}`}>
-                <CheckCircle2 size={13} className={item.ok ? 'text-emerald-600' : 'text-slate-300'} />
-                {item.label}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {triggerSummary.map((item) => (
-            <div key={item.title} className={`rounded-xl border px-3 py-3 ${item.tone}`}>
-              <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
-              <p className="mt-1 text-sm font-medium leading-relaxed">{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
-        <div className="flex items-start gap-3">
-          <Info size={18} className="mt-0.5 shrink-0 text-amber-700" />
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-[#0F172A]">Configuralo como una frase simple</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              Piensa: cuando pase esto, el bot hace esto. Ejemplo: cuando el cliente escriba precio, enviar mensaje y poner etiqueta interesado.
-            </p>
-            <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-600 md:grid-cols-3">
-              <span className="rounded-lg bg-white px-3 py-2 border border-black/[0.06]">1. Nombre: para reconocerla luego.</span>
-              <span className="rounded-lg bg-white px-3 py-2 border border-black/[0.06]">2. Cuando se activa: palabra, tiempo o fecha.</span>
-              <span className="rounded-lg bg-white px-3 py-2 border border-black/[0.06]">3. Que hace: mensaje, plantilla, etiqueta o flujo.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 mb-6 bg-white rounded-xl border border-black/[0.08] p-3">
-        {[
-          { num: 1, label: 'Información básica', section: 'config' as const, active: true },
-          { num: 2, label: `¿Cuándo se activa? (${conditions.length})`, section: 'conditions' as const, active: activeTab === 'conditions' },
-          { num: 3, label: `¿Qué hace? (${actions.length})`, section: 'actions' as const, active: activeTab === 'actions' },
-        ].map((step, i) => (
-          <button
-            key={step.num}
-            onClick={() => { if (step.section !== 'config') setActiveTab(step.section) }}
-            className={`flex items-center gap-2.5 px-4 py-2 rounded-lg transition-all flex-1 ${
-              step.section === 'config'
-                ? 'bg-[#F7F8FA] cursor-default'
-                : step.active
-                  ? step.section === 'conditions'
-                    ? 'bg-red-50 border border-red-200'
-                    : 'bg-green-50 border border-green-200'
-                  : 'hover:bg-[#F7F8FA] cursor-pointer'
-            }`}
-          >
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-              step.section === 'config'
-                ? (name.trim() ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500')
-                : step.section === 'conditions'
-                  ? (step.active ? 'bg-red-500 text-white' : conditions.length > 0 ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500')
-                  : (step.active ? 'bg-green-600 text-white' : actions.length > 0 ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500')
-            }`}>
-              {step.section === 'config' && name.trim() ? '✓' :
-               step.section === 'conditions' && !step.active && conditions.length > 0 ? '✓' :
-               step.section === 'actions' && !step.active && actions.length > 0 ? '✓' :
-               step.num}
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-xs font-semibold text-[#0F172A] truncate">{step.label}</p>
-            </div>
-            {i < 2 && <div className="w-6 h-px bg-slate-200 shrink-0 ml-auto" />}
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {automationFlowSummary.map((item) => (
-          <div key={item.title} className={`rounded-xl border px-4 py-3 ${item.tone}`}>
-            <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
-            <p className="mt-1 text-sm font-medium leading-relaxed">{item.value}</p>
-          </div>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* ── LEFT: Config ── */}
         <div className="lg:col-span-4 space-y-4">
@@ -2505,7 +2413,6 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                   <SelectContent>
                     <SelectItem value="logic">🧠 Cuando el cliente escribe algo (palabras clave)</SelectItem>
                     <SelectItem value="time">⏰ Cuando pasa tiempo sin respuesta</SelectItem>
-                    <SelectItem value="flow">🔄 Iniciar una conversación guiada</SelectItem>
                     <SelectItem value="scheduled">📅 En un día programado (ej: vencimiento)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2539,30 +2446,6 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                       </button>
                     ))}
                   </div>
-                  <div className={`rounded-lg border px-3 py-3 text-xs ${
-                    scheduledHasTemplateAction
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                      : 'border-amber-200 bg-amber-50 text-amber-700'
-                  }`}>
-                    <p className="font-semibold">{scheduledHasTemplateAction ? 'Plantilla lista para la programada' : 'Te falta una plantilla aprobada'}</p>
-                    <p className="mt-1 leading-relaxed">
-                      {scheduledHasTemplateAction
-                        ? 'Esta automatizacion ya tiene una accion de plantilla y puede enviar fuera de la ventana de 24 horas.'
-                        : 'Para recordatorios y vencimientos, agrega una accion de plantilla aprobada en la pestaña "Â¿QuÃ© hace?".'}
-                    </p>
-                    {!scheduledHasTemplateAction && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('actions')
-                          addAction('send_template')
-                        }}
-                        className="mt-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-[11px] font-semibold text-amber-700"
-                      >
-                        Agregar plantilla aprobada
-                      </button>
-                    )}
-                  </div>
                 </div>
               )}
 
@@ -2595,22 +2478,6 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                 </div>
               )}
 
-              {type === 'flow' && (
-                <div className="space-y-1 animate-in fade-in">
-                  <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">¿Qué conversación guiada iniciar?</Label>
-                  <Select value={selectedFlowId} onValueChange={setSelectedFlowId}>
-                    <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
-                      <SelectValue placeholder="Selecciona un flujo..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {flows.length === 0 && <SelectItem value="_none">No hay flujos creados</SelectItem>}
-                      {flows.map(f => (
-                        <SelectItem key={f.id} value={f.id}>{f.is_active ? '● ' : '○ '}{f.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               {type === 'scheduled' && (
                 <div className="space-y-3 animate-in fade-in">
@@ -2827,7 +2694,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                 activeTab === 'conditions' ? 'border-red-500 text-red-500' : 'border-transparent text-slate-400 hover:text-[#0F172A]'
               }`}
             >
-              ¿Cuándo se activa? {conditions.length > 0 && `(${conditions.length})`}
+              Filtros opcionales {conditions.length > 0 && `(${conditions.length})`}
             </button>
             <button
               onClick={() => setActiveTab('actions')}
@@ -2837,23 +2704,15 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
             >
               ¿Qué hace? {actions.length > 0 && `(${actions.length})`}
             </button>
-            <button
-              onClick={() => setActiveTab('review')}
-              className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
-                activeTab === 'review' ? 'border-cyan-500 text-cyan-600' : 'border-transparent text-slate-400 hover:text-[#0F172A]'
-              }`}
-            >
-              Antes de activar
-            </button>
           </div>
 
           {/* ── CONDITIONS TAB ── */}
           {activeTab === 'conditions' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-left-4">
-              <div className="rounded-xl border border-red-100 bg-red-50/60 px-4 py-3">
-                <p className="text-sm font-semibold text-[#0F172A]">Empieza por una sola regla clara</p>
+              <div className="rounded-xl border border-slate-200 bg-[#F7F8FA] px-4 py-3">
+                <p className="text-sm font-semibold text-[#0F172A]">Filtros opcionales — no son obligatorios</p>
                 <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                  Si esta parte se complica, usa solo una condicion al inicio. Luego puedes sumar mas cuando ya veas que la automatizacion responde bien.
+                  El tipo de activación ya define cuándo corre. Agrega filtros solo si quieres ser más específico: por ejemplo, que solo corra para clientes con cierta etiqueta o en ciertos días.
                 </p>
               </div>
 
@@ -2871,7 +2730,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
               {/* Header with logic toggle + add button */}
               <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-black/[0.08]">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-sm font-medium text-[#0F172A]">Reglas de activación</h3>
+                  <h3 className="text-sm font-medium text-[#0F172A]">Filtros opcionales</h3>
                   {conditions.length > 1 && (
                     <div className="flex items-center gap-1 bg-[#F7F8FA] rounded-lg p-0.5 border border-black/[0.06]">
                       <button
@@ -2912,8 +2771,8 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
               {conditions.length === 0 ? (
                 <div className="text-center py-10 border-2 border-dashed border-black/[0.06] rounded-xl">
                   <Filter className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-                  <p className="text-slate-500 font-medium">Sin condiciones extra</p>
-                  <p className="text-xs text-slate-400 mt-1 mb-4">La automatización se activará siempre según el tipo elegido. Agrega condiciones para ser más específico.</p>
+                  <p className="text-slate-500 font-medium">Sin filtros — y está bien así</p>
+                  <p className="text-xs text-slate-400 mt-1 mb-4">La automatización ya funciona con el tipo elegido. Los filtros son opcionales, úsalos si necesitas más precisión.</p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {[
                       { type: 'text_contains' as ConditionType, label: '💬 Detectar palabras clave', desc: 'Ej: "precio", "ayuda"' },
@@ -3062,111 +2921,6 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
             </div>
           )}
 
-          {activeTab === 'review' && (
-            <div className="space-y-4 animate-in fade-in">
-              <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 px-4 py-3">
-                <p className="text-sm font-semibold text-[#0F172A]">Antes de activar, revísala como si fueras el cliente</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                  La idea es simple: entender qué la activa, qué responde primero y qué pasa después para no insistir de más.
-                </p>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                {automationFlowSummary.map((item) => (
-                  <div key={item.title} className={`rounded-xl border px-4 py-3 ${item.tone}`}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
-                    <p className="mt-1 text-sm font-medium leading-relaxed">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-xl border border-black/[0.08] bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Checklist funcional</p>
-                <div className="mt-3 grid gap-2">
-                  {reviewChecklist.map((item) => (
-                    <div
-                      key={item.label}
-                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${
-                        item.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-black/[0.06] bg-[#F7F8FA] text-slate-500'
-                      }`}
-                    >
-                      <CheckCircle2 size={13} className={item.ok ? 'text-emerald-600' : 'text-slate-300'} />
-                      {item.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-black/[0.08] bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Chequeo humano</p>
-                <div className="mt-3 space-y-2">
-                  {humanChecks.map((check) => (
-                    <div
-                      key={check.title}
-                      className={`rounded-xl border px-3 py-3 ${
-                        check.ok
-                          ? 'border-emerald-200 bg-emerald-50/70'
-                          : 'border-amber-200 bg-amber-50/70'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        {check.ok ? (
-                          <CheckCircle2 size={15} className="mt-0.5 text-emerald-600 shrink-0" />
-                        ) : (
-                          <AlertCircle size={15} className="mt-0.5 text-amber-600 shrink-0" />
-                        )}
-                        <div>
-                          <p className="text-sm font-semibold text-[#0F172A]">{check.title}</p>
-                          <p className="mt-1 text-xs leading-relaxed text-slate-600">{check.detail}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-black/[0.08] bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Prueba mental rápida</p>
-                <div className="mt-3 space-y-2">
-                  {reviewScenarios.map((scenario, index) => (
-                    <div key={index} className="rounded-lg border border-black/[0.06] bg-[#F7F8FA] px-3 py-2 text-sm text-slate-600">
-                      {scenario}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {!activationReady && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('conditions')}
-                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
-                    >
-                      Revisar activación
-                    </button>
-                  )}
-                  {!actionsReady && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('actions')}
-                      className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700"
-                    >
-                      Revisar respuesta
-                    </button>
-                  )}
-                  {reviewReady && (
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={isPending}
-                      className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700"
-                    >
-                      Guardar automatización
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
