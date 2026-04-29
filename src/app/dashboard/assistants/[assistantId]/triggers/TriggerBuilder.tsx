@@ -1974,7 +1974,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(!!triggerId && !initialTemplate)
-  const [activeTab, setActiveTab] = useState<'conditions' | 'actions'>('actions')
+  const [showConditionsSection, setShowConditionsSection] = useState(false)
   const [showConditionPicker, setShowConditionPicker] = useState(false)
   const [showActionPicker, setShowActionPicker] = useState(false)
 
@@ -1985,7 +1985,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const [timeMinutes, setTimeMinutes] = useState(!triggerId && initialTemplate?.type === 'time' && initialTemplate.timeMinutes ? initialTemplate.timeMinutes : '30')
   const [flows, setFlows] = useState<ConversationFlow[]>([])
   const [selectedFlowId, setSelectedFlowId] = useState('')
-  const [conditionsLogic, setConditionsLogic] = useState<'AND' | 'OR'>(!triggerId && initialTemplate?.conditionsLogic ? initialTemplate.conditionsLogic : 'AND')
+  const conditionsLogic = 'AND' as const
   const [conditions, setConditions] = useState<TriggerCondition[]>(() => getInitialConditions(triggerId, initialTemplate))
   const [actions, setActions] = useState<TriggerAction[]>(() => getInitialActions(triggerId, initialTemplate))
   const [metaTemplates, setMetaTemplates] = useState<MetaTemplate[]>([])
@@ -2006,8 +2006,6 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
     if (recipe.timeMinutes) setTimeMinutes(recipe.timeMinutes)
     setConditions(recipe.conditions)
     setActions(recipe.actions)
-    setConditionsLogic('AND')
-    setActiveTab('actions')
   }
 
   // Load flows + templates + custom fields
@@ -2039,12 +2037,27 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
             delay_seconds: a.delay_seconds || 0,
           })))
           setConditions((data.trigger_conditions || []).map(normalizeLegacyCondition))
-          if (data.conditions_logic) setConditionsLogic(data.conditions_logic)
         }
         setIsLoading(false)
       })
     }
   }, [triggerId])
+
+  // Auto-open conditions section when conditions are loaded or added
+  useEffect(() => {
+    if (conditions.length > 0) setShowConditionsSection(true)
+  }, [conditions.length])
+
+  // Smart defaults: pre-populate an action when trigger type is selected
+  useEffect(() => {
+    if (triggerId || actions.length > 0) return
+    if (type === 'time') {
+      setActions([{ type: 'send_text', payload: { message: '' }, delay_seconds: 0 }])
+    } else if (type === 'scheduled') {
+      setActions([{ type: 'send_template', payload: { template_name: '', language: 'es', variables: [] }, delay_seconds: 0 }])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type])
 
   // ── Handlers ──
 
@@ -2684,242 +2697,200 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           </Card>
         </div>
 
-        {/* ── RIGHT: Conditions + Actions ── */}
-        <div className="lg:col-span-8">
-          {/* Tabs */}
-          <div className="flex border-b border-black/[0.08] mb-5">
-            <button
-              onClick={() => setActiveTab('conditions')}
-              className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
-                activeTab === 'conditions' ? 'border-red-500 text-red-500' : 'border-transparent text-slate-400 hover:text-[#0F172A]'
-              }`}
-            >
-              Filtros opcionales {conditions.length > 0 && `(${conditions.length})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('actions')}
-              className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
-                activeTab === 'actions' ? 'border-green-500 text-green-500' : 'border-transparent text-slate-400 hover:text-[#0F172A]'
-              }`}
-            >
-              ¿Qué hace? {actions.length > 0 && `(${actions.length})`}
-            </button>
-          </div>
+        {/* ── RIGHT: Conditions (collapsible) + Actions ── */}
+        <div className="lg:col-span-8 space-y-4">
 
-          {/* ── CONDITIONS TAB ── */}
-          {activeTab === 'conditions' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-left-4">
-              <div className="rounded-xl border border-slate-200 bg-[#F7F8FA] px-4 py-3">
-                <p className="text-sm font-semibold text-[#0F172A]">Filtros opcionales — no son obligatorios</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+          {/* ── COLLAPSIBLE CONDITIONS SECTION ── */}
+          <div className="bg-white border border-black/[0.08] rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowConditionsSection(prev => !prev)}
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#F7F8FA] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Filter size={14} className="text-slate-400" />
+                <span className="text-sm font-medium text-[#0F172A]">Filtros opcionales</span>
+                {conditions.length > 0 && (
+                  <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{conditions.length}</span>
+                )}
+                <span className="text-xs text-slate-400 hidden sm:inline">— solo si necesitas más precisión</span>
+              </div>
+              {showConditionsSection ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+            </button>
+
+            {showConditionsSection && (
+              <div className="px-5 pb-5 pt-4 space-y-4 border-t border-black/[0.06] animate-in fade-in slide-in-from-top-2">
+                <p className="text-xs text-slate-500 leading-relaxed">
                   El tipo de activación ya define cuándo corre. Agrega filtros solo si quieres ser más específico: por ejemplo, que solo corra para clientes con cierta etiqueta o en ciertos días.
                 </p>
-              </div>
 
-              {/* Condition Picker Modal */}
-              {showConditionPicker && (
-                <CardPickerModal
-                  title="¿Qué condición quieres agregar?"
-                  categories={CONDITION_CATEGORIES}
-                  advancedCategories={CONDITION_CATEGORIES_ADVANCED}
-                  onSelect={v => addCondition(v as ConditionType)}
-                  onClose={() => setShowConditionPicker(false)}
-                />
-              )}
+                {showConditionPicker && (
+                  <CardPickerModal
+                    title="¿Qué condición quieres agregar?"
+                    categories={CONDITION_CATEGORIES}
+                    advancedCategories={CONDITION_CATEGORIES_ADVANCED}
+                    onSelect={v => addCondition(v as ConditionType)}
+                    onClose={() => setShowConditionPicker(false)}
+                  />
+                )}
 
-              {/* Header with logic toggle + add button */}
-              <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-black/[0.08]">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-sm font-medium text-[#0F172A]">Filtros opcionales</h3>
-                  {conditions.length > 1 && (
-                    <div className="flex items-center gap-1 bg-[#F7F8FA] rounded-lg p-0.5 border border-black/[0.06]">
-                      <button
-                        type="button"
-                        onClick={() => setConditionsLogic('AND')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                          conditionsLogic === 'AND'
-                            ? 'bg-red-500 text-white shadow-sm'
-                            : 'text-slate-400 hover:text-slate-600'
-                        }`}
-                      >
-                        Todas deben cumplirse
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConditionsLogic('OR')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                          conditionsLogic === 'OR'
-                            ? 'bg-orange-500 text-white shadow-sm'
-                            : 'text-slate-400 hover:text-slate-600'
-                        }`}
-                      >
-                        Al menos una
-                      </button>
-                    </div>
-                  )}
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium text-[#0F172A]">Filtros activos</h3>
+                  <Button
+                    type="button"
+                    onClick={() => setShowConditionPicker(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white h-8 text-xs gap-1.5 rounded-lg"
+                  >
+                    <Plus size={13} /> Agregar filtro
+                  </Button>
                 </div>
 
-                <Button
-                  type="button"
-                  onClick={() => setShowConditionPicker(true)}
-                  className="bg-red-600 hover:bg-red-700 text-white h-9 text-xs gap-1.5 rounded-lg"
-                >
-                  <Plus size={14} /> Agregar condición
-                </Button>
-              </div>
-
-              {conditions.length === 0 ? (
-                <div className="text-center py-10 border-2 border-dashed border-black/[0.06] rounded-xl">
-                  <Filter className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-                  <p className="text-slate-500 font-medium">Sin filtros — y está bien así</p>
-                  <p className="text-xs text-slate-400 mt-1 mb-4">La automatización ya funciona con el tipo elegido. Los filtros son opcionales, úsalos si necesitas más precisión.</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {[
-                      { type: 'text_contains' as ConditionType, label: '💬 Detectar palabras clave', desc: 'Ej: "precio", "ayuda"' },
-                      { type: 'has_tag' as ConditionType, label: '🏷️ Si tiene etiqueta', desc: 'Ej: "VIP", "nuevo"' },
-                      { type: 'message_count' as ConditionType, label: '📊 Por cantidad de mensajes', desc: 'Ej: más de 10' },
-                    ].map(suggestion => (
-                      <button
-                        key={suggestion.type}
-                        type="button"
-                        onClick={() => addCondition(suggestion.type)}
-                        className="text-left p-3 rounded-xl border border-black/[0.06] bg-white hover:border-red-300 hover:shadow-sm transition-all max-w-[200px]"
-                      >
-                        <p className="text-xs font-semibold text-[#0F172A]">{suggestion.label}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{suggestion.desc}</p>
-                      </button>
+                {conditions.length === 0 ? (
+                  <div className="text-center py-8 border-2 border-dashed border-black/[0.06] rounded-xl">
+                    <Filter className="mx-auto h-8 w-8 text-slate-300 mb-2" />
+                    <p className="text-slate-500 font-medium text-sm">Sin filtros — y está bien así</p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">La automatización ya funciona con el tipo elegido.</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {[
+                        { type: 'text_contains' as ConditionType, label: '💬 Detectar palabras clave' },
+                        { type: 'has_tag' as ConditionType, label: '🏷️ Si tiene etiqueta' },
+                        { type: 'day_of_week' as ConditionType, label: '📅 Solo ciertos días' },
+                      ].map(s => (
+                        <button
+                          key={s.type}
+                          type="button"
+                          onClick={() => addCondition(s.type)}
+                          className="px-3 py-1.5 rounded-full border border-black/[0.06] bg-[#F7F8FA] text-xs font-medium text-slate-600 hover:border-red-300 transition-colors"
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {conditions.map((cond, index) => (
+                      <div key={index}>
+                        <ConditionEditor
+                          condition={cond}
+                          index={index}
+                          customFieldDefs={customFieldDefs}
+                          onUpdate={updateCondition}
+                          onRemove={removeCondition}
+                        />
+                        {index < conditions.length - 1 && (
+                          <div className="flex items-center justify-center py-2">
+                            <span className="text-[10px] font-bold px-3 py-1 rounded-full border bg-red-50 text-red-400 border-red-200">
+                              Y también...
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {conditions.map((cond, index) => (
-                    <div key={index}>
-                      <ConditionEditor
-                        condition={cond}
-                        index={index}
-                        customFieldDefs={customFieldDefs}
-                        onUpdate={updateCondition}
-                        onRemove={removeCondition}
-                      />
-                      {index < conditions.length - 1 && (
-                        <div className="flex items-center justify-center py-2">
-                          <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${
-                            conditionsLogic === 'AND'
-                              ? 'bg-red-50 text-red-400 border-red-200'
-                              : 'bg-orange-50 text-orange-400 border-orange-200'
-                          }`}>
-                            {conditionsLogic === 'AND' ? 'Y también...' : 'O si...'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
 
-          {/* ── ACTIONS TAB ── */}
-          {activeTab === 'actions' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-              <div className="rounded-xl border border-green-100 bg-green-50/60 px-4 py-3">
-                <p className="text-sm font-semibold text-[#0F172A]">Define primero la respuesta principal</p>
+          {/* ── ACTIONS SECTION ── */}
+          <div className="space-y-4">
+            <div className="rounded-xl border border-green-100 bg-green-50/60 px-4 py-3">
+              <p className="text-sm font-semibold text-[#0F172A]">Define primero la respuesta principal</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Lo mas amigable suele ser responder con un mensaje corto o iniciar un flujo. Las etiquetas y acciones extra vienen despues.
+              </p>
+            </div>
+
+            {type === 'scheduled' && (
+              <div className={`rounded-xl border px-4 py-3 ${
+                scheduledHasTemplateAction ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'
+              }`}>
+                <p className="text-sm font-semibold text-[#0F172A]">En programadas, la salida ideal es una plantilla aprobada</p>
                 <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                  Lo mas amigable suele ser responder con un mensaje corto o iniciar un flujo. Las etiquetas y acciones extra vienen despues.
+                  Asi evitas problemas con la ventana de 24 horas en recordatorios, renovaciones y avisos de vencimiento.
                 </p>
+                {!scheduledHasTemplateAction && (
+                  <button
+                    type="button"
+                    onClick={() => addAction('send_template')}
+                    className="mt-3 rounded-lg border border-amber-200 bg-white px-3 py-2 text-[11px] font-semibold text-amber-700"
+                  >
+                    Agregar plantilla aprobada
+                  </button>
+                )}
               </div>
+            )}
 
-              {type === 'scheduled' && (
-                <div className={`rounded-xl border px-4 py-3 ${
-                  scheduledHasTemplateAction ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'
-                }`}>
-                  <p className="text-sm font-semibold text-[#0F172A]">En programadas, la salida ideal es una plantilla aprobada</p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
-                    Asi evitas problemas con la ventana de 24 horas en recordatorios, renovaciones y avisos de vencimiento.
-                  </p>
-                  {!scheduledHasTemplateAction && (
+            {/* Action Picker Modal */}
+            {showActionPicker && (
+              <CardPickerModal
+                title="¿Qué quieres que haga el bot?"
+                categories={ACTION_CATEGORIES}
+                advancedCategories={ACTION_CATEGORIES_ADVANCED}
+                onSelect={v => addAction(v as ActionType)}
+                onClose={() => setShowActionPicker(false)}
+              />
+            )}
+
+            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-black/[0.08]">
+              <div>
+                <h3 className="text-sm font-medium text-[#0F172A]">¿Qué hará el bot?</h3>
+                {actions.length > 0 && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">Se ejecutan en orden, de arriba hacia abajo</p>
+                )}
+              </div>
+              <Button
+                type="button"
+                onClick={() => setShowActionPicker(true)}
+                className="bg-green-600 hover:bg-green-700 text-white h-9 text-xs gap-1.5 rounded-lg"
+              >
+                <Plus size={14} /> Agregar acción
+              </Button>
+            </div>
+
+            {actions.length === 0 ? (
+              <div className="text-center py-10 border-2 border-dashed border-black/[0.06] rounded-xl">
+                <AlertCircle className="mx-auto h-10 w-10 text-slate-300 mb-3" />
+                <p className="text-slate-500 font-medium">Sin acciones configuradas</p>
+                <p className="text-xs text-slate-400 mt-1 mb-4">Agrega al menos una acción para que la automatización haga algo.</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {[
+                    { type: 'send_text' as ActionType, label: '💬 Enviar un mensaje', desc: 'Responde al cliente automáticamente' },
+                    { type: 'add_tag' as ActionType, label: '🏷️ Poner etiqueta', desc: 'Organiza a tus clientes' },
+                    { type: 'notify_admin' as ActionType, label: '🔔 Notificarte', desc: 'Recibe una alerta' },
+                  ].map(suggestion => (
                     <button
+                      key={suggestion.type}
                       type="button"
-                      onClick={() => addAction('send_template')}
-                      className="mt-3 rounded-lg border border-amber-200 bg-white px-3 py-2 text-[11px] font-semibold text-amber-700"
+                      onClick={() => addAction(suggestion.type)}
+                      className="text-left p-3 rounded-xl border border-black/[0.06] bg-white hover:border-green-300 hover:shadow-sm transition-all max-w-[200px]"
                     >
-                      Agregar plantilla aprobada
+                      <p className="text-xs font-semibold text-[#0F172A]">{suggestion.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{suggestion.desc}</p>
                     </button>
-                  )}
-                </div>
-              )}
-
-              {/* Action Picker Modal */}
-              {showActionPicker && (
-                <CardPickerModal
-                  title="¿Qué quieres que haga el bot?"
-                  categories={ACTION_CATEGORIES}
-                  advancedCategories={ACTION_CATEGORIES_ADVANCED}
-                  onSelect={v => addAction(v as ActionType)}
-                  onClose={() => setShowActionPicker(false)}
-                />
-              )}
-
-              <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-black/[0.08]">
-                <div>
-                  <h3 className="text-sm font-medium text-[#0F172A]">¿Qué hará el bot?</h3>
-                  {actions.length > 0 && (
-                    <p className="text-[10px] text-slate-400 mt-0.5">Se ejecutan en orden, de arriba hacia abajo</p>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => setShowActionPicker(true)}
-                  className="bg-green-600 hover:bg-green-700 text-white h-9 text-xs gap-1.5 rounded-lg"
-                >
-                  <Plus size={14} /> Agregar acción
-                </Button>
-              </div>
-
-              {actions.length === 0 ? (
-                <div className="text-center py-10 border-2 border-dashed border-black/[0.06] rounded-xl">
-                  <AlertCircle className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-                  <p className="text-slate-500 font-medium">Sin acciones configuradas</p>
-                  <p className="text-xs text-slate-400 mt-1 mb-4">Agrega al menos una acción para que la automatización haga algo.</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {[
-                      { type: 'send_text' as ActionType, label: '💬 Enviar un mensaje', desc: 'Responde al cliente automáticamente' },
-                      { type: 'add_tag' as ActionType, label: '🏷️ Poner etiqueta', desc: 'Organiza a tus clientes' },
-                      { type: 'notify_admin' as ActionType, label: '🔔 Notificarte', desc: 'Recibe una alerta' },
-                    ].map(suggestion => (
-                      <button
-                        key={suggestion.type}
-                        type="button"
-                        onClick={() => addAction(suggestion.type)}
-                        className="text-left p-3 rounded-xl border border-black/[0.06] bg-white hover:border-green-300 hover:shadow-sm transition-all max-w-[200px]"
-                      >
-                        <p className="text-xs font-semibold text-[#0F172A]">{suggestion.label}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{suggestion.desc}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {actions.map((action, index) => (
-                    <ActionEditor
-                      key={index}
-                      action={action}
-                      index={index}
-                      flows={flows}
-                      metaTemplates={metaTemplates}
-                      customFieldDefs={customFieldDefs}
-                      triggerType={type}
-                      scheduleConfig={type === 'scheduled' ? scheduleConfig : undefined}
-                      onUpdate={updateAction}
-                      onRemove={removeAction}
-                    />
                   ))}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {actions.map((action, index) => (
+                  <ActionEditor
+                    key={index}
+                    action={action}
+                    index={index}
+                    flows={flows}
+                    metaTemplates={metaTemplates}
+                    customFieldDefs={customFieldDefs}
+                    triggerType={type}
+                    scheduleConfig={type === 'scheduled' ? scheduleConfig : undefined}
+                    onUpdate={updateAction}
+                    onRemove={removeAction}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
         </div>
       </div>
