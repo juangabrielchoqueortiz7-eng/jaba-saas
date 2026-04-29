@@ -2418,7 +2418,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">¿Cómo se activa?</Label>
+                <Label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">¿Cuándo se activa?</Label>
                 <Select value={type} onValueChange={v => setType(v as TriggerType)}>
                   <SelectTrigger className="bg-[#F7F8FA] border-black/[0.08] text-[#0F172A]">
                     <SelectValue />
@@ -2651,6 +2651,91 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                   </div>
                 </div>
               )}
+              {/* ── Filtros opcionales (parte del CUÁNDO) ── */}
+              <div className="border-t border-black/[0.06] pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConditionsSection(prev => !prev)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <Filter size={12} className="text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">¿Algún filtro extra?</span>
+                    {conditions.length > 0 && (
+                      <span className="bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{conditions.length}</span>
+                    )}
+                  </div>
+                  {showConditionsSection ? <ChevronUp size={13} className="text-slate-400" /> : <ChevronDown size={13} className="text-slate-400" />}
+                </button>
+                <p className="text-[10px] text-slate-400 mt-0.5">Opcional — etiqueta, día, horario, palabras clave...</p>
+              </div>
+
+              {showConditionsSection && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                  {showConditionPicker && (
+                    <CardPickerModal
+                      title="¿Qué condición quieres agregar?"
+                      categories={CONDITION_CATEGORIES}
+                      advancedCategories={CONDITION_CATEGORIES_ADVANCED}
+                      onSelect={v => addCondition(v as ConditionType)}
+                      onClose={() => setShowConditionPicker(false)}
+                    />
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setShowConditionPicker(true)}
+                      className="bg-red-600 hover:bg-red-700 text-white h-7 text-[11px] gap-1 rounded-lg px-3"
+                    >
+                      <Plus size={11} /> Agregar filtro
+                    </Button>
+                  </div>
+
+                  {conditions.length === 0 ? (
+                    <div className="text-center py-5 border-2 border-dashed border-black/[0.06] rounded-xl">
+                      <p className="text-xs text-slate-400 mb-2">Sin filtros — la automatización ya funciona.</p>
+                      <div className="flex flex-wrap justify-center gap-1.5">
+                        {[
+                          { type: 'text_contains' as ConditionType, label: '💬 Palabras clave' },
+                          { type: 'has_tag' as ConditionType, label: '🏷️ Etiqueta' },
+                          { type: 'day_of_week' as ConditionType, label: '📅 Días' },
+                        ].map(s => (
+                          <button
+                            key={s.type}
+                            type="button"
+                            onClick={() => addCondition(s.type)}
+                            className="px-2 py-1 rounded-full border border-black/[0.06] bg-[#F7F8FA] text-[10px] font-medium text-slate-600 hover:border-red-300 transition-colors"
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {conditions.map((cond, index) => (
+                        <div key={index}>
+                          <ConditionEditor
+                            condition={cond}
+                            index={index}
+                            customFieldDefs={customFieldDefs}
+                            onUpdate={updateCondition}
+                            onRemove={removeCondition}
+                          />
+                          {index < conditions.length - 1 && (
+                            <div className="flex items-center justify-center py-1.5">
+                              <span className="text-[10px] font-bold px-3 py-0.5 rounded-full border bg-red-50 text-red-400 border-red-200">
+                                Y también...
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -2697,101 +2782,8 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           </Card>
         </div>
 
-        {/* ── RIGHT: Conditions (collapsible) + Actions ── */}
+        {/* ── RIGHT: Actions ── */}
         <div className="lg:col-span-8 space-y-4">
-
-          {/* ── COLLAPSIBLE CONDITIONS SECTION ── */}
-          <div className="bg-white border border-black/[0.08] rounded-xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowConditionsSection(prev => !prev)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#F7F8FA] transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Filter size={14} className="text-slate-400" />
-                <span className="text-sm font-medium text-[#0F172A]">Filtros opcionales</span>
-                {conditions.length > 0 && (
-                  <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">{conditions.length}</span>
-                )}
-                <span className="text-xs text-slate-400 hidden sm:inline">— solo si necesitas más precisión</span>
-              </div>
-              {showConditionsSection ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-            </button>
-
-            {showConditionsSection && (
-              <div className="px-5 pb-5 pt-4 space-y-4 border-t border-black/[0.06] animate-in fade-in slide-in-from-top-2">
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  El tipo de activación ya define cuándo corre. Agrega filtros solo si quieres ser más específico: por ejemplo, que solo corra para clientes con cierta etiqueta o en ciertos días.
-                </p>
-
-                {showConditionPicker && (
-                  <CardPickerModal
-                    title="¿Qué condición quieres agregar?"
-                    categories={CONDITION_CATEGORIES}
-                    advancedCategories={CONDITION_CATEGORIES_ADVANCED}
-                    onSelect={v => addCondition(v as ConditionType)}
-                    onClose={() => setShowConditionPicker(false)}
-                  />
-                )}
-
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-[#0F172A]">Filtros activos</h3>
-                  <Button
-                    type="button"
-                    onClick={() => setShowConditionPicker(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white h-8 text-xs gap-1.5 rounded-lg"
-                  >
-                    <Plus size={13} /> Agregar filtro
-                  </Button>
-                </div>
-
-                {conditions.length === 0 ? (
-                  <div className="text-center py-8 border-2 border-dashed border-black/[0.06] rounded-xl">
-                    <Filter className="mx-auto h-8 w-8 text-slate-300 mb-2" />
-                    <p className="text-slate-500 font-medium text-sm">Sin filtros — y está bien así</p>
-                    <p className="text-xs text-slate-400 mt-1 mb-4">La automatización ya funciona con el tipo elegido.</p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {[
-                        { type: 'text_contains' as ConditionType, label: '💬 Detectar palabras clave' },
-                        { type: 'has_tag' as ConditionType, label: '🏷️ Si tiene etiqueta' },
-                        { type: 'day_of_week' as ConditionType, label: '📅 Solo ciertos días' },
-                      ].map(s => (
-                        <button
-                          key={s.type}
-                          type="button"
-                          onClick={() => addCondition(s.type)}
-                          className="px-3 py-1.5 rounded-full border border-black/[0.06] bg-[#F7F8FA] text-xs font-medium text-slate-600 hover:border-red-300 transition-colors"
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {conditions.map((cond, index) => (
-                      <div key={index}>
-                        <ConditionEditor
-                          condition={cond}
-                          index={index}
-                          customFieldDefs={customFieldDefs}
-                          onUpdate={updateCondition}
-                          onRemove={removeCondition}
-                        />
-                        {index < conditions.length - 1 && (
-                          <div className="flex items-center justify-center py-2">
-                            <span className="text-[10px] font-bold px-3 py-1 rounded-full border bg-red-50 text-red-400 border-red-200">
-                              Y también...
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* ── ACTIONS SECTION ── */}
           <div className="space-y-4">
