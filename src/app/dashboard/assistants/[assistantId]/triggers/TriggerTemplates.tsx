@@ -355,197 +355,51 @@ export default function TriggerTemplates({ onSelectTemplate, onStartBlank }: Tri
   const sortedTemplates = [...TRIGGER_TEMPLATES].sort((a, b) => getRecommendationScore(b) - getRecommendationScore(a))
 
   return (
-    <div className="p-8 max-w-7xl mx-auto text-slate-700">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Nuevo Disparador</h1>
-        <p className="text-[rgba(15,23,42,0.45)]">
-          Elige una plantilla lista para usar, o crea una desde cero.
-        </p>
-        {focusTitles.length > 0 && (
-          <div className="mt-4 rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 px-4 py-3 max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#128C7E]">Foco activo</p>
-            <p className="text-sm font-semibold text-[#0F172A] mt-1">{focusSummary}</p>
-            <p className="text-xs text-slate-500 mt-1">{focusDescription}</p>
-          </div>
-        )}
+    <div className="p-8 max-w-5xl mx-auto text-slate-700">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-1">Elige una plantilla</h1>
+        <p className="text-sm text-slate-500">Selecciona la que más se parezca a lo que necesitas. Puedes editarla después.</p>
       </div>
 
-      {/* Start from scratch */}
       <button
         onClick={onStartBlank}
-        className="w-full mb-6 flex items-center gap-4 p-4 rounded-[14px] border-2 border-dashed border-black/[0.12] bg-white hover:border-[#eab308]/60 hover:bg-[#fefce8]/50 transition-all group text-left"
+        className="w-full mb-6 flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-black/[0.12] bg-white hover:border-green-300 hover:bg-green-50/50 transition-all group text-left"
       >
-        <div className="h-10 w-10 rounded-full bg-[#F7F8FA] border border-black/[0.07] flex items-center justify-center group-hover:bg-[#eab308]/10 transition-colors flex-shrink-0">
-          <Plus size={20} className="text-slate-400 group-hover:text-[#ca8a04]" />
+        <div className="h-9 w-9 rounded-full bg-[#F7F8FA] border border-black/[0.07] flex items-center justify-center flex-shrink-0">
+          <Plus size={18} className="text-slate-400 group-hover:text-green-600" />
         </div>
         <div>
-          <p className="font-semibold text-[#0F172A] text-sm">Empezar desde cero</p>
-          <p className="text-xs text-slate-400">Configura cada detalle manualmente</p>
+          <p className="font-semibold text-[#0F172A] text-sm">Crear desde cero</p>
+          <p className="text-xs text-slate-400">Configura todo a tu manera</p>
         </div>
-        <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-[#ca8a04] transition-colors" />
+        <ChevronRight size={16} className="ml-auto text-slate-300 group-hover:text-green-600 transition-colors" />
       </button>
 
-      {intentTemplates.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h2 className="text-sm font-semibold text-[#0F172A]/50 uppercase tracking-wider">
-                Intenciones recomendadas
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Automatizaciones listas segun el rubro y los objetivos de esta cuenta.
-              </p>
-              {focusTitles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {focusTitles.map((goal) => (
-                    <span key={goal} className="text-[10px] font-semibold px-2 py-1 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
-                      {goal}
-                    </span>
-                  ))}
-                </div>
-              )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {sortedTemplates.map(template => (
+          <button
+            key={template.id}
+            onClick={() => onSelectTemplate(template)}
+            onMouseEnter={() => setHovered(template.id)}
+            onMouseLeave={() => setHovered(null)}
+            className={`text-left p-4 rounded-xl border transition-all ${
+              hovered === template.id
+                ? 'border-green-300 bg-green-50/60 shadow-sm'
+                : 'border-black/[0.07] bg-white hover:border-green-200 hover:shadow-sm'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-lg bg-[#F7F8FA] border border-black/[0.06] flex items-center justify-center flex-shrink-0 mt-0.5">
+                {template.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-[#0F172A] leading-tight mb-1">{template.name}</p>
+                <p className="text-xs text-slate-400 leading-relaxed">{template.description}</p>
+              </div>
+              <ArrowRight size={14} className={`shrink-0 mt-1 transition-colors ${hovered === template.id ? 'text-green-600' : 'text-slate-200'}`} />
             </div>
-            <span className="text-[10px] font-semibold px-2 py-1 rounded-full border bg-[#25D366]/10 text-[#128C7E] border-[#25D366]/20">
-              {intentTemplates.length} sugerencias
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {sortedIntentTemplates.map(template => (
-              <button
-                key={template.id}
-                onClick={() => onSelectTemplate(template)}
-                onMouseEnter={() => setHovered(template.id)}
-                onMouseLeave={() => setHovered(null)}
-                className={`text-left p-5 rounded-[14px] border transition-all group ${
-                  hovered === template.id
-                    ? 'border-[#25D366]/40 bg-[#25D366]/5 shadow-sm scale-[1.01]'
-                    : 'border-black/[0.07] bg-white hover:border-[#25D366]/30 hover:shadow-sm'
-                }`}
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="h-9 w-9 rounded-lg bg-[#25D366]/10 border border-[#25D366]/15 flex items-center justify-center flex-shrink-0">
-                    {template.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${template.badgeColor}`}>
-                        {template.badge}
-                      </span>
-                      {isRecommendedForGoal(template) && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
-                          Para tu objetivo
-                        </span>
-                      )}
-                      <span className="text-[10px] text-slate-400 capitalize">{template.type}</span>
-                    </div>
-                    <p className="font-semibold text-sm text-[#0F172A] leading-tight">{template.name}</p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-400 leading-relaxed mb-3">{template.description}</p>
-
-                <div className="flex items-center gap-3 text-[10px] text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
-                    {template.conditions.length} {template.conditions.length === 1 ? 'condicion' : 'condiciones'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                    {template.actions.length} {template.actions.length === 1 ? 'accion' : 'acciones'}
-                  </span>
-                  {template.conditionsLogic && template.conditions.length > 1 && (
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block" />
-                      Logica {template.conditionsLogic}
-                    </span>
-                  )}
-                </div>
-
-                <div className={`mt-3 flex items-center gap-1 text-xs font-medium transition-colors ${
-                  hovered === template.id ? 'text-[#128C7E]' : 'text-slate-300'
-                }`}>
-                  Usar intencion
-                  <ArrowRight size={12} />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Templates */}
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold text-[#0F172A]/50 uppercase tracking-wider mb-4">
-          Plantillas predefinidas — Editables después
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4">
-          {sortedTemplates.map(template => (
-            <button
-              key={template.id}
-              onClick={() => onSelectTemplate(template)}
-              onMouseEnter={() => setHovered(template.id)}
-              onMouseLeave={() => setHovered(null)}
-              className={`text-left p-5 rounded-[14px] border transition-all group ${
-                hovered === template.id
-                  ? 'border-[#eab308]/50 bg-[#fefce8]/60 shadow-sm scale-[1.01]'
-                  : 'border-black/[0.07] bg-white hover:border-[#eab308]/30 hover:shadow-sm'
-              }`}
-            >
-              <div className="flex items-start gap-3 mb-3">
-                <div className="h-9 w-9 rounded-lg bg-[#F7F8FA] border border-black/[0.06] flex items-center justify-center flex-shrink-0">
-                  {template.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    {isRecommendedForBusinessType(template) && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-[#25D366]/10 text-[#128C7E] border-[#25D366]/20">
-                        Para tu rubro
-                      </span>
-                    )}
-                    {isRecommendedForGoal(template) && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-violet-500/10 text-violet-700 border-violet-500/20">
-                        Para tu objetivo
-                      </span>
-                    )}
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${template.badgeColor}`}>
-                      {template.badge}
-                    </span>
-                    <span className="text-[10px] text-slate-400 capitalize">{template.type}</span>
-                  </div>
-                  <p className="font-semibold text-sm text-[#0F172A] leading-tight">{template.name}</p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed mb-3">{template.description}</p>
-
-              {/* Stats */}
-              <div className="flex items-center gap-3 text-[10px] text-slate-400">
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
-                  {template.conditions.length} {template.conditions.length === 1 ? 'condición' : 'condiciones'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                  {template.actions.length} {template.actions.length === 1 ? 'acción' : 'acciones'}
-                </span>
-                {template.conditionsLogic && template.conditions.length > 1 && (
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block" />
-                    Lógica {template.conditionsLogic}
-                  </span>
-                )}
-              </div>
-
-              <div className={`mt-3 flex items-center gap-1 text-xs font-medium transition-colors ${
-                hovered === template.id ? 'text-[#ca8a04]' : 'text-slate-300'
-              }`}>
-                Usar esta plantilla
-                <ArrowRight size={12} />
-              </div>
-            </button>
-          ))}
-        </div>
+          </button>
+        ))}
       </div>
     </div>
   )
