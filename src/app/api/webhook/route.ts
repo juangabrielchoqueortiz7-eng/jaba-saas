@@ -1176,6 +1176,25 @@ export async function POST(request: Request) {
                                 const evaluationResult = await ConditionEvaluator.evaluateAllConditionGroups(groups as TriggerConditionGroup[], context)
 
                                 if (evaluationResult.matched) {
+                                    // Anti-spam guard: skip if same trigger fired for this chat within cooldown window
+                                    const cooldownMinutes = trigger.cooldown_minutes ?? 60
+                                    if (cooldownMinutes > 0) {
+                                        const cooldownCutoff = new Date(Date.now() - cooldownMinutes * 60 * 1000).toISOString()
+                                        const { data: recentExec } = await supabaseAdmin
+                                            .from('trigger_executions')
+                                            .select('id')
+                                            .eq('trigger_id', trigger.id)
+                                            .eq('chat_id', chatId)
+                                            .eq('status', 'success')
+                                            .gte('created_at', cooldownCutoff)
+                                            .limit(1)
+                                            .maybeSingle()
+                                        if (recentExec) {
+                                            console.log(`[Trigger] Cooldown activo para ${trigger.name} — chat ${chatId}, próximo en ${cooldownMinutes}min`)
+                                            continue
+                                        }
+                                    }
+
                                     console.log(`[Trigger] Activado: ${trigger.name}`, evaluationResult.reason);
 
                                     // Build ActionContext
