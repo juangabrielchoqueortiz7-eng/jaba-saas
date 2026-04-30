@@ -32,6 +32,8 @@ import {
 import {
     getSequenceAutomationPanelData,
     getTriggers,
+    pauseAllTriggers,
+    resumeAllTriggers,
     type SequenceAutomationListItem,
     type TriggerListItem,
 } from './actions'
@@ -153,6 +155,7 @@ export default function AutomationDashboardPanel() {
     const [items, setItems] = useState<SequenceAutomationListItem[]>([])
     const [templates, setTemplates] = useState<MetaTemplate[]>([])
     const [templateError, setTemplateError] = useState<string | null>(null)
+    const [globalPausing, setGlobalPausing] = useState(false)
 
     useEffect(() => {
         let cancelled = false
@@ -295,14 +298,50 @@ export default function AutomationDashboardPanel() {
                             El cliente elige que quiere lograr y el panel muestra si conviene flujo, disparador, secuencia o plantilla.
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setAdvancedMode(value => !value)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                    >
-                        <Wand2 size={14} />
-                        {advancedMode ? 'Ver modo simple' : 'Ver modo avanzado'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {/* Pausa de emergencia global */}
+                        {triggers.length > 0 && (
+                            <button
+                                type="button"
+                                disabled={globalPausing}
+                                onClick={async () => {
+                                    const allActive = triggers.every(t => t.is_active)
+                                    const allPaused = triggers.every(t => !t.is_active)
+                                    if (allPaused) {
+                                        setGlobalPausing(true)
+                                        await resumeAllTriggers()
+                                        setTriggers(prev => prev.map(t => ({ ...t, is_active: true })))
+                                        setGlobalPausing(false)
+                                    } else {
+                                        setGlobalPausing(true)
+                                        await pauseAllTriggers()
+                                        setTriggers(prev => prev.map(t => ({ ...t, is_active: false })))
+                                        setGlobalPausing(false)
+                                    }
+                                }}
+                                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                                    triggers.every(t => !t.is_active)
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                        : 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                                }`}
+                            >
+                                <ShieldAlert size={14} />
+                                {globalPausing
+                                    ? 'Procesando...'
+                                    : triggers.every(t => !t.is_active)
+                                        ? 'Reactivar todo'
+                                        : 'Pausar todo'}
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => setAdvancedMode(value => !value)}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                        >
+                            <Wand2 size={14} />
+                            {advancedMode ? 'Ver modo simple' : 'Ver modo avanzado'}
+                        </button>
+                    </div>
                 </div>
             </div>
 

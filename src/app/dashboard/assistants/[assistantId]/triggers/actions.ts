@@ -151,6 +151,7 @@ type SaveTriggerPayload = {
     name: string
     type: TriggerType
     description: string
+    cooldown_minutes?: number
     actions: { type: string, payload: Record<string, unknown>, action_order?: number, delay_seconds?: number }[]
     conditions?: { type: string, condition_type?: string, operator: string, value: string, payload?: Record<string, unknown> }[]
     conditionsLogic?: ConditionLogic
@@ -340,6 +341,7 @@ export async function saveTrigger(
                 name: triggerData.name,
                 type: triggerData.type,
                 description: triggerData.description,
+                cooldown_minutes: triggerData.cooldown_minutes ?? 60,
                 user_id: user.id
             })
             .eq('id', triggerId)
@@ -352,7 +354,8 @@ export async function saveTrigger(
                 user_id: user.id,
                 name: triggerData.name,
                 type: triggerData.type,
-                description: triggerData.description
+                description: triggerData.description,
+                cooldown_minutes: triggerData.cooldown_minutes ?? 60,
             })
             .select()
             .single()
@@ -1063,4 +1066,55 @@ export async function installCustomSequenceAutomationPack(packKey: string) {
     }, {} as Record<AutomationSequenceKey, AutomationSequenceSetting>)
 
     await applySequenceAutomationPackSettings(user.id, businessProfile, nextSettings)
+}
+
+// ── Pausa global de automatizaciones ──────────────────────────────────────────
+
+export async function pauseAllTriggers(): Promise<{ paused: number }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data, error } = await supabase
+        .from('triggers')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .select('id')
+
+    if (error) throw error
+    revalidatePath('/dashboard/assistants/[assistantId]/triggers', 'page')
+    return { paused: data?.length ?? 0 }
+}
+
+export async function resumeAllTriggers(): Promise<{ resumed: number }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+
+    const { data, error } = await supabase
+        .from('triggers')
+        .update({ is_active: true })
+        .eq('user_id', user.id)
+        .eq('is_active', false)
+        .select('id')
+
+    if (error) throw error
+    revalidatePath('/dashboard/assistants/[assistantId]/triggers', 'page')
+    return { resumed: data?.length ?? 0 }
+}
+
+export async function getGlobalPauseState(): Promise<{ allPaused: boolean; total: number; active: number }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { allPaused: false, total: 0, active: 0 }
+
+    const { data } = await supabase
+        .from('triggers')
+        .select('is_active')
+        .eq('user_id', user.id)
+
+    if (!data || data.length === 0) return { allPaused: false, total: 0, active: 0 }
+    const active = data.filter((t: { is_active: boolean }) => t.is_active).length
+    return { allPaused: active === 0, total: data.length, active }
 }

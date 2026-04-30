@@ -151,6 +151,7 @@ interface LoadedTrigger {
   name: string
   type: TriggerType
   description: string | null
+  cooldown_minutes?: number | null
   trigger_actions?: LoadedTriggerAction[]
   trigger_conditions?: LoadedTriggerCondition[]
   conditions_logic?: 'AND' | 'OR'
@@ -1977,12 +1978,17 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
   const [showConditionsSection, setShowConditionsSection] = useState(false)
   const [showConditionPicker, setShowConditionPicker] = useState(false)
   const [showActionPicker, setShowActionPicker] = useState(false)
+  const [showTestModal, setShowTestModal] = useState(false)
+  const [testPhone, setTestPhone] = useState('')
+  const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
+  const [testError, setTestError] = useState('')
 
   // Trigger form
   const [name, setName] = useState(!triggerId && initialTemplate ? initialTemplate.name : '')
   const [type, setType] = useState<TriggerType>(!triggerId && initialTemplate ? initialTemplate.type : 'logic')
   const [description, setDescription] = useState(!triggerId && initialTemplate ? initialTemplate.description : '')
   const [timeMinutes, setTimeMinutes] = useState(!triggerId && initialTemplate?.type === 'time' && initialTemplate.timeMinutes ? initialTemplate.timeMinutes : '30')
+  const [cooldownMinutes, setCooldownMinutes] = useState(60)
   const [flows, setFlows] = useState<ConversationFlow[]>([])
   const [selectedFlowId, setSelectedFlowId] = useState('')
   const conditionsLogic = 'AND' as const
@@ -2037,6 +2043,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
             delay_seconds: a.delay_seconds || 0,
           })))
           setConditions((data.trigger_conditions || []).map(normalizeLegacyCondition))
+          if (data.cooldown_minutes != null) setCooldownMinutes(data.cooldown_minutes)
         }
         setIsLoading(false)
       })
@@ -2105,6 +2112,7 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
           name,
           type,
           description: descriptionToSave,
+          cooldown_minutes: cooldownMinutes,
           actions: actions.map((a, i) => ({
             type: a.type,
             payload: a.payload,
@@ -2334,6 +2342,25 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
     ] : []),
   ]
 
+  const handleTest = async () => {
+    if (!testPhone.trim()) return
+    setTestStatus('sending')
+    setTestError('')
+    try {
+      const res = await fetch('/api/triggers/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ triggerId, testPhone: testPhone.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+      setTestStatus('ok')
+    } catch (err) {
+      setTestStatus('error')
+      setTestError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
   if (isLoading) return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 animate-pulse">
       <div className="h-8 w-48 bg-black/[0.06] rounded-md" />
@@ -2359,11 +2386,70 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
             <p className="text-slate-400 text-sm">Configura qué hace tu bot automáticamente</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={isPending} className="bg-green-600 hover:bg-green-700 text-white gap-2">
-          <Save size={16} />
-          {isPending ? 'Guardando...' : 'Guardar Cambios'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {triggerId && (
+            <Button
+              type="button"
+              onClick={() => { setTestStatus('idle'); setTestError(''); setShowTestModal(true) }}
+              className="bg-white border border-black/[0.12] text-slate-600 hover:bg-[#F7F8FA] gap-2 h-9"
+            >
+              <Zap size={14} className="text-amber-500" />
+              Probar
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={isPending} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+            <Save size={16} />
+            {isPending ? 'Guardando...' : 'Guardar Cambios'}
+          </Button>
+        </div>
       </div>
+
+      {/* ── Test Modal ── */}
+      {showTestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowTestModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-black/[0.08]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-black/[0.06]">
+              <div>
+                <h3 className="text-base font-bold text-[#0F172A]">Probar disparador</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Se enviará el primer mensaje con el prefijo [PRUEBA]</p>
+              </div>
+              <button onClick={() => setShowTestModal(false)} className="text-slate-400 hover:text-slate-600">
+                <Trash2 size={16} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500">Número de WhatsApp (con código de país)</Label>
+                <Input
+                  placeholder="Ej: +59170000000"
+                  value={testPhone}
+                  onChange={e => setTestPhone(e.target.value)}
+                  className="bg-[#F7F8FA] border-black/[0.08]"
+                  onKeyDown={e => e.key === 'Enter' && handleTest()}
+                />
+              </div>
+              {testStatus === 'ok' && (
+                <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm">
+                  <CheckCircle2 size={14} /> Mensaje enviado correctamente
+                </div>
+              )}
+              {testStatus === 'error' && (
+                <div className="text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs">
+                  {testError}
+                </div>
+              )}
+              <Button
+                onClick={handleTest}
+                disabled={testStatus === 'sending' || !testPhone.trim()}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2"
+              >
+                <Zap size={14} />
+                {testStatus === 'sending' ? 'Enviando...' : 'Enviar mensaje de prueba'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Progress Stepper ── */}
       {!triggerId && (
@@ -2736,6 +2822,32 @@ export default function TriggerBuilder({ assistantId, triggerId, initialTemplate
                   )}
                 </div>
               )}
+              {/* ── Anti-spam cooldown ── */}
+              <div className="border-t border-black/[0.06] pt-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 size={12} className="text-slate-400" />
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">No repetir al mismo cliente</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={String(cooldownMinutes)}
+                    onValueChange={v => setCooldownMinutes(parseInt(v))}
+                  >
+                    <SelectTrigger className="h-8 bg-[#F7F8FA] border-black/[0.08] text-xs flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Sin límite</SelectItem>
+                      <SelectItem value="30">30 minutos</SelectItem>
+                      <SelectItem value="60">1 hora</SelectItem>
+                      <SelectItem value="360">6 horas</SelectItem>
+                      <SelectItem value="1440">1 día</SelectItem>
+                      <SelectItem value="10080">1 semana</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-[10px] text-slate-400">Evita que el mismo cliente active este disparador varias veces seguidas.</p>
+              </div>
             </CardContent>
           </Card>
 
